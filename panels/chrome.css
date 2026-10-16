@@ -384,6 +384,14 @@
     background-color: var(--zth-pip-glass);
     backdrop-filter: blur(12px) saturate(1.3);
     outline: 1px solid rgb(255 255 255 / 0.12);
+    /* Shown when Firefox shows the controls: mouse over, or a key pressed. */
+    opacity: 0;
+    transition: opacity 160ms linear;
+  }
+
+  &:is([keying], [showing], [donthide]) #controls-bottom,
+  body:not(:fullscreen) &:hover #controls-bottom {
+    opacity: 1;
   }
 
   & .controls-bottom-lower {

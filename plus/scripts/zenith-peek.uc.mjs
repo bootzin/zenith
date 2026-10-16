@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.7.0
+// @version        0.7.1
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -207,21 +207,48 @@ const Instant = {
 const WebCards = {
   cache: new Map(),
   NAMES: { currency: "Currency", define: "Define", weather: "Weather" },
+  // How long an answer is reused: weather changes, definitions don't.
+  TTL: { currency: 3600e3, define: Infinity, weather: 600e3 },
+  PLACE_PREF: "zenith.internal.weather-place",
 
   on() {
     return prefs.bool("zenith.peek.web-cards", true);
   },
 
-  // text -> { card, query, prefix? } or null
+  // text -> { card, query, prefix? } or null. "wt" on its own is the weather
+  // for the last place looked up, or near you.
   match(text) {
     if (!this.on()) return null;
     const t = text.trim();
-    const m = t.match(/^(\S+)\s+(.+)$/);
+    const m = t.match(/^(\S+)(?:\s+(.+))?$/);
     const prefix = m && Lookup.findPrefix(m[1]);
     const card = prefix && Lookup.cardOf(prefix);
-    if (card) return { card, query: m[2].trim(), prefix };
+    if (card && (m[2] || card === "weather")) return { card, query: (m[2] ?? "").trim(), prefix };
     if (/^\d[\d.,]*\s*[a-z]{3}\s+(to|in)\s+[a-z]{3}$/i.test(t)) return { card: "currency", query: t };
     return null;
+  },
+
+  lastPlace() {
+    return prefs.str(this.PLACE_PREF);
+  },
+
+  // "Peek weather units", or automatic: Firefox's home country (it works
+  // that out from your connection, without asking for your location), then
+  // the regional format. Only a few countries use Fahrenheit.
+  imperial() {
+    const set = prefs.str("zenith.peek.units");
+    if (set && set !== "auto") return set === "imperial";
+    let region = "";
+    try {
+      const { Region } = ChromeUtils.importESModule("resource://gre/modules/Region.sys.mjs");
+      region = Region.home || Region.current || "";
+    } catch {}
+    if (!region) {
+      try {
+        region = new Intl.Locale(Services.locale.regionalPrefsLocales?.[0] ?? "en").maximize().region ?? "";
+      } catch {}
+    }
+    return ["US", "LR", "MM"].includes(region.toUpperCase());
   },
 
   async get(url, json = true) {
@@ -240,17 +267,19 @@ const WebCards = {
     }
   },
 
-  // -> { text, copy?, note? } or null; cached per query for this session.
+  // -> { text, copy?, note? } or null; reused for a while (see TTL).
   async answer({ card, query }) {
-    const key = `${card}:${query.toLowerCase()}`;
-    if (!this.cache.has(key)) {
-      this.cache.set(key, this[card](query).catch(e => {
+    const key = `${card}:${query.toLowerCase()}:${card === "weather" ? `${this.imperial()}:${query ? "" : this.lastPlace()}` : ""}`;
+    const hit = this.cache.get(key);
+    if (!hit || Date.now() - hit.at > this.TTL[card]) {
+      const promise = this[card](query).catch(e => {
         console.warn(`[Zenith Peek] ${card} card`, e);
         this.cache.delete(key);
         return null;
-      }));
+      });
+      this.cache.set(key, { at: Date.now(), promise });
     }
-    return this.cache.get(key);
+    return this.cache.get(key).promise;
   },
 
   // "100 usd eur", "100 usd to eur", "usd eur", "50,5 gbp in brl"
@@ -289,20 +318,24 @@ const WebCards = {
   // One line from wttr.in's JSON (its one-line text format is only sent to
   // command-line tools; browsers get a page): "Lisbon, Portugal: Overcast,
   // 22°C (feels 19°C), wind 21 km/h SSW"
+  // With no place: the last place looked up, or (none yet) wttr.in's guess
+  // from your connection.
   async weather(query) {
-    const imperial = /-(US|LR|MM)$/.test(Services.locale.regionalPrefsLocales?.[0] ?? "");
+    const imperial = this.imperial();
+    const asked = query || this.lastPlace();
     const lang = LANG === "en" ? "" : `&lang=${LANG}`;
-    const data = await this.get(`https://wttr.in/${encodeURIComponent(query)}?format=j1${lang}`);
+    const data = await this.get(`https://wttr.in/${encodeURIComponent(asked)}?format=j1${lang}`);
     const now = data?.current_condition?.[0];
     if (!now) return null;
+    if (query) Services.prefs.setStringPref(this.PLACE_PREF, query);
     const area = data.nearest_area?.[0];
-    const place = [area?.areaName?.[0]?.value, area?.country?.[0]?.value].filter(Boolean).join(", ") || query;
+    const place = [area?.areaName?.[0]?.value, area?.country?.[0]?.value].filter(Boolean).join(", ") || asked || "Near you";
     const sky = now[`lang_${LANG}`]?.[0]?.value ?? now.weatherDesc?.[0]?.value ?? "";
     const [t, feels, wind, unit] = imperial
       ? [now.temp_F, now.FeelsLikeF, now.windspeedMiles, "°F"]
       : [now.temp_C, now.FeelsLikeC, now.windspeedKmph, "°C"];
     const text = `${place}: ${sky ? `${sky.trim()}, ` : ""}${t}${unit} (feels ${feels}${unit}), wind ${wind} ${imperial ? "mph" : "km/h"} ${now.winddir16Point ?? ""}`;
-    return { text: text.trim(), note: "wttr.in" };
+    return { text: text.trim(), note: asked ? "wttr.in" : "near you, by wttr.in" };
   },
 };
 
@@ -322,13 +355,16 @@ const Commands = {
     if (!m || Lookup.findPrefix(m[1])) return null;
     if (m[1].toLowerCase() === "pomo") {
       const running = T.list().find(x => x.kind !== "timer");
-      if (running) {
+      // "pomo" alone: the running one (ticking), or the usual pattern.
+      // "pomo 15 10 4", "pomo focus 10, 5 break, 3 rounds": that pattern.
+      if (running && !m[2]) {
         return { label: "Pomodoro", text: `${T.describe(running)}, ${T.format(running.end - Date.now())} left`, hint: "Enter stops it",
-                 run: () => T.cancel(running.id) };
+                 run: () => T.cancel(running.id), live: true };
       }
-      const p = T.pattern();
-      return { label: "Pomodoro", text: `${p.focus} min focus, ${p.rest} min break, ${p.rounds} rounds`, hint: "Enter starts",
-               run: () => T.startPomodoro() };
+      const p = m[2] ? T.parsePattern(m[2]) : T.pattern();
+      if (!p) return { label: "Pomodoro", text: "focus, break and rounds: pomo 25 5 4, or pomo focus 10, 5 break, 3 rounds", hint: "" };
+      return { label: "Pomodoro", text: `${p.focus} min focus, ${p.rest} min break, ${p.rounds} round${p.rounds > 1 ? "s" : ""}`,
+               hint: running ? "Enter replaces the running one" : "Enter starts", run: () => T.startPomodoro(p) };
     }
     if (!m[2]) return null; // "timer" alone: the list
     const d = T.parse(m[2]);
@@ -461,6 +497,11 @@ const Prompt = {
     this.card = this.command || this.answer ? null : WebCards.match(text);
     this.cardAnswer = null;
     this.target = this.command ? null : Lookup.resolve(text);
+    // "wt" alone opens the full forecast for the place it shows.
+    if (this.card && !this.card.query && this.card.prefix) {
+      const place = WebCards.lastPlace();
+      this.target = { label: "Weather", url: Lookup.fill(this.card.prefix.url, place), query: place || "near you" };
+    }
     const typedPrefix = /^\S+$/.test(text.trim()) ? Lookup.findPrefix(text.trim()) : null;
     this.row.toggleAttribute("answer", !!this.answer);
     this.row.removeAttribute("card");
@@ -469,6 +510,15 @@ const Prompt = {
       this.tag.textContent = this.command.label;
       this.text.textContent = this.command.text;
       this.hint.textContent = this.command.hint;
+      // A running pomodoro's time left keeps counting down.
+      if (this.command.live) {
+        this.timerClock = setInterval(() => {
+          const now = Commands.match(this.input.value);
+          if (!now?.live) return;
+          this.command = now;
+          this.text.textContent = now.text;
+        }, 1000);
+      }
     } else if (this.card) {
       this.showCard(this.card, text);
     } else if (this.answer) {

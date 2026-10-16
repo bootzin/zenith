@@ -2,15 +2,17 @@
 // @name           Zenith Timers
 // @description    Zenith Plus: countdown timers and pomodoros, started from Peek.
 // @include        main
-// @version        0.7.0
+// @version        0.7.1
 // ==/UserScript==
 
 // Timers are started from the Peek prompt (Alt+Q):
 //   timer 10m tea      a countdown ("90s", "1h30m", "25" = minutes)
 //   pomo               a pomodoro, in the pattern from Zenith Plus's settings
+//   pomo 15 10 4       a pomodoro of 15 min focus, 10 min break, 4 rounds
+//                      (also "pomo focus 10, 5 break, 3 rounds")
 //   timer              lists running timers, where Delete cancels one
-// A running timer is a hairline down the right edge of the page that drains
-// as time passes. When it ends, a small card appears in the top right
+// A running timer is a hairline down the left edge of the page (the right
+// one has the page's scrollbar) that drains as time passes. When it ends, a small card appears in the top right
 // corner (and a system notification if Zen isn't the active window).
 // Timers are kept in a hidden setting, so they survive a restart and every
 // window shows the same ones; only the frontmost window announces endings.
@@ -95,8 +97,30 @@ const Timers = {
     this.save([...this.list(), { id: `${now}`, kind: "timer", label, start: now, end: now + ms }]);
   },
 
-  startPomodoro() {
-    const p = pattern();
+  // "15 10 4", "15/10", "focus 10, 5 break, 3 rounds", "4 rounds of 50" ->
+  // { focus, rest, rounds }; anything not given comes from the settings.
+  // Bare numbers fill focus, break, rounds in that order.
+  parsePattern(text) {
+    const p = { ...pattern() };
+    const given = {};
+    const words = { focus: "focus", work: "focus", break: "rest", rest: "rest", round: "rounds", rounds: "rounds", x: "rounds" };
+    const re = /(focus|work|break|rest|rounds?|x)\s*(?:of\s*)?(\d+)|(\d+)\s*(?:min(?:utes?|s)?|m)?\s*(focus|work|break|rest|rounds?|x)?/gi;
+    const bare = [];
+    for (const m of text.matchAll(re)) {
+      if (m[1]) given[words[m[1].toLowerCase()]] ??= +m[2];
+      else if (m[4]) given[words[m[4].toLowerCase()]] ??= +m[3];
+      else bare.push(+m[3]);
+    }
+    for (const key of ["focus", "rest", "rounds"]) {
+      if (given[key] == null && bare.length) given[key] = bare.shift();
+    }
+    if (!Object.keys(given).length) return null;
+    Object.assign(p, given);
+    if (!(p.focus >= 1 && p.focus <= 180 && p.rest >= 1 && p.rest <= 60 && p.rounds >= 1 && p.rounds <= 12)) return null;
+    return p;
+  },
+
+  startPomodoro(p = pattern()) {
     const now = Date.now();
     const others = this.list().filter(t => t.kind === "timer");
     this.save([...others, { id: `${now}`, kind: "focus", label: "Focus", round: 1, rounds: p.rounds, focus: p.focus, rest: p.rest,

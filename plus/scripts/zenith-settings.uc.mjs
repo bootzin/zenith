@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.7.0
+// @version        0.7.1
 // ==/UserScript==
 
 // Zen's mod settings list every option flat, with no way to show that one
@@ -241,6 +241,23 @@ const RULES = {
       }
     ]
   },
+  "zenith.peek.units": {
+    "why": "Peek or its answers from the web are off",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      },
+      {
+        "if": {
+          "property": "zenith.peek.web-cards",
+          "value": true
+        }
+      }
+    ]
+  },
   "zenith.peek.pomodoro": {
     "why": "Peek is off",
     "conditions": [
@@ -300,9 +317,33 @@ function arrangeSinePage() {
   });
 }
 
+// Sine's "Auto-Update" button is a switch, not "update now", and its state
+// shows only as a colour; switched off, mods (Zenith too) stop updating when
+// Zen starts. A note next to it says so while it's off.
+function noteAutoUpdate() {
+  const box = document.querySelector("#sineInstalledGroup .updates-container");
+  if (!box) return;
+  const off = !Services.prefs.getBoolPref("sine.auto-updates", true);
+  let note = box.querySelector(".zenith-update-note");
+  if (off && !note) {
+    note = document.createXULElement("label");
+    note.className = "zenith-update-note";
+    note.setAttribute("value", "Auto-update is off: mods only update when you press Update");
+    box.append(note);
+  } else if (!off) {
+    note?.remove();
+  }
+}
+
 const STYLE = `
   [zenith-off] > :not(.zenith-why) {
     opacity: 0.45;
+  }
+  .zenith-update-note {
+    align-self: center;
+    margin-inline-start: 8px;
+    font-size: 0.85em;
+    color: var(--text-color-warning, #c88a00);
   }
   /* Folded: the store's description, grid and page buttons go; the header
      (search, refresh) and install-from-GitHub stay. */
@@ -373,15 +414,18 @@ function init() {
       pending = false;
       apply();
       arrangeSinePage();
+      noteAutoUpdate();
     });
   };
   // Zen builds the mod list (and rebuilds it) after the page loads.
   const mo = new MutationObserver(schedule);
   mo.observe(document.documentElement, { childList: true, subtree: true });
   Services.prefs.addObserver("zenith.", schedule);
+  Services.prefs.addObserver("sine.auto-updates", schedule);
   window.addEventListener("unload", () => {
     mo.disconnect();
     Services.prefs.removeObserver("zenith.", schedule);
+    Services.prefs.removeObserver("sine.auto-updates", schedule);
   }, { once: true });
   schedule();
 }

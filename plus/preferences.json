@@ -107,6 +107,43 @@
     "zenithWhy": "Peek is off"
   },
   {
+    "property": "zenith.peek.units",
+    "label": "Peek weather units",
+    "type": "dropdown",
+    "placeholder": "Default (Automatic (from your country))",
+    "options": [
+      {
+        "label": "Automatic (from your country)",
+        "value": "auto"
+      },
+      {
+        "label": "Metric: °C, km/h",
+        "value": "metric"
+      },
+      {
+        "label": "Imperial: °F, mph",
+        "value": "imperial"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      },
+      {
+        "if": {
+          "property": "zenith.peek.web-cards",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek or its answers from the web are off"
+  },
+  {
     "property": "zenith.peek.pomodoro",
     "label": "Peek pomodoro (type pomo)",
     "type": "dropdown",

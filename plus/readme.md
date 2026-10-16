@@ -1,6 +1,6 @@
 # Zenith Plus
 
-Version 0.7.0
+Version 0.7.1
 
 The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
 
@@ -12,8 +12,8 @@ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus a
 - Peeks are a floating page, not a tab, and they stay out of your history.
 - **Prefixes**: `m` maps, `w` Wikipedia, `d` define, `t` translate, `wt` weather, `y` YouTube, `ai` Google AI Mode, `$` currency, `gh` GitHub, `r` Reddit. Type `?` in Peek to see them all. Edit, add or remove prefixes right there.
 - **Instant answers**: maths, units and time zones show right in the prompt, worked out offline by Firefox itself. Enter copies the answer.
-- **Answers from the web**: `$ 100 usd eur` (or just `100 usd to eur`) converts currency, `d word` shows a definition, `wt city` the weather, all in the prompt. Enter copies a conversion or opens the full page. Switch these off in settings if you'd rather nothing is looked up as you type.
-- **Timers**: `timer 10m tea` starts a countdown, `pomo` a pomodoro, and `timer` lists them (Delete cancels). A running timer drains down the right edge of the page, and a small card in the corner says when it ends.
+- **Answers from the web**: `$ 100 usd eur` (or just `100 usd to eur`) converts currency, `d word` shows a definition, `wt city` the weather (`wt` alone: the last place you looked up, or near you), all in the prompt. Weather units follow your country, or the "Peek weather units" setting. Enter copies a conversion or opens the full page. Switch these off in settings if you'd rather nothing is looked up as you type.
+- **Timers**: `timer 10m tea` starts a countdown, `pomo` a pomodoro (`pomo 15 10 4`, or `pomo focus 10, 5 break, 3 rounds`, for your own pattern), and `timer` lists them (Delete cancels). A running timer drains down the left edge of the page, and a small card in the corner says when it ends.
 
 **Also**
 
@@ -32,5 +32,5 @@ Every feature has a switch in this mod's settings. In Zen's settings page, Plus 
 **What it touches:** the scripts run inside the browser with full access, like any Zen script mod. They collect nothing and send nothing about you. The network requests they cause:
 
 - the pages you choose to Peek;
-- web answers in Peek, once you've typed a `$`, `d` or `wt` lookup (or `100 usd to eur`): the currencies go to Frankfurter (European Central Bank rates), the word to Wiktionary, the place to wttr.in;
+- web answers in Peek, once you've typed a `$`, `d` or `wt` lookup (or `100 usd to eur`): the currencies go to Frankfurter (European Central Bank rates), the word to Wiktionary, the place to wttr.in (with `wt` alone and no place looked up yet, wttr.in works out roughly where you are from your connection, as any website can);
 - the cover art of what's playing, fetched from the site that's playing it, without cookies.

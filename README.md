@@ -42,7 +42,7 @@ Zen scripts run inside the browser with full access, like every script mod. Zeni
 The network requests it causes:
 
 - **Peek:** the pages you choose to open in it.
-- **Peek's web answers** (switch off with "Peek answers from the web"): after you type a `$`, `d` or `wt` lookup, the currencies go to [Frankfurter](https://frankfurter.dev) (European Central Bank rates), the word to Wiktionary, and the place to [wttr.in](https://wttr.in).
+- **Peek's web answers** (switch off with "Peek answers from the web"): after you type a `$`, `d` or `wt` lookup, the currencies go to [Frankfurter](https://frankfurter.dev) (European Central Bank rates), the word to Wiktionary, and the place to [wttr.in](https://wttr.in). With `wt` alone and no place looked up yet, wttr.in works out roughly where you are from your connection, as any website can; no location permission is used.
 - **Cover art** behind the media card: fetched from the site that's playing, without cookies.
 
 Specific things it changes:

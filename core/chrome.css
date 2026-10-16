@@ -247,6 +247,12 @@
   --zth-window-tint: 0;
   --zth-glass-alpha: 0.18;
   --zth-panel-alpha: 0.32;
+
+  /* The pinned sidebar is fully see-through, like the rest of the window.
+     The floating one keeps the panel tint: over a page it needs it. */
+  &:not([zen-compact-mode="true"]) {
+    --zth-sidebar-alpha: 0;
+  }
 }
 
 /* Transparency effects off, or Zen without its frosted look: solid. */
