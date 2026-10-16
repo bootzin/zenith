@@ -8,14 +8,16 @@
                                the fallback: everything for a manual install
                                with fx-autoconfig (tools/install.ps1)
 
-Usage: python package.py <zenith root> --owner <github-user> [--author <name>]
-The owner is the GitHub account the repository lives under; it goes into
-the homepage and readme links. It also writes the theme.json manifests
+Usage: python package.py <zenith root> --owner <github-user> [--branch <name>] [--author <name>]
+The owner is the GitHub account the repository lives under, and the branch
+is the one people install from (master); both go into the homepage, readme
+and install links. It also writes the theme.json manifests
 into the repository itself (mods/*/theme.json, plus/theme.json), which
 Sine reads when it installs from GitHub. Nothing is uploaded.
 """
 import argparse
 import json
+import re
 import shutil
 import zipfile
 from datetime import date
@@ -55,8 +57,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("root")
     ap.add_argument("--owner", required=True, help="GitHub account the repositories live under")
+    ap.add_argument("--branch", default="master", help="the repository branch people install from")
     ap.add_argument("--author", default=None)
     args = ap.parse_args()
+    repo = f"{args.owner}/zenith/tree/{args.branch}"
     root = Path(args.root)
     author = args.author or args.owner
     version = (root / "VERSION").read_text().strip()
@@ -66,7 +70,7 @@ def main():
         shutil.rmtree(dist)
 
     # --- Zen's mod store: one folder per mod --------------------------------
-    raw = f"https://raw.githubusercontent.com/{args.owner}/zenith/main"
+    raw = f"https://raw.githubusercontent.com/{args.owner}/zenith/{args.branch}"
     for key, (mod_id, name) in MODS.items():
         src, out = root / "mods" / key, dist / "zen-store" / key
         out.mkdir(parents=True)
@@ -105,7 +109,7 @@ def main():
         "id": "zenith-plus",
         "name": "Zenith Plus",
         "description": "Peek, real load and download progress, a sidebar minimap, zoom pills and more for Zenith.",
-        "homepage": f"https://github.com/{args.owner}/zenith/tree/main/plus",
+        "homepage": f"https://github.com/{repo}/plus",
         "author": author,
         "version": version,
         "style": {"chrome": "chrome.css"},
@@ -122,14 +126,15 @@ def main():
         # an AI assistant (Claude), so it says so.
         "ai": "yes",
         # Installing Plus from Sine also installs Zenith's six mods.
-        "modules": [f"{args.owner}/zenith/tree/main/mods/{key}" for key in MODS],
+        "modules": [f"{repo}/mods/{key}" for key in MODS],
     }
     write_json(out / "theme.json", plus_manifest)
     write_json(plus / "theme.json", plus_manifest)
 
-    # The README's install links name the account too.
+    # The README's install path names the account and branch too.
     readme = root / "README.md"
-    readme.write_text(readme.read_text(encoding="utf-8").replace("OWNER/zenith", f"{args.owner}/zenith"), encoding="utf-8")
+    text = re.sub(r"[\w-]+/zenith/tree/[\w.-]+/", f"{repo}/", readme.read_text(encoding="utf-8"))
+    readme.write_text(text.replace("OWNER/zenith", f"{args.owner}/zenith"), encoding="utf-8")
 
     # --- Manual install (the fallback) ---------------------------------------
     zip_path = dist / f"zenith-{version}-manual.zip"

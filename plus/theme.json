@@ -2,7 +2,7 @@
   "id": "zenith-plus",
   "name": "Zenith Plus",
   "description": "Peek, real load and download progress, a sidebar minimap, zoom pills and more for Zenith.",
-  "homepage": "https://github.com/bootzin/zenith/tree/main/plus",
+  "homepage": "https://github.com/bootzin/zenith/tree/master/plus",
   "author": "bootzin",
   "version": "0.6.3",
   "style": {
@@ -33,7 +33,7 @@
       ]
     }
   },
-  "readme": "https://raw.githubusercontent.com/bootzin/zenith/main/plus/readme.md",
+  "readme": "https://raw.githubusercontent.com/bootzin/zenith/master/plus/readme.md",
   "image": "",
   "tags": [
     "chrome",
@@ -45,11 +45,11 @@
   ],
   "ai": "yes",
   "modules": [
-    "bootzin/zenith/tree/main/mods/core",
-    "bootzin/zenith/tree/main/mods/edges",
-    "bootzin/zenith/tree/main/mods/tabs",
-    "bootzin/zenith/tree/main/mods/urlbar",
-    "bootzin/zenith/tree/main/mods/panels",
-    "bootzin/zenith/tree/main/mods/motion"
+    "bootzin/zenith/tree/master/mods/core",
+    "bootzin/zenith/tree/master/mods/edges",
+    "bootzin/zenith/tree/master/mods/tabs",
+    "bootzin/zenith/tree/master/mods/urlbar",
+    "bootzin/zenith/tree/master/mods/panels",
+    "bootzin/zenith/tree/master/mods/motion"
   ]
 }

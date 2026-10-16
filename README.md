@@ -26,7 +26,7 @@ Zenith comes in two parts.
 ## Install
 
 - **Zenith:** from Zen's mod store (Settings › Zen Mods).
-- **Zenith Plus:** with [Sine](https://github.com/CosmoCreeper/Sine). In Sine's settings, install from GitHub with `bootzin/zenith/tree/main/plus`. That also installs Zenith's six mods. Until Zenith Plus is in Sine's store, Sine only runs its scripts with **Allow JS from unofficial sources** on.
+- **Zenith Plus:** with [Sine](https://github.com/CosmoCreeper/Sine). In Sine's settings, install from GitHub with `bootzin/zenith/tree/master/plus`. That also installs Zenith's six mods. Until Zenith Plus is in Sine's store, Sine only runs its scripts with **Allow JS from unofficial sources** on.
 - **Manual (fallback, Windows):**
   1. Download `zenith-<version>-manual.zip` from [Releases](../../releases).
   2. Follow `INSTALL.txt`. This uses fx-autoconfig as the script loader.

@@ -1,0 +1,1 @@
+fx-autoconfig 0.10.16 (MrOtherGuy/fx-autoconfig, master as of 2026-10-16), MPL-2.0. Unmodified.
