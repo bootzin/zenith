@@ -10,7 +10,7 @@
         "value": "off"
       },
       {
-        "label": "Quiet: loading, sharing, private",
+        "label": "Quiet",
         "value": "quiet"
       },
       {
@@ -102,11 +102,11 @@
         "value": "straight"
       },
       {
-        "label": "Wrap the corners (with a rounded page frame)",
+        "label": "Wrap the corners",
         "value": "wrap"
       },
       {
-        "label": "Rounded bar, inset",
+        "label": "Short bar",
         "value": "inset"
       }
     ],

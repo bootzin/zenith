@@ -1,20 +1,20 @@
 [
   {
     "property": "zenith.core.density",
-    "label": "Density: row height of sidebar tabs and URL bar results",
+    "label": "Density",
     "type": "dropdown",
     "placeholder": "Default (Tight)",
     "options": [
       {
-        "label": "Tight: smallest rows",
+        "label": "Tight",
         "value": "tight"
       },
       {
-        "label": "Compact: rows 4px taller",
+        "label": "Compact",
         "value": "compact"
       },
       {
-        "label": "Cozy: rows 8px taller",
+        "label": "Cozy",
         "value": "cozy"
       }
     ]
@@ -189,18 +189,18 @@
     "property": "zenith.core.floating-sidebar",
     "label": "Sidebar",
     "type": "dropdown",
-    "placeholder": "Default (See-through, like the URL bar)",
+    "placeholder": "Default (See-through)",
     "options": [
       {
-        "label": "See-through, like the URL bar",
+        "label": "See-through",
         "value": "glass"
       },
       {
-        "label": "Solid, docked and floating identical",
+        "label": "Solid",
         "value": "solid"
       },
       {
-        "label": "Zen's own (floating is darker)",
+        "label": "Zen's own",
         "value": "zen"
       }
     ]

@@ -80,6 +80,14 @@ PEEK_ON = IF("zenith.peek.enabled", True)
 MOTION_ON = NOT("zenith.motion.preset", "off")
 
 
+def only_on(entry, os, why):
+    """A setting for one platform (Services.appinfo.OS: WINNT, Darwin, Linux);
+    the settings helper greys it out elsewhere, saying why."""
+    entry["zenithPlatform"] = os
+    entry["zenithWhy"] = why
+    return entry
+
+
 def script(entry):
     # Read by the Zenith Plus scripts (and maybe its CSS).
     entry["usedBy"] = "zenith-plus"
@@ -88,9 +96,9 @@ def script(entry):
 
 MODS = {
     "core": [
-        dropdown("zenith.core.density", "Density: row height of sidebar tabs and URL bar results", "Tight",
-                 ("Tight: smallest rows", "tight"), ("Compact: rows 4px taller", "compact"),
-                 ("Cozy: rows 8px taller", "cozy")),
+        dropdown("zenith.core.density", "Density", "Tight",
+                 ("Tight", "tight"), ("Compact", "compact"),
+                 ("Cozy", "cozy")),
         dropdown("zenith.core.scale", "Screen scale", "Auto by window width",
                  ("Auto by window width", "auto"), ("Small screen", "small"),
                  ("Medium screen", "medium"), ("Large screen", "large")),
@@ -108,24 +116,24 @@ MODS = {
         dropdown("zenith.core.window-transparency", "Window transparency", "Airy",
                  ("Solid", "solid"), ("Dense", "dense"), ("Balanced", "balanced"),
                  ("Airy", "airy"), ("Sheer", "sheer"), ("Glass", "glass")),
-        dropdown("zenith.core.floating-sidebar", "Sidebar", "See-through, like the URL bar",
-                 ("See-through, like the URL bar", "glass"), ("Solid, docked and floating identical", "solid"),
-                 ("Zen's own (floating is darker)", "zen")),
+        dropdown("zenith.core.floating-sidebar", "Sidebar", "See-through",
+                 ("See-through", "glass"), ("Solid", "solid"),
+                 ("Zen's own", "zen")),
         dropdown("zenith.core.page", "Page frame", "Flush and square",
                  ("Flush and square", "flush"), ("Rounded with a slim gap", "flush-round"), ("Zen default", "zen")),
         checkbox("zen.view.hide-window-controls", "Window buttons only when hovering the top edge (Zen setting)"),
     ],
     "edges": [
         dropdown("zenith.edges.preset", "Preset", "Full",
-                 ("Off", "off"), ("Quiet: loading, sharing, private", "quiet"), ("Full", "full")),
+                 ("Off", "off"), ("Quiet", "quiet"), ("Full", "full")),
         dropdown("zenith.edges.thickness", "Edge thickness", "Auto",
                  ("Auto", "auto"), ("1px", "1"), ("2px", "2"), ("3px", "3")),
         tri("zenith.edges.load", "Load edge (top)"),
         tri("zenith.edges.download", "Download progress (bottom)"),
         tri("zenith.edges.container", "Container colour (left)"),
         when(dropdown("zenith.edges.container-style", "Container line style", "Straight",
-                      ("Straight", "straight"), ("Wrap the corners (with a rounded page frame)", "wrap"),
-                      ("Rounded bar, inset", "inset")),
+                      ("Straight", "straight"), ("Wrap the corners", "wrap"),
+                      ("Short bar", "inset")),
              "Container colour is off",
              ANY(IF("zenith.edges.container", "on"),
                  ALL(IF("zenith.edges.container", ""),
@@ -147,7 +155,7 @@ MODS = {
         dropdown("zenith.tabs.preset", "Preset", "Informative",
                  ("Plain", "plain"), ("Informative", "informative"), ("Everything", "everything")),
         dropdown("zenith.tabs.reveal", "Revealed sidebar", "Overlay",
-                 ("Overlay the page", "overlay"), ("Dim the page", "dim")),
+                 ("Overlay", "overlay"), ("Dim", "dim")),
         tri("zenith.tabs.close-hover", "Close button only on hover"),
         dropdown("zenith.tabs.unloaded", "Sleeping tabs", "Grey and dim",
                  ("Grey and dim", "grey"), ("Italic title", "italic"), ("Hide favicon", "nofavicon"),
@@ -157,7 +165,7 @@ MODS = {
         dropdown("zenith.tabs.container", "Container stripe", "Subtle",
                  ("Off", "off"), ("Subtle", "subtle"), ("Strong", "strong")),
         tri("zenith.tabs.split-vertical", "Vertical split-view groups"),
-        checkbox("zen.tabs.open-pinned-in-new-tab", "Pinned tabs open other sites in a new tab (Zen setting; untick to stay in the tab)"),
+        checkbox("zen.tabs.open-pinned-in-new-tab", "Pinned tabs open other sites in a new tab"),
         tri("zenith.tabs.audio-wave", "Audio wave behind playing tabs"),
         tri("zenith.tabs.mini-player", "Slim media controls"),
         dropdown("zenith.tabs.reveal-delay", "Extra: sidebar reveal delay", "No delay",
@@ -172,7 +180,7 @@ MODS = {
     ],
     "urlbar": [
         dropdown("zenith.urlbar.preset", "Preset", "Spotlight",
-                 ("Zen default", "zen"), ("Spotlight (centred)", "spotlight"), ("Top", "top")),
+                 ("Zen default", "zen"), ("Spotlight", "spotlight"), ("Top", "top")),
         when(dropdown("zenith.urlbar.results", "Results layout", "Dense list",
                       ("Dense list", "dense"), ("Zen list", "list"), ("Tiles for top sites", "tiles")),
              "The URL bar preset is Zen default",
@@ -207,7 +215,7 @@ MODS = {
         dropdown("zenith.motion.preset", "Preset", "Quick",
                  ("Off", "off"), ("Quick", "quick"), ("Smooth", "smooth")),
         when(dropdown("zenith.motion.reduced", "When the system asks for less motion", "Keep Zenith's motion",
-                      ("Keep Zenith's motion", "zenith"), ("Follow the system: no motion", "follow")),
+                      ("Keep Zenith's motion", "zenith"), ("Follow the system", "follow")),
              "Zenith Plus keeps everything animated",
              NOT("zenith.plus.animate-zen", True)),
         when(dropdown("zenith.motion.tab-switch", "Tab switch", "Instant",
@@ -224,7 +232,7 @@ MODS = {
         script(checkbox("zenith.peek.enabled", "Peek: Alt+Q, or Shift+Enter in the URL bar (type ? in Peek to edit prefixes)", True)),
         when(script(dropdown("zenith.peek.engine", "Peek search engine", "Google",
                              ("Google", "google"), ("Google AI Mode", "google-ai"),
-                             ("Google, web results only", "google-web"), ("DuckDuckGo", "duckduckgo"),
+                             ("Google web results", "google-web"), ("DuckDuckGo", "duckduckgo"),
                              ("Kagi", "kagi"), ("Bing", "bing"))),
              "Peek is off, or your custom search URL is used instead",
              PEEK_ON, IF("zenith.peek.custom-engine", "")),
@@ -236,9 +244,9 @@ MODS = {
         when(script(checkbox("zenith.peek.web-cards",
                              "Peek answers from the web: currency ($), definitions (d), weather (wt)", True)),
              "Peek is off", PEEK_ON),
-        when(script(dropdown("zenith.peek.units", "Peek weather units", "Automatic (from your country)",
-                             ("Automatic (from your country)", "auto"), ("Metric: °C, km/h", "metric"),
-                             ("Imperial: °F, mph", "imperial"))),
+        when(script(dropdown("zenith.peek.units", "Peek weather units", "Automatic",
+                             ("Automatic", "auto"), ("Metric", "metric"),
+                             ("Imperial", "imperial"))),
              "Peek or its answers from the web are off", PEEK_ON, IF("zenith.peek.web-cards", True)),
         when(script(dropdown("zenith.peek.weather-history", "Peek weather history (wt on its own)", "3 recent places",
                              ("Off", "0"), ("1 recent place", "1"), ("2 recent places", "2"), ("3 recent places", "3"),
@@ -249,6 +257,18 @@ MODS = {
                              ("50 min focus, 10 min break, 3 rounds", "50-10-3"),
                              ("15 min focus, 3 min break, 4 rounds", "15-3-4"))),
              "Peek is off", PEEK_ON),
+        only_on(script(dropdown("zenith.plus.material-windows", "Windows: window material", "Acrylic",
+                                ("Mica", "mica"), ("Mica Alt", "mica-alt"),
+                                ("Automatic", "auto"), ("None", "off"))),
+                "WINNT", "Only on Windows"),
+        only_on(script(dropdown("zenith.plus.material-macos", "macOS: window material", "HUD",
+                                ("Full-screen UI", "fullscreen"), ("Popover", "popover"),
+                                ("Menu", "menu"), ("Tooltip", "tooltip"), ("Header", "header"),
+                                ("Under the window", "under"), ("None", "off"))),
+                "Darwin", "Only on macOS"),
+        only_on(script(dropdown("zenith.plus.material-linux", "Linux: see-through window (restart Zen)", "Off",
+                                ("On", "on"))),
+                "Linux", "Only on Linux"),
         script(checkbox("zenith.plus.minimap", "Sidebar minimap while the sidebar is hidden", True)),
         script(checkbox("zenith.plus.zoom-pill", "Zoom pill on zoomed pages", True)),
         script(checkbox("zenith.plus.media-art", "Cover art of what's playing behind the media card", True)),
@@ -262,8 +282,9 @@ MODS = {
 
 def write_helper_rules(root):
     """Copy the dependencies into the settings helper, between its markers."""
-    rules = {e["property"]: {"why": e["zenithWhy"], "conditions": e["conditions"]}
-             for prefs in MODS.values() for e in prefs if "conditions" in e}
+    rules = {e["property"]: {"why": e["zenithWhy"], "conditions": e.get("conditions", []),
+                             **({"platform": e["zenithPlatform"]} if "zenithPlatform" in e else {})}
+             for prefs in MODS.values() for e in prefs if "conditions" in e or "zenithPlatform" in e}
     helper = root / "plus" / "scripts" / "zenith-settings.uc.mjs"
     text = helper.read_text(encoding="utf-8")
     start, end = "// --- rules: generated by tools/build_prefs.py ---", "// --- end of generated rules ---"
@@ -272,9 +293,103 @@ def write_helper_rules(root):
     helper.write_text(text[:a] + start + "\n" + body + text[b:], encoding="utf-8")
 
 
+MOD_NAMES = {"core": "Zenith Core", "edges": "Zenith Edges", "tabs": "Zenith Tabs", "urlbar": "Zenith URL bar",
+             "panels": "Zenith Panels", "motion": "Zenith Motion", "plus": "Zenith Plus"}
+# Settings whose default is "leave it to Zen" (a choice that clears them).
+ZEN_DEFAULTS = {"zenith.plus.material-windows", "zenith.plus.material-macos", "zenith.plus.material-linux"}
+# "Follow preset" settings that no preset covers: what Zenith's CSS does
+# when they're left blank.
+FOLLOW_DEFAULTS = {"zenith.tabs.close-hover": "on"}
+
+
+def page_schema():
+    """The settings page's SCHEMA (see tools/settings_ui.py), checked
+    against the settings: each appears once, with a description."""
+    import settings_ui as ui
+    entries = {e["property"]: (mod, e) for mod, prefs in MODS.items() for e in prefs if e["type"] != "separator"}
+    placed = [p for s in ui.SECTIONS for _, props in s["groups"] for p in props] + \
+             [s["preset"] for s in ui.SECTIONS if s.get("preset")]
+    problems = [f"not on the page: {p}" for p in entries if p not in placed]
+    problems += [f"on the page twice: {p}" for p in set(placed) if placed.count(p) > 1]
+    problems += [f"not a setting: {p}" for p in placed if p not in entries]
+    problems += [f"no description: {p}" for p in entries if p not in ui.DESCRIPTIONS and not p.endswith(".preset")]
+    for preset, info in ui.PRESETS.items():
+        for prop, by_preset in info["sets"].items():
+            options = {o["value"] for o in entries[prop][1].get("options", [])}
+            problems += [f"{preset} sets {prop} to unknown {v!r}" for v in by_preset.values() if v not in options]
+    if problems:
+        raise SystemExit("settings page:\n  " + "\n  ".join(problems))
+
+    def setting(prop):
+        mod, e = entries[prop]
+        label = ui.LABELS.get(prop) or e["label"].removeprefix("Extra: ")
+        out = {"property": prop, "label": label[:1].upper() + label[1:], "type": e["type"],
+               "extra": e["label"].startswith("Extra: "), "desc": ui.DESCRIPTIONS.get(prop, ""),
+               "host": MOD_NAMES[mod]}
+        if e["type"] == "dropdown":
+            # The page only exists with Plus, so "(needs Zenith Plus)" goes.
+            options = [{**o, "label": o["label"].replace(" (needs Zenith Plus)", "")} for o in e["options"]]
+            default = None
+            placeholder = e.get("placeholder", "")
+            if placeholder.startswith("Default (") and placeholder.endswith(")"):
+                name = placeholder[len("Default ("):-1]
+                match = next((o for o in options if o["label"] == name), None)
+                if match:
+                    default = match["value"]
+                elif prop in ZEN_DEFAULTS:  # "Acrylic" = Zen's own choice: leaves the setting blank
+                    options.insert(0, {"label": name, "value": ""})
+                    default = ""
+                else:
+                    raise SystemExit(f"settings page: {prop}'s default {name!r} isn't one of its options")
+            out["options"] = options
+            out["default"] = FOLLOW_DEFAULTS.get(prop, default)
+        elif e["type"] == "checkbox":
+            out["default"] = e.get("defaultValue")  # None: a Zen setting, read its own default
+        else:
+            out["placeholder"] = e.get("placeholder", "")
+        if prop in ui.PARENTS:
+            out["parent"] = ui.PARENTS[prop]
+        if prop in ui.PICTURES:
+            out["picture"] = True
+        if "zenithWhy" in e:
+            out["rule"] = {"why": e["zenithWhy"], "conditions": e.get("conditions", []),
+                           **({"platform": e["zenithPlatform"]} if "zenithPlatform" in e else {})}
+        return out
+
+    sections = []
+    for s in ui.SECTIONS:
+        section = {k: s[k] for k in ("id", "title", "icon", "blurb")}
+        if s.get("preset"):
+            info = ui.PRESETS[s["preset"]]
+            section["preset"] = {"property": s["preset"], "host": MOD_NAMES[entries[s["preset"]][0]],
+                                 "default": info["default"], "sets": info["sets"],
+                                 "values": [{"value": v, **d} for v, d in info["values"].items()]}
+        section["groups"] = [{"title": title, "settings": [setting(p) for p in props]} for title, props in s["groups"]]
+        sections.append(section)
+    return sections
+
+
+def write_generated(path, start, end, body):
+    text = path.read_text(encoding="utf-8")
+    a, b = text.index(start), text.index(end)
+    path.write_text(text[:a] + start + "\n" + body + text[b:], encoding="utf-8")
+
+
 def main():
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
     write_helper_rules(root)
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sections = page_schema()
+    write_generated(root / "plus" / "scripts" / "zenith-settings-page.uc.mjs",
+                    "// --- schema: generated by tools/build_prefs.py ---", "// --- end of generated schema ---",
+                    "const SCHEMA = " + json.dumps(sections, indent=1, ensure_ascii=False) + ";\n")
+    # Plus mirrors every dropdown onto the page's settings element, so a
+    # change shows at once whichever loader (Zen or Sine) is in charge.
+    dropdowns = {e["property"]: MOD_NAMES[mod] for mod, prefs in MODS.items() for e in prefs
+                 if e["type"] == "dropdown" and not e.get("usedBy")}
+    write_generated(root / "plus" / "scripts" / "zenith-plus.uc.mjs",
+                    "// --- dropdowns: generated by tools/build_prefs.py ---", "// --- end of generated dropdowns ---",
+                    "const DROPDOWNS = " + json.dumps(dropdowns, indent=1) + ";\n")
     for name, prefs in MODS.items():
         out = root / name / "preferences.json"
         out.parent.mkdir(parents=True, exist_ok=True)

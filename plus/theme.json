@@ -38,6 +38,14 @@
         "about:preferences*",
         "about:settings*"
       ]
+    },
+    "scripts/zenith-settings-page.uc.mjs": {
+      "name": "Settings page",
+      "description": "The Zenith page in Zen's Settings: every option, explained, applied at once.",
+      "include": [
+        "about:preferences*",
+        "about:settings*"
+      ]
     }
   },
   "readme": "https://raw.githubusercontent.com/bootzin/zenith/master/plus/readme.md",
@@ -52,5 +60,5 @@
   ],
   "ai": "yes",
   "createdAt": "2026-10-16",
-  "updatedAt": "2026-10-16T20:46:52+00:00"
+  "updatedAt": "2026-10-16T21:31:32+00:00"
 }

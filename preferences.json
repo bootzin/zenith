@@ -10,15 +10,15 @@
     "placeholder": "Default (Tight)",
     "options": [
       {
-        "label": "Tight: smallest rows",
+        "label": "Tight",
         "value": "tight"
       },
       {
-        "label": "Compact: rows 4px taller",
+        "label": "Compact",
         "value": "compact"
       },
       {
-        "label": "Cozy: rows 8px taller",
+        "label": "Cozy",
         "value": "cozy"
       }
     ]
@@ -193,18 +193,18 @@
     "property": "zenith.core.floating-sidebar",
     "label": "Sidebar",
     "type": "dropdown",
-    "placeholder": "Default (See-through, like the URL bar)",
+    "placeholder": "Default (See-through)",
     "options": [
       {
-        "label": "See-through, like the URL bar",
+        "label": "See-through",
         "value": "glass"
       },
       {
-        "label": "Solid, docked and floating identical",
+        "label": "Solid",
         "value": "solid"
       },
       {
-        "label": "Zen's own (floating is darker)",
+        "label": "Zen's own",
         "value": "zen"
       }
     ]
@@ -249,7 +249,7 @@
         "value": "off"
       },
       {
-        "label": "Quiet: loading, sharing, private",
+        "label": "Quiet",
         "value": "quiet"
       },
       {
@@ -341,11 +341,11 @@
         "value": "straight"
       },
       {
-        "label": "Wrap the corners (with a rounded page frame)",
+        "label": "Wrap the corners",
         "value": "wrap"
       },
       {
-        "label": "Rounded bar, inset",
+        "label": "Short bar",
         "value": "inset"
       }
     ],
@@ -857,7 +857,7 @@
         "value": "zen"
       },
       {
-        "label": "Spotlight (centred)",
+        "label": "Spotlight",
         "value": "spotlight"
       },
       {
@@ -1191,7 +1191,7 @@
         "value": "zenith"
       },
       {
-        "label": "Follow the system: no motion",
+        "label": "Follow the system",
         "value": "follow"
       }
     ],
@@ -1316,7 +1316,7 @@
         "value": "google-ai"
       },
       {
-        "label": "Google, web results only",
+        "label": "Google web results",
         "value": "google-web"
       },
       {
@@ -1405,18 +1405,18 @@
     "property": "zenith.peek.units",
     "label": "Peek weather units",
     "type": "dropdown",
-    "placeholder": "Default (Automatic (from your country))",
+    "placeholder": "Default (Automatic)",
     "options": [
       {
-        "label": "Automatic (from your country)",
+        "label": "Automatic",
         "value": "auto"
       },
       {
-        "label": "Metric: °C, km/h",
+        "label": "Metric",
         "value": "metric"
       },
       {
-        "label": "Imperial: °F, mph",
+        "label": "Imperial",
         "value": "imperial"
       }
     ],
@@ -1517,6 +1517,87 @@
     ],
     "operator": "AND",
     "zenithWhy": "Peek is off"
+  },
+  {
+    "property": "zenith.plus.material-windows",
+    "label": "Windows: window material",
+    "type": "dropdown",
+    "placeholder": "Default (Acrylic)",
+    "options": [
+      {
+        "label": "Mica",
+        "value": "mica"
+      },
+      {
+        "label": "Mica Alt",
+        "value": "mica-alt"
+      },
+      {
+        "label": "Automatic",
+        "value": "auto"
+      },
+      {
+        "label": "None",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "zenithPlatform": "WINNT",
+    "zenithWhy": "Only on Windows"
+  },
+  {
+    "property": "zenith.plus.material-macos",
+    "label": "macOS: window material",
+    "type": "dropdown",
+    "placeholder": "Default (HUD)",
+    "options": [
+      {
+        "label": "Full-screen UI",
+        "value": "fullscreen"
+      },
+      {
+        "label": "Popover",
+        "value": "popover"
+      },
+      {
+        "label": "Menu",
+        "value": "menu"
+      },
+      {
+        "label": "Tooltip",
+        "value": "tooltip"
+      },
+      {
+        "label": "Header",
+        "value": "header"
+      },
+      {
+        "label": "Under the window",
+        "value": "under"
+      },
+      {
+        "label": "None",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "zenithPlatform": "Darwin",
+    "zenithWhy": "Only on macOS"
+  },
+  {
+    "property": "zenith.plus.material-linux",
+    "label": "Linux: see-through window (restart Zen)",
+    "type": "dropdown",
+    "placeholder": "Default (Off)",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "zenithPlatform": "Linux",
+    "zenithWhy": "Only on Linux"
   },
   {
     "property": "zenith.plus.minimap",

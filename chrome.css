@@ -262,6 +262,15 @@
   }
 }
 
+/* Windows draws its blur behind Zen only while Zen is the active window;
+   the rest of the time it shows flat grey. Zenith shows the workspace
+   colour then instead, as Balanced does. */
+@media (-moz-platform: windows) {
+  :root:-moz-window-inactive {
+    --zth-window-tint: 1 !important;
+  }
+}
+
 /* Transparency effects off, or Zen without its frosted look: solid. */
 @media (prefers-reduced-transparency: reduce) {
   :root {

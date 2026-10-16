@@ -285,6 +285,21 @@ const RULES = {
         }
       }
     ]
+  },
+  "zenith.plus.material-windows": {
+    "why": "Only on Windows",
+    "conditions": [],
+    "platform": "WINNT"
+  },
+  "zenith.plus.material-macos": {
+    "why": "Only on macOS",
+    "conditions": [],
+    "platform": "Darwin"
+  },
+  "zenith.plus.material-linux": {
+    "why": "Only on Linux",
+    "conditions": [],
+    "platform": "Linux"
   }
 };
 // --- end of generated rules ---
@@ -397,7 +412,9 @@ function apply() {
     if (!row) continue;
     let reason = null;
     try {
-      reason = holds(rule.conditions) ? null : rule.why;
+      // A setting for another platform, or one whose conditions don't hold.
+      const elsewhere = rule.platform && rule.platform !== Services.appinfo.OS;
+      reason = elsewhere || !holds(rule.conditions) ? rule.why : null;
     } catch (e) {
       console.error(`[Zenith] settings rule for ${name}`, e);
     }

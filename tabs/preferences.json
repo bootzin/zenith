@@ -26,11 +26,11 @@
     "placeholder": "Default (Overlay)",
     "options": [
       {
-        "label": "Overlay the page",
+        "label": "Overlay",
         "value": "overlay"
       },
       {
-        "label": "Dim the page",
+        "label": "Dim",
         "value": "dim"
       }
     ]
@@ -145,7 +145,7 @@
   },
   {
     "property": "zen.tabs.open-pinned-in-new-tab",
-    "label": "Pinned tabs open other sites in a new tab (Zen setting; untick to stay in the tab)",
+    "label": "Pinned tabs open other sites in a new tab",
     "type": "checkbox"
   },
   {
