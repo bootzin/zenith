@@ -1,6 +1,6 @@
 # Zenith Tabs
 
-Version 0.6.3
+Version 0.7.0
 
 A tight tab sidebar that only shows the signals that matter: sleeping tabs, attention dots, folder activity, container stripes, audio waves and vertical split groups.
 

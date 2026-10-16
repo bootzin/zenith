@@ -21,7 +21,7 @@
   },
   {
     "property": "zenith.motion.reduced",
-    "label": "When Windows animation effects are off",
+    "label": "When the system asks for less motion",
     "type": "dropdown",
     "placeholder": "Default (Keep Zenith's motion)",
     "options": [
@@ -30,7 +30,7 @@
         "value": "zenith"
       },
       {
-        "label": "Follow Windows: no motion",
+        "label": "Follow the system: no motion",
         "value": "follow"
       }
     ],

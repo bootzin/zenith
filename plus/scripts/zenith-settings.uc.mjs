@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.6.3
+// @version        0.7.0
 // ==/UserScript==
 
 // Zen's mod settings list every option flat, with no way to show that one
@@ -220,6 +220,28 @@ const RULES = {
     ]
   },
   "zenith.peek.instant": {
+    "why": "Peek is off",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.peek.web-cards": {
+    "why": "Peek is off",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.peek.pomodoro": {
     "why": "Peek is off",
     "conditions": [
       {

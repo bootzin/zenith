@@ -56,6 +56,22 @@
     ]
   },
   {
+    "property": "zenith.panels.pip",
+    "label": "Picture-in-picture controls",
+    "type": "dropdown",
+    "placeholder": "Default (Glass)",
+    "options": [
+      {
+        "label": "Glass",
+        "value": "zenith"
+      },
+      {
+        "label": "Firefox default",
+        "value": "firefox"
+      }
+    ]
+  },
+  {
     "property": "zenith.panels.status-delay",
     "label": "Link URL pill delay",
     "type": "dropdown",

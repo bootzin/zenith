@@ -4,7 +4,7 @@
   "description": "Peek, real load and download progress, a sidebar minimap, zoom pills and more for Zenith.",
   "homepage": "https://github.com/bootzin/zenith/tree/master/plus",
   "author": "bootzin",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "style": {
     "chrome": "chrome.css"
   },
@@ -20,6 +20,13 @@
     "scripts/zenith-peek.uc.mjs": {
       "name": "Peek",
       "description": "Quick, disposable lookups in a floating Glance.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    },
+    "scripts/zenith-timers.uc.mjs": {
+      "name": "Timers",
+      "description": "Countdowns and pomodoros started from Peek, on the page edge.",
       "include": [
         "chrome://browser/content/browser.xhtml"
       ]
@@ -45,7 +52,7 @@
   ],
   "ai": "yes",
   "createdAt": "2026-10-16",
-  "updatedAt": "2026-10-16T18:24:00+00:00",
+  "updatedAt": "2026-10-16T19:15:00+00:00",
   "modules": [
     "https://github.com/bootzin/zenith/tree/master/motion"
   ]

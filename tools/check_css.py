@@ -127,7 +127,7 @@ def check_mod(mod_dir, problems, all_defined):
 
     # Dropdown attributes used in CSS must exist, with a valid value.
     # (Attributes the Zenith script sets on the window are not settings.)
-    script_attrs = {"zenith-script", "zenith-downloading", "zenith-download-done"}
+    script_attrs = {"zenith-script", "zenith-downloading", "zenith-download-done", "zenith-timer"}
     # (A mod may read another mod's settings, so look them up in all mods.)
     for attr, value in re.findall(r"\[(zenith-[a-z0-9-]+)=\"([^\"]*)\"\]", css):
         if attr in script_attrs:

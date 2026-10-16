@@ -334,3 +334,68 @@
     display: none !important;
   }
 }
+
+/* --- Picture-in-picture ------------------------------------------------------
+   The floating video window (its own window: Zenith's styles reach it, and
+   so do the settings). Its controls already show only while the mouse is
+   over it; here they become glass: round buttons in the top corners, and
+   one floating bar at the bottom instead of the dark gradient. */
+:root:not(:has(#theme-Zenith-Panels[zenith-panels-pip="firefox"])) .player-holder ~ #controls {
+  --zth-pip-glass: rgb(16 16 20 / 0.5);
+  --zth-pip-ink: rgb(255 255 255 / 0.94);
+
+  & #controls-bottom-gradient {
+    display: none !important;
+  }
+
+  & :is(#close, #minimize, #unpip) {
+    width: 28px !important;
+    height: 28px !important;
+    inset-block-start: 8px !important;
+    border-radius: 50% !important;
+    background-color: var(--zth-pip-glass) !important;
+    backdrop-filter: blur(10px) saturate(1.3);
+    outline: 1px solid rgb(255 255 255 / 0.14);
+    fill: var(--zth-pip-ink) !important;
+
+    &:hover {
+      background-color: rgb(40 40 48 / 0.72) !important;
+    }
+  }
+
+  & #unpip {
+    inset-inline-start: 8px !important;
+  }
+
+  & #close {
+    inset-inline-end: 8px !important;
+  }
+
+  & #minimize {
+    inset-inline-end: 42px !important;
+  }
+
+  & #controls-bottom {
+    inset: auto 8px 8px !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 4px 0;
+    border-radius: 14px;
+    background-color: var(--zth-pip-glass);
+    backdrop-filter: blur(12px) saturate(1.3);
+    outline: 1px solid rgb(255 255 255 / 0.12);
+  }
+
+  & .controls-bottom-lower {
+    margin-inline: 8px !important;
+  }
+
+  /* Live video has no seek bar: no empty row for it. */
+  & .controls-bottom-upper:has(#scrubber[hidden]) {
+    display: none !important;
+  }
+
+  & :is(#scrubber, #audio-scrubber) {
+    accent-color: var(--zth-accent);
+  }
+}

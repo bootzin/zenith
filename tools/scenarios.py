@@ -11,6 +11,7 @@ import math
 import struct
 import threading
 import time
+import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from harness import Zen
@@ -31,6 +32,25 @@ def tone_wav(seconds=30, freq=440, rate=8000):
 
 
 WAV = tone_wav()
+
+
+def art_png(size=256):
+    """Cover art for the media checks: a warm orange-to-purple diagonal."""
+    rows = []
+    for y in range(size):
+        row = bytearray([0])
+        for x in range(size):
+            t = (x + y) / (2 * size - 2)
+            row += bytes((int(250 - 120 * t), int(140 - 90 * t), int(60 + 150 * t)))
+        rows.append(bytes(row))
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    signature = bytes([0x89]) + b"PNG" + bytes([13, 10, 26, 10])
+    return (signature + chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(b"".join(rows))) + chunk(b"IEND", b""))
+
+
+ART = art_png()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -64,6 +84,26 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/audio":
             self._html("<!doctype html><title>Audio page</title><h1>Playing a tone</h1>"
                        "<audio id=a src=/tone.wav autoplay loop></audio>")
+        elif path == "/art.png":
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(len(ART)))
+            self.end_headers()
+            self.wfile.write(ART)
+        elif path == "/music":
+            # A tone with a title, an artist and cover art, like a music site.
+            self._html("<!doctype html><title>Music page</title><h1>Now playing</h1>"
+                       "<audio id=a src=/tone.wav autoplay loop></audio><script>"
+                       "navigator.mediaSession.metadata = new MediaMetadata({title: 'Zenith Test Song', artist: 'The Harness',"
+                       " album: 'Checks', artwork: [{src: '/art.png', sizes: '256x256', type: 'image/png'}]});</script>")
+        elif path == "/video":
+            # A moving picture (a canvas stream), for picture-in-picture.
+            self._html("<!doctype html><title>Video page</title><h1>Video</h1>"
+                       "<canvas id=c width=640 height=360 hidden></canvas><video id=v autoplay muted width=640 height=360></video><script>"
+                       "const g = c.getContext('2d'); let t = 0;"
+                       "setInterval(() => { t++; g.fillStyle = `hsl(${t % 360} 60% 45%)`; g.fillRect(0, 0, 640, 360);"
+                       " g.fillStyle = '#fff'; g.font = '48px sans-serif'; g.fillText('Zenith ' + t, 40, 200); }, 50);"
+                       "v.srcObject = c.captureStream(20);</script>")
         elif path == "/camera":
             self._html("<!doctype html><title>Camera page</title><h1>Camera</h1><video id=v autoplay muted></video>"
                        "<script>navigator.mediaDevices.getUserMedia({video:true,audio:true})"

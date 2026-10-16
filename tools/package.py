@@ -49,6 +49,8 @@ PLUS_SCRIPTS = {
                            ["chrome://browser/content/browser.xhtml"]),
     "zenith-peek.uc.mjs": ("Peek", "Quick, disposable lookups in a floating Glance.",
                            ["chrome://browser/content/browser.xhtml"]),
+    "zenith-timers.uc.mjs": ("Timers", "Countdowns and pomodoros started from Peek, on the page edge.",
+                             ["chrome://browser/content/browser.xhtml"]),
     "zenith-settings.uc.mjs": ("Settings helper", "Greys out Zenith settings that don't apply, and says why.",
                                ["about:preferences*", "about:settings*"]),
 }

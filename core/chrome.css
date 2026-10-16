@@ -15,6 +15,7 @@
   --zth-accent-soft: color-mix(in srgb, var(--zth-accent) 24%, transparent);
   --zth-danger: oklch(0.66 0.21 27);
   --zth-warn: oklch(0.82 0.15 85);
+  --zth-ok: oklch(0.76 0.14 150);
   --zth-ink: light-dark(rgb(0 0 0 / 0.85), rgb(255 255 255 / 0.9));
   --zth-ink-dim: light-dark(rgb(0 0 0 / 0.55), rgb(255 255 255 / 0.58));
   --zth-hairline: light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.11));

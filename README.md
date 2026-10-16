@@ -19,11 +19,14 @@ Zenith comes in two parts.
 
 - **Peek:** quick lookups in a floating page that leaves nothing behind, with Alt+Q and instant answers.
 - **Live edges:** real load and download progress.
-- **Sidebar extras:** a minimap of the hidden sidebar, and numbered tabs while you hold Ctrl.
+- **Peek extras:** currency, definitions and weather in the prompt, plus timers and pomodoros.
+- **Sidebar extras:** a minimap of the hidden sidebar, numbered tabs while you hold Ctrl, and the cover art of what's playing behind the media card.
 - **Pages:** zoom pills, plus text selection in the workspace colour.
 - **Settings:** a helper that greys out options that don't apply, and puts your mods ahead of the marketplace in Sine's page.
 
 ## Install
+
+Zenith is built and tested on Windows 11 with Zen. It's plain CSS and standard Firefox features, so it should work on macOS and Linux too, but that hasn't been tested yet.
 
 - **Zenith:** from Zen's mod store (Settings › Zen Mods).
 - **Zenith Plus:** with [Sine](https://github.com/CosmoCreeper/Sine). In Sine's settings, install from GitHub with `bootzin/zenith/tree/master/plus`. That also installs Zenith's six mods. Until Zenith Plus is in Sine's store, Sine only runs its scripts with **Allow JS from unofficial sources** on.
@@ -34,7 +37,13 @@ Zenith comes in two parts.
 
 ## What Zenith Plus can access
 
-Zen scripts run inside the browser with full access, like every script mod. Zenith Plus doesn't collect or send anything. The only network requests it causes are the pages you choose to Peek. It loads no remote code, and the source is plain, readable JavaScript in [`plus/scripts`](plus/scripts).
+Zen scripts run inside the browser with full access, like every script mod. Zenith Plus collects nothing and sends nothing about you. It loads no remote code, and the source is plain, readable JavaScript in [`plus/scripts`](plus/scripts).
+
+The network requests it causes:
+
+- **Peek:** the pages you choose to open in it.
+- **Peek's web answers** (switch off with "Peek answers from the web"): after you type a `$`, `d` or `wt` lookup, the currencies go to [Frankfurter](https://frankfurter.dev) (European Central Bank rates), the word to Wiktionary, and the place to [wttr.in](https://wttr.in).
+- **Cover art** behind the media card: fetched from the site that's playing, without cookies.
 
 Specific things it changes:
 

@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.6.3
+// @version        0.7.0
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -14,7 +14,10 @@
 // Inside a Peek: Escape closes it, Ctrl+Enter keeps it as a real tab.
 // The prompt shows instant answers (maths, units, time zones) computed by
 // Firefox's own calculator and converters, offline; Enter copies them.
+// Three prefixes also answer in the prompt from the web, when that setting
+// is on: "$" (currency), "d" (definitions) and "wt" (weather).
 // Typing "?" in the prompt lists the prefixes, where they can be edited.
+// "timer 10m tea", "pomo" and "timer" (the list) drive Zenith Timers.
 // Settings: Settings > Zen Mods > Zenith Plus. Styles: plus/chrome.css.
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
@@ -52,15 +55,16 @@ const ENGINES = {
 
 const LANG = (Services.locale.appLocaleAsBCP47 || "en").split("-")[0];
 
+// "card": the prefix also answers in the prompt (see WebCards).
 const DEFAULT_PREFIXES = [
   { key: "m", name: "Maps", url: "https://www.google.com/maps/search/%s" },
   { key: "w", name: "Wikipedia", url: `https://${LANG}.wikipedia.org/wiki/Special:Search?search=%s` },
-  { key: "d", name: "Define", url: "https://www.google.com/search?q=define+%s" },
+  { key: "d", name: "Define", url: "https://www.google.com/search?q=define+%s", card: "define" },
   { key: "t", name: "Translate", url: `https://translate.google.com/?sl=auto&tl=${LANG}&text=%s&op=translate` },
-  { key: "wt", name: "Weather", url: "https://wttr.in/%s" },
+  { key: "wt", name: "Weather", url: "https://wttr.in/%s", card: "weather" },
   { key: "y", name: "YouTube", url: "https://www.youtube.com/results?search_query=%s" },
   { key: "ai", name: "AI Mode", url: "https://www.google.com/search?udm=50&q=%s" },
-  { key: "$", name: "Currency", url: "https://www.google.com/search?q=%s" },
+  { key: "$", name: "Currency", url: "https://www.google.com/search?q=%s", card: "currency" },
   { key: "gh", name: "GitHub", url: "https://github.com/search?q=%s&type=repositories" },
   { key: "r", name: "Reddit", url: "https://www.reddit.com/search/?q=%s" },
 ];
@@ -94,6 +98,12 @@ const Lookup = {
 
   findPrefix(key) {
     return this.prefixList().find(p => p.key.toLowerCase() === key.toLowerCase());
+  },
+
+  // Lists saved before cards existed have no "card": a default prefix that
+  // still has its original key and address gets its card back.
+  cardOf(prefix) {
+    return prefix.card ?? DEFAULT_PREFIXES.find(d => d.key === prefix.key && d.url === prefix.url)?.card ?? null;
   },
 
   label(url) {
@@ -186,6 +196,148 @@ const Instant = {
   },
 };
 
+/* --- Web cards: currency, definitions, weather ------------------------------ */
+
+// Answers that need the web. Each sends only what it needs, to a free
+// service with no account, and only once you've typed the prefix and what to
+// look up: Frankfurter (European Central Bank rates) gets the currencies,
+// Wiktionary the word, wttr.in the place. "100 usd to eur" works without the
+// "$" prefix too. Off with the "answers from the web" setting.
+
+const WebCards = {
+  cache: new Map(),
+  NAMES: { currency: "Currency", define: "Define", weather: "Weather" },
+
+  on() {
+    return prefs.bool("zenith.peek.web-cards", true);
+  },
+
+  // text -> { card, query, prefix? } or null
+  match(text) {
+    if (!this.on()) return null;
+    const t = text.trim();
+    const m = t.match(/^(\S+)\s+(.+)$/);
+    const prefix = m && Lookup.findPrefix(m[1]);
+    const card = prefix && Lookup.cardOf(prefix);
+    if (card) return { card, query: m[2].trim(), prefix };
+    if (/^\d[\d.,]*\s*[a-z]{3}\s+(to|in)\s+[a-z]{3}$/i.test(t)) return { card: "currency", query: t };
+    return null;
+  },
+
+  async get(url, json = true) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    try {
+      const res = await fetch(url, {
+        credentials: "omit",
+        signal: ctrl.signal,
+        headers: { "Api-User-Agent": "Zenith Peek (https://github.com/bootzin/zenith)" },
+      });
+      if (!res.ok) return null;
+      return json ? await res.json() : (await res.text()).trim();
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+
+  // -> { text, copy?, note? } or null; cached per query for this session.
+  async answer({ card, query }) {
+    const key = `${card}:${query.toLowerCase()}`;
+    if (!this.cache.has(key)) {
+      this.cache.set(key, this[card](query).catch(e => {
+        console.warn(`[Zenith Peek] ${card} card`, e);
+        this.cache.delete(key);
+        return null;
+      }));
+    }
+    return this.cache.get(key);
+  },
+
+  // "100 usd eur", "100 usd to eur", "usd eur", "50,5 gbp in brl"
+  async currency(query) {
+    const m = query.match(/^(\d[\d.,]*)?\s*([a-z]{3})\s+(?:(?:to|in)\s+)?([a-z]{3})$/i);
+    if (!m) return null;
+    this.codes ??= this.get("https://api.frankfurter.dev/v1/currencies");
+    const codes = (await this.codes) ?? {};
+    const [from, to] = [m[2].toUpperCase(), m[3].toUpperCase()];
+    if (!codes[from] || !codes[to] || from === to) return null;
+    // "1,000.50" and "1.000,50" are both a thousand and a half.
+    let digits = m[1] ?? "1";
+    if (/,\d{1,2}$/.test(digits)) digits = digits.replace(/\./g, "").replace(",", ".");
+    const amount = Number(digits.replace(/,/g, "")) || 1;
+    const data = await this.get(`https://api.frankfurter.dev/v1/latest?amount=${amount}&from=${from}&to=${to}`);
+    const value = data?.rates?.[to];
+    if (value == null) return null;
+    const shown = value.toLocaleString(undefined, { maximumFractionDigits: value < 1 ? 4 : 2 });
+    const date = new Date(data.date).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+    return { text: `${amount.toLocaleString()} ${from} = ${shown} ${to}`, copy: String(value), note: `ECB rate, ${date}` };
+  },
+
+  // The first definition, from Wiktionary (in Zen's language when it has one).
+  async define(query) {
+    const word = query.trim();
+    if (!word || word.length > 60) return null;
+    const data = await this.get(`https://en.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(word)}`);
+    const entries = data?.[LANG] ?? data?.en ?? Object.values(data ?? {})[0];
+    const entry = entries?.find(e => e.definitions?.some(d => d.definition));
+    const html = entry?.definitions.find(d => d.definition)?.definition;
+    if (!html) return null;
+    const text = new DOMParser().parseFromString(html, "text/html").body.textContent.replace(/\s+/g, " ").trim();
+    return { text: `${entry.partOfSpeech.toLowerCase()} · ${text}`, note: "Wiktionary" };
+  },
+
+  // One line from wttr.in's JSON (its one-line text format is only sent to
+  // command-line tools; browsers get a page): "Lisbon, Portugal: Overcast,
+  // 22°C (feels 19°C), wind 21 km/h SSW"
+  async weather(query) {
+    const imperial = /-(US|LR|MM)$/.test(Services.locale.regionalPrefsLocales?.[0] ?? "");
+    const lang = LANG === "en" ? "" : `&lang=${LANG}`;
+    const data = await this.get(`https://wttr.in/${encodeURIComponent(query)}?format=j1${lang}`);
+    const now = data?.current_condition?.[0];
+    if (!now) return null;
+    const area = data.nearest_area?.[0];
+    const place = [area?.areaName?.[0]?.value, area?.country?.[0]?.value].filter(Boolean).join(", ") || query;
+    const sky = now[`lang_${LANG}`]?.[0]?.value ?? now.weatherDesc?.[0]?.value ?? "";
+    const [t, feels, wind, unit] = imperial
+      ? [now.temp_F, now.FeelsLikeF, now.windspeedMiles, "°F"]
+      : [now.temp_C, now.FeelsLikeC, now.windspeedKmph, "°C"];
+    const text = `${place}: ${sky ? `${sky.trim()}, ` : ""}${t}${unit} (feels ${feels}${unit}), wind ${wind} ${imperial ? "mph" : "km/h"} ${now.winddir16Point ?? ""}`;
+    return { text: text.trim(), note: "wttr.in" };
+  },
+};
+
+/* --- Timers (zenith-timers.uc.mjs): "timer 10m tea", "pomo", "timer" ------- */
+
+const Commands = {
+  get timers() {
+    return window.ZenithTimers ?? null;
+  },
+
+  // text -> { label, text, hint, run? } or null
+  match(raw) {
+    const t = raw.trim();
+    const T = this.timers;
+    if (!T) return null;
+    const m = t.match(/^(timer|pomo)\b\s*(.*)$/i);
+    if (!m || Lookup.findPrefix(m[1])) return null;
+    if (m[1].toLowerCase() === "pomo") {
+      const running = T.list().find(x => x.kind !== "timer");
+      if (running) {
+        return { label: "Pomodoro", text: `${T.describe(running)}, ${T.format(running.end - Date.now())} left`, hint: "Enter stops it",
+                 run: () => T.cancel(running.id) };
+      }
+      const p = T.pattern();
+      return { label: "Pomodoro", text: `${p.focus} min focus, ${p.rest} min break, ${p.rounds} rounds`, hint: "Enter starts",
+               run: () => T.startPomodoro() };
+    }
+    if (!m[2]) return null; // "timer" alone: the list
+    const d = T.parse(m[2]);
+    if (!d) return { label: "Timer", text: "how long? 10m, 1h30m, 90s or 25 (minutes)", hint: "" };
+    return { label: "Timer", text: [T.minutes(d.ms), d.label].filter(Boolean).join(" · "), hint: "Enter starts",
+             run: () => T.start(d.ms, d.label) };
+  },
+};
+
 /* --- The Peek window (Zen's detached Glance) ------------------------------- */
 
 const Peek = {
@@ -242,7 +394,7 @@ const Prompt = {
     this.input = make("input", {
       id: "zenith-peek-input",
       spellcheck: "false",
-      placeholder: "Peek: search, an address, maths, or a prefix (? lists them)",
+      placeholder: "Peek: search, an address, maths, a prefix (? lists them) or timer 10m",
     });
     this.row = make("div", { id: "zenith-peek-row" });
     this.tag = make("span", { id: "zenith-peek-tag" });
@@ -277,26 +429,49 @@ const Prompt = {
 
   hide() {
     if (this.host) this.host.hidden = true;
+    clearInterval(this.timerClock);
   },
 
   get listing() {
     return this.input.value.trim() === "?";
   },
 
+  get timerListing() {
+    return !!Commands.timers && /^timer$/i.test(this.input.value.trim()) && !Lookup.findPrefix("timer");
+  },
+
   update() {
+    clearInterval(this.timerClock);
     if (this.listing) {
       this.row.hidden = true;
       this.renderList();
       return;
     }
+    if (this.timerListing) {
+      this.row.hidden = true;
+      this.renderTimers();
+      this.timerClock = setInterval(() => this.renderTimers(), 1000);
+      return;
+    }
     this.list.hidden = true;
     this.editing = null;
     const text = this.input.value;
-    this.answer = Instant.answer(text);
-    this.target = Lookup.resolve(text);
+    this.command = Commands.match(text);
+    this.answer = this.command ? null : Instant.answer(text);
+    this.card = this.command || this.answer ? null : WebCards.match(text);
+    this.cardAnswer = null;
+    this.target = this.command ? null : Lookup.resolve(text);
     const typedPrefix = /^\S+$/.test(text.trim()) ? Lookup.findPrefix(text.trim()) : null;
     this.row.toggleAttribute("answer", !!this.answer);
-    if (this.answer) {
+    this.row.removeAttribute("card");
+    this.text.removeAttribute("title");
+    if (this.command) {
+      this.tag.textContent = this.command.label;
+      this.text.textContent = this.command.text;
+      this.hint.textContent = this.command.hint;
+    } else if (this.card) {
+      this.showCard(this.card, text);
+    } else if (this.answer) {
       this.tag.textContent = "=";
       this.text.textContent = this.answer;
       this.hint.textContent = "Enter copies · Shift+Enter searches";
@@ -309,18 +484,50 @@ const Prompt = {
       this.text.textContent = this.target.query;
       this.hint.textContent = "Enter to peek";
     }
-    this.row.hidden = !this.answer && !this.target && !typedPrefix;
+    this.row.hidden = !this.command && !this.card && !this.answer && !this.target && !typedPrefix;
+  },
+
+  // A web card: "looking up" at once, the answer a moment later (only if the
+  // text hasn't changed meanwhile). Waits for a pause in typing first.
+  showCard(card, text) {
+    this.tag.textContent = WebCards.NAMES[card.card];
+    this.text.textContent = "…";
+    this.hint.textContent = card.card === "currency" ? "" : "Enter opens the page";
+    clearTimeout(this.cardTimer);
+    this.cardTimer = setTimeout(async () => {
+      const answer = await WebCards.answer(card);
+      if (this.input.value !== text || this.host.hidden) return;
+      this.cardAnswer = answer;
+      this.row.setAttribute("card", answer ? "answer" : "none");
+      if (answer) {
+        this.text.textContent = answer.text;
+        this.text.title = answer.text;
+        this.hint.textContent = answer.copy ? `Enter copies · ${answer.note}` : `Enter opens the page · ${answer.note}`;
+      } else {
+        this.text.textContent = card.card === "currency" ? "no rate for that pair" : "no answer here";
+        this.hint.textContent = this.target ? "Enter opens the page" : "";
+      }
+    }, 350);
   },
 
   onKey(e) {
     if (this.listing && this.onListKey(e)) return;
+    if (this.timerListing && this.onTimerKey(e)) return;
     if (e.key === "Escape") {
       e.preventDefault();
       this.hide();
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (this.answer && !e.shiftKey) {
-        Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(this.answer);
+      if (this.command) {
+        if (!this.command.run) return;
+        this.command.run();
+        this.hint.textContent = "Started";
+        setTimeout(() => this.hide(), 450);
+        return;
+      }
+      const copy = this.answer ?? this.cardAnswer?.copy;
+      if (copy && !e.shiftKey) {
+        Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(copy);
         this.hint.textContent = "Copied";
         setTimeout(() => this.hide(), 450);
         return;
@@ -406,7 +613,9 @@ const Prompt = {
       if (!/^\S{1,8}$/.test(k)) return (error.textContent = "The key is one short word, no spaces");
       if (list.some((p, j) => j !== i && p.key.toLowerCase() === k.toLowerCase())) return (error.textContent = `"${k}" is taken`);
       if (!/^https?:\/\/\S*%s/i.test(u)) return (error.textContent = "The address needs %s where the search goes");
-      list[i] = { key: k, name: name.value.trim() || Lookup.label(u), url: u };
+      // A card stays with its prefix while the address is unchanged.
+      const card = list[i] && list[i].url === u ? Lookup.cardOf(list[i]) : null;
+      list[i] = { key: k, name: name.value.trim() || Lookup.label(u), url: u, ...(card ? { card } : {}) };
       Lookup.savePrefixes(list);
       this.editing = null;
       this.selected = i;
@@ -444,6 +653,62 @@ const Prompt = {
     list.splice(i, 1);
     Lookup.savePrefixes(list);
     this.renderList();
+  },
+
+  /* --- "timer": running timers, Delete cancels ------------------------------- */
+
+  renderTimers() {
+    const T = Commands.timers;
+    const list = T.list().sort((a, b) => a.end - b.end);
+    this.timerSelected = Math.min(this.timerSelected ?? 0, Math.max(0, list.length - 1));
+    this.list.hidden = false;
+    this.list.replaceChildren();
+    if (!list.length) {
+      this.list.append(make("div", { class: "zenith-peek-item zenith-peek-empty" }, "No timers running. Try “timer 10m tea” or “pomo”."));
+    }
+    list.forEach((t, i) => {
+      const row = make("div", { class: "zenith-peek-item zenith-peek-timer" });
+      if (i === this.timerSelected) row.setAttribute("selected", "true");
+      row.append(
+        make("span", { class: "zenith-peek-key" }, T.format(t.end - Date.now())),
+        make("span", { class: "zenith-peek-name" }, T.describe(t))
+      );
+      const remove = make("button", { class: "zenith-peek-remove", title: "Cancel" }, "×");
+      remove.addEventListener("mousedown", e => {
+        e.preventDefault();
+        T.cancel(t.id);
+        this.renderTimers();
+      });
+      row.append(remove);
+      this.list.append(row);
+    });
+    const foot = make("div", { class: "zenith-peek-foot" });
+    foot.append(make("span", {}, list.length ? "↑↓ choose · Delete cancels · Esc back" : "Esc back"));
+    this.list.append(foot);
+  },
+
+  onTimerKey(e) {
+    const T = Commands.timers;
+    const list = T.list().sort((a, b) => a.end - b.end);
+    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && list.length) {
+      e.preventDefault();
+      this.timerSelected = (this.timerSelected + (e.key === "ArrowDown" ? 1 : list.length - 1)) % list.length;
+      this.renderTimers();
+      return true;
+    }
+    if (e.key === "Delete" && list[this.timerSelected]) {
+      e.preventDefault();
+      T.cancel(list[this.timerSelected].id);
+      this.renderTimers();
+      return true;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      this.input.value = "";
+      this.update();
+      return true;
+    }
+    return e.key === "Enter";
   },
 
   // Keys while the list shows; true when handled.
