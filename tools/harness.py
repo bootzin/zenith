@@ -102,6 +102,8 @@ def setup_profile():
     """(Re)build the test profile: prefs + all six Zenith mods enabled."""
     TEST_PROFILE.mkdir(parents=True, exist_ok=True)
     prefs = dict(TEST_PREFS)
+    # A check can add its own prefs for this run (JSON in ZENITH_EXTRA_PREFS).
+    prefs.update(json.loads(os.environ.get("ZENITH_EXTRA_PREFS", "{}")))
     # Start every run from Zenith's defaults: blank every Zenith text/dropdown
     # setting and reset its tick boxes, whatever earlier runs changed.
     for key in MOD_IDS:
@@ -119,6 +121,26 @@ def setup_profile():
     sync_mods()
 
 
+def check_sine_version():
+    """Warn when the vendored Sine (what tests run) differs from the Sine
+    installed in a real Zen profile (what users run): Sine updates itself,
+    and 2.3.4 changed how mods update."""
+    import zipfile
+    try:
+        vendored = json.loads(zipfile.ZipFile(ROOT / "vendor" / "sine" / "engine.zip").read("JS/engine.json"))["version"]
+    except (OSError, KeyError, ValueError):
+        return
+    profiles = Path(os.environ.get("APPDATA", "")) / "zen" / "Profiles"
+    for engine in profiles.glob("*/chrome/JS/engine.json"):
+        try:
+            installed = json.loads(engine.read_text(encoding="utf-8"))["version"]
+        except (OSError, KeyError, ValueError):
+            continue
+        if installed != vendored:
+            print(f"[harness] Sine {installed} is installed in {engine.parents[2].name}, but tests run the vendored "
+                  f"{vendored}: refresh vendor/sine/engine.zip.", file=sys.stderr)
+
+
 def sine_loader():
     """True when Zen's program folder boots Sine rather than fx-autoconfig
     (the program folder is shared by every profile, the test one included)."""
@@ -127,8 +149,9 @@ def sine_loader():
 
 
 def sync_sine(chrome):
-    """Install Zenith into the test profile the way install.ps1 does with
-    Sine: Sine's profile files, then every mod in chrome/sine-mods."""
+    """Install Zenith into the test profile the way Sine users get it: Sine's
+    profile files, then the one Sine mod "Zenith" (built from the current
+    sources, as tools/package.py builds it) in chrome/sine-mods."""
     import zipfile
     for archive in ("profile.zip", "engine.zip"):
         zipfile.ZipFile(ROOT / "vendor" / "sine" / archive).extractall(chrome)
@@ -136,26 +159,23 @@ def sync_sine(chrome):
         (chrome / "utils" / leftover).unlink(missing_ok=True)
     for f in (chrome / "JS").glob("zenith*.uc.*"):
         f.unlink()
+    from package import PLUS_SCRIPTS, SINE_ID, sine_bundle
     mods_dir = chrome / "sine-mods"
-    mods_dir.mkdir(exist_ok=True)
-    plus_scripts = json.loads((ROOT / "plus" / "theme.json").read_text(encoding="utf-8"))["scripts"]
-    data = {}
-    for key, (mod_id, name) in MOD_IDS.items():
-        src, dst = mod_dir(key), mods_dir / mod_id
-        dst.mkdir(exist_ok=True)
-        for f in ("chrome.css", "preferences.json", "readme.md"):
-            if (src / f).exists():
-                shutil.copy2(src / f, dst / f)
-        entry = {"id": mod_id, "name": name, "description": "", "homepage": "", "author": "zenith-local",
-                 "version": (ROOT / "VERSION").read_text().strip(), "style": {"chrome": "chrome.css"},
-                 "preferences": "preferences.json", "enabled": True, "no-updates": True, "tags": []}
-        if key == "plus":
-            (dst / "scripts").mkdir(exist_ok=True)
-            for f in (src / "scripts").glob("*.uc.mjs"):
-                shutil.copy2(f, dst / "scripts" / f.name)
-            entry["scripts"] = plus_scripts
-        data[mod_id] = entry
-    (mods_dir / "mods.json").write_text(json.dumps(data), encoding="utf-8")
+    if mods_dir.exists():
+        shutil.rmtree(mods_dir)
+    dst = mods_dir / SINE_ID
+    (dst / "plus" / "scripts").mkdir(parents=True)
+    css, prefs = sine_bundle(ROOT)
+    (dst / "chrome.css").write_text(css, encoding="utf-8")
+    (dst / "preferences.json").write_text(json.dumps(prefs, indent=2), encoding="utf-8")
+    for f in (ROOT / "plus" / "scripts").glob("*.uc.mjs"):
+        shutil.copy2(f, dst / "plus" / "scripts" / f.name)
+    scripts = {f"plus/scripts/{file}": {"name": title, "description": desc, "include": include}
+               for file, (title, desc, include) in PLUS_SCRIPTS.items()}
+    entry = {"id": SINE_ID, "name": "Zenith", "description": "", "homepage": "", "author": "zenith-local",
+             "version": (ROOT / "VERSION").read_text().strip(), "style": {"chrome": "chrome.css"},
+             "preferences": "preferences.json", "scripts": scripts, "enabled": True, "no-updates": True, "tags": []}
+    (mods_dir / "mods.json").write_text(json.dumps({SINE_ID: entry}), encoding="utf-8")
     # Nothing left in Zen's own list for Sine to migrate.
     (TEST_PROFILE / "zen-themes.json").write_text("{}", encoding="utf-8")
 
@@ -166,6 +186,7 @@ def sync_mods():
     zen-themes.css the way Zen does) with fx-autoconfig."""
     chrome = TEST_PROFILE / "chrome"
     if sine_loader():
+        check_sine_version()
         chrome.mkdir(parents=True, exist_ok=True)
         sync_sine(chrome)
         return

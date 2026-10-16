@@ -536,7 +536,7 @@
   position: absolute;
   inset: auto auto 0 0;
   z-index: 10;
-  width: var(--zth-edge);
+  width: calc(var(--zth-edge) + 1px);
   height: 0;
   border-radius: 999px 999px 0 0;
   transition-property: height, opacity, left;
@@ -562,7 +562,7 @@
       :has(#theme-Zenith-Edges[zenith-edges-container="on"]),
       :not(:has(#theme-Zenith-Edges:is([zenith-edges-container="off"], [zenith-edges-preset="off"], [zenith-edges-preset="quiet"])))
     ) & {
-    left: calc(var(--zth-edge) + 3px);
+    left: calc(var(--zth-edge) + 4px);
   }
 }
 
@@ -616,10 +616,24 @@
   }
 }
 
-/* The timer list ("timer" in the prompt): the name takes the room, so the
-   cancel button sits at the end like in the prefix list. */
-.zenith-peek-timer > .zenith-peek-name {
+/* The timer list ("timer" in the prompt) and recent weather places ("wt"):
+   the name takes the room, so the button sits at the end like in the
+   prefix list. */
+:is(.zenith-peek-timer, .zenith-peek-place) > .zenith-peek-name {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zenith-peek-place > .zenith-peek-key {
+  min-width: 72px;
+  max-width: 110px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .zenith-toast-body {

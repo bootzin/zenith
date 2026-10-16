@@ -1,5 +1,6 @@
 Sine, vendored unmodified for testing and as a fallback reference.
   bootloader v0.1.4  https://github.com/sineorg/bootloader/releases/tag/v0.1.4  (program.zip, profile.zip)
-  engine     v2.3.3  https://github.com/CosmoCreeper/Sine/releases/tag/v2.3.3  (engine.zip)
+  engine     v2.3.4.1c  https://github.com/CosmoCreeper/Sine/releases/tag/v2.3.4.1c  (engine.zip; copied from
+             the installed engine that Sine's own updater put in a Zen profile, 2026-10-16)
 License: MPL-2.0 (see the projects above).
 Downloaded 2026-10-16.

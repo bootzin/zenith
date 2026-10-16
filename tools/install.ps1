@@ -238,39 +238,37 @@ function Test-Sine {
 function Install-ToSine {
     # Sine keeps mods in chrome\sine-mods\<id>\ and lists them in
     # chrome\sine-mods\mods.json; it rebuilds its stylesheet on start.
+    # Zenith goes in as one mod, "Zenith", exactly as Sine installs it from
+    # GitHub: the generated chrome.css and preferences.json at the top of
+    # the repository, and Plus's scripts (theme.json lists them). The six
+    # mods and Plus, as separate Sine mods, are taken out.
     $sineMods = Join-Path $Chrome 'sine-mods'
     $sineData = Join-Path $sineMods 'mods.json'
     New-Item -ItemType Directory -Force $sineMods | Out-Null
     if (Test-Path $sineData) { $data = Read-Json $sineData }
     else { $data = New-Object 'System.Collections.Generic.Dictionary[string,object]' }
-    $plusManifest = Read-Json (Join-Path $Root 'plus\theme.json')
-    $today = Get-Date -Format 'yyyy-MM-dd'
     foreach ($m in $Mods.Values) {
-        $src = Join-Path $Root $m.Dir
-        $dst = Join-Path $sineMods $m.Id
-        New-Item -ItemType Directory -Force $dst | Out-Null
-        foreach ($f in 'chrome.css', 'preferences.json', 'readme.md') {
-            if (Test-Path (Join-Path $src $f)) { Copy-Item (Join-Path $src $f) $dst -Force }
-        }
-        $existing = $null
-        if ($data.ContainsKey($m.Id)) { $existing = $data[$m.Id] }
-        $entry = New-ModEntry $m $existing $today
-        $style = New-Object 'System.Collections.Generic.Dictionary[string,object]'
-        $style.Add('chrome', 'chrome.css')
-        $entry['style'] = $style
-        $entry['preferences'] = 'preferences.json'
-        $entry['homepage'] = ''
-        # A local copy: nothing to update from (Sine would try the homepage).
-        $entry['no-updates'] = $true
-        if ($m.Dir -eq 'plus') {
-            New-Item -ItemType Directory -Force (Join-Path $dst 'scripts') | Out-Null
-            Get-ChildItem (Join-Path $Root 'plus\scripts') -Filter '*.uc.mjs' | ForEach-Object {
-                Copy-Item $_.FullName (Join-Path $dst "scripts\$($_.Name)") -Force
-            }
-            $entry['scripts'] = $plusManifest['scripts']
-        }
-        $data[$m.Id] = $entry
+        [void]$data.Remove($m.Id)
+        $old = Join-Path $sineMods $m.Id
+        if (Test-Path $old) { Remove-Item $old -Recurse }
     }
+    $manifest = Read-Json (Join-Path $Root 'theme.json')
+    $dst = Join-Path $sineMods $manifest['id']
+    if (Test-Path $dst) { Remove-Item $dst -Recurse }
+    New-Item -ItemType Directory -Force (Join-Path $dst 'plus\scripts') | Out-Null
+    foreach ($f in 'chrome.css', 'preferences.json', 'theme.json') { Copy-Item (Join-Path $Root $f) $dst -Force }
+    Get-ChildItem (Join-Path $Root 'plus\scripts') -Filter '*.uc.mjs' | ForEach-Object {
+        Copy-Item $_.FullName (Join-Path $dst "plus\scripts\$($_.Name)") -Force
+    }
+    $entry = New-Object 'System.Collections.Generic.Dictionary[string,object]'
+    foreach ($k in 'id', 'name', 'description', 'author', 'version', 'style', 'preferences', 'scripts', 'tags', 'createdAt', 'updatedAt') {
+        if ($manifest.ContainsKey($k)) { $entry[$k] = $manifest[$k] }
+    }
+    # A local copy: nothing to update from (Sine would try the homepage).
+    $entry['homepage'] = ''
+    $entry['no-updates'] = $true
+    $entry['enabled'] = $true
+    $data[$manifest['id']] = $entry
     Write-Json $sineData $data
     # Sine moves anything still in Zen's own mod list into its own on start;
     # Zenith is already there, so take it out of Zen's list.
@@ -351,10 +349,15 @@ if ($Restore) {
         $dir = Join-Path $Chrome "zen-themes\$($m.Id)"
         if (Test-Path $dir) { Remove-Item $dir -Recurse }
     }
-    # With Sine: take Zenith out of Sine's mod list too.
+    # With Sine: take Zenith out of Sine's mod list too (the one mod, and
+    # the separate ones older versions installed).
     $sineData = Join-Path $Chrome 'sine-mods\mods.json'
     if (Test-Path $sineData) {
         $data = Read-Json $sineData
+        $sineId = (Read-Json (Join-Path $Root 'theme.json'))['id']
+        [void]$data.Remove($sineId)
+        $dir = Join-Path $Chrome "sine-mods\$sineId"
+        if (Test-Path $dir) { Remove-Item $dir -Recurse }
         foreach ($m in $Mods.Values) {
             [void]$data.Remove($m.Id)
             $dir = Join-Path $Chrome "sine-mods\$($m.Id)"

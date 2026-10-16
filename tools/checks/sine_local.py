@@ -14,8 +14,11 @@ def serve_local():
         for f in filter(None, files):
             if (ROOT / f).is_file():
                 zf.write(ROOT / f, f"zenith-master/{f}")
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(ROOT))
-    handler.log_message = lambda *a: None
+    class Quiet(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+    handler = functools.partial(Quiet, directory=str(ROOT))
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     local = f"http://127.0.0.1:{server.server_address[1]}"

@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.7.1
+// @version        0.7.2
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -22,7 +22,13 @@
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 
+// Start once per window, even if two copies of Zenith are installed for a
+// moment (say the old seven Sine mods and the new one, while moving over).
+const FIRST = !window.zenithPeekStarted;
+window.zenithPeekStarted = true;
+
 function start(name, fn) {
+  if (!FIRST) return;
   try {
     fn();
   } catch (e) {
@@ -209,14 +215,14 @@ const WebCards = {
   NAMES: { currency: "Currency", define: "Define", weather: "Weather" },
   // How long an answer is reused: weather changes, definitions don't.
   TTL: { currency: 3600e3, define: Infinity, weather: 600e3 },
-  PLACE_PREF: "zenith.internal.weather-place",
+  RECENT_PREF: "zenith.internal.weather-places",
 
   on() {
     return prefs.bool("zenith.peek.web-cards", true);
   },
 
   // text -> { card, query, prefix? } or null. "wt" on its own is the weather
-  // for the last place looked up, or near you.
+  // near you, with the places you looked up lately underneath.
   match(text) {
     if (!this.on()) return null;
     const t = text.trim();
@@ -228,8 +234,30 @@ const WebCards = {
     return null;
   },
 
-  lastPlace() {
-    return prefs.str(this.PLACE_PREF);
+  // The places you looked up, newest first (kept on this computer only);
+  // "Peek weather history" says how many "wt" shows.
+  recentPlaces() {
+    try {
+      const list = JSON.parse(prefs.str(this.RECENT_PREF) || "[]");
+      return Array.isArray(list) ? list.filter(p => typeof p === "string" && p) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  remember(place) {
+    const list = [place, ...this.recentPlaces().filter(p => p.toLowerCase() !== place.toLowerCase())].slice(0, 5);
+    Services.prefs.setStringPref(this.RECENT_PREF, JSON.stringify(list));
+  },
+
+  forget(place) {
+    const list = this.recentPlaces().filter(p => p !== place);
+    if (list.length) Services.prefs.setStringPref(this.RECENT_PREF, JSON.stringify(list));
+    else Services.prefs.clearUserPref(this.RECENT_PREF);
+  },
+
+  historyLength() {
+    return Math.max(0, Math.min(5, Number(prefs.str("zenith.peek.weather-history") || 3)));
   },
 
   // "Peek weather units", or automatic: Firefox's home country (it works
@@ -269,7 +297,7 @@ const WebCards = {
 
   // -> { text, copy?, note? } or null; reused for a while (see TTL).
   async answer({ card, query }) {
-    const key = `${card}:${query.toLowerCase()}:${card === "weather" ? `${this.imperial()}:${query ? "" : this.lastPlace()}` : ""}`;
+    const key = `${card}:${query.toLowerCase()}:${card === "weather" ? this.imperial() : ""}`;
     const hit = this.cache.get(key);
     if (!hit || Date.now() - hit.at > this.TTL[card]) {
       const promise = this[card](query).catch(e => {
@@ -318,24 +346,22 @@ const WebCards = {
   // One line from wttr.in's JSON (its one-line text format is only sent to
   // command-line tools; browsers get a page): "Lisbon, Portugal: Overcast,
   // 22°C (feels 19°C), wind 21 km/h SSW"
-  // With no place: the last place looked up, or (none yet) wttr.in's guess
-  // from your connection.
+  // With no place: wttr.in's guess from your connection (no location
+  // permission involved).
   async weather(query) {
     const imperial = this.imperial();
-    const asked = query || this.lastPlace();
     const lang = LANG === "en" ? "" : `&lang=${LANG}`;
-    const data = await this.get(`https://wttr.in/${encodeURIComponent(asked)}?format=j1${lang}`);
+    const data = await this.get(`https://wttr.in/${encodeURIComponent(query)}?format=j1${lang}`);
     const now = data?.current_condition?.[0];
     if (!now) return null;
-    if (query) Services.prefs.setStringPref(this.PLACE_PREF, query);
     const area = data.nearest_area?.[0];
-    const place = [area?.areaName?.[0]?.value, area?.country?.[0]?.value].filter(Boolean).join(", ") || asked || "Near you";
+    const place = [area?.areaName?.[0]?.value, area?.country?.[0]?.value].filter(Boolean).join(", ") || query || "Near you";
     const sky = now[`lang_${LANG}`]?.[0]?.value ?? now.weatherDesc?.[0]?.value ?? "";
     const [t, feels, wind, unit] = imperial
       ? [now.temp_F, now.FeelsLikeF, now.windspeedMiles, "°F"]
       : [now.temp_C, now.FeelsLikeC, now.windspeedKmph, "°C"];
     const text = `${place}: ${sky ? `${sky.trim()}, ` : ""}${t}${unit} (feels ${feels}${unit}), wind ${wind} ${imperial ? "mph" : "km/h"} ${now.winddir16Point ?? ""}`;
-    return { text: text.trim(), note: asked ? "wttr.in" : "near you, by wttr.in" };
+    return { text: text.trim(), note: query ? "wttr.in" : "near you, by wttr.in" };
   },
 };
 
@@ -497,10 +523,12 @@ const Prompt = {
     this.card = this.command || this.answer ? null : WebCards.match(text);
     this.cardAnswer = null;
     this.target = this.command ? null : Lookup.resolve(text);
-    // "wt" alone opens the full forecast for the place it shows.
-    if (this.card && !this.card.query && this.card.prefix) {
-      const place = WebCards.lastPlace();
-      this.target = { label: "Weather", url: Lookup.fill(this.card.prefix.url, place), query: place || "near you" };
+    // "wt" alone: the forecast near you, and the recent places underneath.
+    this.places = null;
+    if (this.card?.card === "weather" && !this.card.query && this.card.prefix) {
+      this.target = { label: "Weather", url: Lookup.fill(this.card.prefix.url, ""), query: "near you" };
+      this.places = WebCards.recentPlaces().slice(0, WebCards.historyLength());
+      this.placeSelected = -1;
     }
     const typedPrefix = /^\S+$/.test(text.trim()) ? Lookup.findPrefix(text.trim()) : null;
     this.row.toggleAttribute("answer", !!this.answer);
@@ -521,6 +549,7 @@ const Prompt = {
       }
     } else if (this.card) {
       this.showCard(this.card, text);
+      if (this.places?.length) this.renderPlaces(text);
     } else if (this.answer) {
       this.tag.textContent = "=";
       this.text.textContent = this.answer;
@@ -549,6 +578,8 @@ const Prompt = {
       if (this.input.value !== text || this.host.hidden) return;
       this.cardAnswer = answer;
       this.row.setAttribute("card", answer ? "answer" : "none");
+      // A place you typed that answers joins the recent places.
+      if (answer && card.card === "weather" && card.query) WebCards.remember(card.query);
       if (answer) {
         this.text.textContent = answer.text;
         this.text.title = answer.text;
@@ -560,9 +591,80 @@ const Prompt = {
     }, 350);
   },
 
+  /* --- "wt" alone: recent places under the weather near you --------------- */
+
+  renderPlaces(text) {
+    this.list.hidden = false;
+    this.list.replaceChildren();
+    this.places.forEach((place, i) => {
+      const row = make("div", { class: "zenith-peek-item zenith-peek-place" });
+      if (i === this.placeSelected) row.setAttribute("selected", "true");
+      const line = make("span", { class: "zenith-peek-name" }, "…");
+      row.append(make("span", { class: "zenith-peek-key" }, place), line);
+      const remove = make("button", { class: "zenith-peek-remove", title: "Forget this place" }, "×");
+      remove.addEventListener("mousedown", e => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.forgetPlace(i, text);
+      });
+      row.append(remove);
+      row.addEventListener("mousedown", e => {
+        e.preventDefault();
+        this.openPlace(i);
+      });
+      this.list.append(row);
+      WebCards.answer({ card: "weather", query: place }).then(answer => {
+        if (this.input.value === text) line.textContent = answer ? answer.text.replace(/^[^:]*:\s*/, "") : "no answer here";
+      });
+    });
+    const foot = make("div", { class: "zenith-peek-foot" });
+    foot.append(make("span", {}, "↑↓ choose · Enter opens the forecast · Delete forgets a place"));
+    this.list.append(foot);
+  },
+
+  openPlace(i) {
+    const place = this.places[i];
+    const url = Lookup.fill(this.card.prefix.url, place);
+    const box = this.host.firstElementChild.getBoundingClientRect();
+    this.hide();
+    Peek.show({ label: "Weather", url, query: place }, { x: box.left + box.width / 2, y: box.top + box.height / 2 });
+  },
+
+  forgetPlace(i, text) {
+    WebCards.forget(this.places[i]);
+    this.places.splice(i, 1);
+    this.placeSelected = Math.min(this.placeSelected, this.places.length - 1);
+    if (this.places.length) this.renderPlaces(text);
+    else this.list.hidden = true;
+  },
+
+  // Keys while recent places show; true when handled.
+  onPlaceKey(e) {
+    const count = this.places.length;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      // -1 is the weather near you (the row above the list).
+      this.placeSelected = ((this.placeSelected + 1 + (e.key === "ArrowDown" ? 1 : count)) % (count + 1)) - 1;
+      this.renderPlaces(this.input.value);
+      return true;
+    }
+    if (e.key === "Enter" && this.placeSelected >= 0) {
+      e.preventDefault();
+      this.openPlace(this.placeSelected);
+      return true;
+    }
+    if (e.key === "Delete" && this.placeSelected >= 0) {
+      e.preventDefault();
+      this.forgetPlace(this.placeSelected, this.input.value);
+      return true;
+    }
+    return false;
+  },
+
   onKey(e) {
     if (this.listing && this.onListKey(e)) return;
     if (this.timerListing && this.onTimerKey(e)) return;
+    if (this.places?.length && this.onPlaceKey(e)) return;
     if (e.key === "Escape") {
       e.preventDefault();
       this.hide();
@@ -916,7 +1018,16 @@ function migratePrefixes() {
   Services.prefs.clearUserPref("zenith.peek.prefixes");
 }
 
+// 0.7.1 kept one last weather place; 0.7.2 keeps a short list.
+function migrateWeatherPlace() {
+  const old = prefs.str("zenith.internal.weather-place");
+  if (!old) return;
+  if (!WebCards.recentPlaces().length) Services.prefs.setStringPref(WebCards.RECENT_PREF, JSON.stringify([old]));
+  Services.prefs.clearUserPref("zenith.internal.weather-place");
+}
+
 start("prefixes", migratePrefixes);
+start("weather places", migrateWeatherPlace);
 start("hotkey", addKeys);
 start("url bar", watchUrlbar);
 start("peek keys", watchPeekKeys);

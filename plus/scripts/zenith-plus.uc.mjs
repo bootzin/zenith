@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.7.1
+// @version        0.7.2
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -32,7 +32,13 @@ function el(tag, attrs = {}) {
 }
 
 // Run each feature on its own, so one failure can't take the others down.
+// Start once per window, even if two copies of Zenith are installed for a
+// moment (say the old seven Sine mods and the new one, while moving over).
+const FIRST = !window.zenithPlusStarted;
+window.zenithPlusStarted = true;
+
 function start(name, fn) {
+  if (!FIRST) return;
   try {
     fn();
   } catch (e) {

@@ -1,0 +1,1570 @@
+[
+  {
+    "type": "separator",
+    "label": "Core"
+  },
+  {
+    "property": "zenith.core.density",
+    "label": "Density: row height of sidebar tabs and URL bar results",
+    "type": "dropdown",
+    "placeholder": "Default (Tight)",
+    "options": [
+      {
+        "label": "Tight: smallest rows",
+        "value": "tight"
+      },
+      {
+        "label": "Compact: rows 4px taller",
+        "value": "compact"
+      },
+      {
+        "label": "Cozy: rows 8px taller",
+        "value": "cozy"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.scale",
+    "label": "Screen scale",
+    "type": "dropdown",
+    "placeholder": "Default (Auto by window width)",
+    "options": [
+      {
+        "label": "Auto by window width",
+        "value": "auto"
+      },
+      {
+        "label": "Small screen",
+        "value": "small"
+      },
+      {
+        "label": "Medium screen",
+        "value": "medium"
+      },
+      {
+        "label": "Large screen",
+        "value": "large"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.accent",
+    "label": "Accent colour",
+    "type": "dropdown",
+    "placeholder": "Default (Workspace colour)",
+    "options": [
+      {
+        "label": "Workspace colour",
+        "value": "workspace"
+      },
+      {
+        "label": "Lavender",
+        "value": "lavender"
+      },
+      {
+        "label": "Blue",
+        "value": "blue"
+      },
+      {
+        "label": "Teal",
+        "value": "teal"
+      },
+      {
+        "label": "Green",
+        "value": "green"
+      },
+      {
+        "label": "Amber",
+        "value": "amber"
+      },
+      {
+        "label": "Orange",
+        "value": "orange"
+      },
+      {
+        "label": "Red",
+        "value": "red"
+      },
+      {
+        "label": "Pink",
+        "value": "pink"
+      },
+      {
+        "label": "Grey",
+        "value": "grey"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.corners",
+    "label": "Corners on panels and tabs",
+    "type": "dropdown",
+    "placeholder": "Default (Soft)",
+    "options": [
+      {
+        "label": "Square",
+        "value": "square"
+      },
+      {
+        "label": "Soft",
+        "value": "soft"
+      },
+      {
+        "label": "Round",
+        "value": "round"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.pills",
+    "label": "Pills and badges",
+    "type": "dropdown",
+    "placeholder": "Default (Round)",
+    "options": [
+      {
+        "label": "Round",
+        "value": "round"
+      },
+      {
+        "label": "Match the corner setting",
+        "value": "match"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.glass",
+    "label": "Frost: how much see-through panels blur what is behind",
+    "type": "dropdown",
+    "placeholder": "Default (Subtle)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "Subtle",
+        "value": "subtle"
+      },
+      {
+        "label": "Strong",
+        "value": "strong"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.glass-shine",
+    "label": "Glass edge shine",
+    "type": "checkbox",
+    "defaultValue": false
+  },
+  {
+    "property": "zenith.core.window-transparency",
+    "label": "Window transparency",
+    "type": "dropdown",
+    "placeholder": "Default (Airy)",
+    "options": [
+      {
+        "label": "Solid",
+        "value": "solid"
+      },
+      {
+        "label": "Dense",
+        "value": "dense"
+      },
+      {
+        "label": "Balanced",
+        "value": "balanced"
+      },
+      {
+        "label": "Airy",
+        "value": "airy"
+      },
+      {
+        "label": "Sheer",
+        "value": "sheer"
+      },
+      {
+        "label": "Glass",
+        "value": "glass"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.floating-sidebar",
+    "label": "Sidebar",
+    "type": "dropdown",
+    "placeholder": "Default (See-through, like the URL bar)",
+    "options": [
+      {
+        "label": "See-through, like the URL bar",
+        "value": "glass"
+      },
+      {
+        "label": "Solid, docked and floating identical",
+        "value": "solid"
+      },
+      {
+        "label": "Zen's own (floating is darker)",
+        "value": "zen"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.page",
+    "label": "Page frame",
+    "type": "dropdown",
+    "placeholder": "Default (Flush and square)",
+    "options": [
+      {
+        "label": "Flush and square",
+        "value": "flush"
+      },
+      {
+        "label": "Rounded with a slim gap",
+        "value": "flush-round"
+      },
+      {
+        "label": "Zen default",
+        "value": "zen"
+      }
+    ]
+  },
+  {
+    "property": "zen.view.hide-window-controls",
+    "label": "Window buttons only when hovering the top edge (Zen setting)",
+    "type": "checkbox"
+  },
+  {
+    "type": "separator",
+    "label": "Edges"
+  },
+  {
+    "property": "zenith.edges.preset",
+    "label": "Preset",
+    "type": "dropdown",
+    "placeholder": "Default (Full)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "Quiet: loading, sharing, private",
+        "value": "quiet"
+      },
+      {
+        "label": "Full",
+        "value": "full"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.thickness",
+    "label": "Edge thickness",
+    "type": "dropdown",
+    "placeholder": "Default (Auto)",
+    "options": [
+      {
+        "label": "Auto",
+        "value": "auto"
+      },
+      {
+        "label": "1px",
+        "value": "1"
+      },
+      {
+        "label": "2px",
+        "value": "2"
+      },
+      {
+        "label": "3px",
+        "value": "3"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.load",
+    "label": "Load edge (top)",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.download",
+    "label": "Download progress (bottom)",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.container",
+    "label": "Container colour (left)",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.container-style",
+    "label": "Container line style",
+    "type": "dropdown",
+    "placeholder": "Default (Straight)",
+    "options": [
+      {
+        "label": "Straight",
+        "value": "straight"
+      },
+      {
+        "label": "Wrap the corners (with a rounded page frame)",
+        "value": "wrap"
+      },
+      {
+        "label": "Rounded bar, inset",
+        "value": "inset"
+      }
+    ],
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.edges.container",
+              "value": "on"
+            }
+          },
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.edges.container",
+                  "value": ""
+                }
+              },
+              {
+                "conditions": [
+                  {
+                    "if": {
+                      "property": "zenith.edges.preset",
+                      "value": ""
+                    }
+                  },
+                  {
+                    "if": {
+                      "property": "zenith.edges.preset",
+                      "value": "full"
+                    }
+                  }
+                ],
+                "operator": "OR"
+              }
+            ],
+            "operator": "AND"
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Container colour is off"
+  },
+  {
+    "property": "zenith.edges.sharing",
+    "label": "Red edges while camera, mic or screen is shared",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.private",
+    "label": "Private window frame",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.private-colour",
+    "label": "Private frame colour",
+    "type": "dropdown",
+    "placeholder": "Default (Purple)",
+    "options": [
+      {
+        "label": "Purple",
+        "value": "purple"
+      },
+      {
+        "label": "Accent",
+        "value": "accent"
+      },
+      {
+        "label": "Blue",
+        "value": "blue"
+      },
+      {
+        "label": "Teal",
+        "value": "teal"
+      },
+      {
+        "label": "Green",
+        "value": "green"
+      },
+      {
+        "label": "Orange",
+        "value": "orange"
+      },
+      {
+        "label": "Red",
+        "value": "red"
+      },
+      {
+        "label": "Pink",
+        "value": "pink"
+      }
+    ],
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.edges.private",
+              "value": "on"
+            }
+          },
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.edges.private",
+                  "value": ""
+                }
+              },
+              {
+                "not": {
+                  "property": "zenith.edges.preset",
+                  "value": "off"
+                }
+              }
+            ],
+            "operator": "AND"
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Private window frame is off"
+  },
+  {
+    "property": "zenith.edges.unfocused",
+    "label": "Fade edges when the window is in the background",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.muted",
+    "label": "Extra: muted marker",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.insecure",
+    "label": "Amber top edge on not-secure (HTTP) pages",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.focus-border",
+    "label": "Extra: accent frame while the window is focused",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "type": "separator",
+    "label": "Tabs"
+  },
+  {
+    "property": "zenith.tabs.preset",
+    "label": "Preset",
+    "type": "dropdown",
+    "placeholder": "Default (Informative)",
+    "options": [
+      {
+        "label": "Plain",
+        "value": "plain"
+      },
+      {
+        "label": "Informative",
+        "value": "informative"
+      },
+      {
+        "label": "Everything",
+        "value": "everything"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.reveal",
+    "label": "Revealed sidebar",
+    "type": "dropdown",
+    "placeholder": "Default (Overlay)",
+    "options": [
+      {
+        "label": "Overlay the page",
+        "value": "overlay"
+      },
+      {
+        "label": "Dim the page",
+        "value": "dim"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.close-hover",
+    "label": "Close button only on hover",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.unloaded",
+    "label": "Sleeping tabs",
+    "type": "dropdown",
+    "placeholder": "Default (Grey and dim)",
+    "options": [
+      {
+        "label": "Grey and dim",
+        "value": "grey"
+      },
+      {
+        "label": "Italic title",
+        "value": "italic"
+      },
+      {
+        "label": "Hide favicon",
+        "value": "nofavicon"
+      },
+      {
+        "label": "No change",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.attention",
+    "label": "Attention dots",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.folder-activity",
+    "label": "Folder activity dot",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.container",
+    "label": "Container stripe",
+    "type": "dropdown",
+    "placeholder": "Default (Subtle)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "Subtle",
+        "value": "subtle"
+      },
+      {
+        "label": "Strong",
+        "value": "strong"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.split-vertical",
+    "label": "Vertical split-view groups",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zen.tabs.open-pinned-in-new-tab",
+    "label": "Pinned tabs open other sites in a new tab (Zen setting; untick to stay in the tab)",
+    "type": "checkbox"
+  },
+  {
+    "property": "zenith.tabs.audio-wave",
+    "label": "Audio wave behind playing tabs",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.mini-player",
+    "label": "Slim media controls",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.reveal-delay",
+    "label": "Extra: sidebar reveal delay",
+    "type": "dropdown",
+    "placeholder": "Default (No delay)",
+    "options": [
+      {
+        "label": "No delay",
+        "value": "0"
+      },
+      {
+        "label": "100ms",
+        "value": "100"
+      },
+      {
+        "label": "200ms",
+        "value": "200"
+      },
+      {
+        "label": "300ms",
+        "value": "300"
+      },
+      {
+        "label": "500ms",
+        "value": "500"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.hover-mute",
+    "label": "Extra: hover a playing tab's icon to mute",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.pinned-drift",
+    "label": "Extra: mark pinned tabs that left their page",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.numbers",
+    "label": "Numbered tabs",
+    "type": "dropdown",
+    "placeholder": "Follow preset (Always with Everything, otherwise Off)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "Always",
+        "value": "on"
+      },
+      {
+        "label": "While holding Ctrl (needs Zenith Plus)",
+        "value": "ctrl"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.lowercase",
+    "label": "Extra: lowercase mode",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "type": "separator",
+    "label": "URL bar"
+  },
+  {
+    "property": "zenith.urlbar.preset",
+    "label": "Preset",
+    "type": "dropdown",
+    "placeholder": "Default (Spotlight)",
+    "options": [
+      {
+        "label": "Zen default",
+        "value": "zen"
+      },
+      {
+        "label": "Spotlight (centred)",
+        "value": "spotlight"
+      },
+      {
+        "label": "Top",
+        "value": "top"
+      }
+    ]
+  },
+  {
+    "property": "zenith.urlbar.results",
+    "label": "Results layout",
+    "type": "dropdown",
+    "placeholder": "Default (Dense list)",
+    "options": [
+      {
+        "label": "Dense list",
+        "value": "dense"
+      },
+      {
+        "label": "Zen list",
+        "value": "list"
+      },
+      {
+        "label": "Tiles for top sites",
+        "value": "tiles"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.urlbar.preset",
+          "value": "zen"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The URL bar preset is Zen default"
+  },
+  {
+    "property": "zenith.urlbar.mono",
+    "label": "Extra: monospace URLs",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "type": "separator",
+    "label": "Panels"
+  },
+  {
+    "property": "zenith.panels.preset",
+    "label": "Preset",
+    "type": "dropdown",
+    "placeholder": "Default (Zenith)",
+    "options": [
+      {
+        "label": "Zen default",
+        "value": "zen"
+      },
+      {
+        "label": "Zenith",
+        "value": "zenith"
+      },
+      {
+        "label": "Zenith with compact menus",
+        "value": "compact"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.findbar",
+    "label": "Find bar",
+    "type": "dropdown",
+    "placeholder": "Default (Bottom)",
+    "options": [
+      {
+        "label": "Zen default",
+        "value": "off"
+      },
+      {
+        "label": "Bottom",
+        "value": "bottom"
+      },
+      {
+        "label": "Top",
+        "value": "top"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.history",
+    "label": "Library panel (Ctrl+H)",
+    "type": "dropdown",
+    "placeholder": "Default (Floating card)",
+    "options": [
+      {
+        "label": "Zen default",
+        "value": "off"
+      },
+      {
+        "label": "Floating card",
+        "value": "card"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.pip",
+    "label": "Picture-in-picture controls",
+    "type": "dropdown",
+    "placeholder": "Default (Glass)",
+    "options": [
+      {
+        "label": "Glass",
+        "value": "zenith"
+      },
+      {
+        "label": "Firefox default",
+        "value": "firefox"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.status-delay",
+    "label": "Link URL pill delay",
+    "type": "dropdown",
+    "placeholder": "Default (300ms)",
+    "options": [
+      {
+        "label": "Instant",
+        "value": "0"
+      },
+      {
+        "label": "150ms",
+        "value": "150"
+      },
+      {
+        "label": "300ms",
+        "value": "300"
+      },
+      {
+        "label": "500ms",
+        "value": "500"
+      },
+      {
+        "label": "800ms",
+        "value": "800"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.glance",
+    "label": "Extra: Glance as a lifted card",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.split",
+    "label": "Split view",
+    "type": "dropdown",
+    "placeholder": "Default (Tiling gaps)",
+    "options": [
+      {
+        "label": "Hairlines",
+        "value": "hairlines"
+      },
+      {
+        "label": "Tiling gaps",
+        "value": "gaps"
+      },
+      {
+        "label": "Zen default",
+        "value": "zen"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.gap",
+    "label": "Tiling gap size",
+    "type": "dropdown",
+    "placeholder": "Default (6px)",
+    "options": [
+      {
+        "label": "2px",
+        "value": "2"
+      },
+      {
+        "label": "4px",
+        "value": "4"
+      },
+      {
+        "label": "6px",
+        "value": "6"
+      },
+      {
+        "label": "8px",
+        "value": "8"
+      },
+      {
+        "label": "12px",
+        "value": "12"
+      },
+      {
+        "label": "16px",
+        "value": "16"
+      },
+      {
+        "label": "24px",
+        "value": "24"
+      }
+    ],
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.panels.split",
+              "value": "gaps"
+            }
+          },
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.panels.split",
+                  "value": ""
+                }
+              },
+              {
+                "not": {
+                  "property": "zenith.panels.preset",
+                  "value": "zen"
+                }
+              }
+            ],
+            "operator": "AND"
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Only with Split view: Tiling gaps"
+  },
+  {
+    "property": "zenith.panels.notifications",
+    "label": "Notifications",
+    "type": "dropdown",
+    "placeholder": "Default (dunst cards)",
+    "options": [
+      {
+        "label": "Zen default",
+        "value": "zen"
+      },
+      {
+        "label": "Small toasts",
+        "value": "small"
+      },
+      {
+        "label": "dunst cards",
+        "value": "dunst"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.compact-menus",
+    "label": "Compact menus",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "type": "separator",
+    "label": "Motion"
+  },
+  {
+    "property": "zenith.motion.preset",
+    "label": "Preset",
+    "type": "dropdown",
+    "placeholder": "Default (Quick)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "Quick",
+        "value": "quick"
+      },
+      {
+        "label": "Smooth",
+        "value": "smooth"
+      }
+    ]
+  },
+  {
+    "property": "zenith.motion.reduced",
+    "label": "When the system asks for less motion",
+    "type": "dropdown",
+    "placeholder": "Default (Keep Zenith's motion)",
+    "options": [
+      {
+        "label": "Keep Zenith's motion",
+        "value": "zenith"
+      },
+      {
+        "label": "Follow the system: no motion",
+        "value": "follow"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.plus.animate-zen",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Zenith Plus keeps everything animated"
+  },
+  {
+    "property": "zenith.motion.tab-switch",
+    "label": "Tab switch",
+    "type": "dropdown",
+    "placeholder": "Default (Instant)",
+    "options": [
+      {
+        "label": "Instant",
+        "value": "instant"
+      },
+      {
+        "label": "Crossfade",
+        "value": "fade"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Motion is off"
+  },
+  {
+    "property": "zenith.motion.swipe",
+    "label": "Swipe back/forward animation",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Motion is off"
+  },
+  {
+    "property": "zenith.motion.swipe-round",
+    "label": "Extra: round and lift the page while swiping",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      },
+      {
+        "not": {
+          "property": "zenith.motion.swipe",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Swipe animation is off"
+  },
+  {
+    "type": "separator",
+    "label": "Plus"
+  },
+  {
+    "property": "zenith.peek.enabled",
+    "label": "Peek: Alt+Q, or Shift+Enter in the URL bar (type ? in Peek to edit prefixes)",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.peek.engine",
+    "label": "Peek search engine",
+    "type": "dropdown",
+    "placeholder": "Default (Google)",
+    "options": [
+      {
+        "label": "Google",
+        "value": "google"
+      },
+      {
+        "label": "Google AI Mode",
+        "value": "google-ai"
+      },
+      {
+        "label": "Google, web results only",
+        "value": "google-web"
+      },
+      {
+        "label": "DuckDuckGo",
+        "value": "duckduckgo"
+      },
+      {
+        "label": "Kagi",
+        "value": "kagi"
+      },
+      {
+        "label": "Bing",
+        "value": "bing"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      },
+      {
+        "if": {
+          "property": "zenith.peek.custom-engine",
+          "value": ""
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek is off, or your custom search URL is used instead"
+  },
+  {
+    "property": "zenith.peek.custom-engine",
+    "label": "Peek custom search URL, used instead of the engine",
+    "type": "string",
+    "placeholder": "https://example.com/search?q=%s",
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek is off"
+  },
+  {
+    "property": "zenith.peek.instant",
+    "label": "Peek instant answers: maths, units and time zones",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek is off"
+  },
+  {
+    "property": "zenith.peek.web-cards",
+    "label": "Peek answers from the web: currency ($), definitions (d), weather (wt)",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek is off"
+  },
+  {
+    "property": "zenith.peek.units",
+    "label": "Peek weather units",
+    "type": "dropdown",
+    "placeholder": "Default (Automatic (from your country))",
+    "options": [
+      {
+        "label": "Automatic (from your country)",
+        "value": "auto"
+      },
+      {
+        "label": "Metric: °C, km/h",
+        "value": "metric"
+      },
+      {
+        "label": "Imperial: °F, mph",
+        "value": "imperial"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      },
+      {
+        "if": {
+          "property": "zenith.peek.web-cards",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek or its answers from the web are off"
+  },
+  {
+    "property": "zenith.peek.weather-history",
+    "label": "Peek weather history (wt on its own)",
+    "type": "dropdown",
+    "placeholder": "Default (3 recent places)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "0"
+      },
+      {
+        "label": "1 recent place",
+        "value": "1"
+      },
+      {
+        "label": "2 recent places",
+        "value": "2"
+      },
+      {
+        "label": "3 recent places",
+        "value": "3"
+      },
+      {
+        "label": "4 recent places",
+        "value": "4"
+      },
+      {
+        "label": "5 recent places",
+        "value": "5"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      },
+      {
+        "if": {
+          "property": "zenith.peek.web-cards",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek or its answers from the web are off"
+  },
+  {
+    "property": "zenith.peek.pomodoro",
+    "label": "Peek pomodoro (type pomo)",
+    "type": "dropdown",
+    "placeholder": "Default (25 min focus, 5 min break, 4 rounds)",
+    "options": [
+      {
+        "label": "25 min focus, 5 min break, 4 rounds",
+        "value": "25-5-4"
+      },
+      {
+        "label": "50 min focus, 10 min break, 3 rounds",
+        "value": "50-10-3"
+      },
+      {
+        "label": "15 min focus, 3 min break, 4 rounds",
+        "value": "15-3-4"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek is off"
+  },
+  {
+    "property": "zenith.plus.minimap",
+    "label": "Sidebar minimap while the sidebar is hidden",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.zoom-pill",
+    "label": "Zoom pill on zoomed pages",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.media-art",
+    "label": "Cover art of what's playing behind the media card",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.animate-zen",
+    "label": "Let Zen and Zenith animate even when the system asks for less motion",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.page.selection",
+    "label": "Text selection in web pages in the workspace colour",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.page.thin-scrollbars",
+    "label": "Thin scrollbars in web pages in the workspace colour",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.sine-mods-first",
+    "label": "Sine's mods page: your mods first, marketplace folded away",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  }
+]

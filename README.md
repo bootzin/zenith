@@ -29,7 +29,8 @@ Zenith comes in two parts.
 Zenith is built and tested on Windows 11 with Zen. It's plain CSS and standard Firefox features, so it should work on macOS and Linux too, but that hasn't been tested yet.
 
 - **Zenith:** from Zen's mod store (Settings › Zen Mods).
-- **Zenith Plus:** with [Sine](https://github.com/CosmoCreeper/Sine). In Sine's settings, install from GitHub with `bootzin/zenith/tree/master/plus`. That also installs Zenith's six mods. Until Zenith Plus is in Sine's store, Sine only runs its scripts with **Allow JS from unofficial sources** on.
+- **Zenith with Plus:** with [Sine](https://github.com/CosmoCreeper/Sine). In Sine's settings, install from GitHub with `bootzin/zenith/tree/master`. Sine lists it as one mod, **Zenith**, with all six areas and Plus; its settings are grouped by area. Until Zenith is in Sine's store, Sine only runs Plus's scripts with **Allow JS from unofficial sources** on.
+  - Installed the separate Zenith mods from `.../tree/master/plus` before 0.7.2? Remove all seven in Settings › Sine Mods (your settings stay), then install `bootzin/zenith/tree/master` and restart Zen.
 - **Manual (fallback, Windows):**
   1. Download `zenith-<version>-manual.zip` from [Releases](../../releases).
   2. Follow `INSTALL.txt`. This uses fx-autoconfig as the script loader.
@@ -42,7 +43,7 @@ Zen scripts run inside the browser with full access, like every script mod. Zeni
 The network requests it causes:
 
 - **Peek:** the pages you choose to open in it.
-- **Peek's web answers** (switch off with "Peek answers from the web"): after you type a `$`, `d` or `wt` lookup, the currencies go to [Frankfurter](https://frankfurter.dev) (European Central Bank rates), the word to Wiktionary, and the place to [wttr.in](https://wttr.in). With `wt` alone and no place looked up yet, wttr.in works out roughly where you are from your connection, as any website can; no location permission is used.
+- **Peek's web answers** (switch off with "Peek answers from the web"): after you type a `$`, `d` or `wt` lookup, the currencies go to [Frankfurter](https://frankfurter.dev) (European Central Bank rates), the word to Wiktionary, and the place to [wttr.in](https://wttr.in). For `wt` alone, wttr.in works out roughly where you are from your connection, as any website can; no location permission is used. Your recent places (up to five) stay on your computer, and `wt` refreshes them from wttr.in.
 - **Cover art** behind the media card: fetched from the site that's playing, without cookies.
 
 Specific things it changes:
@@ -51,7 +52,8 @@ Specific things it changes:
 
 ## Development
 
-- **Layout:** one folder per mod at the top (`core/`, `edges/`, `tabs/`, `urlbar/`, `panels/`, `motion/`), `plus/` holds Zenith Plus, and `tools/` holds the build, check and install scripts. (Sine can only update mods whose folder is one level deep.)
+- **Layout:** one folder per mod at the top (`core/`, `edges/`, `tabs/`, `urlbar/`, `panels/`, `motion/`), `plus/` holds Zenith Plus, and `tools/` holds the build, check and install scripts.
+- **Generated:** `chrome.css`, `preferences.json` and `theme.json` at the top are the one Sine mod, built from the folders by `python tools/package.py . --owner bootzin`. Don't edit them by hand; run that before every push.
 
 ## Credits
 

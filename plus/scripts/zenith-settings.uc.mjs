@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.7.1
+// @version        0.7.2
 // ==/UserScript==
 
 // Zen's mod settings list every option flat, with no way to show that one
@@ -258,6 +258,23 @@ const RULES = {
       }
     ]
   },
+  "zenith.peek.weather-history": {
+    "why": "Peek or its answers from the web are off",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      },
+      {
+        "if": {
+          "property": "zenith.peek.web-cards",
+          "value": true
+        }
+      }
+    ]
+  },
   "zenith.peek.pomodoro": {
     "why": "Peek is off",
     "conditions": [
@@ -430,8 +447,12 @@ function init() {
   schedule();
 }
 
-try {
-  init();
-} catch (e) {
-  console.error("[Zenith] settings helper failed to start", e);
+// Once per page, even with two copies of Zenith installed for a moment.
+if (!window.zenithSettingsStarted) {
+  window.zenithSettingsStarted = true;
+  try {
+    init();
+  } catch (e) {
+    console.error("[Zenith] settings helper failed to start", e);
+  }
 }

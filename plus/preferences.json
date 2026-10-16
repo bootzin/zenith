@@ -144,6 +144,55 @@
     "zenithWhy": "Peek or its answers from the web are off"
   },
   {
+    "property": "zenith.peek.weather-history",
+    "label": "Peek weather history (wt on its own)",
+    "type": "dropdown",
+    "placeholder": "Default (3 recent places)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "0"
+      },
+      {
+        "label": "1 recent place",
+        "value": "1"
+      },
+      {
+        "label": "2 recent places",
+        "value": "2"
+      },
+      {
+        "label": "3 recent places",
+        "value": "3"
+      },
+      {
+        "label": "4 recent places",
+        "value": "4"
+      },
+      {
+        "label": "5 recent places",
+        "value": "5"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      },
+      {
+        "if": {
+          "property": "zenith.peek.web-cards",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek or its answers from the web are off"
+  },
+  {
     "property": "zenith.peek.pomodoro",
     "label": "Peek pomodoro (type pomo)",
     "type": "dropdown",

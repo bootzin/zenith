@@ -1,0 +1,57 @@
+{
+  "id": "5a0e7c11-2e1b-4c7d-9f3a-0c0de0000000",
+  "name": "Zenith",
+  "description": "A quiet, minimal look for Zen: six areas (Core, Edges, Tabs, URL bar, Panels, Motion) plus Zenith Plus (Peek, live edges, timers and more). Settings are grouped by area.",
+  "homepage": "https://github.com/bootzin/zenith/tree/master",
+  "author": "bootzin",
+  "version": "0.7.2",
+  "style": {
+    "chrome": "chrome.css"
+  },
+  "preferences": "preferences.json",
+  "scripts": {
+    "plus/scripts/zenith-plus.uc.mjs": {
+      "name": "Zenith Plus",
+      "description": "Live edges, minimap, zoom pills, page colours, sidebar colour, motion, Ctrl numbers.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    },
+    "plus/scripts/zenith-peek.uc.mjs": {
+      "name": "Peek",
+      "description": "Quick, disposable lookups in a floating Glance.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    },
+    "plus/scripts/zenith-timers.uc.mjs": {
+      "name": "Timers",
+      "description": "Countdowns and pomodoros started from Peek, on the page edge.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    },
+    "plus/scripts/zenith-settings.uc.mjs": {
+      "name": "Settings helper",
+      "description": "Greys out Zenith settings that don't apply, and says why.",
+      "include": [
+        "about:preferences*",
+        "about:settings*"
+      ]
+    }
+  },
+  "readme": "https://raw.githubusercontent.com/bootzin/zenith/master/README.md",
+  "image": "",
+  "tags": [
+    "chrome",
+    "minimal",
+    "utility",
+    "zenith"
+  ],
+  "fork": [
+    "zen"
+  ],
+  "ai": "yes",
+  "createdAt": "2026-10-16",
+  "updatedAt": "2026-10-16T20:46:52+00:00"
+}

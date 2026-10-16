@@ -2,7 +2,7 @@
 // @name           Zenith Timers
 // @description    Zenith Plus: countdown timers and pomodoros, started from Peek.
 // @include        main
-// @version        0.7.1
+// @version        0.7.2
 // ==/UserScript==
 
 // Timers are started from the Peek prompt (Alt+Q):
@@ -224,9 +224,13 @@ const Timers = {
   },
 };
 
-window.ZenithTimers = Timers;
-try {
-  Timers.init();
-} catch (e) {
-  console.error("[Zenith Timers] failed to start", e);
+// Start once per window, even if two copies of Zenith are installed for a
+// moment (say the old seven Sine mods and the new one, while moving over).
+if (!window.ZenithTimers) {
+  window.ZenithTimers = Timers;
+  try {
+    Timers.init();
+  } catch (e) {
+    console.error("[Zenith Timers] failed to start", e);
+  }
 }

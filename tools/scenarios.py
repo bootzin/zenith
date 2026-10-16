@@ -145,7 +145,8 @@ window.zth = {
   // Mirror what Zen's settings page does for a mod dropdown/text setting.
   set(mod, prop, value, type = 'dropdown') {
     Services.prefs.setStringPref(prop, value);
-    const id = 'theme-' + mod.replace(/\s/g, '-').replace(/[^A-Za-z_-]+/g, '');
+    // In the one Sine mod every setting lands on #theme-Zenith.
+    const id = document.getElementById('theme-Zenith') ? 'theme-Zenith' : 'theme-' + mod.replace(/\s/g, '-').replace(/[^A-Za-z_-]+/g, '');
     if (type === 'string') {
       document.documentElement.style.setProperty('--' + prop.replaceAll('.', '-'), value);
       return;
