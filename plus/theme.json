@@ -1,0 +1,55 @@
+{
+  "id": "zenith-plus",
+  "name": "Zenith Plus",
+  "description": "Peek, real load and download progress, a sidebar minimap, zoom pills and more for Zenith.",
+  "homepage": "https://github.com/bootzin/zenith/tree/main/plus",
+  "author": "bootzin",
+  "version": "0.6.3",
+  "style": {
+    "chrome": "chrome.css"
+  },
+  "preferences": "preferences.json",
+  "scripts": {
+    "scripts/zenith-plus.uc.mjs": {
+      "name": "Zenith Plus",
+      "description": "Live edges, minimap, zoom pills, page colours, sidebar colour, motion, Ctrl numbers.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    },
+    "scripts/zenith-peek.uc.mjs": {
+      "name": "Peek",
+      "description": "Quick, disposable lookups in a floating Glance.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    },
+    "scripts/zenith-settings.uc.mjs": {
+      "name": "Settings helper",
+      "description": "Greys out Zenith settings that don't apply, and says why.",
+      "include": [
+        "about:preferences*",
+        "about:settings*"
+      ]
+    }
+  },
+  "readme": "https://raw.githubusercontent.com/bootzin/zenith/main/plus/readme.md",
+  "image": "",
+  "tags": [
+    "chrome",
+    "minimal",
+    "utility"
+  ],
+  "fork": [
+    "zen"
+  ],
+  "ai": "yes",
+  "modules": [
+    "bootzin/zenith/tree/main/mods/core",
+    "bootzin/zenith/tree/main/mods/edges",
+    "bootzin/zenith/tree/main/mods/tabs",
+    "bootzin/zenith/tree/main/mods/urlbar",
+    "bootzin/zenith/tree/main/mods/panels",
+    "bootzin/zenith/tree/main/mods/motion"
+  ]
+}

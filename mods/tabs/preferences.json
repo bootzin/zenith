@@ -1,0 +1,279 @@
+[
+  {
+    "property": "zenith.tabs.preset",
+    "label": "Preset",
+    "type": "dropdown",
+    "placeholder": "Default (Informative)",
+    "options": [
+      {
+        "label": "Plain",
+        "value": "plain"
+      },
+      {
+        "label": "Informative",
+        "value": "informative"
+      },
+      {
+        "label": "Everything",
+        "value": "everything"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.reveal",
+    "label": "Revealed sidebar",
+    "type": "dropdown",
+    "placeholder": "Default (Overlay)",
+    "options": [
+      {
+        "label": "Overlay the page",
+        "value": "overlay"
+      },
+      {
+        "label": "Dim the page",
+        "value": "dim"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.close-hover",
+    "label": "Close button only on hover",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.unloaded",
+    "label": "Sleeping tabs",
+    "type": "dropdown",
+    "placeholder": "Default (Grey and dim)",
+    "options": [
+      {
+        "label": "Grey and dim",
+        "value": "grey"
+      },
+      {
+        "label": "Italic title",
+        "value": "italic"
+      },
+      {
+        "label": "Hide favicon",
+        "value": "nofavicon"
+      },
+      {
+        "label": "No change",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.attention",
+    "label": "Attention dots",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.folder-activity",
+    "label": "Folder activity dot",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.container",
+    "label": "Container stripe",
+    "type": "dropdown",
+    "placeholder": "Default (Subtle)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "Subtle",
+        "value": "subtle"
+      },
+      {
+        "label": "Strong",
+        "value": "strong"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.split-vertical",
+    "label": "Vertical split-view groups",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zen.tabs.open-pinned-in-new-tab",
+    "label": "Pinned tabs open other sites in a new tab (Zen setting; untick to stay in the tab)",
+    "type": "checkbox"
+  },
+  {
+    "property": "zenith.tabs.audio-wave",
+    "label": "Audio wave behind playing tabs",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.mini-player",
+    "label": "Slim media controls",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.reveal-delay",
+    "label": "Extra: sidebar reveal delay",
+    "type": "dropdown",
+    "placeholder": "Default (No delay)",
+    "options": [
+      {
+        "label": "No delay",
+        "value": "0"
+      },
+      {
+        "label": "100ms",
+        "value": "100"
+      },
+      {
+        "label": "200ms",
+        "value": "200"
+      },
+      {
+        "label": "300ms",
+        "value": "300"
+      },
+      {
+        "label": "500ms",
+        "value": "500"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.hover-mute",
+    "label": "Extra: hover a playing tab's icon to mute",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.pinned-drift",
+    "label": "Extra: mark pinned tabs that left their page",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.numbers",
+    "label": "Numbered tabs",
+    "type": "dropdown",
+    "placeholder": "Follow preset (Always with Everything, otherwise Off)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "Always",
+        "value": "on"
+      },
+      {
+        "label": "While holding Ctrl (needs Zenith Plus)",
+        "value": "ctrl"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.lowercase",
+    "label": "Extra: lowercase mode",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  }
+]

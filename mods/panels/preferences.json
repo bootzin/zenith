@@ -1,0 +1,226 @@
+[
+  {
+    "property": "zenith.panels.preset",
+    "label": "Preset",
+    "type": "dropdown",
+    "placeholder": "Default (Zenith)",
+    "options": [
+      {
+        "label": "Zen default",
+        "value": "zen"
+      },
+      {
+        "label": "Zenith",
+        "value": "zenith"
+      },
+      {
+        "label": "Zenith with compact menus",
+        "value": "compact"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.findbar",
+    "label": "Find bar",
+    "type": "dropdown",
+    "placeholder": "Default (Bottom)",
+    "options": [
+      {
+        "label": "Zen default",
+        "value": "off"
+      },
+      {
+        "label": "Bottom",
+        "value": "bottom"
+      },
+      {
+        "label": "Top",
+        "value": "top"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.history",
+    "label": "Library panel (Ctrl+H)",
+    "type": "dropdown",
+    "placeholder": "Default (Floating card)",
+    "options": [
+      {
+        "label": "Zen default",
+        "value": "off"
+      },
+      {
+        "label": "Floating card",
+        "value": "card"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.status-delay",
+    "label": "Link URL pill delay",
+    "type": "dropdown",
+    "placeholder": "Default (300ms)",
+    "options": [
+      {
+        "label": "Instant",
+        "value": "0"
+      },
+      {
+        "label": "150ms",
+        "value": "150"
+      },
+      {
+        "label": "300ms",
+        "value": "300"
+      },
+      {
+        "label": "500ms",
+        "value": "500"
+      },
+      {
+        "label": "800ms",
+        "value": "800"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.glance",
+    "label": "Extra: Glance as a lifted card",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.split",
+    "label": "Split view",
+    "type": "dropdown",
+    "placeholder": "Default (Tiling gaps)",
+    "options": [
+      {
+        "label": "Hairlines",
+        "value": "hairlines"
+      },
+      {
+        "label": "Tiling gaps",
+        "value": "gaps"
+      },
+      {
+        "label": "Zen default",
+        "value": "zen"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.gap",
+    "label": "Tiling gap size",
+    "type": "dropdown",
+    "placeholder": "Default (6px)",
+    "options": [
+      {
+        "label": "2px",
+        "value": "2"
+      },
+      {
+        "label": "4px",
+        "value": "4"
+      },
+      {
+        "label": "6px",
+        "value": "6"
+      },
+      {
+        "label": "8px",
+        "value": "8"
+      },
+      {
+        "label": "12px",
+        "value": "12"
+      },
+      {
+        "label": "16px",
+        "value": "16"
+      },
+      {
+        "label": "24px",
+        "value": "24"
+      }
+    ],
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.panels.split",
+              "value": "gaps"
+            }
+          },
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.panels.split",
+                  "value": ""
+                }
+              },
+              {
+                "not": {
+                  "property": "zenith.panels.preset",
+                  "value": "zen"
+                }
+              }
+            ],
+            "operator": "AND"
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Only with Split view: Tiling gaps"
+  },
+  {
+    "property": "zenith.panels.notifications",
+    "label": "Notifications",
+    "type": "dropdown",
+    "placeholder": "Default (dunst cards)",
+    "options": [
+      {
+        "label": "Zen default",
+        "value": "zen"
+      },
+      {
+        "label": "Small toasts",
+        "value": "small"
+      },
+      {
+        "label": "dunst cards",
+        "value": "dunst"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.compact-menus",
+    "label": "Compact menus",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  }
+]

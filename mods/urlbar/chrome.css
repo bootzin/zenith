@@ -1,0 +1,184 @@
+/* ==========================================================================
+   Zenith URL bar — Spotlight-style floating URL bar
+   Zen already floats the bar in the middle of the window while you type
+   (Ctrl+L edits the current address; Ctrl+T opens the same bar for a new
+   tab). Zenith sizes it per screen, gives it Core's corners and glass, dims
+   the page behind it and offers denser or tiled results.
+   Gating (U = #theme-Zenith-URL-bar, P = preset): every rule except the
+   results layout is skipped when the preset is "Zen default".
+   ========================================================================== */
+
+:root:not(:has(#theme-Zenith-URL-bar[zenith-urlbar-preset="zen"])) {
+  /* Size: Zen's own width is capped at 750px, which is narrow at 1440p */
+  & #urlbar[open][zen-floating-urlbar="true"] {
+    width: var(--zth-urlbar-w) !important;
+    min-width: var(--zth-urlbar-w) !important;
+  }
+
+  /* Corners and frame follow Zenith Core */
+  & #urlbar[breakout-extend],
+  & #urlbar[breakout-extend] .urlbar-background {
+    border-radius: var(--zth-radius) !important;
+  }
+
+  & #urlbar[breakout-extend] .urlbar-background {
+    outline: 1px solid var(--zth-hairline) !important;
+    outline-offset: -1px !important;
+    box-shadow: var(--zth-shadow), var(--zth-glass-shine) !important;
+  }
+
+  & #urlbar[breakout-extend] :is(.urlbarView-row, .urlbarView-row-inner) {
+    border-radius: max(0px, calc(var(--zth-radius) - 4px * var(--zth-sq))) !important;
+  }
+
+  /* Dim and lightly blur the page behind the floating bar. The extended bar
+     is a popover in the top layer, so its ::backdrop covers the window. */
+  & #urlbar[zen-floating-urlbar="true"]:popover-open::backdrop {
+    background: light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.32));
+    backdrop-filter: blur(3px);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    & #urlbar[zen-floating-urlbar="true"]:popover-open::backdrop {
+      backdrop-filter: none;
+    }
+  }
+}
+
+/* "Top" preset: open just below the top edge instead of the middle */
+:root:has(#theme-Zenith-URL-bar[zenith-urlbar-preset="top"]) #urlbar[open][zen-floating-urlbar="true"] {
+  top: 24px !important;
+}
+
+/* --- Results layout ---------------------------------------------------------
+   Dense (default): one tight line per result. Tiles: before you type, top sites show
+   as a grid of tiles. In both, a result shows its title; hovering or
+   selecting it shows the title and the address together. Results with no
+   title always show their address. */
+
+:root:not(:has(#theme-Zenith-URL-bar:is([zenith-urlbar-results="list"], [zenith-urlbar-preset="zen"]))) #urlbar {
+  & .urlbarView-row:not(:hover, [selected]):has(.urlbarView-title:not(:empty)) :is(.urlbarView-url, .urlbarView-title-separator) {
+    display: none !important;
+  }
+
+  /* Open tabs ("Switch to tab" rows): Firefox hides their address and Zen
+     gives the title box the whole row for its "Switch to Tab" button, which
+     leaves the address no room. Flattening that box puts title, address and
+     button on one line, so the address shows on hover like any other row
+     while the button stays on the right. */
+  & .urlbarView-row[type="switchtab"] > .urlbarView-row-inner {
+    & > .urlbarView-no-wrap {
+      display: contents !important;
+    }
+
+    & .urlbarView-url {
+      order: 1;
+      flex: 0 1 auto !important;
+      min-width: 0;
+      margin-inline-start: 8px;
+    }
+
+    & .urlbarView-action {
+      order: 9;
+      margin-inline-start: auto !important;
+    }
+  }
+
+  & .urlbarView-row[type="switchtab"]:is(:hover, [selected]) > .urlbarView-row-inner .urlbarView-url {
+    visibility: visible !important;
+  }
+}
+
+:root:not(:has(#theme-Zenith-URL-bar:is([zenith-urlbar-results="list"], [zenith-urlbar-results="tiles"], [zenith-urlbar-preset="zen"]))) #urlbar {
+  & .urlbarView-row {
+    min-height: 0 !important;
+    padding-block: 0 !important;
+  }
+
+  & .urlbarView-row-inner {
+    min-height: 0 !important;
+    padding-block: calc(5px + var(--zth-density-add, 0px) / 2) !important;
+  }
+
+  & .urlbarView-type-icon {
+    display: none !important;
+  }
+
+  & .urlbarView-row[selected] {
+    background-color: var(--zth-accent-soft) !important;
+    box-shadow: inset 3px 0 0 var(--zth-accent) !important;
+    color: var(--zth-ink) !important;
+
+    & * {
+      color: inherit !important;
+    }
+  }
+}
+
+:root:has(#theme-Zenith-URL-bar[zenith-urlbar-results="tiles"]) #urlbar[open]:not([usertyping]) {
+  & .urlbarView-results {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 8px;
+    padding: 10px !important;
+  }
+
+  & .urlbarView-row {
+    min-height: 0 !important;
+  }
+
+  & .urlbarView-row-inner {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 88px !important;
+    padding: 12px 8px !important;
+    text-align: center;
+  }
+
+  & .urlbarView-no-wrap {
+    flex-direction: column !important;
+    align-items: center !important;
+    max-width: 100% !important;
+  }
+
+  & .urlbarView-favicon {
+    width: 28px !important;
+    height: 28px !important;
+    margin: 0 0 8px !important;
+  }
+
+  & :is(.urlbarView-title, .urlbarView-url) {
+    max-width: 100% !important;
+    font-size: 12px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  & .urlbarView-url {
+    font-size: 10.5px !important;
+    color: var(--zth-ink-dim) !important;
+  }
+
+  /* The address sits under the title, so the tile doesn't jump on hover */
+  & .urlbarView-row-inner {
+    flex-wrap: wrap !important;
+  }
+
+  & .urlbarView-row:is(:hover, [selected]) .urlbarView-url {
+    display: block !important;
+    width: 100%;
+  }
+
+  & :is(.urlbarView-type-icon, .urlbarView-action, .urlbarView-title-separator) {
+    display: none !important;
+  }
+}
+
+/* --- Extra: monospace URLs (URL bar, results, link pill) ------------------ */
+
+:root:has(#theme-Zenith-URL-bar[zenith-urlbar-mono="on"]) :is(#urlbar-input, .urlbarView-url, #statuspanel-label) {
+  font-family: "Cascadia Mono", Consolas, ui-monospace, monospace !important;
+  font-size: 0.95em;
+}

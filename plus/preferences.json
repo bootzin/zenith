@@ -1,0 +1,134 @@
+[
+  {
+    "property": "zenith.peek.enabled",
+    "label": "Peek: Alt+Q, or Shift+Enter in the URL bar (type ? in Peek to edit prefixes)",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.peek.engine",
+    "label": "Peek search engine",
+    "type": "dropdown",
+    "placeholder": "Default (Google)",
+    "options": [
+      {
+        "label": "Google",
+        "value": "google"
+      },
+      {
+        "label": "Google AI Mode",
+        "value": "google-ai"
+      },
+      {
+        "label": "Google, web results only",
+        "value": "google-web"
+      },
+      {
+        "label": "DuckDuckGo",
+        "value": "duckduckgo"
+      },
+      {
+        "label": "Kagi",
+        "value": "kagi"
+      },
+      {
+        "label": "Bing",
+        "value": "bing"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      },
+      {
+        "if": {
+          "property": "zenith.peek.custom-engine",
+          "value": ""
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek is off, or your custom search URL is used instead"
+  },
+  {
+    "property": "zenith.peek.custom-engine",
+    "label": "Peek custom search URL, used instead of the engine",
+    "type": "string",
+    "placeholder": "https://example.com/search?q=%s",
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek is off"
+  },
+  {
+    "property": "zenith.peek.instant",
+    "label": "Peek instant answers: maths, units and time zones",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek is off"
+  },
+  {
+    "property": "zenith.plus.minimap",
+    "label": "Sidebar minimap while the sidebar is hidden",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.zoom-pill",
+    "label": "Zoom pill on zoomed pages",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.animate-zen",
+    "label": "Let Zen and Zenith animate even with Windows animation effects off",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.page.selection",
+    "label": "Text selection in web pages in the workspace colour",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.page.thin-scrollbars",
+    "label": "Thin scrollbars in web pages in the workspace colour",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.sine-mods-first",
+    "label": "Sine's mods page: your mods first, marketplace folded away",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  }
+]

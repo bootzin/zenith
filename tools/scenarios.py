@@ -1,0 +1,151 @@
+"""Scenario helpers for the Zenith test harness.
+
+A tiny local web server provides pages that trigger each state Zenith styles
+(slow load, audio, download, camera), and Scene wraps the harness with
+helpers to open tabs, set Zenith settings the way Zen does, reveal or hide
+the compact sidebar, and read computed styles.
+"""
+import io
+import json
+import math
+import struct
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+from harness import Zen
+
+PAGE = """<!doctype html><meta charset=utf-8><title>{title}</title>
+<style>body{{font:16px system-ui;margin:40px;max-width:60em}} a{{color:#36c}}</style>
+<h1>{title}</h1><p>{body}</p>
+<p><a id=l1 href="https://example.com/a/rather/long/path/to/show/in/the/status/pill?q=zenith">A link with a long URL</a>
+ · <a href="/page?n=2">Another page</a></p>
+<p>The quick brown fox jumps over the lazy dog. Find me: zenith zenith zenith.</p>"""
+
+
+def tone_wav(seconds=30, freq=440, rate=8000):
+    n = seconds * rate
+    data = b"".join(struct.pack("<h", int(3000 * math.sin(2 * math.pi * freq * i / rate))) for i in range(n))
+    head = b"RIFF" + struct.pack("<I", 36 + len(data)) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, rate, rate * 2, 2, 16)
+    return head + b"data" + struct.pack("<I", len(data)) + data
+
+
+WAV = tone_wav()
+
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+    def _html(self, html, code=200):
+        body = html.encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        path = self.path.split("?")[0]
+        if path == "/slow":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(b"<!doctype html><title>Slow page</title><h1>Loading slowly...</h1>")
+            self.wfile.flush()
+            time.sleep(12)
+            self.wfile.write(b"<p>done</p>")
+        elif path == "/tone.wav":
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/wav")
+            self.send_header("Content-Length", str(len(WAV)))
+            self.end_headers()
+            self.wfile.write(WAV)
+        elif path == "/audio":
+            self._html("<!doctype html><title>Audio page</title><h1>Playing a tone</h1>"
+                       "<audio id=a src=/tone.wav autoplay loop></audio>")
+        elif path == "/camera":
+            self._html("<!doctype html><title>Camera page</title><h1>Camera</h1><video id=v autoplay muted></video>"
+                       "<script>navigator.mediaDevices.getUserMedia({video:true,audio:true})"
+                       ".then(s=>{v.srcObject=s;document.title='Camera on'}).catch(e=>document.title='ERR '+e)</script>")
+        elif path == "/download":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("Content-Disposition", 'attachment; filename="zenith-test.bin"')
+            self.send_header("Content-Length", str(40 * 65536))
+            self.end_headers()
+            try:
+                for _ in range(40):
+                    self.wfile.write(b"\0" * 65536)
+                    self.wfile.flush()
+                    time.sleep(0.5)
+            except OSError:
+                pass
+        else:
+            q = self.path.split("?n=")[-1] if "?n=" in self.path else "1"
+            self._html(PAGE.format(title=f"Test page {q}", body="A plain page for Zenith checks."))
+
+
+def serve():
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv, f"http://127.0.0.1:{srv.server_address[1]}"
+
+
+HELPERS = r"""
+window.zth = {
+  open(url, opts = {}) {
+    const tab = gBrowser.addTab(url, {
+      triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+      userContextId: opts.container || 0, inBackground: !!opts.background,
+    });
+    if (!opts.background) gBrowser.selectedTab = tab;
+    return tab;
+  },
+  // Mirror what Zen's settings page does for a mod dropdown/text setting.
+  set(mod, prop, value, type = 'dropdown') {
+    Services.prefs.setStringPref(prop, value);
+    const id = 'theme-' + mod.replace(/\s/g, '-').replace(/[^A-Za-z_-]+/g, '');
+    if (type === 'string') {
+      document.documentElement.style.setProperty('--' + prop.replaceAll('.', '-'), value);
+      return;
+    }
+    let el = document.getElementById(id);
+    if (!el) { el = document.createElement('div'); el.id = id; el.style.display = 'none'; document.body.appendChild(el); }
+    el.setAttribute(prop.replaceAll('.', '-'), value || 'none');
+  },
+  reveal(on) {
+    const tb = gNavToolbox;
+    if (on) tb.setAttribute('zen-has-hover', 'true'); else {
+      for (const a of ['zen-has-hover', 'zen-user-show', 'zen-has-empty-tab', 'flash-popup', 'zen-compact-mode-active']) tb.removeAttribute(a);
+    }
+  },
+  style(sel, props, pseudo = null, win = window) {
+    const el = typeof sel === 'string' ? win.document.querySelector(sel) : sel;
+    if (!el) return 'NO ELEMENT ' + sel;
+    const cs = win.getComputedStyle(el, pseudo);
+    const r = el.getBoundingClientRect();
+    const out = { rect: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)] };
+    for (const p of props) out[p] = cs.getPropertyValue(p);
+    return out;
+  },
+  sleep(ms) { return new Promise(r => setTimeout(r, ms)); },
+};
+return true;
+"""
+
+
+class Scene(Zen):
+    def __enter__(self):
+        super().__enter__()
+        self.srv, self.base = serve()
+        self.chrome(HELPERS)
+        return self
+
+    def __exit__(self, *exc):
+        super().__exit__(*exc)
+        self.srv.shutdown()
+
+    def js(self, body, *args):
+        """Run an async JS body with zth helpers available; return its value."""
+        return self.chrome(f"return (async () => {{ {body} }})()", *args)

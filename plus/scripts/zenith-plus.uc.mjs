@@ -1,0 +1,506 @@
+// ==UserScript==
+// @name           Zenith Plus
+// @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
+// @include        main
+// @version        0.6.3
+// ==/UserScript==
+
+// Loaded into every browser window by the script loader (fx-autoconfig, or
+// Sine's, which is built on it). Zenith Plus's own stylesheet (plus/chrome.css,
+// installed as the "Zenith Plus" mod) decides what is shown and how; this
+// script feeds it live data through attributes and CSS variables, and adds
+// a few small elements:
+//   #zenith-load-edge       inside the loading tab's panel
+//   #zenith-insecure-hint   hover strip for the not-secure edge
+//   #zenith-download-edge   at the bottom of the page area
+//   #zenith-minimap         at the window edge, for the hidden sidebar
+//   .zenith-zoom-pill       in any pane whose zoom isn't 100%
+// and copies the workspace colour to the root for the sidebar (--zth-window-paint).
+// Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
+// work without any of this. Peek has its own script, zenith-peek.uc.mjs.
+
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+const root = document.documentElement;
+root.setAttribute("zenith-script", "1");
+
+const { Downloads } = ChromeUtils.importESModule("resource://gre/modules/Downloads.sys.mjs");
+
+function el(tag, attrs = {}) {
+  const node = document.createElementNS(HTML_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  return node;
+}
+
+// Run each feature on its own, so one failure can't take the others down.
+function start(name, fn) {
+  try {
+    fn();
+  } catch (e) {
+    console.error(`[Zenith] ${name} failed to start`, e);
+  }
+}
+
+function onUnload(fn) {
+  window.addEventListener("unload", fn, { once: true });
+}
+
+/* --- Load edge: real page-load progress ---------------------------------- */
+
+const LoadEdge = {
+  edge: null,
+  state: new WeakMap(), // browser -> { value, loading }
+  creep: null,
+
+  init() {
+    this.edge = el("div", { id: "zenith-load-edge", state: "idle" });
+    this.listener = {
+      onStateChange: (browser, webProgress, request, flags) => {
+        if (!webProgress.isTopLevel || !(flags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
+          return;
+        }
+        if (flags & Ci.nsIWebProgressListener.STATE_START) {
+          this.state.set(browser, { value: 0.06, loading: true });
+        } else if (flags & Ci.nsIWebProgressListener.STATE_STOP) {
+          this.state.set(browser, { value: 1, loading: false });
+        }
+        if (browser === gBrowser.selectedBrowser) this.render();
+      },
+      onProgressChange: (browser, webProgress, request, curSelf, maxSelf, curTotal, maxTotal) => {
+        const s = this.state.get(browser);
+        if (!s?.loading || maxTotal <= 0) return;
+        s.value = Math.max(s.value, 0.1 + 0.85 * Math.min(1, curTotal / maxTotal));
+        if (browser === gBrowser.selectedBrowser) this.render();
+      },
+    };
+    gBrowser.addTabsProgressListener(this.listener);
+    // Pages rarely report their total size, so progress also creeps towards
+    // 90% on its own while loading.
+    this.creep = setInterval(() => {
+      const s = this.state.get(gBrowser.selectedBrowser);
+      if (s?.loading) {
+        s.value += (0.9 - s.value) * 0.05;
+        this.render();
+      }
+    }, 250);
+    const onSelect = () => this.render(true);
+    gBrowser.tabContainer.addEventListener("TabSelect", onSelect);
+    onUnload(() => {
+      gBrowser.removeTabsProgressListener(this.listener);
+      clearInterval(this.creep);
+      gBrowser.tabContainer.removeEventListener("TabSelect", onSelect);
+    });
+  },
+
+  render(jump = false) {
+    const browser = gBrowser.selectedBrowser;
+    const panel = document.getElementById(gBrowser.selectedTab.linkedPanel);
+    if (panel && this.edge.parentNode !== panel) {
+      panel.prepend(this.edge);
+      jump = true;
+    }
+    const s = this.state.get(browser) ?? { value: 0, loading: browser.webProgress?.isLoadingDocument };
+    this.edge.toggleAttribute("jump", jump);
+    this.edge.style.setProperty("--zth-load-progress", s.value.toFixed(3));
+    const next = s.loading ? "loading" : s.value >= 1 ? "done" : "idle";
+    this.edge.setAttribute("state", next);
+    if (next === "done") {
+      clearTimeout(this.doneTimer);
+      this.doneTimer = setTimeout(() => {
+        if (this.state.get(browser)?.loading === false) {
+          this.state.set(browser, { value: 0, loading: false });
+          if (browser === gBrowser.selectedBrowser) this.edge.setAttribute("state", "idle");
+        }
+      }, 500);
+    }
+  },
+};
+
+/* --- Not-secure hint: a hover strip along the amber edge ------------------
+   The amber edge itself is CSS; this only adds a thin strip at the top of
+   the current tab's pane so hovering the edge can show a label. The CSS
+   shows the strip only while the edge is on. */
+
+const InsecureHint = {
+  init() {
+    this.hint = el("div", { id: "zenith-insecure-hint" });
+    const place = () => {
+      const panel = document.getElementById(gBrowser.selectedTab.linkedPanel);
+      if (panel && this.hint.parentNode !== panel) panel.append(this.hint);
+    };
+    gBrowser.tabContainer.addEventListener("TabSelect", place);
+    onUnload(() => gBrowser.tabContainer.removeEventListener("TabSelect", place));
+    place();
+  },
+};
+
+/* --- Window paint: the workspace colour, for the sidebar ------------------
+   Zen sets the window's workspace colour only on #zen-browser-background,
+   so nothing else can read it. Zenith Core paints the sidebar (docked and
+   floating) with the same colour, so this copies it to the root as
+   --zth-window-paint whenever Zen changes it. */
+
+const WindowPaint = {
+  NAMES: [
+    ["--zen-main-browser-background", "--zth-window-paint"],
+    ["--zen-main-browser-background-old", "--zth-window-paint-old"],
+  ],
+
+  init() {
+    const bg = document.getElementById("zen-browser-background");
+    if (!bg) return;
+    const copy = () => {
+      for (const [from, to] of this.NAMES) {
+        const value = bg.style.getPropertyValue(from);
+        if (value) root.style.setProperty(to, value);
+        else root.style.removeProperty(to);
+      }
+    };
+    const mo = new MutationObserver(copy);
+    mo.observe(bg, { attributes: true, attributeFilter: ["style"] });
+    onUnload(() => mo.disconnect());
+    copy();
+  },
+};
+
+/* --- Ctrl hold: numbered tabs on demand -----------------------------------
+   With Zenith Tabs > Numbered tabs on "While holding Ctrl", holding Ctrl on
+   its own for a moment sets [zenith-ctrl-held] (the CSS shows the numbers)
+   and opens the compact sidebar, so Ctrl+number can be aimed. Any other key
+   (except a digit), a click or a scroll means Ctrl is part of a shortcut,
+   so nothing shows; releasing Ctrl or leaving the window hides it again. */
+
+const CtrlHold = {
+  DELAY: 280,
+  PREF: "zenith.tabs.numbers",
+
+  init() {
+    let timer = null;
+    let shown = false;
+    const show = on => {
+      shown = on;
+      root.toggleAttribute("zenith-ctrl-held", on);
+      if (!gZenCompactModeManager?.preference) return;
+      // Zen's own "flash" keeps the compact sidebar out; 0ms ends it.
+      gZenCompactModeManager.flashElement(gNavToolbox, on ? 60000 : 0, "zenith-ctrl-hold");
+    };
+    const stop = () => {
+      clearTimeout(timer);
+      timer = null;
+      if (shown) show(false);
+    };
+    const onDown = e => {
+      if (e.key === "Control") {
+        if (e.repeat || e.altKey || e.shiftKey || e.metaKey) return;
+        if (Services.prefs.getStringPref(this.PREF, "") !== "ctrl") return;
+        clearTimeout(timer);
+        timer = setTimeout(() => show(true), this.DELAY);
+      } else if (!(shown && /^[1-9]$/.test(e.key))) {
+        stop();
+      }
+    };
+    const onUp = e => {
+      if (e.key === "Control") stop();
+    };
+    const listeners = [["keydown", onDown], ["keyup", onUp], ["mousedown", stop], ["wheel", stop], ["blur", stop]];
+    for (const [type, fn] of listeners) window.addEventListener(type, fn, true);
+    onUnload(() => {
+      for (const [type, fn] of listeners) window.removeEventListener(type, fn, true);
+    });
+  },
+};
+
+/* --- Download edge: real download progress -------------------------------- */
+
+const DownloadEdge = {
+  async init() {
+    this.edge = el("div", { id: "zenith-download-edge" });
+    document.getElementById("zen-tabbox-wrapper")?.append(this.edge);
+    this.list = await Downloads.getList(Downloads.ALL);
+    this.view = {
+      onDownloadAdded: d => this.update(d),
+      onDownloadChanged: d => this.update(d),
+      onDownloadRemoved: () => this.update(),
+    };
+    await this.list.addView(this.view);
+    onUnload(() => this.list.removeView(this.view));
+  },
+
+  async update(changed) {
+    const all = await this.list.getAll();
+    const running = all.filter(d => !d.stopped);
+    if (changed?.succeeded && !this.flashed?.has(changed)) {
+      (this.flashed ??= new WeakSet()).add(changed);
+      root.setAttribute("zenith-download-done", "true");
+      clearTimeout(this.doneTimer);
+      this.doneTimer = setTimeout(() => root.removeAttribute("zenith-download-done"), 1600);
+    }
+    if (!running.length) {
+      root.removeAttribute("zenith-downloading");
+      return;
+    }
+    const sized = running.filter(d => d.hasProgress && d.totalBytes > 0);
+    const total = sized.reduce((n, d) => n + d.totalBytes, 0);
+    const done = sized.reduce((n, d) => n + d.currentBytes, 0);
+    root.setAttribute("zenith-downloading", sized.length ? "sized" : "unsized");
+    this.edge.style.setProperty("--zth-download-progress", total ? (done / total).toFixed(3) : "0");
+    this.edge.setAttribute("count", String(running.length));
+  },
+};
+
+/* --- Minimap: ticks for tabs that need you, while the sidebar is hidden --- */
+
+const Minimap = {
+  init() {
+    this.strip = el("div", { id: "zenith-minimap" });
+    document.getElementById("zen-tabbox-wrapper")?.append(this.strip);
+    const schedule = () => {
+      if (!this.pending) {
+        this.pending = true;
+        requestAnimationFrame(() => {
+          this.pending = false;
+          this.draw();
+        });
+      }
+    };
+    const tabs = gBrowser.tabContainer;
+    const events = ["TabAttrModified", "TabSelect", "TabOpen", "TabClose", "TabMove", "TabPinned", "TabUnpinned"];
+    events.forEach(e => tabs.addEventListener(e, schedule));
+    tabs.addEventListener("scroll", schedule, true);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("ZenWorkspacesUIUpdate", schedule);
+    this.interval = setInterval(schedule, 1500); // catches folder collapses and anything else that moves tabs
+    onUnload(() => {
+      events.forEach(e => tabs.removeEventListener(e, schedule));
+      tabs.removeEventListener("scroll", schedule, true);
+      window.removeEventListener("resize", schedule);
+      clearInterval(this.interval);
+    });
+    schedule();
+  },
+
+  kind(tab) {
+    if (tab.hasAttribute("sharing")) return "sharing";
+    if (tab.hasAttribute("attention") || tab.hasAttribute("titlechanged")) return "attention";
+    if (tab.hasAttribute("soundplaying") && !tab.hasAttribute("muted")) return "playing";
+    if (tab.hasAttribute("busy")) return "loading";
+    return null;
+  },
+
+  draw() {
+    const box = this.strip.getBoundingClientRect();
+    const list = document.querySelector("zen-workspace[active] .workspace-arrowscrollbox") ?? gBrowser.tabContainer;
+    const view = list.getBoundingClientRect();
+    const ticks = [];
+    for (const tab of gBrowser.tabs) {
+      const kind = this.kind(tab);
+      if (!kind || tab.hasAttribute("zen-glance-tab")) continue;
+      // Only the current space (and Essentials) is on screen.
+      if (!tab.hasAttribute("zen-essential") && !tab.closest("zen-workspace")?.hasAttribute("active")) continue;
+      const r = tab.getBoundingClientRect();
+      if (!r.height) continue; // inside a collapsed folder
+      let y = r.top + r.height / 2;
+      let clamp = "";
+      if (y < view.top) [y, clamp] = [view.top + 4, "above"];
+      else if (y > view.bottom) [y, clamp] = [view.bottom - 4, "below"];
+      ticks.push({ kind, y: y - box.top, h: tab.hasAttribute("zen-essential") ? 6 : Math.max(8, r.height - 12), clamp });
+    }
+    this.strip.replaceChildren(
+      ...ticks.map(t => {
+        const tick = el("div", { class: "zenith-tick", kind: t.kind });
+        if (t.clamp) tick.setAttribute("clamp", t.clamp);
+        tick.style.setProperty("--y", `${Math.round(t.y)}px`);
+        tick.style.setProperty("--h", `${Math.round(t.h)}px`);
+        return tick;
+      })
+    );
+    this.strip.toggleAttribute("empty", !ticks.length);
+  },
+};
+
+/* --- Page accent: selection (and optional scrollbars) inside web pages -----
+   Web pages can't see the workspace colour, so the script registers a small
+   stylesheet with the current accent and refreshes it when it changes.
+   It must be an AUTHOR sheet: Firefox ignores ::selection in user and agent
+   sheets (measured: selection stayed at the default blue with a USER_SHEET,
+   and took the accent with an AUTHOR_SHEET). Rules use low specificity, so
+   sites that style their own selection or scrollbars keep their look. */
+
+const PageAccent = {
+  sss: Cc["@mozilla.org/content/style-sheet-service;1"].getService(Ci.nsIStyleSheetService),
+  prefs: ["zenith.page.selection", "zenith.page.thin-scrollbars", "zenith.core.accent"],
+
+  init() {
+    this.probe = el("div", { hidden: "true" });
+    this.probe.style.color = "var(--zth-accent)";
+    document.body.append(this.probe);
+    const refresh = () => this.refreshSoon();
+    this.prefs.forEach(p => Services.prefs.addObserver(p, refresh));
+    window.addEventListener("activate", refresh);
+    window.addEventListener("ZenWorkspacesUIUpdate", refresh);
+    const mo = new MutationObserver(refresh);
+    mo.observe(root, { attributes: true, attributeFilter: ["style"] });
+    onUnload(() => {
+      this.prefs.forEach(p => Services.prefs.removeObserver(p, refresh));
+      mo.disconnect();
+    });
+    this.refresh();
+  },
+
+  refreshSoon() {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.refresh(), 150);
+  },
+
+  refresh() {
+    // Only the focused window decides the colour for all pages.
+    if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
+    const accent = getComputedStyle(this.probe).color;
+    const rules = [];
+    if (Services.prefs.getBoolPref("zenith.page.selection", true)) {
+      // A tint of the accent; the text keeps its own colour.
+      rules.push(`::selection { background-color: color-mix(in srgb, ${accent} 55%, transparent); }`);
+    }
+    if (Services.prefs.getBoolPref("zenith.page.thin-scrollbars", false)) {
+      rules.push(`:where(:root) { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, ${accent} 70%, transparent) transparent; }`);
+    }
+    const spec = rules.length ? "data:text/css;charset=utf-8," + encodeURIComponent(rules.join("\n")) : "";
+    // Every window runs its own copy of this script, so the registered sheet
+    // is remembered in a hidden pref that all windows share.
+    const old = Services.prefs.getStringPref(this.SHEET_PREF, "");
+    const { AUTHOR_SHEET, USER_SHEET } = this.sss;
+    if (old && old !== spec) {
+      const oldURI = Services.io.newURI(old);
+      // USER_SHEET: what versions before round 4 registered.
+      for (const type of [AUTHOR_SHEET, USER_SHEET]) {
+        if (this.sss.sheetRegistered(oldURI, type)) this.sss.unregisterSheet(oldURI, type);
+      }
+    }
+    // After a restart the pref survives but the sheet doesn't, so check.
+    if (spec) {
+      const uri = Services.io.newURI(spec);
+      if (this.sss.sheetRegistered(uri, USER_SHEET)) this.sss.unregisterSheet(uri, USER_SHEET);
+      if (!this.sss.sheetRegistered(uri, AUTHOR_SHEET)) this.sss.loadAndRegisterSheet(uri, AUTHOR_SHEET);
+    }
+    Services.prefs.setStringPref(this.SHEET_PREF, spec);
+  },
+
+  SHEET_PREF: "zenith.internal.page-sheet",
+};
+
+/* --- Zoom pills: one per pane whose zoom isn't 100% ------------------------ */
+
+const ZoomPills = {
+  init() {
+    const update = () => requestAnimationFrame(() => this.update());
+    ["FullZoomChange", "TextZoomChange"].forEach(e => window.addEventListener(e, update, true));
+    gBrowser.tabContainer.addEventListener("TabSelect", update);
+    window.addEventListener("ZenViewSplitter:SplitViewActivated", update);
+    window.addEventListener("ZenViewSplitter:SplitViewDeactivated", update);
+    this.listener = { onLocationChange: () => setTimeout(update, 300) };
+    gBrowser.addTabsProgressListener(this.listener);
+    onUnload(() => gBrowser.removeTabsProgressListener(this.listener));
+    update();
+  },
+
+  update() {
+    const panes = document.querySelectorAll("#tabbrowser-tabpanels > .browserSidebarContainer");
+    for (const pane of panes) {
+      const browser = pane.querySelector("browser[type='content']");
+      const container = pane.querySelector(".browserContainer");
+      let pill = container?.querySelector(":scope > .zenith-zoom-pill");
+      const visible = pane.classList.contains("deck-selected") || pane.getAttribute("zen-split") === "true";
+      const zoom = browser && visible ? Math.round(ZoomManager.getZoomForBrowser(browser) * 100) : 100;
+      if (zoom === 100 || !container) {
+        pill?.remove();
+        continue;
+      }
+      if (!pill) {
+        pill = el("button", { class: "zenith-zoom-pill", title: "Reset zoom" });
+        pill.addEventListener("click", () => {
+          FullZoom.reset(browser);
+          setTimeout(() => this.update(), 50);
+        });
+        container.append(pill);
+      }
+      pill.textContent = `${zoom}%`;
+    }
+  },
+};
+
+/* --- Motion bridge: let Zen animate when Windows animation effects are off -
+   Windows "Animation effects" off makes Firefox report reduced motion, so
+   Zen skips many of its own animations. With "Let Zen animate too" on (the
+   default), this tells Zen alone that motion is fine, through Firefox's
+   ui.prefersReducedMotion setting. Windows itself is never changed, and
+   turning it off (or Zenith Motion's "Follow Windows") hands control back. */
+
+const MotionBridge = {
+  PREFS: ["zenith.plus.animate-zen"],
+  OWN: "zenith.internal.motion-override",
+  SYSTEM: "ui.prefersReducedMotion",
+
+  init() {
+    const apply = () => this.apply();
+    this.PREFS.forEach(p => Services.prefs.addObserver(p, apply));
+    onUnload(() => this.PREFS.forEach(p => Services.prefs.removeObserver(p, apply)));
+    this.apply();
+  },
+
+  apply() {
+    // This makes Firefox report "no reduced motion" everywhere, so while it's
+    // on, Zenith Motion's "Follow Windows" has nothing to follow (the
+    // settings page greys it out).
+    const animate = Services.prefs.getBoolPref("zenith.plus.animate-zen", true);
+    if (animate) {
+      if (Services.prefs.getIntPref(this.SYSTEM, -1) !== 0) Services.prefs.setIntPref(this.SYSTEM, 0);
+      Services.prefs.setBoolPref(this.OWN, true);
+    } else if (Services.prefs.getBoolPref(this.OWN, false)) {
+      // Only undo what Zenith itself set.
+      Services.prefs.clearUserPref(this.SYSTEM);
+      Services.prefs.setBoolPref(this.OWN, false);
+    }
+  },
+};
+
+/* --- Settings housekeeping ----------------------------------------------- */
+
+// Real progress on the edges: Zenith's own CSS sweeps step aside for the
+// live edges while this attribute is set (whenever Plus runs).
+function watchRealProgress() {
+  root.setAttribute("zenith-real-progress", "true");
+}
+
+// Settings that moved from Zenith to Zenith Plus in 0.6.0 (once per profile).
+function migrateSettings() {
+  const DONE = "zenith.internal.migrated-0.6";
+  if (Services.prefs.getBoolPref(DONE, false)) return;
+  const str = name => Services.prefs.getStringPref(name, "");
+  if (str("zenith.motion.reduced") === "all") Services.prefs.setStringPref("zenith.motion.reduced", "");
+  if (str("zenith.edges.minimap") === "off") Services.prefs.setBoolPref("zenith.plus.minimap", false);
+  if (str("zenith.panels.zoom-pill") === "off") Services.prefs.setBoolPref("zenith.plus.zoom-pill", false);
+  Services.prefs.setBoolPref(DONE, true);
+}
+
+// 0.6.3: "Numbered tabs only while holding Ctrl" moved into Zenith Tabs'
+// Numbered tabs setting.
+function migrateCtrlNumbers() {
+  const OLD = "zenith.plus.numbers-on-ctrl";
+  if (!Services.prefs.prefHasUserValue(OLD)) return;
+  if (Services.prefs.getBoolPref(OLD, false)) Services.prefs.setStringPref("zenith.tabs.numbers", "ctrl");
+  Services.prefs.clearUserPref(OLD);
+}
+
+start("settings", () => {
+  migrateSettings();
+  migrateCtrlNumbers();
+  watchRealProgress();
+});
+start("motion bridge", () => MotionBridge.init());
+start("window paint", () => WindowPaint.init());
+start("ctrl hold", () => CtrlHold.init());
+start("load edge", () => LoadEdge.init());
+start("not-secure hint", () => InsecureHint.init());
+start("download edge", () => DownloadEdge.init().catch(e => console.error("[Zenith] download edge", e)));
+start("minimap", () => Minimap.init());
+start("page accent", () => PageAccent.init());
+start("zoom pills", () => ZoomPills.init());

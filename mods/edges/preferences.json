@@ -1,0 +1,325 @@
+[
+  {
+    "property": "zenith.edges.preset",
+    "label": "Preset",
+    "type": "dropdown",
+    "placeholder": "Default (Full)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "Quiet: loading, sharing, private",
+        "value": "quiet"
+      },
+      {
+        "label": "Full",
+        "value": "full"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.thickness",
+    "label": "Edge thickness",
+    "type": "dropdown",
+    "placeholder": "Default (Auto)",
+    "options": [
+      {
+        "label": "Auto",
+        "value": "auto"
+      },
+      {
+        "label": "1px",
+        "value": "1"
+      },
+      {
+        "label": "2px",
+        "value": "2"
+      },
+      {
+        "label": "3px",
+        "value": "3"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.load",
+    "label": "Load edge (top)",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.download",
+    "label": "Download progress (bottom)",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.container",
+    "label": "Container colour (left)",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.container-style",
+    "label": "Container line style",
+    "type": "dropdown",
+    "placeholder": "Default (Straight)",
+    "options": [
+      {
+        "label": "Straight",
+        "value": "straight"
+      },
+      {
+        "label": "Wrap the corners (with a rounded page frame)",
+        "value": "wrap"
+      },
+      {
+        "label": "Rounded bar, inset",
+        "value": "inset"
+      }
+    ],
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.edges.container",
+              "value": "on"
+            }
+          },
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.edges.container",
+                  "value": ""
+                }
+              },
+              {
+                "conditions": [
+                  {
+                    "if": {
+                      "property": "zenith.edges.preset",
+                      "value": ""
+                    }
+                  },
+                  {
+                    "if": {
+                      "property": "zenith.edges.preset",
+                      "value": "full"
+                    }
+                  }
+                ],
+                "operator": "OR"
+              }
+            ],
+            "operator": "AND"
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Container colour is off"
+  },
+  {
+    "property": "zenith.edges.sharing",
+    "label": "Red edges while camera, mic or screen is shared",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.private",
+    "label": "Private window frame",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.private-colour",
+    "label": "Private frame colour",
+    "type": "dropdown",
+    "placeholder": "Default (Purple)",
+    "options": [
+      {
+        "label": "Purple",
+        "value": "purple"
+      },
+      {
+        "label": "Accent",
+        "value": "accent"
+      },
+      {
+        "label": "Blue",
+        "value": "blue"
+      },
+      {
+        "label": "Teal",
+        "value": "teal"
+      },
+      {
+        "label": "Green",
+        "value": "green"
+      },
+      {
+        "label": "Orange",
+        "value": "orange"
+      },
+      {
+        "label": "Red",
+        "value": "red"
+      },
+      {
+        "label": "Pink",
+        "value": "pink"
+      }
+    ],
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.edges.private",
+              "value": "on"
+            }
+          },
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.edges.private",
+                  "value": ""
+                }
+              },
+              {
+                "not": {
+                  "property": "zenith.edges.preset",
+                  "value": "off"
+                }
+              }
+            ],
+            "operator": "AND"
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Private window frame is off"
+  },
+  {
+    "property": "zenith.edges.unfocused",
+    "label": "Fade edges when the window is in the background",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.muted",
+    "label": "Extra: muted marker",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.insecure",
+    "label": "Amber top edge on not-secure (HTTP) pages",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.edges.focus-border",
+    "label": "Extra: accent frame while the window is focused",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  }
+]

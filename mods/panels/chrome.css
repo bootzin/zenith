@@ -1,0 +1,336 @@
+/* ==========================================================================
+   Zenith Panels — find bar, Library card, link pill, Glance, split view,
+   notifications and menus, all on the same glass and corners.
+   Gating (N = #theme-Zenith-Panels, P = preset):
+     default-on features    :root:is(:has(N[x="on"]), :not(:has(N:is([x="off"], [P="zen"]))))
+     dropdowns              an explicit choice always applies, even under
+                            the "Zen default" preset
+     compact menus          on only with the "compact" preset or "On"
+   ========================================================================== */
+
+/* --- Find bar: one floating line ------------------------------------------
+   The bar sits in the page's grid; `grid-area: auto` makes the whole page
+   its positioning frame, so it can float at the top or the bottom. */
+
+:root:is(
+    :has(#theme-Zenith-Panels:is([zenith-panels-findbar="bottom"], [zenith-panels-findbar="top"])),
+    :not(:has(#theme-Zenith-Panels:is([zenith-panels-findbar="off"], [zenith-panels-preset="zen"])))
+  )
+  .browserContainer > findbar {
+  grid-area: auto !important;
+  position: absolute !important;
+  inset: auto auto 14px 50% !important;
+  translate: -50% 0;
+  width: min(92%, var(--zth-findbar-max)) !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 6px 6px 6px 12px !important;
+  border: 1px solid var(--zth-hairline) !important;
+  border-radius: var(--zth-radius) !important;
+  background: var(--zth-glass-bg) !important;
+  backdrop-filter: var(--zth-glass-filter);
+  box-shadow: var(--zth-shadow), var(--zth-glass-shine) !important;
+  z-index: 5;
+  transition:
+    translate var(--zth-dur) var(--zth-ease),
+    opacity var(--zth-dur) var(--zth-ease);
+
+  &[hidden] {
+    translate: -50% calc(100% + 20px);
+    opacity: 0;
+  }
+
+  & .findbar-container {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    height: auto !important;
+    gap: 6px;
+  }
+
+  /* The search field takes all the room the toggles don't use, so the bar
+     never changes size. It blends into the bar instead of being a box. */
+  & [anonid="findbar-textbox-wrapper"] {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  & .findbar-textbox {
+    flex: 1 !important;
+    width: auto !important;
+    min-width: 8em !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    font-size: calc(var(--zth-font) + 0.5px);
+  }
+
+  /* Nothing found: a red underline */
+  & .findbar-textbox[status="notfound"] {
+    box-shadow: inset 0 -2px 0 var(--zth-danger) !important;
+  }
+
+  /* Options as small always-visible toggles, editor style:
+     All = highlight all, Aa = match case, e-acute = match accents,
+     |ab| = whole words. Ticked ones light up in the accent. */
+  & .findbar-container > checkbox {
+    appearance: none !important;
+    margin: 0 !important;
+    padding: 3px 9px !important;
+    min-height: 22px;
+    border-radius: var(--zth-pill-radius) !important;
+    corner-shape: var(--zth-pill-shape) !important;
+    color: var(--zth-ink-dim);
+    font-size: 11px;
+    cursor: pointer;
+
+    & > .checkbox-check,
+    & > .checkbox-label-box {
+      display: none !important;
+    }
+
+    &:hover {
+      background: var(--zth-hairline);
+      color: var(--zth-ink);
+    }
+
+    &[checked] {
+      background: var(--zth-accent-soft);
+      outline: 1px solid var(--zth-accent);
+      color: var(--zth-ink);
+    }
+  }
+
+  & .findbar-highlight::after { content: "All"; }
+  & .findbar-case-sensitive::after { content: "Aa"; }
+  & .findbar-match-diacritics::after { content: "\00e9"; }
+  & .findbar-entire-word::after { content: "|ab|"; }
+
+  & :is(.found-matches, .findbar-find-status) {
+    font-size: 11px;
+    color: var(--zth-ink-dim);
+    white-space: nowrap;
+  }
+}
+
+:root:has(#theme-Zenith-Panels[zenith-panels-findbar="top"]) .browserContainer > findbar {
+  inset: 14px auto auto 50% !important;
+
+  &[hidden] {
+    translate: -50% calc(-100% - 20px);
+  }
+}
+
+/* --- Library (Ctrl+H: history, downloads, spaces) as a floating card -------
+   Zen slides the Library in and pushes the page aside with inline
+   transforms; as a card it floats over the page instead. */
+
+:root:is(
+    :has(#theme-Zenith-Panels[zenith-panels-history="card"]),
+    :not(:has(#theme-Zenith-Panels:is([zenith-panels-history="off"], [zenith-panels-preset="zen"])))
+  ) {
+  & zen-library {
+    margin: 8px !important;
+    border-radius: var(--zth-radius) !important;
+    overflow: clip;
+    outline: 1px solid var(--zth-hairline);
+    box-shadow: var(--zth-shadow);
+    background: var(--zth-panel-bg) !important;
+    backdrop-filter: var(--zth-panel-filter);
+  }
+
+  &:has(zen-library:is([open], [transitioning])) :is(#zen-appcontent-wrapper, #zen-toast-container) {
+    transform: none !important;
+  }
+}
+
+/* --- Link URL pill -------------------------------------------------------- */
+
+:root:not(:has(#theme-Zenith-Panels[zenith-panels-preset="zen"])) {
+  /* Float off the corner with a margin; Firefox's own padding is its
+     hover area, so leave that alone. */
+  & #statuspanel-label {
+    margin: 10px !important;
+    padding: 4px 12px !important;
+    border: 1px solid var(--zth-hairline) !important;
+    border-radius: var(--zth-pill-radius) !important;
+    corner-shape: var(--zth-pill-shape) !important;
+    background: var(--zth-glass-bg) !important;
+    backdrop-filter: var(--zth-glass-filter);
+    box-shadow: var(--zth-shadow) !important;
+    color: var(--zth-ink) !important;
+    font-size: calc(var(--zth-font) - 1px) !important;
+    font-weight: normal !important;
+  }
+
+  /* Hovered-link URLs wait a moment, so sweeping the mouse doesn't flash
+     them. Firefox only sets `hidden` after a transition ends, so the
+     transition itself must stay. */
+  & #statuspanel[type="overLink"]:not([inactive]) {
+    transition-delay: var(--zth-status-delay) !important;
+  }
+}
+
+:root { --zth-status-delay: 300ms; }
+:root:has(#theme-Zenith-Panels[zenith-panels-status-delay="0"]) { --zth-status-delay: 0ms; }
+:root:has(#theme-Zenith-Panels[zenith-panels-status-delay="150"]) { --zth-status-delay: 150ms; }
+:root:has(#theme-Zenith-Panels[zenith-panels-status-delay="500"]) { --zth-status-delay: 500ms; }
+:root:has(#theme-Zenith-Panels[zenith-panels-status-delay="800"]) { --zth-status-delay: 800ms; }
+
+/* --- Extra: Glance as a lifted card with frosted side buttons -------------- */
+
+:root:has(#theme-Zenith-Panels[zenith-panels-glance="on"]) {
+  & .zen-glance-overlay .browserContainer {
+    border-radius: var(--zth-radius) !important;
+    outline: 1px solid var(--zth-hairline) !important;
+    box-shadow: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 4px 16px rgb(0 0 0 / 0.25) !important;
+  }
+
+  /* Clip the page, not the container: the side buttons hang outside it */
+  & .zen-glance-overlay .browserStack {
+    border-radius: var(--zth-radius) !important;
+    overflow: clip;
+  }
+
+  & .zen-glance-sidebar-container {
+    padding: 4px !important;
+    gap: 2px !important;
+    border-radius: var(--zth-pill-radius) !important;
+    corner-shape: var(--zth-pill-shape) !important;
+    background: var(--zth-glass-bg) !important;
+    backdrop-filter: var(--zth-glass-filter) !important;
+    outline: 1px solid var(--zth-hairline);
+    box-shadow: var(--zth-shadow);
+
+    & toolbarbutton {
+      border-radius: var(--zth-pill-radius) !important;
+      corner-shape: var(--zth-pill-shape) !important;
+    }
+  }
+}
+
+/* --- Split view -------------------------------------------------------------
+   Zen spaces split panes, and positions its resize handles, from one value.
+   Changing that value just for the split keeps everything aligned, so any
+   gap size works. Zen's own active-pane highlight is kept.
+
+   The gap is a list of sizes rather than free text: a free-text value
+   that didn't parse once made Zen's resize handle cover the whole right
+   pane. */
+
+:root { --zth-split-gap: 6px; }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="2"]) { --zth-split-gap: 2px; }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="4"]) { --zth-split-gap: 4px; }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="8"]) { --zth-split-gap: 8px; }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="12"]) { --zth-split-gap: 12px; }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="16"]) { --zth-split-gap: 16px; }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="24"]) { --zth-split-gap: 24px; }
+
+:root:is(
+    :has(#theme-Zenith-Panels[zenith-panels-split="gaps"]),
+    :not(:has(#theme-Zenith-Panels:is([zenith-panels-split="hairlines"], [zenith-panels-split="zen"], [zenith-panels-preset="zen"])))
+  )
+  #tabbrowser-tabbox[zen-split-view="true"] {
+  --zen-element-separation: var(--zth-split-gap) !important;
+}
+
+/* Belt and braces: a resize handle can never cover a pane. */
+#tabbrowser-tabpanels .zen-split-view-splitter[orient="vertical"] {
+  max-width: 48px !important;
+}
+
+#tabbrowser-tabpanels .zen-split-view-splitter[orient="horizontal"] {
+  max-height: 48px !important;
+}
+
+:root:has(#theme-Zenith-Panels[zenith-panels-split="hairlines"]) {
+  & #tabbrowser-tabbox[zen-split-view="true"] {
+    --zen-element-separation: 2px !important;
+  }
+
+  & #tabbrowser-tabpanels[zen-split-view="true"] {
+    background: var(--zth-hairline) !important;
+  }
+}
+
+/* --- Notifications -------------------------------------------------------- */
+
+/* dunst cards (default): glassy, accent edge on the left */
+:root:is(
+    :has(#theme-Zenith-Panels[zenith-panels-notifications="dunst"]),
+    :not(:has(#theme-Zenith-Panels:is([zenith-panels-notifications="small"], [zenith-panels-notifications="zen"], [zenith-panels-preset="zen"])))
+  ) {
+  & #zen-toast-container > .zen-toast {
+    padding: 8px 14px !important;
+    border: 1px solid var(--zth-hairline) !important;
+    border-radius: var(--zth-radius) !important;
+    background:
+      linear-gradient(to right, var(--zth-accent) 0 3px, transparent 3px),
+      var(--zth-glass-bg) !important;
+    backdrop-filter: var(--zth-glass-filter);
+    box-shadow: var(--zth-shadow), var(--zth-glass-shine) !important;
+    color: var(--zth-ink) !important;
+
+    & label {
+      color: inherit !important;
+    }
+  }
+
+  & .notificationbox-stack notification-message {
+    --message-bar-border-radius: var(--zth-radius);
+    border-radius: var(--zth-radius) !important;
+    border-color: var(--zth-hairline) !important;
+  }
+}
+
+/* Small toasts: a quiet pill */
+:root:has(#theme-Zenith-Panels[zenith-panels-notifications="small"]) {
+  & #zen-toast-container > .zen-toast {
+    --zen-toast-max-height: 32px;
+    padding: 4px 14px !important;
+    border: 1px solid var(--zth-hairline) !important;
+    border-radius: var(--zth-pill-radius) !important;
+    corner-shape: var(--zth-pill-shape) !important;
+    background: var(--zth-glass-bg) !important;
+    backdrop-filter: var(--zth-glass-filter);
+    box-shadow: var(--zth-shadow) !important;
+    color: var(--zth-ink) !important;
+    font-size: 11px;
+
+    & label {
+      color: inherit !important;
+    }
+  }
+}
+
+/* --- Menus ----------------------------------------------------------------
+   Corners follow Core everywhere (unless "Zen default"); compact menus are
+   opt-in. Moving rare items into a "More" submenu needs the phase 2 script. */
+
+:root:not(:has(#theme-Zenith-Panels[zenith-panels-preset="zen"])) :is(menupopup, panel)::part(content) {
+  border-radius: var(--zth-radius) !important;
+}
+
+:root:is(
+    :has(#theme-Zenith-Panels[zenith-panels-compact-menus="on"]),
+    :has(#theme-Zenith-Panels[zenith-panels-preset="compact"]):not(:has(#theme-Zenith-Panels[zenith-panels-compact-menus="off"]))
+  )
+  menupopup {
+  --menuitem-padding-block: 3px !important;
+  --menuitem-padding-inline: 10px !important;
+
+  /* Spacing instead of separator lines */
+  & > menuseparator {
+    padding-block: 2px !important;
+
+    &::before {
+      border-top-color: transparent !important;
+    }
+  }
+
+  /* No icons, except checkboxes, radios, extensions and the back/forward/
+     reload row, which is icon-only */
+  & :is(menu, menuitem):not([type="checkbox"], [type="radio"], .webextension-menuitem, #context-navigation *) > .menu-icon {
+    display: none !important;
+  }
+}

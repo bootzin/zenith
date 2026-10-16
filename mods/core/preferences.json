@@ -1,0 +1,233 @@
+[
+  {
+    "property": "zenith.core.density",
+    "label": "Density: row height of sidebar tabs and URL bar results",
+    "type": "dropdown",
+    "placeholder": "Default (Tight)",
+    "options": [
+      {
+        "label": "Tight: smallest rows",
+        "value": "tight"
+      },
+      {
+        "label": "Compact: rows 4px taller",
+        "value": "compact"
+      },
+      {
+        "label": "Cozy: rows 8px taller",
+        "value": "cozy"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.scale",
+    "label": "Screen scale",
+    "type": "dropdown",
+    "placeholder": "Default (Auto by window width)",
+    "options": [
+      {
+        "label": "Auto by window width",
+        "value": "auto"
+      },
+      {
+        "label": "Small screen",
+        "value": "small"
+      },
+      {
+        "label": "Medium screen",
+        "value": "medium"
+      },
+      {
+        "label": "Large screen",
+        "value": "large"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.accent",
+    "label": "Accent colour",
+    "type": "dropdown",
+    "placeholder": "Default (Workspace colour)",
+    "options": [
+      {
+        "label": "Workspace colour",
+        "value": "workspace"
+      },
+      {
+        "label": "Lavender",
+        "value": "lavender"
+      },
+      {
+        "label": "Blue",
+        "value": "blue"
+      },
+      {
+        "label": "Teal",
+        "value": "teal"
+      },
+      {
+        "label": "Green",
+        "value": "green"
+      },
+      {
+        "label": "Amber",
+        "value": "amber"
+      },
+      {
+        "label": "Orange",
+        "value": "orange"
+      },
+      {
+        "label": "Red",
+        "value": "red"
+      },
+      {
+        "label": "Pink",
+        "value": "pink"
+      },
+      {
+        "label": "Grey",
+        "value": "grey"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.corners",
+    "label": "Corners on panels and tabs",
+    "type": "dropdown",
+    "placeholder": "Default (Soft)",
+    "options": [
+      {
+        "label": "Square",
+        "value": "square"
+      },
+      {
+        "label": "Soft",
+        "value": "soft"
+      },
+      {
+        "label": "Round",
+        "value": "round"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.pills",
+    "label": "Pills and badges",
+    "type": "dropdown",
+    "placeholder": "Default (Round)",
+    "options": [
+      {
+        "label": "Round",
+        "value": "round"
+      },
+      {
+        "label": "Match the corner setting",
+        "value": "match"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.glass",
+    "label": "Frost: how much see-through panels blur what is behind",
+    "type": "dropdown",
+    "placeholder": "Default (Subtle)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "Subtle",
+        "value": "subtle"
+      },
+      {
+        "label": "Strong",
+        "value": "strong"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.glass-shine",
+    "label": "Glass edge shine",
+    "type": "checkbox",
+    "defaultValue": false
+  },
+  {
+    "property": "zenith.core.window-transparency",
+    "label": "Window transparency",
+    "type": "dropdown",
+    "placeholder": "Default (Airy)",
+    "options": [
+      {
+        "label": "Solid",
+        "value": "solid"
+      },
+      {
+        "label": "Dense",
+        "value": "dense"
+      },
+      {
+        "label": "Balanced",
+        "value": "balanced"
+      },
+      {
+        "label": "Airy",
+        "value": "airy"
+      },
+      {
+        "label": "Sheer",
+        "value": "sheer"
+      },
+      {
+        "label": "Glass",
+        "value": "glass"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.floating-sidebar",
+    "label": "Sidebar",
+    "type": "dropdown",
+    "placeholder": "Default (See-through, like the URL bar)",
+    "options": [
+      {
+        "label": "See-through, like the URL bar",
+        "value": "glass"
+      },
+      {
+        "label": "Solid, docked and floating identical",
+        "value": "solid"
+      },
+      {
+        "label": "Zen's own (floating is darker)",
+        "value": "zen"
+      }
+    ]
+  },
+  {
+    "property": "zenith.core.page",
+    "label": "Page frame",
+    "type": "dropdown",
+    "placeholder": "Default (Flush and square)",
+    "options": [
+      {
+        "label": "Flush and square",
+        "value": "flush"
+      },
+      {
+        "label": "Rounded with a slim gap",
+        "value": "flush-round"
+      },
+      {
+        "label": "Zen default",
+        "value": "zen"
+      }
+    ]
+  },
+  {
+    "property": "zen.view.hide-window-controls",
+    "label": "Window buttons only when hovering the top edge (Zen setting)",
+    "type": "checkbox"
+  }
+]

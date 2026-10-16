@@ -1,0 +1,191 @@
+/* ==========================================================================
+   Zenith Motion — one motion language for everything
+   Core defines the Quick timings; this mod switches them, adapts Zen's own
+   sidebar animation, and gives things that used to pop in a soft entrance.
+   Gating: M = #theme-Zenith-Motion, P = preset.
+
+   Windows "Animation effects" off makes Firefox report reduced motion, and
+   Zen then skips many of its own animations. "When Windows animation
+   effects are off" decides what Zenith does:
+     zenith (default)  Zenith keeps its own motion
+     follow            Zenith follows Windows: no motion
+   (Zenith Plus can also let Zen itself animate again.)
+   ========================================================================== */
+
+:root:has(#theme-Zenith-Motion[zenith-motion-preset="off"]) {
+  --zth-dur-fast: 0ms;
+  --zth-dur: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:has(#theme-Zenith-Motion[zenith-motion-reduced="follow"]) {
+    --zth-dur-fast: 0ms !important;
+    --zth-dur: 0ms !important;
+  }
+}
+
+/* Smooth: a critically damped spring. It starts gently, moves through the
+   middle and settles without a bounce or a long crawl at the end. */
+:root:has(#theme-Zenith-Motion[zenith-motion-preset="smooth"]) {
+  --zth-dur-fast: 200ms;
+  --zth-dur: 300ms;
+  --zth-ease: linear(0, 0.049 5%, 0.156 10%, 0.283 15%, 0.408 20%, 0.522 25%, 0.621 30%, 0.769 40%, 0.864 50%, 0.922 60%, 0.956 70%, 0.976 80%, 0.987 90%, 1);
+}
+
+/* --- Compact sidebar ------------------------------------------------------
+   Zen slides it in with its own spring (0.25s) and out with a plain 0.15s
+   ease. Quick trims the slide-in; Smooth uses the Zenith spring both ways,
+   with a matching hide so it never snaps away. */
+
+:root[zen-compact-mode="true"] #navigator-toolbox {
+  --zen-compact-mode-time: 0.17s !important;
+}
+
+:root[zen-compact-mode="true"]:has(#theme-Zenith-Motion[zenith-motion-preset="smooth"]) {
+  & #navigator-toolbox {
+    --zen-compact-mode-time: 0.34s !important;
+    --zen-compact-mode-func: var(--zth-ease) !important;
+  }
+
+  & #navigator-toolbox:not([animate="true"]):not([zen-has-hover], [zen-user-show], [zen-has-empty-tab], [flash-popup], [has-popup-menu], [movingtab], [zen-compact-mode-active]) {
+    transition:
+      translate 0.26s cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0.26s !important;
+
+    & #titlebar {
+      transition: visibility 0.26s !important;
+    }
+  }
+}
+
+:root[zen-compact-mode="true"]:has(#theme-Zenith-Motion[zenith-motion-preset="off"]) #navigator-toolbox {
+  transition: none !important;
+}
+
+/* --- Entrances: things that used to pop in now ease in ------------------ */
+
+@keyframes zth-enter {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+@keyframes zth-enter-up {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+@keyframes zth-enter-down {
+  from {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
+
+:root:not(:has(#theme-Zenith-Motion[zenith-motion-preset="off"])) {
+  /* the floating URL bar */
+  & #urlbar[breakout-extend] {
+    animation: zth-enter var(--zth-dur) var(--zth-ease);
+  }
+
+  /* find bar (bottom by default, top if moved there) */
+  & findbar:not([hidden]) {
+    animation: zth-enter-up var(--zth-dur) var(--zth-ease);
+  }
+
+  &:has(#theme-Zenith-Panels[zenith-panels-findbar="top"]) findbar:not([hidden]) {
+    animation-name: zth-enter-down;
+  }
+
+  /* tabs: hover and selection fade instead of switching */
+  & .tabbrowser-tab > .tab-stack > .tab-background {
+    transition:
+      background-color var(--zth-dur-fast) var(--zth-ease),
+      box-shadow var(--zth-dur-fast) var(--zth-ease);
+  }
+
+  & .tabbrowser-tab > .tab-stack::after {
+    transition: opacity var(--zth-dur-fast) var(--zth-ease);
+  }
+
+  /* the frosted window-button panel fades in (keeping Zen's own height
+     and opacity transitions) */
+  & #zen-appcontent-navbar-wrapper {
+    transition:
+      height var(--zen-hidden-toolbar-transition, 0.15s),
+      opacity var(--zen-hidden-toolbar-transition, 0.15s),
+      background-color var(--zth-dur) var(--zth-ease),
+      box-shadow var(--zth-dur) var(--zth-ease) !important;
+  }
+
+  /* "Dim the page" while the sidebar is out */
+  & #tabbrowser-tabpanels {
+    transition: filter var(--zth-dur) var(--zth-ease);
+  }
+}
+
+/* --- Tab switch: instant (default) or a crossfade ------------------------
+   The page fades in from the background with a slight zoom. */
+
+:root:not(:has(#theme-Zenith-Motion[zenith-motion-preset="off"])):has(#theme-Zenith-Motion[zenith-motion-tab-switch="fade"])
+  #tabbrowser-tabpanels > .browserSidebarContainer.deck-selected:not(.zen-glance-overlay, .zen-glance-background, [zen-split="true"]) {
+  animation: zth-tab-in calc(var(--zth-dur) * 1.5) var(--zth-ease);
+}
+
+@keyframes zth-tab-in {
+  from {
+    opacity: 0;
+    scale: 0.98;
+  }
+}
+
+/* --- Swipe back/forward (from Trackpad Animation) ------------------------
+   While a two-finger swipe is in progress Firefox moves its history arrows;
+   the page follows with a small slide and shrink. At rest the page stays
+   flush and square, with no permanent shadow. */
+
+:root:is(
+    :has(#theme-Zenith-Motion[zenith-motion-swipe="on"]),
+    :not(:has(#theme-Zenith-Motion:is([zenith-motion-swipe="off"], [zenith-motion-preset="off"])))
+  ) {
+  & .browserStack > browser {
+    transition:
+      scale var(--zth-dur) var(--zth-ease),
+      translate var(--zth-dur) var(--zth-ease),
+      border-radius var(--zth-dur) var(--zth-ease),
+      box-shadow var(--zth-dur) var(--zth-ease);
+  }
+
+  /* Split panes: Zen forces its own opacity fade on them with !important,
+     which dropped the swipe transitions; keep Zen's fade and add ours. */
+  & #tabbrowser-tabpanels[zen-split-view="true"]:not(.zen-split-view-no-transition):not([zen-split-resizing]) > [zen-split="true"] .browserStack > browser {
+    transition:
+      opacity 0.2s ease-out,
+      scale var(--zth-dur) var(--zth-ease),
+      translate var(--zth-dur) var(--zth-ease),
+      border-radius var(--zth-dur) var(--zth-ease),
+      box-shadow var(--zth-dur) var(--zth-ease) !important;
+  }
+
+  & .browserStack:has(#historySwipeAnimationPreviousArrow:not([style="translate: none;"]), #historySwipeAnimationNextArrow:not([style="translate: none;"])) > browser {
+    scale: 0.98;
+  }
+
+  & .browserStack:has(#historySwipeAnimationPreviousArrow:not([style="translate: none;"])) > browser {
+    translate: 2% 0;
+  }
+
+  & .browserStack:has(#historySwipeAnimationNextArrow:not([style="translate: none;"])) > browser {
+    translate: -2% 0;
+  }
+}
+
+/* Extra: round and lift the page while swiping */
+:root:has(#theme-Zenith-Motion[zenith-motion-swipe-round="on"])
+  .browserStack:has(#historySwipeAnimationPreviousArrow:not([style="translate: none;"]), #historySwipeAnimationNextArrow:not([style="translate: none;"])) > browser {
+  border-radius: var(--zth-radius);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.45);
+}

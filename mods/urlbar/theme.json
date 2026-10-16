@@ -1,0 +1,18 @@
+{
+  "id": "5a0e7c11-2e1b-4c7d-9f3a-0c0de0000004",
+  "name": "Zenith URL bar",
+  "description": "Spotlight-style floating URL bar. It is sized for each screen, follows Core's corners, and dims the page behind it.",
+  "homepage": "https://github.com/bootzin/zenith",
+  "style": "https://raw.githubusercontent.com/bootzin/zenith/main/mods/urlbar/chrome.css",
+  "readme": "https://raw.githubusercontent.com/bootzin/zenith/main/mods/urlbar/readme.md",
+  "preferences": "https://raw.githubusercontent.com/bootzin/zenith/main/mods/urlbar/preferences.json",
+  "image": "",
+  "author": "bootzin",
+  "version": "0.6.3",
+  "tags": [
+    "minimal",
+    "zenith"
+  ],
+  "createdAt": "2026-10-16",
+  "updatedAt": "2026-10-16"
+}

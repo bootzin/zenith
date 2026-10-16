@@ -1,0 +1,68 @@
+[
+  {
+    "property": "zenith.urlbar.preset",
+    "label": "Preset",
+    "type": "dropdown",
+    "placeholder": "Default (Spotlight)",
+    "options": [
+      {
+        "label": "Zen default",
+        "value": "zen"
+      },
+      {
+        "label": "Spotlight (centred)",
+        "value": "spotlight"
+      },
+      {
+        "label": "Top",
+        "value": "top"
+      }
+    ]
+  },
+  {
+    "property": "zenith.urlbar.results",
+    "label": "Results layout",
+    "type": "dropdown",
+    "placeholder": "Default (Dense list)",
+    "options": [
+      {
+        "label": "Dense list",
+        "value": "dense"
+      },
+      {
+        "label": "Zen list",
+        "value": "list"
+      },
+      {
+        "label": "Tiles for top sites",
+        "value": "tiles"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.urlbar.preset",
+          "value": "zen"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The URL bar preset is Zen default"
+  },
+  {
+    "property": "zenith.urlbar.mono",
+    "label": "Extra: monospace URLs",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  }
+]

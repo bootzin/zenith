@@ -1,0 +1,284 @@
+/* ==========================================================================
+   Zenith Edges — hairline status edges
+   State lives in thin lines at the page edges, so nothing sits on screen
+   while you read. Where each edge is drawn:
+     top            load edge               Zen's loading bar, restyled
+     top            not-secure warning      .browserSidebarContainer::before
+     top-left       muted marker            #zen-tabbox-wrapper::before
+     left           container colour        .browserSidebarContainer::after
+     bottom         download in progress    #tabbrowser-tabbox::before
+     all around     focus / private / sharing frame   #zen-tabbox-wrapper::after
+
+   Settings gating (E = #theme-Zenith-Edges, P = preset):
+     on in Quiet and Full   :root:is(:has(E[x="on"]), :not(:has(E:is([x="off"], [P="off"]))))
+     on in Full only        ... plus [P="quiet"] in the off list
+     extras                 :root:has(E[x="on"])
+   ========================================================================== */
+
+:root {
+  --zth-edge: var(--zth-edge-auto, 2px);
+  --zth-edge-opacity: 1;
+  --zth-private: oklch(0.66 0.2 300);
+  --zth-container: transparent;
+}
+
+:root:has(#theme-Zenith-Edges[zenith-edges-thickness="1"]) { --zth-edge: 1px; }
+:root:has(#theme-Zenith-Edges[zenith-edges-thickness="2"]) { --zth-edge: 2px; }
+:root:has(#theme-Zenith-Edges[zenith-edges-thickness="3"]) { --zth-edge: 3px; }
+
+:root:has(#theme-Zenith-Edges[zenith-edges-private-colour="accent"]) { --zth-private: var(--zth-accent); }
+:root:has(#theme-Zenith-Edges[zenith-edges-private-colour="blue"]) { --zth-private: oklch(0.7 0.15 250); }
+:root:has(#theme-Zenith-Edges[zenith-edges-private-colour="teal"]) { --zth-private: oklch(0.74 0.12 190); }
+:root:has(#theme-Zenith-Edges[zenith-edges-private-colour="green"]) { --zth-private: oklch(0.74 0.17 145); }
+:root:has(#theme-Zenith-Edges[zenith-edges-private-colour="orange"]) { --zth-private: oklch(0.76 0.16 60); }
+:root:has(#theme-Zenith-Edges[zenith-edges-private-colour="red"]) { --zth-private: oklch(0.66 0.2 25); }
+:root:has(#theme-Zenith-Edges[zenith-edges-private-colour="pink"]) { --zth-private: oklch(0.74 0.18 340); }
+
+/* Fade every edge while the window is in the background (Full) */
+:root:-moz-window-inactive:is(
+    :has(#theme-Zenith-Edges[zenith-edges-unfocused="on"]),
+    :not(:has(#theme-Zenith-Edges:is([zenith-edges-unfocused="off"], [zenith-edges-preset="off"], [zenith-edges-preset="quiet"])))
+  ) {
+  --zth-edge-opacity: 0.3;
+}
+
+/* --- Load edge (Quiet) ---------------------------------------------------
+   Zen's own loading bar, restyled into a hairline sweep along the top.
+   Zenith Plus replaces it with real progress. */
+
+:root:is(
+    :has(#theme-Zenith-Edges[zenith-edges-load="on"]),
+    :not(:has(#theme-Zenith-Edges:is([zenith-edges-load="off"], [zenith-edges-preset="off"])))
+  ):not([zenith-real-progress])
+  #zen-loading-progress-bar {
+  position: absolute !important;
+  inset: 0 0 auto 0 !important;
+  width: auto !important;
+  height: var(--zth-edge) !important;
+  transform: none !important;
+  translate: none !important;
+  border-radius: 0 !important;
+  background: color-mix(in srgb, var(--zth-accent) 22%, transparent) !important;
+  animation: none !important;
+  overflow: clip !important;
+  z-index: 9 !important;
+  pointer-events: none !important;
+
+  &::before {
+    display: none !important;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 35%;
+    background: linear-gradient(to right, transparent, var(--zth-accent) 40%, var(--zth-accent));
+    opacity: var(--zth-edge-opacity);
+    animation: zth-load-sweep 1.1s var(--zth-ease) infinite;
+  }
+
+  &[long-load="true"]::after {
+    animation-duration: 2s;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root:has(#theme-Zenith-Motion[zenith-motion-reduced="follow"]) &::after {
+      width: 100%;
+      animation: none;
+      opacity: calc(var(--zth-edge-opacity) * 0.7);
+    }
+  }
+}
+
+@keyframes zth-load-sweep {
+  from { translate: -100% 0; }
+  to { translate: 300% 0; }
+}
+
+/* --- Download progress (Full) --------------------------------------------
+   A slow sweep along the bottom while anything downloads. Zenith Plus
+   replaces it with the real progress of all running downloads. */
+
+:root:is(
+    :has(#theme-Zenith-Edges[zenith-edges-download="on"]),
+    :not(:has(#theme-Zenith-Edges:is([zenith-edges-download="off"], [zenith-edges-preset="off"], [zenith-edges-preset="quiet"])))
+  ):not([zenith-real-progress]):has(.zen-library-download-badge[downloading])
+  #tabbrowser-tabbox::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: var(--zth-edge);
+  z-index: 10;
+  pointer-events: none;
+  opacity: var(--zth-edge-opacity);
+  background:
+    linear-gradient(to right, transparent, var(--zth-accent), transparent) 0 0 / 30% 100% no-repeat,
+    color-mix(in srgb, var(--zth-accent) 22%, transparent);
+  animation: zth-download-sweep 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:has(#theme-Zenith-Motion[zenith-motion-reduced="follow"]) #tabbrowser-tabbox::before {
+    animation: none !important;
+    background: color-mix(in srgb, var(--zth-accent) 70%, transparent) !important;
+  }
+}
+
+@keyframes zth-download-sweep {
+  from { background-position: -30% 0, 0 0; }
+  to { background-position: 130% 0, 0 0; }
+}
+
+/* --- Container colour on the left edge (Full) ----------------------------
+   Container colours live on each tab, so the selected tab's colour is mapped
+   to the page here (Firefox's standard container colours). This includes
+   tabs that get their container from the space they live in. */
+
+:root:has(.tabbrowser-tab[selected][usercontextid]:not([usercontextid="0"])) {
+  &:has(.tabbrowser-tab[selected].identity-color-blue) { --zth-container: #37adff; }
+  &:has(.tabbrowser-tab[selected].identity-color-turquoise) { --zth-container: #00c79a; }
+  &:has(.tabbrowser-tab[selected].identity-color-green) { --zth-container: #51cd00; }
+  &:has(.tabbrowser-tab[selected].identity-color-yellow) { --zth-container: #ffcb00; }
+  &:has(.tabbrowser-tab[selected].identity-color-orange) { --zth-container: #ff9f00; }
+  &:has(.tabbrowser-tab[selected].identity-color-red) { --zth-container: #ff613d; }
+  &:has(.tabbrowser-tab[selected].identity-color-pink) { --zth-container: #ff4bda; }
+  &:has(.tabbrowser-tab[selected].identity-color-purple) { --zth-container: #af51f5; }
+  &:has(.tabbrowser-tab[selected].identity-color-toolbar) { --zth-container: var(--zth-ink-dim); }
+}
+
+/* Three looks (Edges > Container line style):
+     straight (default)  full height, square ends
+     wrap                full height, curling round the page's rounded
+                         corners the way the container stripe on a sidebar
+                         tab does (an inset shadow on a rounded overlay, so
+                         the line thins as it follows each corner). On a
+                         square page there is nothing to wrap, so it stays
+                         straight.
+     inset               a rounded bar that stops short of the corners */
+
+:root:is(
+    :has(#theme-Zenith-Edges[zenith-edges-container="on"]),
+    :not(:has(#theme-Zenith-Edges:is([zenith-edges-container="off"], [zenith-edges-preset="off"], [zenith-edges-preset="quiet"])))
+  ) {
+  & .browserSidebarContainer.deck-selected:not(.zen-glance-overlay)::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--zth-edge) + 1px);
+    z-index: 9;
+    pointer-events: none;
+    background: var(--zth-container);
+    opacity: var(--zth-edge-opacity);
+    transition: background-color var(--zth-dur) var(--zth-ease);
+  }
+
+  &:has(#theme-Zenith-Edges[zenith-edges-container-style="wrap"]) .browserSidebarContainer.deck-selected:not(.zen-glance-overlay)::after {
+    inset: 0;
+    width: auto;
+    border-radius: var(--zth-page-radius, 0px);
+    corner-shape: inherit;
+    background: none;
+    box-shadow: inset calc(var(--zth-edge) + 1px) 0 0 var(--zth-container);
+    transition: box-shadow var(--zth-dur) var(--zth-ease);
+  }
+
+  &:has(#theme-Zenith-Edges[zenith-edges-container-style="inset"]) .browserSidebarContainer.deck-selected:not(.zen-glance-overlay)::after {
+    inset: 10px auto 10px 0;
+    border-radius: 0 999px 999px 0;
+    corner-shape: round;
+  }
+}
+
+/* --- Frame: focus border < private < sharing -----------------------------
+   One overlay draws all three as a crisp line plus a soft inner glow; later
+   rules win, so sharing beats private and private beats the focus border. */
+
+#zen-tabbox-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+  border-radius: var(--zth-page-radius, 0px);
+  box-shadow: var(--zth-frame, 0 0 0 transparent);
+  opacity: var(--zth-edge-opacity);
+  transition: box-shadow var(--zth-dur) var(--zth-ease);
+}
+
+/* Extra: accent frame while the window is focused */
+:root:not(:-moz-window-inactive):not([inDOMFullscreen="true"]):has(#theme-Zenith-Edges[zenith-edges-focus-border="on"]) {
+  --zth-frame: inset 0 0 0 1px color-mix(in srgb, var(--zth-accent) 75%, transparent);
+}
+
+/* Private window frame (Quiet). Zen already shows a private icon in the
+   sidebar, so Zenith only adds the frame. */
+:root[privatebrowsingmode]:not([inDOMFullscreen="true"]):is(
+    :has(#theme-Zenith-Edges[zenith-edges-private="on"]),
+    :not(:has(#theme-Zenith-Edges:is([zenith-edges-private="off"], [zenith-edges-preset="off"])))
+  ) {
+  --zth-frame:
+    inset 0 0 0 var(--zth-edge) var(--zth-private),
+    inset 0 0 26px -8px color-mix(in srgb, var(--zth-private) 70%, transparent);
+}
+
+/* Sharing alarm (Quiet): any tab using camera, mic or screen. Shown even in
+   fullscreen, because that's when you'd most want to know. */
+:root:is(
+    :has(#theme-Zenith-Edges[zenith-edges-sharing="on"]),
+    :not(:has(#theme-Zenith-Edges:is([zenith-edges-sharing="off"], [zenith-edges-preset="off"])))
+  ):has(.tabbrowser-tab[sharing]) {
+  --zth-frame:
+    inset 0 0 0 calc(var(--zth-edge) + 1px) var(--zth-danger),
+    inset 0 0 34px -6px color-mix(in srgb, var(--zth-danger) 75%, transparent);
+
+  & #zen-tabbox-wrapper::after {
+    animation: zth-alarm 1.2s ease-in-out 3;
+  }
+}
+
+@keyframes zth-alarm {
+  50% { opacity: 0.35; }
+}
+
+/* --- Extra: muted marker (short segment, top-left) ----------------------- */
+
+:root:has(#theme-Zenith-Edges[zenith-edges-muted="on"]):has(.tabbrowser-tab[selected][muted]) #zen-tabbox-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 40px;
+  height: var(--zth-edge);
+  z-index: 10;
+  pointer-events: none;
+  background: linear-gradient(to right, var(--zth-danger), transparent);
+  opacity: var(--zth-edge-opacity);
+}
+
+/* --- Not-secure warning (Quiet): amber top edge ---------------------------
+   Plain-HTTP pages get an amber line across the whole top of the page with
+   a soft glow below it, following the page's corners. The load edge draws
+   over it while a page loads. Only real pages count: blank pages and empty
+   spaces also call themselves "not secure", but the URL bar marks their
+   address invalid. Hidden while the URL bar is open, because Zen resets the
+   page's security state while you type. (Zenith Plus adds a label that
+   explains it when you hover the edge.) */
+
+:root:is(
+    :has(#theme-Zenith-Edges[zenith-edges-insecure="on"]),
+    :not(:has(#theme-Zenith-Edges:is([zenith-edges-insecure="off"], [zenith-edges-preset="off"])))
+  ):has(#urlbar[pageproxystate="valid"]):has(#identity-box.notSecure):not(:has(#urlbar[open], .tabbrowser-tab[selected][zen-empty-tab])) {
+  & .browserSidebarContainer.deck-selected:not(.zen-glance-overlay)::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    pointer-events: none;
+    border-radius: var(--zth-page-radius, 0px);
+    corner-shape: inherit;
+    box-shadow:
+      inset 0 calc(var(--zth-edge) + 1px) 0 var(--zth-warn),
+      inset 0 14px 16px -14px color-mix(in srgb, var(--zth-warn) 80%, transparent);
+    opacity: var(--zth-edge-opacity);
+  }
+}

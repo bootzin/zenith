@@ -1,0 +1,132 @@
+[
+  {
+    "property": "zenith.motion.preset",
+    "label": "Preset",
+    "type": "dropdown",
+    "placeholder": "Default (Quick)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "Quick",
+        "value": "quick"
+      },
+      {
+        "label": "Smooth",
+        "value": "smooth"
+      }
+    ]
+  },
+  {
+    "property": "zenith.motion.reduced",
+    "label": "When Windows animation effects are off",
+    "type": "dropdown",
+    "placeholder": "Default (Keep Zenith's motion)",
+    "options": [
+      {
+        "label": "Keep Zenith's motion",
+        "value": "zenith"
+      },
+      {
+        "label": "Follow Windows: no motion",
+        "value": "follow"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.plus.animate-zen",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Zenith Plus keeps everything animated"
+  },
+  {
+    "property": "zenith.motion.tab-switch",
+    "label": "Tab switch",
+    "type": "dropdown",
+    "placeholder": "Default (Instant)",
+    "options": [
+      {
+        "label": "Instant",
+        "value": "instant"
+      },
+      {
+        "label": "Crossfade",
+        "value": "fade"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Motion is off"
+  },
+  {
+    "property": "zenith.motion.swipe",
+    "label": "Swipe back/forward animation",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Motion is off"
+  },
+  {
+    "property": "zenith.motion.swipe-round",
+    "label": "Extra: round and lift the page while swiping",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      },
+      {
+        "not": {
+          "property": "zenith.motion.swipe",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Swipe animation is off"
+  }
+]

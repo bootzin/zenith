@@ -1,0 +1,511 @@
+/* ==========================================================================
+   Zenith Plus: styles for the features that need the Zenith Plus scripts
+   Zenith (the six CSS mods) works on its own; these rules only style what
+   the scripts add or switch on, so without the scripts they do nothing.
+   Settings are tick boxes in Settings > Zen Mods > Zenith Plus, read here
+   with -moz-pref() and by the scripts.
+   ========================================================================== */
+
+/* === Load edge: real progress ============================================== */
+
+:root:is(
+    :has(#theme-Zenith-Edges[zenith-edges-load="on"]),
+    :not(:has(#theme-Zenith-Edges:is([zenith-edges-load="off"], [zenith-edges-preset="off"])))
+  ):not([inDOMFullscreen="true"])[zenith-real-progress] {
+  & #zen-loading-progress-bar {
+    display: none !important;
+  }
+
+  & #zenith-load-edge {
+    position: absolute;
+    inset: 0 auto auto 0;
+    z-index: 9;
+    height: calc(var(--zth-edge) + 1px);
+    width: calc(var(--zth-load-progress, 0) * 100%);
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(to right, color-mix(in srgb, var(--zth-accent) 55%, transparent), var(--zth-accent));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--zth-accent) 70%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 0.4s ease;
+
+    &[state="loading"] {
+      opacity: var(--zth-edge-opacity);
+    }
+
+    &[state="done"] {
+      width: 100%;
+      opacity: 0;
+      transition:
+        width 0.2s ease-out,
+        opacity 0.45s ease 0.15s;
+    }
+
+    &[jump] {
+      transition: none;
+    }
+  }
+}
+
+/* === Download edge: real progress ========================================== */
+
+:root:is(
+    :has(#theme-Zenith-Edges[zenith-edges-download="on"]),
+    :not(:has(#theme-Zenith-Edges:is([zenith-edges-download="off"], [zenith-edges-preset="off"], [zenith-edges-preset="quiet"])))
+  )[zenith-real-progress] {
+  & #zenith-download-edge {
+    position: absolute;
+    inset: auto auto 0 0;
+    z-index: 10;
+    height: var(--zth-edge);
+    width: 0;
+    border-radius: 0 999px 999px 0;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(90deg, var(--zth-accent) 0 40%, color-mix(in srgb, var(--zth-accent) 60%, white) 50%, var(--zth-accent) 60% 100%) 0 0 / 300% 100%;
+    transition: width 0.6s ease, opacity 0.4s ease;
+  }
+
+  &[zenith-downloading="sized"] #zenith-download-edge {
+    width: calc(var(--zth-download-progress, 0) * 100%);
+    min-width: 12px;
+    opacity: var(--zth-edge-opacity);
+    animation: zth-shimmer 3.5s linear infinite;
+  }
+
+  &[zenith-downloading="unsized"] #zenith-download-edge {
+    width: 30%;
+    opacity: var(--zth-edge-opacity);
+    animation: zth-download-roam 2.4s ease-in-out infinite alternate;
+  }
+
+  &[zenith-download-done]:not([zenith-downloading]) #zenith-download-edge {
+    width: 100%;
+    opacity: 0;
+    transition: width 0.3s ease, opacity 1.2s ease 0.3s;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:has(#theme-Zenith-Motion[zenith-motion-reduced="follow"]) #zenith-download-edge {
+      animation: none !important;
+    }
+  }
+}
+
+@keyframes zth-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -50% 0; }
+}
+
+@keyframes zth-download-roam {
+  from { translate: 0 0; }
+  to { translate: 233% 0; }
+}
+
+/* === Not-secure edge: hover label ========================================== */
+
+/* A thin strip along the amber edge (added by the script) shows a label
+   after a short hover. Same conditions as the edge in Zenith Edges. */
+:root:is(
+    :has(#theme-Zenith-Edges[zenith-edges-insecure="on"]),
+    :not(:has(#theme-Zenith-Edges:is([zenith-edges-insecure="off"], [zenith-edges-preset="off"])))
+  ):has(#urlbar[pageproxystate="valid"]):has(#identity-box.notSecure):not(:has(#urlbar[open], .tabbrowser-tab[selected][zen-empty-tab]))
+  #zenith-insecure-hint {
+  display: block;
+}
+
+#zenith-insecure-hint {
+  display: none;
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: calc(var(--zth-edge) + 5px);
+  z-index: 10;
+  cursor: help;
+
+  &::after {
+    content: "Not secure: this page uses plain HTTP, so others on the network can see or change it";
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    translate: -50% -4px;
+    padding: 4px 12px;
+    border: 1px solid color-mix(in srgb, var(--zth-warn) 45%, var(--zth-hairline));
+    border-radius: var(--zth-pill-radius);
+    corner-shape: var(--zth-pill-shape);
+    background: var(--zth-glass-bg);
+    backdrop-filter: var(--zth-glass-filter);
+    box-shadow: var(--zth-shadow);
+    color: var(--zth-ink);
+    font: 12px/1.4 system-ui, sans-serif;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity var(--zth-dur-fast) var(--zth-ease),
+      translate var(--zth-dur-fast) var(--zth-ease);
+  }
+
+  &:hover::after {
+    opacity: 1;
+    translate: -50% 0;
+    transition-delay: 250ms;
+  }
+}
+
+/* === Sidebar minimap ======================================================= */
+
+/* While the compact sidebar is hidden, a slim strip at that window edge
+   shows a tick for every tab that is loading, playing, waiting for you or
+   using your camera/mic/screen, at the height the tab sits in the hidden
+   list. */
+
+#zenith-minimap {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--zth-edge) + 2px);
+  z-index: 12;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--zth-dur) var(--zth-ease);
+
+  :root[zen-right-side="true"] & {
+    inset: 0 0 0 auto;
+  }
+
+  & .zenith-tick {
+    position: absolute;
+    left: 0;
+    top: calc(var(--y) - var(--h) / 2);
+    width: 100%;
+    height: var(--h);
+    border-radius: 0 999px 999px 0;
+    corner-shape: round;
+    background: var(--zth-accent);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--zth-accent) 60%, transparent);
+
+    :root[zen-right-side="true"] & {
+      border-radius: 999px 0 0 999px;
+    }
+
+    &[kind="loading"] { background: var(--zth-ink-dim); box-shadow: none; }
+    &[kind="attention"] { background: var(--zth-warn); }
+    &[kind="sharing"] { background: var(--zth-danger); }
+    &[clamp] { height: 6px; opacity: 0.7; }
+  }
+}
+
+@media -moz-pref("zenith.plus.minimap") {
+  :root[zen-compact-mode="true"]:not([inDOMFullscreen="true"]):has(#navigator-toolbox:not([zen-has-hover], [zen-user-show], [has-popup-menu], [zen-compact-mode-active], [flash-popup], [movingtab]))
+    #zenith-minimap {
+    opacity: var(--zth-edge-opacity);
+  }
+}
+
+/* === Zoom pills ============================================================ */
+
+/* A pill in any pane whose zoom isn't 100%; click it to reset that pane. */
+
+.zenith-zoom-pill {
+  display: none;
+}
+
+@media -moz-pref("zenith.plus.zoom-pill") {
+  .zenith-zoom-pill {
+    display: block;
+    animation: zth-enter var(--zth-dur) var(--zth-ease);
+  }
+}
+
+.zenith-zoom-pill {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 6;
+  appearance: none;
+  margin: 0;
+  padding: 3px 10px;
+  border: 1px solid var(--zth-hairline);
+  border-radius: var(--zth-pill-radius);
+  corner-shape: var(--zth-pill-shape);
+  background: var(--zth-glass-bg);
+  backdrop-filter: var(--zth-glass-filter);
+  box-shadow: var(--zth-shadow);
+  color: var(--zth-ink);
+  font: 600 11px/1.3 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color var(--zth-dur) var(--zth-ease);
+
+  &:hover {
+    background: var(--zth-accent-soft);
+  }
+
+  /* (The escape swallows one space, hence two.) */
+  &:hover::after {
+    content: " \00b7  reset";
+    font-weight: 400;
+    color: var(--zth-ink-dim);
+  }
+}
+
+/* === Peek ===================================================================== */
+
+/* The prompt (Alt+Q with nothing selected): a single frosted line near the
+   top, with what Enter will do underneath. */
+#zenith-peek {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 16vh;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+#zenith-peek-box {
+  width: min(640px, 82vw);
+  box-sizing: border-box;
+  padding: 4px;
+  border-radius: var(--zth-radius);
+  outline: 1px solid var(--zth-hairline);
+  background: var(--zth-panel-bg);
+  backdrop-filter: var(--zth-panel-filter);
+  box-shadow: var(--zth-shadow), var(--zth-glass-shine);
+  color: var(--zth-ink);
+  animation: zth-enter var(--zth-dur) var(--zth-ease);
+}
+
+/* Firefox styles every input in the browser window (border, fill, size);
+   the prompt is one clean line, so all of that is switched off. */
+#zenith-peek #zenith-peek-input {
+  appearance: none !important;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 10px 14px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  font: 400 calc(var(--zth-font) + 3px) / 1.3 system-ui, sans-serif !important;
+  color: var(--zth-ink) !important;
+
+  &::placeholder {
+    color: var(--zth-ink-dim);
+  }
+}
+
+#zenith-peek-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  margin: 0 6px 4px;
+  padding: 6px 8px 4px;
+  border-top: 1px solid var(--zth-hairline);
+  font: calc(var(--zth-font) - 0.5px) / 1.3 system-ui, sans-serif;
+  color: var(--zth-ink-dim);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+#zenith-peek-tag {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: var(--zth-pill-radius);
+  corner-shape: var(--zth-pill-shape);
+  background: var(--zth-accent-soft);
+  color: var(--zth-ink);
+  font-weight: 600;
+}
+
+#zenith-peek-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  #zenith-peek-row[answer] & {
+    color: var(--zth-ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+#zenith-peek-hint {
+  flex: none;
+  margin-inline-start: auto;
+  opacity: 0.8;
+}
+
+/* The Peek itself is Zen's detached Glance: narrower on big screens. */
+@media (min-width: 2200px) {
+  #zen-main-app-wrapper > #zen-glance-detached > .browserContainer {
+    width: 60%;
+  }
+}
+
+@media (min-width: 1401px) and (max-width: 2199px) {
+  #zen-main-app-wrapper > #zen-glance-detached > .browserContainer {
+    width: 70%;
+  }
+}
+
+/* The prefix list ("?" in the prompt): one line per prefix, edited in place. */
+#zenith-peek-list {
+  margin: 0 6px 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--zth-hairline);
+  font: calc(var(--zth-font) - 0.5px) / 1.35 system-ui, sans-serif;
+  color: var(--zth-ink-dim);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.zenith-peek-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border-radius: var(--zth-tab-radius);
+  cursor: default;
+
+  &[selected],
+  &:hover {
+    background: var(--zth-hairline);
+  }
+
+  &[editing] {
+    background: var(--zth-accent-soft);
+  }
+}
+
+.zenith-peek-key {
+  flex: none;
+  min-width: 26px;
+  padding: 1px 6px;
+  border-radius: var(--zth-pill-radius);
+  corner-shape: var(--zth-pill-shape);
+  background: var(--zth-accent-soft);
+  color: var(--zth-ink);
+  font: 600 12px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  text-align: center;
+}
+
+.zenith-peek-name {
+  flex: none;
+  width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--zth-ink);
+}
+
+.zenith-peek-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zenith-peek-add {
+  color: var(--zth-ink);
+}
+
+#zenith-peek :is(.zenith-peek-remove, .zenith-peek-reset) {
+  appearance: none !important;
+  margin: 0 !important;
+  padding: 0 6px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border: none !important;
+  border-radius: var(--zth-pill-radius) !important;
+  background: transparent !important;
+  color: var(--zth-ink-dim) !important;
+  font: inherit !important;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--zth-hairline) !important;
+    color: var(--zth-ink) !important;
+  }
+}
+
+.zenith-peek-remove {
+  visibility: hidden;
+
+  .zenith-peek-item:is(:hover, [selected]) > & {
+    visibility: visible;
+  }
+}
+
+/* Firefox styles every input in the browser window; these are plain fields. */
+#zenith-peek .zenith-peek-field {
+  appearance: none !important;
+  box-sizing: border-box;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 3px 8px !important;
+  border: 1px solid var(--zth-hairline) !important;
+  border-radius: var(--zth-tab-radius) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: color-mix(in srgb, var(--zth-surface) 60%, transparent) !important;
+  color: var(--zth-ink) !important;
+  font: inherit !important;
+
+  &:focus {
+    border-color: var(--zth-accent) !important;
+  }
+}
+
+.zenith-peek-field-key {
+  flex: none;
+  width: 56px;
+}
+
+.zenith-peek-field-name {
+  flex: none;
+  width: 120px;
+}
+
+.zenith-peek-field-url {
+  flex: 1;
+}
+
+.zenith-peek-error {
+  flex: none;
+  color: var(--zth-warn);
+  font-size: 12px;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.zenith-peek-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 6px 8px 2px;
+  border-top: 1px solid var(--zth-hairline);
+  font-size: 12px;
+}

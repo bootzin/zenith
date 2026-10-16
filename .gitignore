@@ -1,0 +1,6 @@
+dist/
+__pycache__/
+*.pyc
+tools/checks/*.png
+DESIGN.md
+
