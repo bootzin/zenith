@@ -257,7 +257,7 @@ def main():
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
     write_helper_rules(root)
     for name, prefs in MODS.items():
-        out = (root / "plus" if name == "plus" else root / "mods" / name) / "preferences.json"
+        out = root / name / "preferences.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(prefs, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print(f"{out}: {len(prefs)} settings")

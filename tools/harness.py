@@ -41,8 +41,8 @@ MOD_IDS = {
 
 
 def mod_dir(key):
-    """Zenith's mods live in mods/<key>; Zenith Plus in plus/."""
-    return ROOT / "plus" if key == "plus" else ROOT / "mods" / key
+    """Each mod has a top-level folder: core/, edges/, ... and plus/."""
+    return ROOT / key
 
 # Prefs for the throwaway profile: automation on, first-run screens off, and
 # the same Zen layout as the real profile (compact mode, single toolbar).

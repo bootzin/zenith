@@ -45,8 +45,8 @@
   ],
   "ai": "yes",
   "createdAt": "2026-10-16",
-  "updatedAt": "2026-10-16T17:54:24+00:00",
+  "updatedAt": "2026-10-16T18:24:00+00:00",
   "modules": [
-    "https://github.com/bootzin/zenith/tree/master/mods/motion"
+    "https://github.com/bootzin/zenith/tree/master/motion"
   ]
 }

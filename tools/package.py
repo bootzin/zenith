@@ -12,7 +12,7 @@ Usage: python package.py <zenith root> --owner <github-user> [--branch <name>] [
 The owner is the GitHub account the repository lives under, and the branch
 is the one people install from (master); both go into the homepage, readme
 and install links. It also writes the theme.json manifests
-into the repository itself (mods/*/theme.json, plus/theme.json), which
+into the repository itself (<mod>/theme.json, plus/theme.json), which
 Sine reads when it installs from GitHub. Nothing is uploaded.
 """
 import argparse
@@ -93,11 +93,14 @@ def main():
     # --- Zen's mod store: one folder per mod --------------------------------
     # Each mod's homepage is its own folder: Sine fetches theme.json from the
     # homepage to check for updates (the repository root would mean another
-    # branch and no theme.json).
+    # branch and no theme.json). The folders sit at the top of the
+    # repository: Sine's update (2.3.3, still on its main branch) joins the
+    # folder path as one piece, which fails on Windows for "mods/core" and
+    # leaves the mod half-replaced.
     raw = f"https://raw.githubusercontent.com/{args.owner}/zenith/{args.branch}"
-    home = {key: f"https://github.com/{repo}/mods/{key}" for key in MODS}
+    home = {key: f"https://github.com/{repo}/{key}" for key in MODS}
     for key, (mod_id, name) in MODS.items():
-        src, out = root / "mods" / key, dist / "zen-store" / key
+        src, out = root / key, dist / "zen-store" / key
         out.mkdir(parents=True)
         for f in ("chrome.css", "preferences.json", "readme.md"):
             shutil.copy2(src / f, out / f)
@@ -106,9 +109,9 @@ def main():
             "name": name,
             "description": first_paragraph(src / "readme.md"),
             "homepage": home[key],
-            "style": f"{raw}/mods/{key}/chrome.css",
-            "readme": f"{raw}/mods/{key}/readme.md",
-            "preferences": f"{raw}/mods/{key}/preferences.json",
+            "style": f"{raw}/{key}/chrome.css",
+            "readme": f"{raw}/{key}/readme.md",
+            "preferences": f"{raw}/{key}/preferences.json",
             "image": "",
             "author": author,
             "version": version,
@@ -174,7 +177,7 @@ def main():
     # --- Manual install (the fallback) ---------------------------------------
     zip_path = dist / f"zenith-{version}-manual.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-        for folder in ("mods", "plus", "vendor"):
+        for folder in (*MODS, "plus", "vendor"):
             for f in sorted((root / folder).rglob("*")):
                 if f.is_file():
                     z.write(f, f"zenith/{f.relative_to(root).as_posix()}")

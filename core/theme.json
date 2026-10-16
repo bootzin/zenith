@@ -1,0 +1,18 @@
+{
+  "id": "5a0e7c11-2e1b-4c7d-9f3a-0c0de0000001",
+  "name": "Zenith Core",
+  "description": "Shared colours, sizes, transparency and motion timing for every Zenith mod, plus the page frame. The other Zenith mods need it.",
+  "homepage": "https://github.com/bootzin/zenith/tree/master/core",
+  "style": "https://raw.githubusercontent.com/bootzin/zenith/master/core/chrome.css",
+  "readme": "https://raw.githubusercontent.com/bootzin/zenith/master/core/readme.md",
+  "preferences": "https://raw.githubusercontent.com/bootzin/zenith/master/core/preferences.json",
+  "image": "",
+  "author": "bootzin",
+  "version": "0.6.3",
+  "tags": [
+    "minimal",
+    "zenith"
+  ],
+  "createdAt": "2026-10-16",
+  "updatedAt": "2026-10-16T18:24:00+00:00"
+}

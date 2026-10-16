@@ -9,7 +9,7 @@ gets Zenith copied in from this folder, stays separate.
     python r14_github_install.py --local   # rehearsal: Sine's downloads are
                                            # served from this working folder
 """
-import functools, http.server, json, os, shutil, subprocess, sys, threading, time, zipfile
+import json, os, shutil, sys, time, zipfile
 from pathlib import Path
 os.environ["ZENITH_TEST_PROFILE"] = str(Path(os.environ["TEMP"]) / "claude" / "zgh")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -19,31 +19,10 @@ LOCAL = "--local" in sys.argv
 SOURCE = "bootzin/zenith/tree/master/plus"
 assert sine_loader(), "Zen's program folder doesn't boot Sine"
 
-# --local: serve the working folder, and the zip GitHub would build from it.
 REDIRECT = ""
 if LOCAL:
-    files = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=ROOT,
-                           capture_output=True, text=True, check=True).stdout.split("\n")
-    archive = ROOT / "dist" / "zenith-master.zip"
-    archive.parent.mkdir(exist_ok=True)
-    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
-        for f in filter(None, files):
-            if (ROOT / f).is_file():
-                zf.write(ROOT / f, f"zenith-master/{f}")
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(ROOT))
-    handler.log_message = lambda *a: None
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    local = f"http://127.0.0.1:{server.server_address[1]}"
-    REDIRECT = f"""
-      const {{ default: ucAPI }} = ChromeUtils.importESModule('chrome://userscripts/content/utils/uc_api.sys.mjs');
-      const map = url => url
-        .replace('https://raw.githubusercontent.com/bootzin/zenith/master/', '{local}/')
-        .replace('https://codeload.github.com/bootzin/zenith/zip/refs/heads/master', '{local}/dist/zenith-master.zip');
-      const {{ fetch: f, unpackRemoteArchive: u }} = ucAPI;
-      ucAPI.fetch = url => f.call(ucAPI, map(url));
-      ucAPI.unpackRemoteArchive = o => u.call(ucAPI, {{ ...o, url: map(o.url) }});
-    """
+    from sine_local import serve_local
+    REDIRECT = serve_local()
 res = {"source": SOURCE + (" (served from this folder)" if LOCAL else "")}
 
 # A fresh profile with Sine's files only.

@@ -26,7 +26,7 @@ def main():
             text = text.replace("// @include        main", f"// @include        main\n// @version        {version}", 1)
         script.write_text(text, encoding="utf-8")
 
-    readmes = sorted((root / "mods").glob("*/readme.md")) + [root / "plus" / "readme.md"]
+    readmes = [root / key / "readme.md" for key in ("core", "edges", "tabs", "urlbar", "panels", "motion", "plus")]
     for readme in readmes:
         if not readme.exists():
             continue

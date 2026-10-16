@@ -60,12 +60,12 @@ $Version = ([System.IO.File]::ReadAllText((Join-Path $Root 'VERSION'))).Trim()
 
 # Fixed ids so reinstalling updates the same mods. Order = load order.
 $Mods = [ordered]@{
-    'core'   = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000001'; Dir = 'mods\core';   Name = 'Zenith Core';    Desc = 'Shared colours, sizes, transparency and the page frame. Required by the other Zenith mods.' }
-    'edges'  = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000002'; Dir = 'mods\edges';  Name = 'Zenith Edges';   Desc = 'Hairline status edges: loading, downloads, containers, sharing, private.' }
-    'tabs'   = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000003'; Dir = 'mods\tabs';   Name = 'Zenith Tabs';    Desc = 'Tight tab sidebar with only the signals that matter.' }
-    'urlbar' = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000004'; Dir = 'mods\urlbar'; Name = 'Zenith URL bar'; Desc = 'Floating URL bar with dense results.' }
-    'panels' = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000005'; Dir = 'mods\panels'; Name = 'Zenith Panels';  Desc = 'Find bar, history, status pill, Glance, split view, notifications, menus.' }
-    'motion' = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000006'; Dir = 'mods\motion'; Name = 'Zenith Motion';  Desc = 'One motion language: Quick or Smooth, crossfade and swipe.' }
+    'core'   = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000001'; Dir = 'core';        Name = 'Zenith Core';    Desc = 'Shared colours, sizes, transparency and the page frame. Required by the other Zenith mods.' }
+    'edges'  = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000002'; Dir = 'edges';       Name = 'Zenith Edges';   Desc = 'Hairline status edges: loading, downloads, containers, sharing, private.' }
+    'tabs'   = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000003'; Dir = 'tabs';        Name = 'Zenith Tabs';    Desc = 'Tight tab sidebar with only the signals that matter.' }
+    'urlbar' = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000004'; Dir = 'urlbar';      Name = 'Zenith URL bar'; Desc = 'Floating URL bar with dense results.' }
+    'panels' = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000005'; Dir = 'panels';      Name = 'Zenith Panels';  Desc = 'Find bar, history, status pill, Glance, split view, notifications, menus.' }
+    'motion' = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000006'; Dir = 'motion';      Name = 'Zenith Motion';  Desc = 'One motion language: Quick or Smooth, crossfade and swipe.' }
     'plus'   = @{ Id = '5a0e7c11-2e1b-4c7d-9f3a-0c0de0000007'; Dir = 'plus';         Name = 'Zenith Plus';    Desc = 'Peek, real load and download progress, minimap, zoom pills and more. Needs its scripts.' }
 }
 if ($WithoutPlus) { $Mods.Remove('plus') }

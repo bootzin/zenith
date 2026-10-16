@@ -42,7 +42,7 @@ Specific things it changes:
 
 ## Development
 
-- **Layout:** `mods/` holds Zenith, `plus/` holds Zenith Plus, `tools/` holds the build, check and install scripts.
+- **Layout:** one folder per mod at the top (`core/`, `edges/`, `tabs/`, `urlbar/`, `panels/`, `motion/`), `plus/` holds Zenith Plus, and `tools/` holds the build, check and install scripts. (Sine can only update mods whose folder is one level deep.)
 
 ## Credits
 

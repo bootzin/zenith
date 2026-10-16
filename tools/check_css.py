@@ -159,7 +159,7 @@ def check_mod(mod_dir, problems, all_defined):
 def main():
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
     problems = []
-    mods = sorted(p for p in (root / "mods").iterdir() if p.is_dir()) + [root / "plus"]
+    mods = [root / key for key in ("core", "edges", "tabs", "urlbar", "panels", "motion", "plus")]
     all_defined = {}
     for mod in mods:
         all_defined.update(load_defined(mod))
