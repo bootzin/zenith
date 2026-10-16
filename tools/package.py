@@ -20,7 +20,7 @@ import json
 import re
 import shutil
 import zipfile
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 MODS = {
@@ -31,6 +31,16 @@ MODS = {
     "panels": ("5a0e7c11-2e1b-4c7d-9f3a-0c0de0000005", "Zenith Panels"),
     "motion": ("5a0e7c11-2e1b-4c7d-9f3a-0c0de0000006", "Zenith Motion"),
 }
+PLUS_ID = "5a0e7c11-2e1b-4c7d-9f3a-0c0de0000007"
+
+# Sine installs a mod's "modules" all at once, and (2.3.3, still on its main
+# branch) those parallel installs share one temporary folder and each save
+# the mod list from its own stale copy: from one repository, only one mod
+# survives and the parent is lost. So each mod names just the next one, and
+# Sine installs them one after another: Plus, Motion, Panels, URL bar, Tabs,
+# Edges, then Core, which every mod needs and so always comes along.
+SINE_CHAIN = {"plus": "motion", "motion": "panels", "panels": "urlbar", "urlbar": "tabs",
+              "tabs": "edges", "edges": "core"}
 
 # Where each Plus script runs (Sine reads this from theme.json; fx-autoconfig
 # reads the same thing from the @include lines in each script's header).
@@ -69,8 +79,23 @@ def main():
     if dist.exists():
         shutil.rmtree(dist)
 
+    # Sine updates a mod when the updatedAt in its homepage's theme.json is
+    # later than the installed one, so it carries the time, not just the date
+    # (two releases on one day). createdAt stays what it first was.
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    def created(path):
+        try:
+            return json.loads(path.read_text(encoding="utf-8")).get("createdAt") or today
+        except (OSError, ValueError):
+            return today
+
     # --- Zen's mod store: one folder per mod --------------------------------
+    # Each mod's homepage is its own folder: Sine fetches theme.json from the
+    # homepage to check for updates (the repository root would mean another
+    # branch and no theme.json).
     raw = f"https://raw.githubusercontent.com/{args.owner}/zenith/{args.branch}"
+    home = {key: f"https://github.com/{repo}/mods/{key}" for key in MODS}
     for key, (mod_id, name) in MODS.items():
         src, out = root / "mods" / key, dist / "zen-store" / key
         out.mkdir(parents=True)
@@ -80,7 +105,7 @@ def main():
             "id": mod_id,
             "name": name,
             "description": first_paragraph(src / "readme.md"),
-            "homepage": f"https://github.com/{args.owner}/zenith",
+            "homepage": home[key],
             "style": f"{raw}/mods/{key}/chrome.css",
             "readme": f"{raw}/mods/{key}/readme.md",
             "preferences": f"{raw}/mods/{key}/preferences.json",
@@ -88,10 +113,15 @@ def main():
             "author": author,
             "version": version,
             "tags": ["minimal", "zenith"],
-            "createdAt": today,
+            "createdAt": created(src / "theme.json"),
             "updatedAt": today,
         }
         write_json(out / "theme.json", manifest)
+        # The repository's copy is what Sine reads; it chains to the next mod
+        # (see SINE_CHAIN) and carries the full time.
+        manifest = {**manifest, "updatedAt": now}
+        if key in SINE_CHAIN:
+            manifest["modules"] = [home[SINE_CHAIN[key]]]
         write_json(src / "theme.json", manifest)
 
     # --- Sine: Zenith Plus as a repository root -------------------------------
@@ -106,7 +136,9 @@ def main():
     if missing:
         raise SystemExit(f"PLUS_SCRIPTS is out of date: {sorted(missing)}")
     plus_manifest = {
-        "id": "zenith-plus",
+        # The same id the manual install uses, so moving from a local copy
+        # to Sine's GitHub install replaces it instead of adding a second one.
+        "id": PLUS_ID,
         "name": "Zenith Plus",
         "description": "Peek, real load and download progress, a sidebar minimap, zoom pills and more for Zenith.",
         "homepage": f"https://github.com/{repo}/plus",
@@ -125,8 +157,11 @@ def main():
         # Sine asks whether a mod was made with AI. Zenith was written with
         # an AI assistant (Claude), so it says so.
         "ai": "yes",
-        # Installing Plus from Sine also installs Zenith's six mods.
-        "modules": [f"{repo}/mods/{key}" for key in MODS],
+        "createdAt": created(plus / "theme.json"),
+        "updatedAt": now,
+        # Installing Plus from Sine also installs Zenith's six mods, through
+        # the chain that starts here.
+        "modules": [home[SINE_CHAIN["plus"]]],
     }
     write_json(out / "theme.json", plus_manifest)
     write_json(plus / "theme.json", plus_manifest)
