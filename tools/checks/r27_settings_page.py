@@ -47,8 +47,11 @@ with Scene() as z:
     res["edges: reset"] = [z.js(CLICK, '#zp-edges .zp-custom .zp-link'), z.js(PREFS, edges),
                            z.js(DOC + "return doc.querySelector('#zp-edges .zp-custom').textContent")]
     res["accent teal, live in the window"] = [
-        z.js(DOC + """const s = doc.querySelector('[data-prop="zenith.core.accent"] select'); s.value = 'teal';
-                      s.dispatchEvent(new Event('change')); await zth.sleep(500); return s.value"""),
+        z.js(DOC + """const row = doc.querySelector('[data-prop="zenith.core.accent"]');
+                      row.querySelector('.zp-select').click(); await new Promise(r => win.setTimeout(r, 150));
+                      const open = row.querySelector('.zp-chooser').hasAttribute('open');
+                      row.querySelector('.zp-option[data-value="teal"]').click(); await new Promise(r => win.setTimeout(r, 400));
+                      return [open, row.querySelector('.zp-select').textContent, Services.prefs.getStringPref('zenith.core.accent', '')]"""),
         z.js("""const host = document.getElementById('theme-Zenith') ?? document.getElementById('theme-Zenith-Core');
                 const probe = document.createElement('div'); probe.style.color = 'var(--zth-accent)'; document.body.append(probe);
                 const c = getComputedStyle(probe).color; probe.remove(); return [host?.id, host?.getAttribute('zenith-core-accent'), c]""")]

@@ -163,10 +163,48 @@
   --zth-glass-sat: 1.6;
 }
 
-@media -moz-pref("zenith.core.glass-shine") {
-  :root {
-    --zth-glass-shine: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.14));
+/* Glass edge. Shine: a fine highlight along the top. Liquid (inspired by
+   Zia's glass edge): the rim catches the light, bright at the top left and
+   faint at the bottom right, with a soft glow inside the top; Zenith Plus
+   also lights a surface up where you press it. The rim is part of each
+   glass surface's shadow (--zth-glass-shine), so every one gets it. */
+:root:has(#theme-Zenith-Core[zenith-core-glass-edge="shine"]) {
+  --zth-glass-shine: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.14));
+}
+
+:root:has(#theme-Zenith-Core[zenith-core-glass-edge="liquid"]) {
+  --zth-glass-shine:
+    inset 1px 1px 0 light-dark(rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.4)),
+    inset -1px -1px 0 light-dark(rgb(255 255 255 / 0.4), rgb(255 255 255 / 0.1)),
+    inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.06)),
+    inset 0 16px 24px -18px light-dark(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.24));
+
+  /* Liquid also rims the surfaces that have no shadow of their own. */
+  & #zen-media-controls-toolbar .zen-media-card,
+  &[zen-compact-mode="true"] #navigator-toolbox:not(#zth-a, #zth-b) .zen-toolbar-background,
+  & .tabbrowser-tab[zen-essential] > .tab-stack > .tab-background {
+    box-shadow: var(--zth-glass-shine) !important;
   }
+
+  /* Where you press, the glass lights up and fades (Zenith Plus sets the
+     spot and the attribute). */
+  & [zenith-press] {
+    background-image: radial-gradient(circle at var(--zth-press-x, 50%) var(--zth-press-y, 50%),
+      light-dark(rgb(255 255 255 / calc(var(--zth-press) * 0.9)), rgb(255 255 255 / calc(var(--zth-press) * 0.22))),
+      transparent 70%) !important;
+    animation: zth-press 0.7s ease-out forwards;
+  }
+}
+
+@property --zth-press {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes zth-press {
+  from { --zth-press: 1; }
+  to { --zth-press: 0; }
 }
 
 /* Windows "Animation effects" off: Zenith Motion decides what happens (see
@@ -376,12 +414,15 @@
     }
   }
 
-  /* The strip above the page floats over it instead of taking space, so the
+  /* (Not on macOS, where the window buttons live in the sidebar and Zen's
+     own strip is left alone.)
+     The strip above the page floats over it instead of taking space, so the
      page reaches the top. Only its top-right corner, where the window
      buttons are, reveals them, so the split-view pane buttons along the top
      edge stay reachable. Revealed, it becomes a small frosted panel that
      stands out over any page. Zen normally pulls the page up while that bar
      shows; with the bar out of the layout that pull is cancelled. */
+  @media not (-moz-platform: macos) {
   &[zen-single-toolbar="true"] {
     & #zen-appcontent-wrapper {
       position: relative;
@@ -409,5 +450,6 @@
     & #tabbrowser-tabpanels[has-toolbar-hovered] .browserSidebarContainer .browserContainer {
       margin-top: 0 !important;
     }
+  }
   }
 }

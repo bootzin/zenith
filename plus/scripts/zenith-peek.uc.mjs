@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.7.2
+// @version        0.8.0
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't

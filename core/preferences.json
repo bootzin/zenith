@@ -148,10 +148,24 @@
     ]
   },
   {
-    "property": "zenith.core.glass-shine",
-    "label": "Glass edge shine",
-    "type": "checkbox",
-    "defaultValue": false
+    "property": "zenith.core.glass-edge",
+    "label": "Glass edge",
+    "type": "dropdown",
+    "placeholder": "Default (None)",
+    "options": [
+      {
+        "label": "None",
+        "value": "off"
+      },
+      {
+        "label": "Shine",
+        "value": "shine"
+      },
+      {
+        "label": "Liquid",
+        "value": "liquid"
+      }
+    ]
   },
   {
     "property": "zenith.core.window-transparency",

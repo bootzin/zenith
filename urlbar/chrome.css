@@ -179,6 +179,6 @@
 /* --- Extra: monospace URLs (URL bar, results, link pill) ------------------ */
 
 :root:has(#theme-Zenith-URL-bar[zenith-urlbar-mono="on"]) :is(#urlbar-input, .urlbarView-url, #statuspanel-label) {
-  font-family: "Cascadia Mono", Consolas, ui-monospace, monospace !important;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, "DejaVu Sans Mono", monospace !important;
   font-size: 0.95em;
 }

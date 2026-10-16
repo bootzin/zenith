@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.7.2
+// @version        0.8.0
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -173,11 +173,13 @@ const WindowPaint = {
    its own for a moment sets [zenith-ctrl-held] (the CSS shows the numbers)
    and opens the compact sidebar, so Ctrl+number can be aimed. Any other key
    (except a digit), a click or a scroll means Ctrl is part of a shortcut,
-   so nothing shows; releasing Ctrl or leaving the window hides it again. */
+   so nothing shows; releasing Ctrl or leaving the window hides it again.
+   On macOS tabs are Cmd+1-9, so there it's Cmd that's held. */
 
 const CtrlHold = {
   DELAY: 280,
   PREF: "zenith.tabs.numbers",
+  KEY: Services.appinfo.OS === "Darwin" ? "Meta" : "Control",
 
   init() {
     let timer = null;
@@ -195,8 +197,9 @@ const CtrlHold = {
       if (shown) show(false);
     };
     const onDown = e => {
-      if (e.key === "Control") {
-        if (e.repeat || e.altKey || e.shiftKey || e.metaKey) return;
+      if (e.key === this.KEY) {
+        const other = this.KEY === "Meta" ? e.ctrlKey : e.metaKey;
+        if (e.repeat || e.altKey || e.shiftKey || other) return;
         if (Services.prefs.getStringPref(this.PREF, "") !== "ctrl") return;
         clearTimeout(timer);
         timer = setTimeout(() => show(true), this.DELAY);
@@ -205,7 +208,7 @@ const CtrlHold = {
       }
     };
     const onUp = e => {
-      if (e.key === "Control") stop();
+      if (e.key === this.KEY) stop();
     };
     const listeners = [["keydown", onDown], ["keyup", onUp], ["mousedown", stop], ["wheel", stop], ["blur", stop]];
     for (const [type, fn] of listeners) window.addEventListener(type, fn, true);
@@ -468,6 +471,41 @@ const MotionBridge = {
   },
 };
 
+/* --- Press light: liquid glass lights up where you press ------------------
+   With Glass edge on Liquid, pressing a tab, an essential, the media card,
+   the Peek prompt or a notice lights that glass up from the spot you pressed
+   (Zenith Core draws it; this says where and when). */
+const PressLight = {
+  // [what you press, the part that's painted (null: itself)]
+  SURFACES: [[".tabbrowser-tab", ".tab-background"], [".zen-media-card", null], ["#zenith-peek-box", null], [".zenith-toast", null]],
+
+  init() {
+    const onDown = e => this.press(e);
+    window.addEventListener("pointerdown", onDown, true);
+    onUnload(() => window.removeEventListener("pointerdown", onDown, true));
+  },
+
+  press(e) {
+    if (Services.prefs.getStringPref("zenith.core.glass-edge", "") !== "liquid" || e.button !== 0) return;
+    for (const [hit, part] of this.SURFACES) {
+      const host = e.target.closest?.(hit);
+      if (!host) continue;
+      const glass = part ? host.querySelector(part) : host;
+      if (!glass) return;
+      const box = glass.getBoundingClientRect();
+      glass.style.setProperty("--zth-press-x", `${Math.round(e.clientX - box.left)}px`);
+      glass.style.setProperty("--zth-press-y", `${Math.round(e.clientY - box.top)}px`);
+      // Restart the glow if it's still fading from the last press.
+      glass.removeAttribute("zenith-press");
+      void glass.getBoundingClientRect();
+      glass.setAttribute("zenith-press", "true");
+      clearTimeout(glass.zenithPressTimer);
+      glass.zenithPressTimer = setTimeout(() => glass.removeAttribute("zenith-press"), 800);
+      return;
+    }
+  },
+};
+
 /* --- Window material: Windows' backdrop, macOS vibrancy, Linux see-through -
    Zen draws its window over the system's own material, set by a few number
    and switch settings Zen's mod settings can't hold. The Plus settings for
@@ -707,6 +745,7 @@ const DROPDOWNS = {
  "zenith.core.corners": "Zenith Core",
  "zenith.core.pills": "Zenith Core",
  "zenith.core.glass": "Zenith Core",
+ "zenith.core.glass-edge": "Zenith Core",
  "zenith.core.window-transparency": "Zenith Core",
  "zenith.core.floating-sidebar": "Zenith Core",
  "zenith.core.page": "Zenith Core",
@@ -799,6 +838,17 @@ function migrateSettings() {
   Services.prefs.setBoolPref(DONE, true);
 }
 
+// 0.8.0: the "Glass edge shine" tick box became "Glass edge" (None, Shine,
+// Liquid); a ticked box becomes Shine.
+function migrateGlassEdge() {
+  const OLD = "zenith.core.glass-shine";
+  if (!Services.prefs.prefHasUserValue(OLD)) return;
+  if (Services.prefs.getBoolPref(OLD, false) && !Services.prefs.getStringPref("zenith.core.glass-edge", "")) {
+    Services.prefs.setStringPref("zenith.core.glass-edge", "shine");
+  }
+  Services.prefs.clearUserPref(OLD);
+}
+
 // 0.6.3: "Numbered tabs only while holding Ctrl" moved into Zenith Tabs'
 // Numbered tabs setting.
 function migrateCtrlNumbers() {
@@ -811,6 +861,7 @@ function migrateCtrlNumbers() {
 start("settings", () => {
   migrateSettings();
   migrateCtrlNumbers();
+  migrateGlassEdge();
   watchRealProgress();
 });
 start("motion bridge", () => MotionBridge.init());
@@ -825,4 +876,5 @@ start("zoom pills", () => ZoomPills.init());
 start("media art", () => MediaArt.init());
 start("window material", () => WindowMaterial.init());
 start("live settings", () => LiveSettings.init());
+start("press light", () => PressLight.init());
 start("core check", checkCore);

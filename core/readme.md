@@ -1,6 +1,6 @@
 # Zenith Core
 
-Version 0.7.2
+Version 0.8.0
 
 Shared colours, sizes, transparency and motion timing for every Zenith mod, plus the page frame. The other Zenith mods need it.
 

@@ -94,7 +94,7 @@ PRESETS = {
 
 # Settings shown as small pictures instead of a list (the page draws them).
 PICTURES = {
-    "zenith.core.window-transparency", "zenith.core.page", "zenith.core.floating-sidebar", "zenith.core.corners",
+    "zenith.core.window-transparency", "zenith.core.page", "zenith.core.glass-edge", "zenith.core.floating-sidebar", "zenith.core.corners",
     "zenith.plus.material-windows", "zenith.edges.preset", "zenith.edges.container-style", "zenith.tabs.preset",
     "zenith.urlbar.preset", "zenith.urlbar.results", "zenith.panels.preset", "zenith.panels.findbar",
     "zenith.panels.split", "zenith.panels.notifications", "zenith.motion.preset",
@@ -124,7 +124,7 @@ SECTIONS = [
         "groups": [
             ("Size", ["zenith.core.density", "zenith.core.scale"]),
             ("Colour and shape", ["zenith.core.accent", "zenith.core.corners", "zenith.core.pills"]),
-            ("Glass", ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-shine",
+            ("Glass", ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
                        "zenith.core.floating-sidebar", "zenith.plus.material-windows", "zenith.plus.material-macos",
                        "zenith.plus.material-linux"]),
             ("Window", ["zenith.core.page", "zen.view.hide-window-controls"]),
@@ -215,7 +215,8 @@ DESCRIPTIONS = {
     "zenith.core.pills": "Small badges like the zoom pill and number chips.",
     "zenith.core.window-transparency": "How much of what's behind shows through the window, sidebar and panels.",
     "zenith.core.glass": "How strongly see-through surfaces blur what's behind them.",
-    "zenith.core.glass-shine": "A fine highlight along the top edge of glass surfaces.",
+    "zenith.core.glass-edge": "The rim of glass surfaces: a fine highlight along the top, or liquid glass that catches "
+                              "the light around its edge and lights up where you press (with Zenith Plus).",
     "zenith.core.floating-sidebar": "See-through like the URL bar, always solid, or Zen's own darker floating sidebar.",
     "zenith.plus.material-windows": "What Windows draws behind Zen. Acrylic blurs the windows behind; Mica and Mica Alt "
                                     "tint with your wallpaper. Windows only shows it while Zen is the active window.",
@@ -251,7 +252,7 @@ DESCRIPTIONS = {
     "zenith.tabs.split-vertical": "Tabs in a split view stay together as a group.",
     "zenith.tabs.mini-player": "Zen's media controls as a slim card.",
     "zenith.plus.media-art": "The playing site's cover art behind the media card, blurred as much as Frost says.",
-    "zenith.tabs.numbers": "Numbers 1–9 on the tabs Ctrl+1–9 jump to: always, or while you hold Ctrl.",
+    "zenith.tabs.numbers": "Numbers 1–9 on the tabs Ctrl+1–9 jump to: always, or while you hold Ctrl (Cmd on macOS).",
     "zenith.tabs.hover-mute": "Hover a playing tab's icon to mute it.",
     "zenith.tabs.pinned-drift": "Marks pinned tabs that have wandered off their page.",
     "zenith.tabs.lowercase": "Tab titles in lowercase.",

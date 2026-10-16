@@ -73,8 +73,8 @@ PLUS_SCRIPTS = {
                              ["chrome://browser/content/browser.xhtml"]),
     "zenith-settings.uc.mjs": ("Settings helper", "Greys out Zenith settings that don't apply, and says why.",
                                ["about:preferences*", "about:settings*"]),
-    "zenith-settings-page.uc.mjs": ("Settings page", "The Zenith page in Zen's Settings: every option, explained, applied at once.",
-                                    ["about:preferences*", "about:settings*"]),
+    "zenith-settings-page.uc.mjs": ("Settings page and live panel", "The Zenith page in Zen's Settings, and the live panel (Alt+Shift+Z).",
+                                    ["chrome://browser/content/browser.xhtml", "about:preferences*", "about:settings*"]),
 }
 
 

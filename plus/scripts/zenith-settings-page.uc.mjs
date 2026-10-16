@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name           Zenith settings page
-// @description    Zenith Plus: a Zenith page in Zen's Settings, with every option explained and applied as you change it.
+// @description    Zenith Plus: a Zenith page in Zen's Settings and a live panel (Alt+Shift+Z), every option explained and applied as you change it.
+// @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.7.2
+// @version        0.8.0
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -15,6 +16,8 @@
 // says "Custom" once you've changed one. Everything applies at once: the
 // page writes the same preferences Zen's and Sine's mod settings do, and
 // Zenith Plus copies them into every window.
+// In the browser window the same view opens as a live panel (Alt+Shift+Z),
+// a glass drawer on the right, for trying settings on the page you're on.
 // The content comes from tools/settings_ui.py (via tools/build_prefs.py).
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
@@ -246,13 +249,28 @@ const SCHEMA = [
       "default": "subtle"
      },
      {
-      "property": "zenith.core.glass-shine",
-      "label": "Glass edge shine",
-      "type": "checkbox",
+      "property": "zenith.core.glass-edge",
+      "label": "Glass edge",
+      "type": "dropdown",
       "extra": false,
-      "desc": "A fine highlight along the top edge of glass surfaces.",
+      "desc": "The rim of glass surfaces: a fine highlight along the top, or liquid glass that catches the light around its edge and lights up where you press (with Zenith Plus).",
       "host": "Zenith Core",
-      "default": false
+      "options": [
+       {
+        "label": "None",
+        "value": "off"
+       },
+       {
+        "label": "Shine",
+        "value": "shine"
+       },
+       {
+        "label": "Liquid",
+        "value": "liquid"
+       }
+      ],
+      "default": "off",
+      "picture": true
      },
      {
       "property": "zenith.core.floating-sidebar",
@@ -1210,7 +1228,7 @@ const SCHEMA = [
       "label": "Numbered tabs",
       "type": "dropdown",
       "extra": false,
-      "desc": "Numbers 1–9 on the tabs Ctrl+1–9 jump to: always, or while you hold Ctrl.",
+      "desc": "Numbers 1–9 on the tabs Ctrl+1–9 jump to: always, or while you hold Ctrl (Cmd on macOS).",
       "host": "Zenith Tabs",
       "options": [
        {
@@ -2352,6 +2370,12 @@ const PICTURES = {
     const r = { square: 0, soft: 4, round: 10 }[v] ?? 4;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 60" class="zp-pic"><rect x="14" y="12" width="68" height="36" rx="${r}" class="zp-page zp-outline"/><rect x="22" y="22" width="30" height="5" rx="${r ? 2.5 : 0}" class="zp-accent"/></svg>`;
   },
+  "zenith.core.glass-edge": v => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 60" class="zp-pic">${STRIPES}
+    <rect width="96" height="60" class="zp-tint" style="opacity:.55"/>
+    <rect x="16" y="12" width="64" height="36" rx="9" class="zp-glass"/>
+    ${v === "shine" ? `<path d="M24 12.6 H72" class="zp-rim" style="opacity:.8"/>` : ""}
+    ${v === "liquid" ? `<rect x="16.6" y="12.6" width="62.8" height="34.8" rx="8.6" class="zp-rim-liquid"/>
+      <circle cx="58" cy="34" r="12" class="zp-press"/>` : ""}</svg>`,
   "zenith.plus.material-windows": v => {
     if (v === "acrylic" || v === "") return W(`${STRIPES}<rect x="1" y="1" width="94" height="58" rx="6" class="zp-tint" style="opacity:.25;filter:blur(2px)"/>${PAGE()}${ROWS(8, 10, 5)}`, `style="filter:none"`);
     if (v === "off") return W(`<rect x="1" y="1" width="94" height="58" rx="6" class="zp-side zp-dark"/>${PAGE()}${ROWS(8, 10, 5)}`);
@@ -2397,7 +2421,7 @@ const PICTURES = {
     <path d="${v === "off" ? "M14 46 H48 V14 H82" : v === "smooth" ? "M14 46 C40 46 46 14 82 14" : "M14 46 C26 46 30 14 82 14"}" class="zp-curve"/></svg>`,
 };
 
-/* --- The page ------------------------------------------------------------------------ */
+/* --- A view of the settings: the page in Zen's Settings, or the live panel - */
 
 function el(tag, attrs = {}, text = "") {
   const node = document.createElementNS(HTML_NS, tag);
@@ -2408,42 +2432,60 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const Page = {
-  rows: [],   // { node, update() }
+const SCHEMA_VERSION = "0.8.0";
 
-  build(pane) {
-    const root = el("div", { id: "zenithPage", "data-category": PANE, hidden: true });
-    const version = SCHEMA_VERSION;
-    const hero = el("div", { class: "zp-hero" });
-    hero.append(
-      el("div", { class: "zp-mark" }),
-      Object.assign(el("div", { class: "zp-title" }), {}),
-    );
-    hero.lastChild.append(el("h1", {}, "Zenith"), el("span", { class: "zp-version" }, version ? `v${version}` : ""));
-    hero.append(el("p", { class: "zp-lede" }, "A quiet, minimal look for Zen. Every change applies as you make it; presets fill in the settings they cover."));
-    const search = el("input", { type: "search", class: "zp-search", placeholder: "Find a setting" });
+class SettingsView {
+  constructor(kind) {
+    this.kind = kind; // "page" or "panel"
+    this.rows = [];   // { node, search, update() }
+  }
+
+  build(root, head) {
+    this.root = root;
+    root.classList.add("zp-view", `zp-${this.kind}`);
+    const search = el("input", { type: "search", class: "zp-search", placeholder: "Find a setting", spellcheck: "false" });
     search.addEventListener("input", () => this.filter(search.value));
-    hero.append(search);
-    root.append(hero);
-
+    this.search = search;
+    root.append(head(search));
     const chips = el("nav", { class: "zp-chips" });
     for (const section of SCHEMA) {
       const chip = el("button", { class: "zp-chip", type: "button" }, section.title);
-      chip.addEventListener("click", () => root.querySelector(`#zp-${section.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      chip.addEventListener("click", () => root.querySelector(`[data-section="${section.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
       chips.append(chip);
     }
     root.append(chips);
-
     for (const section of SCHEMA) root.append(this.section(section));
     this.empty = el("p", { class: "zp-empty", hidden: true }, "No setting matches.");
     root.append(this.empty);
-    pane.append(root);
-    this.root = root;
+    // A list that's open closes when you click anywhere else.
+    root.addEventListener("mousedown", e => {
+      for (const open of root.querySelectorAll(".zp-chooser[open]")) {
+        if (!open.contains(e.target)) open.removeAttribute("open");
+      }
+    });
     this.refresh();
-  },
+    this.watch();
+  }
+
+  // Redraw shortly after a change; later changes in the meantime join the
+  // same redraw (a timer that restarted on each would never fire while
+  // something keeps changing). Zenith's internal settings don't show here.
+  watch() {
+    const observer = (_, __, pref) => {
+      if (pref.startsWith("zenith.internal.")) return;
+      this.changes = (this.changes ?? 0) + 1;
+      this.timer ??= setTimeout(() => {
+        this.timer = null;
+        this.refresh();
+      }, 30);
+    };
+    const branches = ["zenith.", "zen.view.hide-window-controls", "zen.tabs.open-pinned-in-new-tab"];
+    branches.forEach(b => P.addObserver(b, observer));
+    window.addEventListener("unload", () => branches.forEach(b => P.removeObserver(b, observer)), { once: true });
+  }
 
   section(section) {
-    const node = el("section", { class: "zp-section", id: `zp-${section.id}` });
+    const node = el("section", { class: "zp-section", "data-section": section.id, id: `zp-${section.id}` });
     const head = el("div", { class: "zp-section-head" });
     head.append(el("h2", {}, section.title), el("p", {}, section.blurb));
     node.append(head);
@@ -2457,7 +2499,7 @@ const Page = {
       node.append(box);
     }
     return node;
-  },
+  }
 
   presets(section) {
     const wrap = el("div", { class: "zp-presets" });
@@ -2478,9 +2520,8 @@ const Page = {
       update: () => {
         const current = presetOf(section);
         for (const card of cards.children) card.toggleAttribute("selected", card.dataset.value === current);
-        const changed = isCustom(section);
         custom.replaceChildren();
-        if (changed) {
+        if (isCustom(section)) {
           const name = section.preset.values.find(v => v.value === current)?.label ?? current;
           const reset = el("button", { class: "zp-link", type: "button" }, `Reset to ${name}`);
           reset.addEventListener("click", () => choosePreset(section, current));
@@ -2489,7 +2530,7 @@ const Page = {
       },
     });
     return wrap;
-  },
+  }
 
   row(s, section) {
     const row = el("div", { class: "zp-row", "data-prop": s.property });
@@ -2500,7 +2541,7 @@ const Page = {
     const why = el("div", { class: "zp-why" });
     text.append(label, el("div", { class: "zp-desc" }, s.desc), why);
     row.append(text);
-    const control = this.control(s, section);
+    const control = this.control(s);
     row.append(control.node);
     if (s.picture) row.setAttribute("wide", "");
     this.rows.push({
@@ -2519,11 +2560,11 @@ const Page = {
       },
     });
     return row;
-  },
+  }
 
   // The right control for a setting: a switch, a row of segments, picture
   // cards, a list, or a text field.
-  control(s, section) {
+  control(s) {
     const values = (s.options ?? []).map(o => o.value);
     const isToggle = s.type === "checkbox" || (values.length === 2 && values.includes("on") && values.includes("off"));
     if (isToggle) {
@@ -2537,7 +2578,7 @@ const Page = {
     if (s.type === "string") {
       const input = el("input", { type: "text", class: "zp-input", placeholder: s.placeholder, spellcheck: "false" });
       input.addEventListener("change", () => write(s, input.value.trim()));
-      return { node: input, update: v => { if (document.activeElement !== input) input.value = v; } };
+      return { node: input, update: v => { if (input.ownerDocument.activeElement !== input) input.value = v; } };
     }
     if (s.picture && PICTURES[s.property]) {
       const cards = el("div", { class: "zp-cards zp-cards-small" });
@@ -2560,21 +2601,51 @@ const Page = {
       }
       return { node: seg, update: v => { for (const b of seg.children) b.setAttribute("aria-checked", String(b.dataset.value === v)); } };
     }
-    const select = el("select", { class: "zp-select", "aria-label": s.label });
-    for (const o of s.options) select.append(el("option", { value: o.value }, o.label));
-    select.addEventListener("change", () => write(s, select.value));
-    return { node: select, update: v => { select.value = v; } };
-  },
+    return this.chooser(s);
+  }
+
+  // A list of choices that opens in place (the same in the page and the
+  // panel; the system's own list doesn't open inside the browser window).
+  chooser(s) {
+    const wrap = el("div", { class: "zp-chooser" });
+    const button = el("button", { class: "zp-select", type: "button", "aria-haspopup": "listbox", "aria-label": s.label });
+    const list = el("div", { class: "zp-options", role: "listbox" });
+    for (const o of s.options) {
+      const option = el("button", { class: "zp-option", type: "button", role: "option", "data-value": o.value }, o.label);
+      option.addEventListener("click", () => {
+        write(s, o.value);
+        wrap.removeAttribute("open");
+        button.focus();
+      });
+      list.append(option);
+    }
+    button.addEventListener("click", () => wrap.toggleAttribute("open"));
+    wrap.addEventListener("keydown", e => {
+      if (e.key === "Escape" && wrap.hasAttribute("open")) {
+        e.stopPropagation();
+        wrap.removeAttribute("open");
+        button.focus();
+      }
+    });
+    wrap.append(button, list);
+    return {
+      node: wrap,
+      update: v => {
+        button.textContent = s.options.find(o => o.value === v)?.label ?? v;
+        for (const o of list.children) o.setAttribute("aria-selected", String(o.dataset.value === v));
+      },
+    };
+  }
 
   refresh() {
     for (const r of this.rows) {
       try {
         r.update();
       } catch (e) {
-        console.error("[Zenith] settings page", e);
+        console.error("[Zenith] settings", e);
       }
     }
-  },
+  }
 
   filter(query) {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -2589,12 +2660,183 @@ const Page = {
     }
     this.root.querySelector(".zp-chips").toggleAttribute("zp-hidden", words.length > 0);
     this.empty.hidden = shown > 0;
-  },
-};
+  }
+}
 
-const SCHEMA_VERSION = "0.7.2";
+const STYLE = `
+  .zp-view {
+    --zp-radius: 12px;
+    --zp-control: var(--in-content-page-background, Canvas);
+    font-size: 13.5px;
+  }
+  #zenithPage {
+    --zp-accent: var(--zen-primary-color, var(--color-accent-primary, AccentColor));
+    --zp-border: var(--in-content-border-color, color-mix(in srgb, currentColor 14%, transparent));
+    --zp-box: var(--in-content-box-background, color-mix(in srgb, currentColor 4%, transparent));
+    --zp-dim: var(--text-color-deemphasized, color-mix(in srgb, currentColor 62%, transparent));
+    max-width: 760px;
+    padding-bottom: 80px;
+  }
+  .zp-view [zp-hidden] { display: none !important; }
+  .zp-hero { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: center; margin: 8px 0 18px; }
+  .zp-mark { grid-row: span 2; width: 44px; height: 44px; border-radius: 14px;
+    background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--zp-accent) 70%, white), var(--zp-accent) 70%);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--zp-accent) 35%, transparent); }
+  .zp-title { display: flex; align-items: baseline; gap: 10px; }
+  .zp-title h1 { margin: 0; font-size: 1.9em; font-weight: 600; letter-spacing: -0.01em; }
+  .zp-version { color: var(--zp-dim); font-size: 0.9em; }
+  .zp-lede { margin: 0; color: var(--zp-dim); }
+  .zp-lede kbd { font: inherit; font-size: 0.9em; padding: 0 5px; border-radius: 5px; border: 1px solid var(--zp-border); }
+  .zp-search { grid-column: 1 / -1; margin-top: 12px; width: 100%; box-sizing: border-box; padding: 9px 12px;
+    border-radius: 10px; border: 1px solid var(--zp-border); background: var(--zp-box); color: inherit; font: inherit; }
+  .zp-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 6px; }
+  .zp-chip { appearance: none; border: 1px solid var(--zp-border); background: var(--zp-box); color: inherit;
+    border-radius: 999px; padding: 4px 12px; font: inherit; cursor: pointer; margin: 0; min-height: 0; }
+  .zp-chip:hover { border-color: var(--zp-accent); }
+  .zp-section { margin-top: 26px; scroll-margin-top: 12px; }
+  .zp-section-head h2 { margin: 0 0 2px; font-size: 1.35em; font-weight: 600; }
+  .zp-section-head p { margin: 0 0 12px; color: var(--zp-dim); }
+  .zp-group { border: 1px solid var(--zp-border); background: var(--zp-box); border-radius: var(--zp-radius);
+    padding: 4px 16px; margin: 10px 0; }
+  .zp-group h3 { margin: 10px 0 2px; font-size: 0.8em; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--zp-dim); }
+  .zp-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 11px 0;
+    border-top: 1px solid var(--zp-border); }
+  .zp-group h3 + .zp-row { border-top: none; }
+  .zp-row[child] { padding-inline-start: 18px; position: relative; }
+  .zp-row[child]::before { content: ""; position: absolute; inset-inline-start: 4px; top: 12px; bottom: 12px; width: 2px;
+    border-radius: 2px; background: var(--zp-border); }
+  .zp-row[wide] { flex-direction: column; align-items: stretch; gap: 10px; }
+  .zp-row[off] > :not(.zp-text) { opacity: 0.4; pointer-events: none; }
+  .zp-row[off] .zp-label, .zp-row[off] .zp-desc { opacity: 0.55; }
+  .zp-text { min-width: 0; }
+  .zp-label { font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .zp-desc { color: var(--zp-dim); font-size: 0.92em; margin-top: 2px; line-height: 1.4; }
+  .zp-why:not(:empty) { margin-top: 4px; font-size: 0.88em; color: var(--zp-accent); }
+  .zp-tag { font-size: 0.72em; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+    background: color-mix(in srgb, var(--zp-accent) 18%, transparent); color: var(--zp-accent); }
+  .zp-switch { appearance: none; flex: none; position: relative; width: 38px; height: 22px; margin: 0; min-width: 0; min-height: 0;
+    border-radius: 999px; border: none; padding: 0; cursor: pointer;
+    background: color-mix(in srgb, currentColor 22%, transparent); transition: background-color 0.15s ease; }
+  .zp-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
+    background: white; box-shadow: 0 1px 3px rgb(0 0 0 / 0.3); transition: translate 0.15s ease; }
+  .zp-switch[aria-checked="true"] { background: var(--zp-accent); }
+  .zp-switch[aria-checked="true"]::after { translate: 16px 0; }
+  .zp-segments { flex: none; display: inline-flex; flex-wrap: wrap; padding: 3px; gap: 2px; border-radius: 10px;
+    background: color-mix(in srgb, currentColor 9%, transparent); }
+  .zp-segments button { appearance: none; border: none; background: transparent; color: inherit; font: inherit; margin: 0;
+    min-height: 0; padding: 4px 11px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .zp-segments button[aria-checked="true"] { background: var(--zp-control); box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+    color: var(--zp-accent); font-weight: 500; }
+  .zp-chooser { position: relative; flex: none; }
+  .zp-select, .zp-input { appearance: none; box-sizing: border-box; max-width: 300px; min-width: 180px; padding: 6px 30px 6px 10px;
+    border-radius: 8px; margin: 0; min-height: 0; border: 1px solid var(--zp-border); background: var(--zp-control);
+    color: inherit; font: inherit; text-align: start; cursor: pointer; }
+  .zp-select { background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+  .zp-input { min-width: 260px; padding-inline-end: 10px; cursor: text; }
+  .zp-options { display: none; position: absolute; inset-inline-end: 0; top: calc(100% + 4px); z-index: 5; min-width: 100%;
+    max-height: 260px; overflow: auto; padding: 4px; border-radius: 10px; border: 1px solid var(--zp-border);
+    background: var(--zp-control); box-shadow: 0 10px 30px rgb(0 0 0 / 0.35); }
+  .zp-chooser[open] .zp-options { display: block; }
+  .zp-option { appearance: none; display: block; width: 100%; text-align: start; border: none; background: none; color: inherit;
+    font: inherit; margin: 0; min-height: 0; padding: 6px 10px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
+  .zp-option:hover { background: color-mix(in srgb, currentColor 9%, transparent); }
+  .zp-option[aria-selected="true"] { color: var(--zp-accent); font-weight: 500; }
+  .zp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .zp-cards-small { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+  .zp-card { appearance: none; display: flex; flex-direction: column; gap: 4px; align-items: stretch; text-align: start;
+    padding: 8px; margin: 0; min-height: 0; border-radius: 12px; border: 1.5px solid var(--zp-border); background: var(--zp-box);
+    color: inherit; font: inherit; cursor: pointer; transition: border-color 0.12s ease, transform 0.12s ease; }
+  .zp-card:hover { border-color: color-mix(in srgb, var(--zp-accent) 55%, var(--zp-border)); }
+  .zp-card:active { transform: scale(0.98); }
+  .zp-card[selected] { border-color: var(--zp-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--zp-accent) 22%, transparent); }
+  .zp-card-label { font-weight: 500; padding: 0 2px; }
+  .zp-card-blurb { color: var(--zp-dim); font-size: 0.88em; padding: 0 2px 2px; line-height: 1.35; }
+  .zp-presets { margin-bottom: 8px; }
+  .zp-custom:not(:empty) { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; color: var(--zp-dim); }
+  .zp-badge { font-size: 0.8em; font-weight: 600; padding: 2px 9px; border-radius: 999px; color: var(--zp-accent);
+    background: color-mix(in srgb, var(--zp-accent) 16%, transparent); }
+  .zp-link { appearance: none; border: none; background: none; color: var(--zp-accent); font: inherit; cursor: pointer;
+    padding: 0; margin: 0; min-height: 0; text-decoration: underline; text-underline-offset: 2px; }
+  .zp-empty { color: var(--zp-dim); margin-top: 30px; text-align: center; }
+  .zp-pic { width: 100%; height: auto; display: block; border-radius: 8px; }
+  .zp-win { fill: color-mix(in srgb, currentColor 7%, transparent); stroke: color-mix(in srgb, currentColor 16%, transparent); }
+  .zp-side { fill: color-mix(in srgb, currentColor 16%, transparent); }
+  .zp-dark { fill: color-mix(in srgb, currentColor 34%, black); }
+  .zp-page { fill: color-mix(in srgb, currentColor 6%, Canvas); stroke: color-mix(in srgb, currentColor 10%, transparent); stroke-width: 0.6; }
+  .zp-outline { stroke: color-mix(in srgb, currentColor 28%, transparent); stroke-width: 0.8; }
+  .zp-glass { fill: color-mix(in srgb, currentColor 14%, Canvas); fill-opacity: 0.85; }
+  .zp-ink { fill: color-mix(in srgb, currentColor 40%, transparent); }
+  .zp-accent { fill: var(--zp-accent); }
+  .zp-accent-line { fill: none; stroke: var(--zp-accent); stroke-width: 1; }
+  .zp-teal { fill: #34c3a8; }
+  .zp-teal-line { fill: none; stroke: #34c3a8; stroke-width: 2.5; }
+  .zp-behind rect:nth-child(4n+1) { fill: #ff7a45; } .zp-behind rect:nth-child(4n+2) { fill: #f5c542; }
+  .zp-behind rect:nth-child(4n+3) { fill: #4cc36a; } .zp-behind rect:nth-child(4n+4) { fill: #4aa8ff; }
+  .zp-tint { fill: color-mix(in srgb, currentColor 22%, Canvas); }
+  .zp-frame { stroke: color-mix(in srgb, currentColor 22%, transparent); stroke-width: 1; }
+  .zp-wallpaper { fill: #6d5a8c; }
+  .zp-rim { fill: none; stroke: white; stroke-width: 1.2; stroke-linecap: round; }
+  .zp-rim-liquid { fill: none; stroke: white; stroke-opacity: 0.55; stroke-width: 1.2; }
+  .zp-press { fill: white; fill-opacity: 0.18; }
+  .zp-num { font: 600 5px system-ui, sans-serif; fill: var(--zp-accent); }
+  .zp-curve { fill: none; stroke: var(--zp-accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 
-/* --- Joining Zen's Settings -------------------------------------------------------- */
+  /* The live panel: a glass drawer on the right of the browser window. */
+  #zenith-live {
+    --zp-accent: var(--zth-accent, AccentColor);
+    --zp-border: var(--zth-hairline, color-mix(in srgb, currentColor 14%, transparent));
+    --zp-box: color-mix(in srgb, var(--zth-ink, currentColor) 5%, transparent);
+    --zp-dim: var(--zth-ink-dim, color-mix(in srgb, currentColor 62%, transparent));
+    --zp-control: light-dark(rgb(255 255 255 / 0.9), rgb(28 28 34 / 0.92));
+    --zp-radius: 10px;
+    position: fixed;
+    inset: 10px 10px 10px auto;
+    z-index: 260;
+    width: min(400px, calc(100vw - 20px));
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 12px 14px 40px;
+    border-radius: var(--zth-radius, 14px);
+    outline: 1px solid var(--zp-border);
+    background: var(--zth-panel-bg, light-dark(rgb(250 250 252 / 0.95), rgb(30 30 36 / 0.95)));
+    backdrop-filter: var(--zth-panel-filter, blur(14px));
+    box-shadow: var(--zth-shadow, 0 18px 50px rgb(0 0 0 / 0.4)), var(--zth-glass-shine, 0 0 0 transparent);
+    color: var(--zth-ink, currentColor);
+    font: 13px / 1.35 system-ui, sans-serif;
+    scrollbar-width: thin;
+    animation: zth-enter var(--zth-dur, 0.18s) var(--zth-ease, ease);
+
+    &[hidden] { display: none; }
+    & .zp-live-head { position: sticky; top: -12px; z-index: 6; margin: -12px -14px 6px; padding: 12px 14px 8px;
+      background: light-dark(rgb(248 248 250 / 0.97), rgb(28 28 34 / 0.97)); border-radius: inherit; }
+    & .zp-live-title { display: flex; align-items: center; gap: 8px; }
+    & .zp-live-title h1 { margin: 0; font-size: 1.15em; font-weight: 600; }
+    & .zp-live-title .zp-tag { margin-inline-end: auto; }
+    & .zp-close { appearance: none; border: none; background: none; color: var(--zp-dim); font: inherit; font-size: 1.3em;
+      cursor: pointer; padding: 0 4px; margin: 0; min-height: 0; line-height: 1; }
+    & .zp-close:hover { color: inherit; }
+    & .zp-search { margin-top: 8px; padding: 7px 10px; background: var(--zp-control); }
+    & .zp-chips { gap: 4px; }
+    & .zp-chip { padding: 2px 9px; }
+    & .zp-section { margin-top: 16px; }
+    & .zp-section-head h2 { font-size: 1.12em; }
+    & .zp-section-head p { margin-bottom: 8px; }
+    & .zp-group { padding: 2px 10px; margin: 8px 0; }
+    & .zp-row { flex-wrap: wrap; gap: 8px 12px; padding: 8px 0; }
+    & .zp-text { flex: 1 1 170px; }
+    & .zp-row[wide] > .zp-text { flex: none; }
+    & .zp-select { min-width: 150px; }
+    & .zp-input { min-width: 0; width: 100%; }
+    & .zp-cards { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+    & .zp-cards-small { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); }
+    & .zp-card { padding: 5px; border-radius: 9px; }
+    & .zp-card-blurb { display: none; }
+  }
+`;
+
+/* --- The page: joining Zen's Settings ----------------------------------------- */
 
 const ICON = "data:image/svg+xml," + encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="context-fill" stroke-width="1.4" stroke-linecap="round">
@@ -2632,144 +2874,109 @@ function addCategory() {
   return true;
 }
 
-const STYLE = `
-  #zenithPage {
-    --zp-accent: var(--zen-primary-color, var(--color-accent-primary, AccentColor));
-    --zp-border: var(--in-content-border-color, color-mix(in srgb, currentColor 14%, transparent));
-    --zp-box: var(--in-content-box-background, color-mix(in srgb, currentColor 4%, transparent));
-    --zp-dim: var(--text-color-deemphasized, color-mix(in srgb, currentColor 62%, transparent));
-    --zp-radius: 12px;
-    max-width: 760px;
-    padding-bottom: 80px;
-    font-size: 13.5px;
-  }
-  #zenithPage [zp-hidden] { display: none !important; }
-  .zp-hero { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: center; margin: 8px 0 18px; }
-  .zp-mark { grid-row: span 2; width: 44px; height: 44px; border-radius: 14px;
-    background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--zp-accent) 70%, white), var(--zp-accent) 70%);
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--zp-accent) 35%, transparent); }
-  .zp-title { display: flex; align-items: baseline; gap: 10px; }
-  .zp-title h1 { margin: 0; font-size: 1.9em; font-weight: 600; letter-spacing: -0.01em; }
-  .zp-version { color: var(--zp-dim); font-size: 0.9em; }
-  .zp-lede { margin: 0; color: var(--zp-dim); }
-  .zp-search { grid-column: 1 / -1; margin-top: 12px; width: 100%; box-sizing: border-box; padding: 9px 12px;
-    border-radius: 10px; border: 1px solid var(--zp-border); background: var(--zp-box); color: inherit; font: inherit; }
-  .zp-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 6px; }
-  .zp-chip { appearance: none; border: 1px solid var(--zp-border); background: var(--zp-box); color: inherit;
-    border-radius: 999px; padding: 4px 12px; font: inherit; cursor: pointer; margin: 0; min-height: 0; }
-  .zp-chip:hover { border-color: var(--zp-accent); }
-  .zp-section { margin-top: 26px; scroll-margin-top: 12px; }
-  .zp-section-head h2 { margin: 0 0 2px; font-size: 1.35em; font-weight: 600; }
-  .zp-section-head p { margin: 0 0 12px; color: var(--zp-dim); }
-  .zp-group { border: 1px solid var(--zp-border); background: var(--zp-box); border-radius: var(--zp-radius);
-    padding: 4px 16px; margin: 10px 0; }
-  .zp-group h3 { margin: 10px 0 2px; font-size: 0.8em; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-    color: var(--zp-dim); }
-  .zp-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 11px 0;
-    border-top: 1px solid var(--zp-border); }
-  .zp-group h3 + .zp-row { border-top: none; }
-  .zp-row[child] { padding-inline-start: 18px; position: relative; }
-  .zp-row[child]::before { content: ""; position: absolute; inset-inline-start: 4px; top: 12px; bottom: 12px; width: 2px;
-    border-radius: 2px; background: var(--zp-border); }
-  .zp-row[wide] { flex-direction: column; align-items: stretch; gap: 10px; }
-  .zp-row[off] > :not(.zp-text) { opacity: 0.4; pointer-events: none; }
-  .zp-row[off] .zp-label, .zp-row[off] .zp-desc { opacity: 0.55; }
-  .zp-text { min-width: 0; }
-  .zp-label { font-weight: 500; display: flex; align-items: center; gap: 8px; }
-  .zp-desc { color: var(--zp-dim); font-size: 0.92em; margin-top: 2px; line-height: 1.4; }
-  .zp-why:not(:empty) { margin-top: 4px; font-size: 0.88em; color: var(--zp-accent); }
-  .zp-tag { font-size: 0.72em; font-weight: 600; padding: 1px 7px; border-radius: 999px;
-    background: color-mix(in srgb, var(--zp-accent) 18%, transparent); color: var(--zp-accent); }
-  .zp-switch { appearance: none; flex: none; position: relative; width: 38px; height: 22px; margin: 0; min-width: 0; min-height: 0;
-    border-radius: 999px; border: none; padding: 0; cursor: pointer;
-    background: color-mix(in srgb, currentColor 22%, transparent); transition: background-color 0.15s ease; }
-  .zp-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
-    background: white; box-shadow: 0 1px 3px rgb(0 0 0 / 0.3); transition: translate 0.15s ease; }
-  .zp-switch[aria-checked="true"] { background: var(--zp-accent); }
-  .zp-switch[aria-checked="true"]::after { translate: 16px 0; }
-  .zp-segments { flex: none; display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: color-mix(in srgb, currentColor 9%, transparent); }
-  .zp-segments button { appearance: none; border: none; background: transparent; color: inherit; font: inherit; margin: 0;
-    min-height: 0; padding: 4px 11px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
-  .zp-segments button[aria-checked="true"] { background: var(--in-content-page-background, Canvas); box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
-    color: var(--zp-accent); font-weight: 500; }
-  .zp-select, .zp-input { flex: none; max-width: 300px; min-width: 180px; padding: 6px 10px; border-radius: 8px; margin: 0;
-    border: 1px solid var(--zp-border); background: var(--in-content-page-background, Canvas); color: inherit; font: inherit; }
-  .zp-input { min-width: 260px; }
-  .zp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .zp-cards-small { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
-  .zp-card { appearance: none; display: flex; flex-direction: column; gap: 4px; align-items: stretch; text-align: start;
-    padding: 8px; margin: 0; min-height: 0; border-radius: 12px; border: 1.5px solid var(--zp-border); background: var(--zp-box);
-    color: inherit; font: inherit; cursor: pointer; transition: border-color 0.12s ease, transform 0.12s ease; }
-  .zp-card:hover { border-color: color-mix(in srgb, var(--zp-accent) 55%, var(--zp-border)); }
-  .zp-card:active { transform: scale(0.98); }
-  .zp-card[selected] { border-color: var(--zp-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--zp-accent) 22%, transparent); }
-  .zp-card-label { font-weight: 500; padding: 0 2px; }
-  .zp-card-blurb { color: var(--zp-dim); font-size: 0.88em; padding: 0 2px 2px; line-height: 1.35; }
-  .zp-presets { margin-bottom: 8px; }
-  .zp-custom:not(:empty) { display: flex; align-items: center; gap: 10px; margin-top: 10px; color: var(--zp-dim); }
-  .zp-badge { font-size: 0.8em; font-weight: 600; padding: 2px 9px; border-radius: 999px; color: var(--zp-accent);
-    background: color-mix(in srgb, var(--zp-accent) 16%, transparent); }
-  .zp-link { appearance: none; border: none; background: none; color: var(--zp-accent); font: inherit; cursor: pointer;
-    padding: 0; margin: 0; min-height: 0; text-decoration: underline; text-underline-offset: 2px; }
-  .zp-empty { color: var(--zp-dim); margin-top: 30px; text-align: center; }
-  .zp-pic { width: 100%; height: auto; display: block; border-radius: 8px; }
-  .zp-win { fill: color-mix(in srgb, currentColor 7%, transparent); stroke: color-mix(in srgb, currentColor 16%, transparent); }
-  .zp-side { fill: color-mix(in srgb, currentColor 16%, transparent); }
-  .zp-dark { fill: color-mix(in srgb, currentColor 34%, black); }
-  .zp-page { fill: color-mix(in srgb, currentColor 6%, Canvas); stroke: color-mix(in srgb, currentColor 10%, transparent); stroke-width: 0.6; }
-  .zp-outline { stroke: color-mix(in srgb, currentColor 28%, transparent); stroke-width: 0.8; }
-  .zp-glass { fill: color-mix(in srgb, currentColor 14%, Canvas); fill-opacity: 0.85; }
-  .zp-ink { fill: color-mix(in srgb, currentColor 40%, transparent); }
-  .zp-accent { fill: var(--zp-accent); }
-  .zp-accent-line { fill: none; stroke: var(--zp-accent); stroke-width: 1; }
-  .zp-teal { fill: #34c3a8; }
-  .zp-teal-line { fill: none; stroke: #34c3a8; stroke-width: 2.5; }
-  .zp-behind rect:nth-child(4n+1) { fill: #ff7a45; } .zp-behind rect:nth-child(4n+2) { fill: #f5c542; }
-  .zp-behind rect:nth-child(4n+3) { fill: #4cc36a; } .zp-behind rect:nth-child(4n+4) { fill: #4aa8ff; }
-  .zp-tint { fill: color-mix(in srgb, currentColor 22%, Canvas); }
-  .zp-frame { stroke: color-mix(in srgb, currentColor 22%, transparent); stroke-width: 1; }
-  .zp-wallpaper { fill: #6d5a8c; }
-  .zp-num { font: 600 5px system-ui, sans-serif; fill: var(--zp-accent); }
-  .zp-curve { fill: none; stroke: var(--zp-accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-`;
-
-function init() {
-  const pane = document.getElementById("mainPrefPane");
-  if (!pane || !addCategory()) return false;
-  const style = el("style", {}, "");
+function addStyle() {
+  const style = el("style");
   style.textContent = STYLE;
   (document.head ?? document.documentElement).append(style);
-  Page.build(pane);
-  // Redraw shortly after a change; later changes in the meantime join the
-  // same redraw (a timer that restarted on each would never fire while
-  // something keeps changing). Zenith's internal settings don't show here.
-  const observer = (_, __, pref) => {
-    if (pref.startsWith("zenith.internal.")) return;
-    Page.changes = (Page.changes ?? 0) + 1;
-    Page.timer ??= setTimeout(() => {
-      Page.timer = null;
-      Page.refresh();
-    }, 30);
-  };
-  window.zenithSettingsPage = Page; // for tools/checks
-  const branches = ["zenith.", "zen.view.hide-window-controls", "zen.tabs.open-pinned-in-new-tab"];
-  branches.forEach(b => P.addObserver(b, observer));
-  window.addEventListener("unload", () => branches.forEach(b => P.removeObserver(b, observer)), { once: true });
+}
+
+function startPage() {
+  const pane = document.getElementById("mainPrefPane");
+  if (!pane || !addCategory()) return false;
+  addStyle();
+  const root = el("div", { id: "zenithPage", "data-category": PANE, hidden: true });
+  pane.append(root);
+  const view = new SettingsView("page");
+  view.build(root, search => {
+    const hero = el("div", { class: "zp-hero" });
+    const title = el("div", { class: "zp-title" });
+    title.append(el("h1", {}, "Zenith"), el("span", { class: "zp-version" }, `v${SCHEMA_VERSION}`));
+    const lede = el("p", { class: "zp-lede" }, "A quiet, minimal look for Zen. Every change applies as you make it; presets fill in the settings they cover. To try things while you browse, press ");
+    lede.append(el("kbd", {}, "Alt+Shift+Z"), " for the live panel.");
+    hero.append(el("div", { class: "zp-mark" }), title, lede, search);
+    return hero;
+  });
+  window.zenithSettingsPage = view; // for tools/checks
   // about:preferences#zenith opens straight here.
   if (/^#zenith$/i.test(location.hash)) window.gotoPref?.(PANE);
   return true;
 }
 
-// Once per page; Sine adds its own category a moment after load, so wait
-// for the list to settle before joining it.
+/* --- The live panel: the same settings over the browser, Alt+Shift+Z --------- */
+
+const Live = {
+  open() {
+    if (!this.host) this.build();
+    this.host.hidden = false;
+    this.view.search.focus();
+  },
+
+  close() {
+    if (this.host) this.host.hidden = true;
+  },
+
+  toggle() {
+    if (this.host && !this.host.hidden) this.close();
+    else this.open();
+  },
+
+  build() {
+    addStyle();
+    this.host = el("div", { id: "zenith-live", role: "dialog", "aria-label": "Zenith settings" });
+    this.host.hidden = true;
+    (document.getElementById("zen-main-app-wrapper") ?? document.documentElement).append(this.host);
+    this.view = new SettingsView("panel");
+    this.view.build(this.host, search => {
+      const head = el("div", { class: "zp-live-head" });
+      const title = el("div", { class: "zp-live-title" });
+      const close = el("button", { class: "zp-close", type: "button", title: "Close (Esc)" }, "×");
+      close.addEventListener("click", () => this.close());
+      title.append(el("h1", {}, "Zenith"), el("span", { class: "zp-tag" }, "live"), close);
+      head.append(title, search);
+      return head;
+    });
+    this.host.addEventListener("keydown", e => {
+      if (e.key === "Escape" && !e.defaultPrevented) {
+        e.preventDefault();
+        this.close();
+      }
+    });
+  },
+};
+
+function startPanel() {
+  // A command and key of our own (no inline handler, which the window's
+  // policy blocks); "reserved" keeps pages from taking Alt+Shift+Z.
+  const commandset = document.createXULElement("commandset");
+  const command = document.createXULElement("command");
+  command.id = "zenith-live-command";
+  command.addEventListener("command", () => Live.toggle());
+  commandset.append(command);
+  const keyset = document.createXULElement("keyset");
+  keyset.id = "zenith-live-keys";
+  const key = document.createXULElement("key");
+  key.id = "zenith-live-key";
+  key.setAttribute("modifiers", "alt,shift");
+  key.setAttribute("key", "Z");
+  key.setAttribute("reserved", "true");
+  key.setAttribute("command", "zenith-live-command");
+  keyset.append(key);
+  document.documentElement.append(commandset, keyset);
+  window.ZenithLive = Live; // for tools/checks
+  return true;
+}
+
+// Once per window or page. In Zen's Settings, Sine adds its own category a
+// moment after load, so wait for the list to settle before joining it.
 if (!window.zenithSettingsPageStarted) {
   window.zenithSettingsPageStarted = true;
+  const inBrowser = location.href.startsWith("chrome://browser/content/browser.xhtml");
   let tries = 0;
   const attempt = () => {
     try {
-      if (init()) return;
+      if (inBrowser ? startPanel() : startPage()) return;
     } catch (e) {
-      console.error("[Zenith] settings page failed to start", e);
+      console.error("[Zenith] settings failed to start", e);
       return;
     }
     if (++tries < 40) setTimeout(attempt, 150);

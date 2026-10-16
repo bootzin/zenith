@@ -24,6 +24,8 @@ def main():
             text = re.sub(r"// @version\s+\S+", f"// @version        {version}", text)
         else:
             text = text.replace("// @include        main", f"// @include        main\n// @version        {version}", 1)
+        # The settings page shows the version too.
+        text = re.sub(r'const SCHEMA_VERSION = "[^"]*";', f'const SCHEMA_VERSION = "{version}";', text)
         script.write_text(text, encoding="utf-8")
 
     readmes = [root / key / "readme.md" for key in ("core", "edges", "tabs", "urlbar", "panels", "motion", "plus")]

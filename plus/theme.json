@@ -4,7 +4,7 @@
   "description": "Peek, real load and download progress, a sidebar minimap, zoom pills and more for Zenith.",
   "homepage": "https://github.com/bootzin/zenith/tree/master/plus",
   "author": "bootzin",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "style": {
     "chrome": "chrome.css"
   },
@@ -40,9 +40,10 @@
       ]
     },
     "scripts/zenith-settings-page.uc.mjs": {
-      "name": "Settings page",
-      "description": "The Zenith page in Zen's Settings: every option, explained, applied at once.",
+      "name": "Settings page and live panel",
+      "description": "The Zenith page in Zen's Settings, and the live panel (Alt+Shift+Z).",
       "include": [
+        "chrome://browser/content/browser.xhtml",
         "about:preferences*",
         "about:settings*"
       ]
@@ -60,5 +61,5 @@
   ],
   "ai": "yes",
   "createdAt": "2026-10-16",
-  "updatedAt": "2026-10-16T21:31:32+00:00"
+  "updatedAt": "2026-10-16T22:00:12+00:00"
 }

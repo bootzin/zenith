@@ -5,7 +5,7 @@
   },
   {
     "property": "zenith.core.density",
-    "label": "Density: row height of sidebar tabs and URL bar results",
+    "label": "Density",
     "type": "dropdown",
     "placeholder": "Default (Tight)",
     "options": [
@@ -152,10 +152,24 @@
     ]
   },
   {
-    "property": "zenith.core.glass-shine",
-    "label": "Glass edge shine",
-    "type": "checkbox",
-    "defaultValue": false
+    "property": "zenith.core.glass-edge",
+    "label": "Glass edge",
+    "type": "dropdown",
+    "placeholder": "Default (None)",
+    "options": [
+      {
+        "label": "None",
+        "value": "off"
+      },
+      {
+        "label": "Shine",
+        "value": "shine"
+      },
+      {
+        "label": "Liquid",
+        "value": "liquid"
+      }
+    ]
   },
   {
     "property": "zenith.core.window-transparency",
@@ -592,11 +606,11 @@
     "placeholder": "Default (Overlay)",
     "options": [
       {
-        "label": "Overlay the page",
+        "label": "Overlay",
         "value": "overlay"
       },
       {
-        "label": "Dim the page",
+        "label": "Dim",
         "value": "dim"
       }
     ]
@@ -711,7 +725,7 @@
   },
   {
     "property": "zen.tabs.open-pinned-in-new-tab",
-    "label": "Pinned tabs open other sites in a new tab (Zen setting; untick to stay in the tab)",
+    "label": "Pinned tabs open other sites in a new tab",
     "type": "checkbox"
   },
   {

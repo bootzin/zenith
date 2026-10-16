@@ -8,7 +8,7 @@ Zenith comes in two parts.
 
 | Mod | What it does |
 |---|---|
-| Core | Shared colours, sizes, transparency and the page frame. The other mods need it. |
+| Core | Shared colours, sizes, transparency, the glass edge and the page frame. The other mods need it. |
 | Edges | Hairline status edges: loading, downloads, containers, sharing, private windows and not-secure pages. |
 | Tabs | A tight sidebar with only the signals that matter: sleeping tabs, an audio equaliser, folder activity and numbered tabs. |
 | URL bar | A floating URL bar with dense results. |
@@ -22,7 +22,8 @@ Zenith comes in two parts.
 - **Peek extras:** currency, definitions and weather in the prompt, plus timers and pomodoros.
 - **Sidebar extras:** a minimap of the hidden sidebar, numbered tabs while you hold Ctrl, and the cover art of what's playing behind the media card.
 - **Pages:** zoom pills, plus text selection in the workspace colour.
-- **Settings:** a helper that greys out options that don't apply, and puts your mods ahead of the marketplace in Sine's page.
+- **Settings:** a Zenith page in Zen's Settings with every option explained, presets that fill in what they cover, and pictures for looks; the same settings as a live panel over the page (**Alt+Shift+Z**). Also greys out options that don't apply, and puts your mods ahead of the marketplace in Sine's page.
+- **Window:** the window material (Windows: Acrylic, Mica, Mica Alt; macOS: its materials; Linux: see-through), and the liquid glass edge that lights up where you press.
 
 ## Install
 
@@ -35,6 +36,26 @@ Zenith is built and tested on Windows 11 with Zen. It's plain CSS and standard F
   1. Download `zenith-<version>-manual.zip` from [Releases](../../releases).
   2. Follow `INSTALL.txt`. This uses fx-autoconfig as the script loader.
   3. To undo it: `tools\install.ps1 -Restore`.
+
+## Platforms
+
+Zenith is built and tested on **Windows 11**. It's plain CSS and standard Firefox features, so it should work on **macOS** and **Linux**, but those haven't been tested yet: if something looks off, please open an issue with a screenshot.
+
+**Windows 11**
+- Zenith › Look › Window material picks what Windows draws behind Zen: Acrylic (blurs the windows behind; Zen's default), Mica or Mica Alt (tinted by your wallpaper), Automatic or None.
+- Windows only draws Acrylic while Zen is the active window, and flat grey otherwise; Zenith shows your workspace colour then instead.
+- Using MicaForEveryone or DWMBlurGlass for Zen? Set the material there and leave Zenith's at its default.
+
+**macOS**
+- Window material picks the macOS material behind Zen (HUD is Zen's default) or turns it off.
+- Numbered tabs follow **Cmd** (Cmd+1–9 switches tabs on macOS).
+- The strip with the window buttons is left as Zen draws it.
+
+**Linux**
+- Zenith › Look › See-through window turns on Zen's transparency (`zen.widget.linux.transparency`); restart Zen after changing it. The blur comes from your desktop:
+  - **KDE Plasma:** install Better Blur DX (`kwin-effects-better-blur-dx`). In System Settings › Window Management › Desktop Effects, turn off Blur and turn on Better Blur DX, then add `zen` to its **Force blur** list (`zen-browser` for the AUR package).
+  - **GNOME:** install the Blur My Shell extension. Under **Applications**, turn on application blur, add `zen` to the list, and turn off **Opaque focused window**.
+- The manual install script is Windows-only; on Linux and macOS, install with Sine.
 
 ## What Zenith Plus can access
 
@@ -59,5 +80,6 @@ Specific things it changes:
 
 - [fx-autoconfig](https://github.com/MrOtherGuy/fx-autoconfig) by MrOtherGuy (MPL-2.0), vendored in `vendor/fx-autoconfig`.
 - [Sine](https://github.com/CosmoCreeper/Sine) (MPL-2.0), vendored in `vendor/sine` for testing.
+- [Zia](https://github.com/z1n-k/zia) (MIT) inspired the liquid glass edge; [Natsumi](https://github.com/greeeen-dev/natsumi-browser) the window material choice, the picture-in-picture controls, the miniplayer art and the settings page; [Zen-Nebula](https://github.com/JustAdumbPrsn/Zen-Nebula) the per-platform transparency notes. No code was copied from Natsumi or Zen-Nebula.
 - Several ideas come from mods Zenith replaces: Trackpad Animation, Load Bar, Better Unloaded Tabs, Audio Indicator, Floating Status Bar, Private Mode Highlighting, Container Halo, Better Find Bar, Floating History and Vertical Split Tab Groups.
 - Made with the help of AI.
