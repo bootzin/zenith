@@ -3,7 +3,7 @@ and hovers.
 - Alt+W opens the switcher; typing and Enter goes to the tab.
 - Alt+Z: focus mode from the docked sidebar (compact on), Alt+Z again: back.
 - A right-click on a page: the menu has a More submenu, with rare items.
-- Hovering a tab: the hover card.
+- Hovering a tab: Firefox's preview, in Zenith's corners.
 - Switching space: the dots and the flash.
 - Push: the hidden sidebar slides out on hover and the page moves aside.
 Captures go to %TEMP%/claude/r37 for a look. Only the test Zen is clicked
@@ -54,12 +54,12 @@ with Screen("r37", mine=True) as s:
                     'in More': more ? [...more.menupopup.children].filter(n => shown(n) && n.localName !== 'menuseparator').map(n => n.id) : [] };
       menu.hidePopup(); await zth.sleep(300); return out;""")
 
-    # A hover card, with a real hover.
+    # Firefox's tab preview, with a real hover (Zenith's own cards are gone).
     tab = z.js("""const t = gBrowser.visibleTabs.find(t => t.label === 'Test page 3'); const b = t.getBoundingClientRect();
                   return [Math.round(mozInnerScreenX + b.left + 30), Math.round(mozInnerScreenY + b.top + b.height / 2)]""")
-    s.click(tab[0], tab[1], name="hover", hover=True, after=900, box=(0, 0, 700, 720))
-    res["hover card"] = z.js("""const c = document.getElementById('zenith-hover-card');
-      return [!c.hidden, c.querySelector('.zenith-hover-title').textContent, c.querySelector('.zenith-hover-site').textContent]""")
+    s.click(tab[0], tab[1], name="hover", hover=True, after=1400, box=(0, 0, 700, 720))
+    res["tab preview"] = z.js("""const p = document.getElementById('tab-preview-panel');
+      return [p?.state, !document.getElementById('zenith-hover-card'), p && getComputedStyle(p).getPropertyValue('--panel-border-radius').trim()]""")
     s.click(900, 400, name="away", hover=True, after=300, box=(0, 0, 10, 10))
 
     # Switching space: dots and flash.

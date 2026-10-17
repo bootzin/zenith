@@ -1,6 +1,6 @@
 # Zenith Plus
 
-Version 0.10.0
+Version 0.11.0
 
 The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
 
@@ -15,17 +15,23 @@ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus a
 - **Answers from the web**: `$ 100 usd eur` (or just `100 usd to eur`) converts currency, `d word` shows a definition, `wt city` the weather (`wt` alone: the weather near you, with the places you looked up lately underneath), all in the prompt. Weather units follow your country, or the "Peek weather units" setting. Enter copies a conversion or opens the full page. Switch these off in settings if you'd rather nothing is looked up as you type.
 - **Timers**: `timer 10m tea` starts a countdown, `pomo` a pomodoro (`pomo 15 10 4`, or `pomo focus 10, 5 break, 3 rounds`, for your own pattern), and `timer` lists them (Delete cancels). A running timer drains down the left edge of the page, and a small card in the corner says when it ends.
 
-**Switcher**: **Alt+W** opens a list over the page. Type a few letters of a tab's title or site, a folder or a space (in any order, with gaps: `gh zen`), and Enter goes there, switching space if it has to. With nothing typed, the tabs you used last come first. Start with `:` for commands: `:focus`, `:compact`, `:settings`, `:set frost`, `:timer 10m tea`, `:pomo`, `:peek something`, `:routing`.
+**Switcher**: **Alt+W** opens a list over the page. Type a few letters of a tab's title or site (in any space), a folder or a space (in any order, with gaps: `gh zen`), and Enter goes there, switching space if it has to. With nothing typed, the tabs you used last come first. Start with `:` for commands: `:focus`, `:compact`, `:settings`, `:tabs`, `:set frost`, `:timer 10m tea`, `:pomo`, `:peek something`, `:colours` (`:colours wallpaper`, `:colours undo`), `:routing`.
+
+**Tab manager**: **Alt+Shift+T** (or `:tabs`) shows each space with its tab and awake counts, then what could be tidied: duplicates (the one you used last stays), tabs you haven't used for 3, 7, 14 or 30 days, tabs that are awake besides yours, and sites with four or more loose tabs (into a folder). Everything is listed and ticked first; untick what you want to keep, then press the button. Closing has Undo, and essentials and pinned tabs are never closed.
 
 **Focus mode**: **Alt+Z** hides the sidebar (compact mode, if it wasn't on), the edges, the minimap, pills and the link address. The sharing alarm still shows. Alt+Z again brings everything back.
 
 **Also**
 
-- Hover cards: rest on a tab for half a second to see its whole title, its site, its container and whether it's playing or asleep
+- Ctrl+Tab like Alt+Tab (Keys › Ctrl+Tab): hold Ctrl and press Tab to step back through the tabs you used last, with pictures; let go to land
+- Bookmarks bar as its own strip above the page, or over the page when the pointer reaches the top
+- Links from other apps: optionally a card asking which space they open in, with "always open this site there"
+- Colours from an image or from your wallpaper for the current space, and optionally the glass taking the page's colour
+- Extension buttons that show only in one space (right-click a pinned one)
 - Workspace dots at the top of the page when you switch space (or always), and the top edge lighting up in the new space's colour
 - Push: with Revealed sidebar on Push the page, the page moves aside by exactly the sidebar's width
-- Rare right-click menu items in a More submenu
-- Scroll feel: Zen's own, instant, smooth or macOS-like
+- Rare right-click menu items in a More submenu, and optional icons on the ones you use most
+- Scroll feel for the mouse wheel and keys: Zen's own, instant, quick, smooth or macOS-like
 - Extras: in compact mode, the sidebar shows briefly when you switch tabs by keyboard; a pulse on the page's edge when a background tab has loaded
 - Real progress on the load and download edges
 - A minimap of the hidden compact sidebar

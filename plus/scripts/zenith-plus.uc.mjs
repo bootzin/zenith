@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.10.0
+// @version        0.11.0
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -939,7 +939,8 @@ const Wallpaper = {
    about:config, Downloads and the other about: pages that run inside Zen
    itself) show the window's glass behind them, like the docked sidebar:
    their page colour goes, boxes and cards turn half see-through, and
-   headers that stay put are frosted. Only that one page is see-through:
+   headers that stay put are clear too (frosting them read as a darker
+   band). Only that one page is see-through:
    its <browser> gets Firefox's "transparent" attribute, which Firefox
    checks as it paints pages that run inside it. Web pages run in other
    processes and decide on it when they're created, so the attribute goes
@@ -963,9 +964,10 @@ const SeeThroughPages = {
       --table-row-background-color: transparent !important;
       --table-row-background-color-alternate: color-mix(in srgb, var(--zth-box) 45%, transparent) !important;
     }
-    #search-container, .sticky-container, #process-thead {
-      background-color: color-mix(in srgb, var(--zth-canvas) 20%, transparent) !important;
-      backdrop-filter: blur(14px) !important;
+    #search-container, .sticky-container, #process-thead, .main-heading, .main-search {
+      background: transparent !important;
+      backdrop-filter: none !important;
+      box-shadow: none !important;
     }`),
 
   init() {
@@ -1113,28 +1115,37 @@ const Bridge = {
 };
 
 /* --- Scroll feel: one setting for how pages scroll ------------------------
-   Zen's own (the default) leaves scrolling to Zen: a smooth glide. Instant
-   jumps a step at a time, Smooth is Firefox's classic short ease, and
-   macOS-like glides further and settles softly, with a bounce at the ends.
-   Written into Firefox's scrolling settings through the bridge. */
+   For the mouse wheel and the keyboard (arrows, Page Up/Down, Space); a
+   touchpad moves the page with your fingers and isn't changed. Zen's own
+   (the default) leaves it to Zen: a short glide. Instant jumps; Quick is a
+   crisp, short ease; Smooth an even, slower one; macOS-like glides further
+   (1.6 times the distance) and settles softly, bouncing at the ends.
+   Measured with real wheel turns (tools/checks/r38): where one notch has
+   got to after 50, 100, 200, 400, 800ms. Written into Firefox's scrolling
+   settings through the bridge. */
 const ScrollFeel = {
   PREF: "zenith.plus.scroll",
   PRESETS: {
     instant: { "general.smoothScroll": false },
+    quick: {
+      "general.smoothScroll": true,
+      "general.smoothScroll.msdPhysics.enabled": false,
+      "general.smoothScroll.mouseWheel.durationMinMS": 60,
+      "general.smoothScroll.mouseWheel.durationMaxMS": 120,
+    },
     smooth: {
       "general.smoothScroll": true,
       "general.smoothScroll.msdPhysics.enabled": false,
-      "general.smoothScroll.mouseWheel.durationMinMS": 150,
-      "general.smoothScroll.mouseWheel.durationMaxMS": 300,
+      "general.smoothScroll.mouseWheel.durationMinMS": 300,
+      "general.smoothScroll.mouseWheel.durationMaxMS": 450,
     },
     glide: {
       "general.smoothScroll": true,
       "general.smoothScroll.msdPhysics.enabled": true,
-      "general.smoothScroll.msdPhysics.motionBeginSpringConstant": 300,
-      "general.smoothScroll.msdPhysics.regularSpringConstant": 250,
-      "general.smoothScroll.msdPhysics.slowdownSpringConstant": 120,
-      "general.smoothScroll.currentVelocityWeighting": "0.4",
-      "general.smoothScroll.stopDecelerationWeighting": "0.4",
+      "general.smoothScroll.msdPhysics.motionBeginSpringConstant": 80,
+      "general.smoothScroll.msdPhysics.regularSpringConstant": 60,
+      "general.smoothScroll.msdPhysics.slowdownSpringConstant": 30,
+      "mousewheel.default.delta_multiplier_y": 320,
       "apz.overscroll.enabled": true,
     },
   },
@@ -1228,8 +1239,11 @@ const FocusMode = {
 /* --- Workspace dots and flash ----------------------------------------------
    Waybar-style dots at the top of the page, one per space, the current one
    long and in its colour, with its name: shown for a moment when you switch
-   (or always, dimmed until then). The flash is the top edge lighting up in
-   the new space's colour as you arrive. */
+   (or always, dimmed until then). The flash is the top of the page lighting
+   up in the new space's colour as you arrive. That colour is the one Zen
+   actually paints for the space (the most vivid of its colours, brightened
+   enough to read as a light), taken as Zen paints it: a space's saved theme
+   doesn't always say. */
 const Spaces = {
   DOTS: "zenith.plus.workspace-dots",
   FLASH: "zenith.plus.workspace-flash",
@@ -1317,131 +1331,55 @@ const Spaces = {
     if (!this.dots.hidden) {
       this.dots.setAttribute("show", "true");
       clearTimeout(this.timer);
-      this.timer = setTimeout(() => this.dots.removeAttribute("show"), 1400);
+      this.timer = setTimeout(() => this.dots.removeAttribute("show"), 1600);
     }
-    if (Services.prefs.getBoolPref(this.FLASH, true)) {
-      const colour = this.colour(space);
+    this.whenPainted(colour => {
+      const active = this.dots.querySelector(".zenith-dot[active]");
+      if (colour) active?.style.setProperty("--zth-dot", colour);
+      if (!Services.prefs.getBoolPref(this.FLASH, true)) return;
       if (colour) this.flash.style.setProperty("--zth-flash", colour);
       else this.flash.style.removeProperty("--zth-flash");
       this.flash.removeAttribute("go");
       void this.flash.offsetWidth; // play it again
       this.flash.setAttribute("go", "true");
-    }
-  },
-};
-
-/* --- Hover cards: a tab's full title and site ------------------------------
-   Rest the pointer on a tab (an essential, a pinned tab, any tab) for half a
-   second: a small glass card beside the sidebar shows its whole title, its
-   site, its container and whether it's playing, muted or asleep. Moving to
-   the next tab moves the card at once. Firefox's plain tooltip steps aside
-   meanwhile. */
-const HoverCards = {
-  PREF: "zenith.plus.hover-cards",
-  DELAY: 500,
-
-  get on() {
-    return Services.prefs.getBoolPref(this.PREF, true);
+    }, space);
   },
 
-  init() {
-    this.card = el("div", { id: "zenith-hover-card" });
-    this.card.hidden = true;
-    this.title = el("div", { class: "zenith-hover-title" });
-    this.site = el("div", { class: "zenith-hover-site" });
-    this.meta = el("div", { class: "zenith-hover-meta" });
-    this.card.append(this.title, this.site, this.meta);
-    (document.getElementById("zen-main-app-wrapper") ?? document.body).append(this.card);
-    const over = e => this.over(e);
-    const out = e => this.out(e);
-    const away = () => this.hide();
-    document.addEventListener("mouseover", over);
-    document.addEventListener("mouseout", out);
-    window.addEventListener("mousedown", away, true);
-    window.addEventListener("wheel", away, true);
-    window.addEventListener("blur", away);
-    gBrowser.tabContainer.addEventListener("TabClose", away);
-    // Firefox's own tab tooltip says less; it waits while the card shows.
-    const tip = document.getElementById("tabbrowser-tab-tooltip");
-    const quiet = e => {
-      if (e.target === tip && this.on) e.preventDefault();
+  // The new space's colour once Zen has painted it (it does so a frame or
+  // two into the switch), or after a moment if the paint didn't change.
+  whenPainted(fn, space) {
+    const bg = document.getElementById("zen-browser-background");
+    const read = () => this.vivid(WindowPaint.colours(bg?.style.getPropertyValue("--zen-main-browser-background") ?? ""));
+    this.painted?.disconnect();
+    clearTimeout(this.paintTimer);
+    if (!bg) return fn(this.colour(space));
+    const before = bg.style.getPropertyValue("--zen-main-browser-background");
+    const done = () => {
+      this.painted?.disconnect();
+      clearTimeout(this.paintTimer);
+      fn(read() ?? this.colour(space));
     };
-    tip?.addEventListener("popupshowing", quiet);
-    onUnload(() => {
-      document.removeEventListener("mouseover", over);
-      document.removeEventListener("mouseout", out);
-      window.removeEventListener("mousedown", away, true);
-      window.removeEventListener("wheel", away, true);
-      window.removeEventListener("blur", away);
-      tip?.removeEventListener("popupshowing", quiet);
+    this.painted = new MutationObserver(() => {
+      if (bg.style.getPropertyValue("--zen-main-browser-background") !== before) done();
     });
+    this.painted.observe(bg, { attributes: true, attributeFilter: ["style"] });
+    this.paintTimer = setTimeout(done, 600);
   },
 
-  over(e) {
-    const tab = e.target?.closest?.(".tabbrowser-tab");
-    if (!tab || !this.on) return;
-    clearTimeout(this.leaving);
-    if (tab === this.tab) return;
-    this.tab = tab;
-    clearTimeout(this.waiting);
-    if (!this.card.hidden) this.show(tab);
-    else this.waiting = setTimeout(() => this.tab === tab && this.show(tab), this.DELAY);
-  },
-
-  out(e) {
-    if (!this.tab) return;
-    if (e.relatedTarget?.closest?.(".tabbrowser-tab")) return; // over() takes it from here
-    clearTimeout(this.leaving);
-    this.leaving = setTimeout(() => this.hide(), 80);
-  },
-
-  hide() {
-    clearTimeout(this.waiting);
-    this.tab = null;
-    this.card.hidden = true;
-  },
-
-  // What the card says about a tab.
-  describe(tab) {
-    const uri = tab.linkedBrowser?.currentURI;
-    let site = "";
-    if (uri) {
-      if (/^https?$/.test(uri.scheme)) site = uri.host.replace(/^www\./, "");
-      else if (uri.spec !== "about:blank") site = uri.scheme === "about" ? `Zen page · ${uri.spec}` : uri.spec.slice(0, 80);
+  // The most colourful of Zen's colours, as a light: its hue, saturated
+  // and bright enough to stand out on the page's edge. Greys give nothing.
+  vivid(colours) {
+    let best = null, chroma = 0;
+    for (const [r, g, b] of colours) {
+      const c = Math.max(r, g, b) - Math.min(r, g, b);
+      if (c > chroma) [best, chroma] = [[r, g, b], c];
     }
-    const meta = [];
-    const container = tab.userContextId;
-    if (container) {
-      try {
-        meta.push(ContextualIdentityService.getUserContextLabel(container));
-      } catch {}
-    }
-    if (tab.hasAttribute("soundplaying")) meta.push(tab.hasAttribute("muted") ? "Playing, muted" : "Playing");
-    else if (tab.hasAttribute("muted")) meta.push("Muted");
-    if (tab.hasAttribute("busy")) meta.push("Loading");
-    else if (tab.hasAttribute("pending") || tab.hasAttribute("discarded")) meta.push("Sleeping");
-    return { title: tab.label || site || "New tab", site, meta: meta.join(" · ") };
-  },
-
-  show(tab) {
-    if (!tab.isConnected) return this.hide();
-    const { title, site, meta } = this.describe(tab);
-    this.title.textContent = title;
-    this.site.textContent = site;
-    this.site.hidden = !site;
-    this.meta.textContent = meta;
-    this.meta.hidden = !meta;
-    const colour = tab.userContextId ? getComputedStyle(tab).getPropertyValue("--identity-tab-color") : "";
-    if (colour) this.card.style.setProperty("--zth-card-dot", colour);
-    else this.card.style.removeProperty("--zth-card-dot");
-    this.card.hidden = false;
-    // Beside the sidebar, level with the tab, inside the window.
-    const t = tab.getBoundingClientRect(), side = gNavToolbox.getBoundingClientRect(), c = this.card.getBoundingClientRect();
-    const right = root.getAttribute("zen-right-side") === "true";
-    const x = right ? Math.min(t.left, side.left) - c.width - 8 : Math.max(t.right, side.right) + 8;
-    const y = Math.min(Math.max(8, t.top + t.height / 2 - c.height / 2), window.innerHeight - c.height - 8);
-    this.card.style.left = `${Math.round(Math.max(8, x))}px`;
-    this.card.style.top = `${Math.round(y)}px`;
+    if (!best || chroma < 12) return null;
+    const [r, g, b] = best.map(v => v / 255);
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    const l = (max + min) / 2, s = d / (1 - Math.abs(2 * l - 1));
+    return `hsl(${Math.round((h * 60 + 360) % 360)} ${Math.round(Math.max(s, 0.6) * 100)}% ${Math.round(Math.min(Math.max(l, 0.58), 0.7) * 100)}%)`;
   },
 };
 
@@ -1669,6 +1607,525 @@ const SidebarWidth = {
   },
 };
 
+/* --- Ctrl+Tab like Alt+Tab ---------------------------------------------------
+   "Recently used" turns on Firefox's own recently-used order for Ctrl+Tab:
+   hold Ctrl and press Tab to step back through the tabs you used last, with
+   a row of page pictures (Zenith styles it), and let go of Ctrl to land,
+   as Alt+Tab does with windows. Zen keeps it within the space. Through the
+   bridge, so your own setting comes back with "In order". */
+const CtrlTabOrder = {
+  PREF: "zenith.plus.ctrl-tab",
+
+  init() {
+    const apply = () => {
+      const recent = Services.prefs.getStringPref(this.PREF, "") === "recent";
+      Bridge.apply("ctrltab", { "browser.ctrlTab.sortByRecentlyUsed": recent ? true : null });
+      try {
+        window.ctrlTab?.readPref?.();
+      } catch {}
+    };
+    Services.prefs.addObserver(this.PREF, apply);
+    onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
+    apply();
+  },
+};
+
+/* --- Bookmarks bar: its own strip ------------------------------------------
+   Zen puts the bookmarks bar in the strip above the page that also holds
+   the window buttons, and Zenith floats that strip in the top-right corner:
+   so the bookmarks only showed beside the window buttons, on a corner hover.
+   With the bar on (Ctrl+Shift+B), Zenith gives it its own place:
+     above   a slim strip across the top of the page, always there (default)
+     hover   the same strip over the top of the page, shown when the pointer
+             reaches the page's top edge (or a bookmark folder is open)
+     zen     where Zen puts it
+   The bar itself is moved (it's the same toolbar, so customising it still
+   works) and put back for "Zen's own". */
+const BookmarksBar = {
+  PREF: "zenith.plus.bookmarks-bar",
+
+  init() {
+    this.bar = document.getElementById("PersonalToolbar");
+    if (!this.bar) return;
+    this.home = this.bar.parentNode;
+    this.homeNext = this.bar.nextSibling;
+    const apply = () => this.apply();
+    Services.prefs.addObserver(this.PREF, apply);
+    onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
+    apply();
+  },
+
+  apply() {
+    const mode = Services.prefs.getStringPref(this.PREF, "") || "above";
+    const content = document.getElementById("zen-appcontent-wrapper");
+    const page = document.getElementById("zen-tabbox-wrapper");
+    if (mode === "zen" || !content || !page || page.parentNode !== content) {
+      root.removeAttribute("zenith-bookmarks");
+      if (this.bar.parentNode !== this.home) this.home.insertBefore(this.bar, this.homeNext?.parentNode === this.home ? this.homeNext : null);
+      return;
+    }
+    // Above the page: just before it. Over the page: inside it, at its top.
+    if (mode === "hover") {
+      if (this.bar.parentNode !== page) page.prepend(this.bar);
+    } else if (this.bar.nextSibling !== page) {
+      content.insertBefore(this.bar, page);
+    }
+    root.setAttribute("zenith-bookmarks", mode);
+  },
+};
+
+/* --- Colours from an image ---------------------------------------------------
+   Pick a picture (or use your wallpaper): Zenith finds its main colours and
+   gives them to the current space, as Zen's own theme picker would (up to
+   three colours: the most striking first, then others of a clearly
+   different hue). Zenith's accent follows the space's colour, so it changes
+   too. The space's earlier colours are kept for "undo" (":colours undo" in
+   the switcher), and Zen's theme picker can change them as usual.
+   How the colours are found: the picture is shrunk to 48×48, its pixels
+   grouped into six by k-means (started from the pixels farthest apart),
+   and each group scored by how much of the picture it covers and how
+   colourful it is. */
+const ImageColours = {
+  init() {
+    const commandset = document.createXULElement("commandset");
+    for (const [id, fn] of [["zenith-colours-image", () => this.pickFile()],
+                            ["zenith-colours-wallpaper", () => this.fromWallpaper()]]) {
+      const command = document.createXULElement("command");
+      command.id = id;
+      command.addEventListener("command", fn);
+      commandset.append(command);
+    }
+    root.append(commandset);
+    window.ZenithColours = this; // the switcher's :colours, and tools/checks
+  },
+
+  pickFile() {
+    const fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+    fp.init(window.browsingContext, "Colours from an image", Ci.nsIFilePicker.modeOpen);
+    fp.appendFilters(Ci.nsIFilePicker.filterImages);
+    fp.open(result => {
+      if (result === Ci.nsIFilePicker.returnOK && fp.file) this.fromFile(fp.file.path);
+    });
+  },
+
+  async fromFile(path) {
+    try {
+      const bitmap = await createImageBitmap(new Blob([await IOUtils.read(path)]));
+      return this.apply(bitmap, PathUtils.filename(path));
+    } catch (e) {
+      console.error("[Zenith] colours from an image", e);
+      hint("That file isn't a picture Zen can read");
+      return null;
+    }
+  },
+
+  async fromWallpaper() {
+    if (!Wallpaper.url) {
+      hint("No wallpaper to read: Window material isn't Wallpaper");
+      return null;
+    }
+    const bitmap = await createImageBitmap(await (await fetch(Wallpaper.url)).blob());
+    return this.apply(bitmap, "your wallpaper");
+  },
+
+  // The picture's main colours, most striking first.
+  palette(bitmap) {
+    const N = 48;
+    const canvas = document.createElementNS(HTML_NS, "canvas");
+    canvas.width = canvas.height = N;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(bitmap, 0, 0, N, N);
+    const data = ctx.getImageData(0, 0, N, N).data;
+    const px = [];
+    for (let i = 0; i < data.length; i += 4) if (data[i + 3] > 128) px.push([data[i], data[i + 1], data[i + 2]]);
+    if (!px.length) return [];
+    // k-means, started from the pixels farthest apart (so a small patch of
+    // a clearly different colour gets its own group).
+    const K = 6;
+    const d2 = (p, c) => (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2;
+    let centres = [[...px[Math.floor(px.length / 2)]]];
+    while (centres.length < K) {
+      let far = px[0], most = -1;
+      for (const p of px) {
+        const near = Math.min(...centres.map(c => d2(p, c)));
+        if (near > most) [far, most] = [p, near];
+      }
+      centres.push([...far]);
+    }
+    let groups;
+    for (let round = 0; round < 10; round++) {
+      groups = centres.map(() => []);
+      for (const p of px) {
+        let best = 0, dist = Infinity;
+        centres.forEach((c, k) => {
+          const d = d2(p, c);
+          if (d < dist) [best, dist] = [k, d];
+        });
+        groups[best].push(p);
+      }
+      centres = groups.map((g, k) => (g.length ? [0, 1, 2].map(i => g.reduce((n, p) => n + p[i], 0) / g.length) : centres[k]));
+    }
+    const hsl = ([r, g, b]) => {
+      const [R, G, B] = [r / 255, g / 255, b / 255];
+      const max = Math.max(R, G, B), min = Math.min(R, G, B), d = max - min, l = (max + min) / 2;
+      const s = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+      const h = !d ? 0 : max === R ? (((G - B) / d) % 6) * 60 : max === G ? ((B - R) / d + 2) * 60 : ((R - G) / d + 4) * 60;
+      return [(h + 360) % 360, s, l];
+    };
+    const found = centres.map((c, k) => {
+      const [h, s, l] = hsl(c);
+      const share = groups[k].length / px.length;
+      const colourful = s * (1 - Math.abs(2 * l - 1)); // chroma
+      return { c: c.map(Math.round), h, s, l, share, score: share * (0.25 + colourful * 2) };
+    }).filter(f => f.share > 0.02).sort((a, b) => b.score - a.score);
+    const chosen = [];
+    for (const f of found) {
+      if (chosen.length >= 3) break;
+      const apart = chosen.every(c => Math.min(Math.abs(c.h - f.h), 360 - Math.abs(c.h - f.h)) > 35 ||
+                                     Math.abs(c.l - f.l) > 0.3);
+      if (apart) chosen.push(f);
+    }
+    return chosen;
+  },
+
+  apply(bitmap, from) {
+    const colours = this.palette(bitmap);
+    bitmap.close?.();
+    const W = window.gZenWorkspaces, picker = window.gZenThemePicker;
+    const space = W?.getActiveWorkspace?.();
+    if (!colours.length || !space || !picker) {
+      hint("Couldn't find colours there");
+      return null;
+    }
+    this.previous = { uuid: space.uuid, theme: structuredClone(space.theme) };
+    const dots = colours.map((f, i) => ({
+      c: f.c, isCustom: false, isPrimary: i === 0, algorithm: picker.useAlgo ?? "floating",
+      lightness: Math.round(f.l * 100), type: "explicit-lightness",
+    }));
+    const opacity = space.theme?.opacity ?? 0.5, texture = space.theme?.texture ?? 0;
+    space.theme = picker.constructor.getTheme?.(dots, opacity, texture) ?? { type: "gradient", gradientColors: dots, opacity, texture };
+    W.saveWorkspace(space);
+    picker.onWorkspaceChange(space);
+    hint(`Space colours from ${from}`);
+    return colours.map(f => f.c);
+  },
+
+  undo() {
+    const W = window.gZenWorkspaces, prev = this.previous;
+    const space = prev && W?.getWorkspaceFromId(prev.uuid);
+    if (!space) return hint("Nothing to undo");
+    space.theme = prev.theme;
+    W.saveWorkspace(space);
+    if (W.activeWorkspace === space.uuid) gZenThemePicker.onWorkspaceChange(space);
+    this.previous = null;
+    hint("Space colours put back");
+  },
+};
+
+/* --- Extension buttons per space ---------------------------------------------
+   Right-click an extension's button on the toolbar: "Only in this space"
+   keeps it there and hides it in the other spaces; "In every space" brings
+   it back everywhere. (Extensions themselves are shared by the whole
+   browser: one can't run separately per space. This is about which
+   buttons you see.) Kept in zenith.internal.extension-spaces. */
+const SpaceExtensions = {
+  PREF: "zenith.internal.extension-spaces",
+
+  get map() {
+    try {
+      return JSON.parse(Services.prefs.getStringPref(this.PREF, "{}"));
+    } catch {
+      return {};
+    }
+  },
+
+  save(map) {
+    Services.prefs.setStringPref(this.PREF, JSON.stringify(map));
+  },
+
+  init() {
+    const menu = document.getElementById("toolbar-context-menu");
+    if (menu) {
+      this.sep = document.createXULElement("menuseparator");
+      this.only = document.createXULElement("menuitem");
+      this.only.setAttribute("label", "Only in this space");
+      this.only.setAttribute("type", "checkbox");
+      this.only.addEventListener("command", () => this.toggle(this.target));
+      this.sep.hidden = this.only.hidden = true;
+      menu.append(this.sep, this.only);
+      menu.addEventListener("popupshowing", e => {
+        if (e.target !== menu) return;
+        const item = menu.triggerNode?.closest?.(".unified-extensions-item, toolbaritem[data-extensionid], .webextension-browser-action");
+        this.target = item?.closest?.("toolbaritem") ?? item;
+        const show = !!this.target?.id && !!window.gZenWorkspaces?.workspaceEnabled;
+        this.sep.hidden = this.only.hidden = !show;
+        if (show) this.only.setAttribute("checked", String(!!this.map[this.target.id]));
+      });
+    }
+    const update = () => this.update();
+    Services.prefs.addObserver(this.PREF, update);
+    window.addEventListener("ZenWorkspacesUIUpdate", update);
+    const marks = new MutationObserver(update);
+    window.gZenWorkspaces?.promiseInitialized?.then(() => {
+      const strip = gZenWorkspaces.workspaceElement(gZenWorkspaces.activeWorkspace)?.parentElement;
+      if (strip) marks.observe(strip, { subtree: true, attributeFilter: ["active"] });
+      update();
+    });
+    onUnload(() => {
+      Services.prefs.removeObserver(this.PREF, update);
+      window.removeEventListener("ZenWorkspacesUIUpdate", update);
+      marks.disconnect();
+    });
+    window.ZenithSpaceExtensions = this; // for tools/checks
+  },
+
+  toggle(item) {
+    if (!item?.id) return;
+    const map = this.map, here = gZenWorkspaces.activeWorkspace;
+    if (map[item.id]) delete map[item.id];
+    else map[item.id] = here;
+    this.save(map);
+  },
+
+  // Hide the buttons that belong to another space.
+  update() {
+    const map = this.map, here = window.gZenWorkspaces?.activeWorkspace;
+    for (const node of document.querySelectorAll("[zenith-other-space]")) node.removeAttribute("zenith-other-space");
+    for (const [id, space] of Object.entries(map)) {
+      const node = document.getElementById(id);
+      if (node && space !== here) node.setAttribute("zenith-other-space", "true");
+    }
+  },
+};
+
+/* --- Links from other apps: ask where they go --------------------------------
+   With "Links from other apps" on Ask, a link from another app (mail, chat,
+   a login) that none of Zen's Space routing rules sends somewhere stops at
+   a small card: pick the space (and so its container) it opens in, with
+   "always open <site> there" to turn the choice into a Space routing rule.
+   Escape opens it as Zen would have. Rules you already have still apply
+   without asking. Firefox hands such links to the window's browserDOMWindow
+   (OPEN_EXTERNAL); Zenith waits there for your answer. */
+const ExternalLinks = {
+  PREF: "zenith.plus.external-links",
+
+  init() {
+    const hook = () => {
+      // window.browserDOMWindow hands back an XPCOM wrapper; the method
+      // Firefox calls lives on the script object inside it.
+      const bdw = window.browserDOMWindow?.wrappedJSObject ?? window.browserDOMWindow;
+      if (!bdw?.openURI || bdw.zenithAsks) return;
+      const orig = bdw.openURI;
+      bdw.zenithAsks = true;
+      bdw.openURI = (...args) => {
+        const [uri, , , context] = args;
+        if (context === Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL && this.wanted(uri)) {
+          this.ask(uri, () => orig.apply(bdw, args));
+          return null;
+        }
+        return orig.apply(bdw, args);
+      };
+      onUnload(() => {
+        bdw.openURI = orig;
+        delete bdw.zenithAsks;
+      });
+    };
+    if (window.browserDOMWindow) hook();
+    else window.delayedStartupPromise?.then(hook);
+    window.ZenithLinks = this; // for tools/checks
+  },
+
+  spaces() {
+    try {
+      return gZenWorkspaces.workspaceEnabled ? gZenWorkspaces.getWorkspaces() ?? [] : [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Ask only for web links, with more than one space, that no rule routes.
+  wanted(uri) {
+    if (Services.prefs.getStringPref(this.PREF, "") !== "ask" || !/^https?$/.test(uri?.scheme ?? "")) return false;
+    if (this.spaces().length < 2) return false;
+    const R = window.gZenSpaceRoutingManager;
+    try {
+      if (R?.getAllRoutes().some(route => R.isRouteMatching(uri.spec, route))) return false;
+    } catch {}
+    return true;
+  },
+
+  ask(uri, open) {
+    this.pending?.cancel();
+    const host = uri.host.replace(/^www\./, "");
+    const card = el("div", { id: "zenith-linkask" });
+    const box = el("div", { id: "zenith-linkask-box" });
+    const head = el("div", { class: "zth-la-head" });
+    head.textContent = "Open a link from another app";
+    const site = el("div", { class: "zth-la-site" });
+    site.textContent = uri.spec.length > 90 ? uri.spec.slice(0, 90) + "…" : uri.spec;
+    const list = el("div", { class: "zth-la-list" });
+    const always = el("label", { class: "zth-la-always" });
+    const tick = el("input", { type: "checkbox" });
+    always.append(tick, document.createTextNode(` Always open ${host} there (a Space routing rule)`));
+    const foot = el("div", { class: "zth-la-foot" });
+    foot.textContent = "↑↓ or 1–9 choose · Enter opens · Esc opens it as usual";
+    const done = () => {
+      card.remove();
+      this.pending = null;
+    };
+    const choose = async space => {
+      done();
+      if (tick.checked) this.remember(host, space.uuid);
+      if (gZenWorkspaces.activeWorkspace !== space.uuid) await gZenWorkspaces.changeWorkspaceWithID(space.uuid);
+      open();
+    };
+    const spaces = this.spaces();
+    let selected = Math.max(0, spaces.findIndex(s => s.uuid === gZenWorkspaces.activeWorkspace));
+    const rows = spaces.map((space, i) => {
+      const row = el("button", { class: "zth-la-row", type: "button" });
+      const name = el("span", { class: "zth-la-name" });
+      name.textContent = `${i + 1}  ${space.name}`;
+      const box2 = el("span", { class: "zth-la-container" });
+      let container = "";
+      try {
+        if (space.containerTabId) container = ContextualIdentityService.getUserContextLabel(space.containerTabId);
+      } catch {}
+      box2.textContent = [container && `container: ${container}`, space.uuid === gZenWorkspaces.activeWorkspace && "here"].filter(Boolean).join(" · ");
+      row.append(name, box2);
+      row.addEventListener("click", () => choose(space));
+      list.append(row);
+      return row;
+    });
+    const mark = () => rows.forEach((r, i) => r.toggleAttribute("selected", i === selected));
+    mark();
+    box.append(head, site, list, always, foot);
+    card.append(box);
+    card.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        done();
+        open();
+      } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        selected = (selected + (e.key === "ArrowDown" ? 1 : spaces.length - 1)) % spaces.length;
+        mark();
+      } else if (e.key === "Enter" && e.target !== tick) {
+        e.preventDefault();
+        choose(spaces[selected]);
+      } else if (/^[1-9]$/.test(e.key) && spaces[+e.key - 1]) {
+        e.preventDefault();
+        choose(spaces[+e.key - 1]);
+      }
+    });
+    (document.getElementById("zen-main-app-wrapper") ?? document.body).append(card);
+    window.focus();
+    rows[selected]?.focus();
+    this.pending = { cancel: () => { done(); open(); }, choose, spaces, tick };
+  },
+
+  // "Always open <site> there": a Space routing rule, as Zen's own dialog
+  // would make (contains <site> → that space).
+  remember(host, spaceId) {
+    const R = window.gZenSpaceRoutingManager;
+    if (!R?.createNewRoute) return;
+    const route = R.createNewRoute();
+    route.reference = host;
+    route.matchType = "contains";
+    route.openIn = spaceId;
+    R.updateRoute(route);
+    R.saveRoutes();
+  },
+};
+
+/* --- Blend with the page -------------------------------------------------------
+   With "Blend with the page" on, the glass (sidebar, the window around the
+   page, panels) takes the colour along the top of the page you're on, so
+   the frame runs into the page, as the Blended Addressbar mod does. A thin
+   strip at the top of the page is drawn small (drawSnapshot) and averaged
+   when you switch tabs, when a page has loaded, and every couple of seconds
+   while the window is in front (pages change colour as you scroll). Core
+   mixes it in at 30%, enough to read and not so much that text on the
+   glass gets hard to read. */
+const PageBlend = {
+  PREF: "zenith.plus.blend",
+
+  get on() {
+    return Services.prefs.getStringPref(this.PREF, "") === "on";
+  },
+
+  init() {
+    const update = () => this.update();
+    const soon = () => this.sampleSoon();
+    Services.prefs.addObserver(this.PREF, update);
+    gBrowser.tabContainer.addEventListener("TabSelect", soon);
+    this.listener = {
+      onStateChange: (browser, webProgress, request, flags) => {
+        if (browser === gBrowser.selectedBrowser && webProgress.isTopLevel && flags & Ci.nsIWebProgressListener.STATE_STOP) soon();
+      },
+    };
+    gBrowser.addTabsProgressListener(this.listener);
+    onUnload(() => {
+      Services.prefs.removeObserver(this.PREF, update);
+      gBrowser.tabContainer.removeEventListener("TabSelect", soon);
+      gBrowser.removeTabsProgressListener(this.listener);
+      clearInterval(this.timer);
+    });
+    window.ZenithBlend = this; // for tools/checks
+    update();
+  },
+
+  update() {
+    clearInterval(this.timer);
+    if (!this.on) {
+      root.removeAttribute("zenith-blend");
+      root.style.removeProperty("--zth-page-tint");
+      return;
+    }
+    root.setAttribute("zenith-blend", "on");
+    this.timer = setInterval(() => {
+      if (document.hasFocus()) this.sample();
+    }, 2000);
+    this.sample();
+  },
+
+  sampleSoon() {
+    if (!this.on) return;
+    clearTimeout(this.soonTimer);
+    this.soonTimer = setTimeout(() => this.sample(), 120);
+  },
+
+  async sample() {
+    const b = gBrowser.selectedBrowser;
+    const w = Math.max(1, Math.round(b?.clientWidth ?? 0));
+    if (!b || w < 10 || !this.on) return;
+    try {
+      const bitmap = await b.drawSnapshot(0, 0, w, 8, 0.2, "white");
+      const c = document.createElementNS(HTML_NS, "canvas");
+      c.width = bitmap.width;
+      c.height = bitmap.height;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(bitmap, 0, 0);
+      bitmap.close?.();
+      const d = ctx.getImageData(0, 0, c.width, c.height).data;
+      let r = 0, g = 0, bl = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        r += d[i];
+        g += d[i + 1];
+        bl += d[i + 2];
+        n++;
+      }
+      if (!n || !this.on || b !== gBrowser.selectedBrowser) return;
+      const tint = `rgb(${Math.round(r / n)} ${Math.round(g / n)} ${Math.round(bl / n)})`;
+      if (tint !== this.tint) {
+        this.tint = tint;
+        root.style.setProperty("--zth-page-tint", tint);
+      }
+    } catch (e) {
+      // Pages that can't be drawn (some internal ones) keep the last colour.
+    }
+  },
+};
+
 /* --- Media art: the cover of what's playing, behind its media card -------
    Most music and video sites give the browser cover art (Media Session
    metadata); Firefox uses it for the system's media controls. Zen's media
@@ -1885,6 +2342,8 @@ const DROPDOWNS = {
  "zenith.panels.gap": "Zenith Panels",
  "zenith.panels.notifications": "Zenith Panels",
  "zenith.panels.compact-menus": "Zenith Panels",
+ "zenith.panels.menu-icons": "Zenith Panels",
+ "zenith.panels.tab-preview": "Zenith Panels",
  "zenith.motion.preset": "Zenith Motion",
  "zenith.motion.reduced": "Zenith Motion",
  "zenith.motion.tab-switch": "Zenith Motion",
@@ -1977,9 +2436,14 @@ start("see-through pages", () => SeeThroughPages.init());
 start("scroll feel", () => ScrollFeel.init());
 start("focus mode", () => FocusMode.init());
 start("workspace dots", () => Spaces.init());
-start("hover cards", () => HoverCards.init());
 start("more menus", () => MoreMenus.init());
 start("key switch flash", () => KeySwitchFlash.init());
 start("ready pulse", () => ReadyPulse.init());
 start("sidebar width", () => SidebarWidth.init());
+start("ctrl+tab order", () => CtrlTabOrder.init());
+start("bookmarks bar", () => BookmarksBar.init());
+start("colours from an image", () => ImageColours.init());
+start("extensions per space", () => SpaceExtensions.init());
+start("links from other apps", () => ExternalLinks.init());
+start("blend with the page", () => PageBlend.init());
 start("core check", checkCore);

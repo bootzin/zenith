@@ -20,11 +20,16 @@ Zenith comes in two parts.
 - **Peek:** quick lookups in a floating page that leaves nothing behind, with Alt+Q and instant answers.
 - **Live edges:** real load and download progress.
 - **Peek extras:** currency, definitions and weather in the prompt, timers and pomodoros, and `set` to find a setting, change it, or open it in the live panel.
-- **Switcher:** **Alt+W** jumps to any tab, folder or space by typing a few letters; `:` runs commands (`:focus`, `:timer 10m tea`, `:set frost`).
+- **Switcher:** **Alt+W** jumps to any tab (in any space), folder or space by typing a few letters; `:` runs commands (`:focus`, `:tabs`, `:timer 10m tea`, `:set frost`, `:colours`).
+- **Tab manager:** **Alt+Shift+T** shows every space's tabs and helps tidy up: duplicates, tabs you haven't used for days, awake tabs, busy sites into folders. Nothing happens until you press a button, and closing has Undo.
+- **Ctrl+Tab like Alt+Tab** (optional): recently used order with a row of page pictures.
 - **Focus mode:** **Alt+Z** hides the sidebar, edges and pills for reading or video.
-- **Sidebar extras:** hover cards with a tab's full title and site, the page pushed aside by exactly the sidebar's width (Revealed sidebar › Push the page), workspace dots and a flash in the new space's colour, a minimap of the hidden sidebar, numbered tabs while you hold Ctrl, and the cover art of what's playing behind the media card.
-- **Menus:** rare right-click items (view source, send to device and so on) in a More submenu; nothing is removed.
-- **Scrolling:** one setting for how pages scroll: Zen's own, instant, smooth or macOS-like.
+- **Sidebar extras:** the page pushed aside by exactly the sidebar's width (Revealed sidebar › Push the page), workspace dots and a flash in the new space's colour, extension buttons that show only in their space, a minimap of the hidden sidebar, numbered tabs while you hold Ctrl, and the cover art of what's playing behind the media card.
+- **Menus:** rare right-click items (view source, send to device and so on) in a More submenu, nothing removed; optional icons on the items you use most; Firefox's tab previews in Zenith's look.
+- **Bookmarks bar:** its own slim strip above the page, or over the page when you reach the top.
+- **Links from other apps:** optionally ask which space (and container) each one opens in, and remember the answer as a Space routing rule.
+- **Colours:** a space's colours from an image or your wallpaper; optionally, the glass takes the colour of the page you're on.
+- **Scrolling:** one setting for how the mouse wheel and keys scroll: Zen's own, instant, quick, smooth or macOS-like.
 - **Pages:** zoom pills, plus text selection in the workspace colour.
 - **Settings:** a Zenith page in Zen's Settings with every option explained, presets that fill in what they cover, and pictures for looks; the same settings as a live panel over the page (**Alt+Shift+Z**). Also greys out options that don't apply, and puts your mods ahead of the marketplace in Sine's page.
 - **Window:** the window material (Windows: your wallpaper drawn behind the window so Frost applies there too, each screen's own, or Acrylic, Mica, Mica Alt; macOS: its materials; Linux: see-through), optional see-through Zen pages (Settings, Add-ons, about: pages), and the liquid glass edge that lights up under the pointer.
@@ -77,7 +82,9 @@ The network requests it causes:
 Specific things it changes:
 
 - `ui.prefersReducedMotion`: set to 0, so Zen animates, while "Let Zen and Zenith animate" is on. It's cleared when you switch that off.
-- Window material and Scroll feel write Zen's and Firefox's own settings for them (`widget.windows.mica…`, `general.smoothScroll…`). Your earlier values are kept and put back when you choose "Zen's own" again.
+- Window material, Scroll feel and Ctrl+Tab write Zen's and Firefox's own settings for them (`widget.windows.mica…`, `general.smoothScroll…`, `browser.ctrlTab.sortByRecentlyUsed`). Your earlier values are kept and put back when you choose "Zen's own" (or "In order") again.
+- Colours from an image changes the current space's colours, as Zen's theme picker would; `:colours undo` in the switcher puts them back.
+- "Always open … there" on the link card adds a rule to Zen's Space routing, which you can edit or remove there.
 - On Windows, Wallpaper reads your wallpaper's file and position through Windows' wallpaper service; it never changes it.
 
 ## Development

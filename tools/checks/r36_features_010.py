@@ -1,6 +1,6 @@
 """0.10.0 features, checked inside Zen (no screen needed):
 scroll feel (and window material through the same bridge), focus mode,
-workspace dots and flash, hover cards, the switcher and its commands, the
+workspace dots and flash, the switcher and its commands, the
 More menu on the tab menu, push, key-switch flash, background-tab pulse,
 badge-only extension buttons, and the "Links from other apps" button."""
 import json, sys
@@ -64,19 +64,6 @@ with Scene() as z:
       out['off'] = dots.hidden;
       Services.prefs.clearUserPref('zenith.plus.workspace-dots');
       await W.changeWorkspaceWithID(here); await zth.sleep(600);
-      return out;""")
-
-    res["hover cards"] = z.js("""
-      const out = {}, card = document.getElementById('zenith-hover-card');
-      const tab = gBrowser.visibleTabs.find(t => t.label === 'Test page 2');
-      tab.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-      await zth.sleep(250); out['before half a second'] = card.hidden;
-      await zth.sleep(450);
-      const r = card.getBoundingClientRect(), side = gNavToolbox.getBoundingClientRect();
-      out['after'] = { shown: !card.hidden, title: card.querySelector('.zenith-hover-title').textContent,
-                       site: card.querySelector('.zenith-hover-site').textContent, 'beside the sidebar': r.left >= side.right };
-      tab.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.getElementById('tabbrowser-tabpanels') }));
-      await zth.sleep(200); out['left the tab'] = card.hidden;
       return out;""")
 
     res["switcher"] = z.js("""

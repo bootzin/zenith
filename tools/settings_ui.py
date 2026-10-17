@@ -77,6 +77,7 @@ PRESETS = {
             "zenith.panels.notifications": {"zen": "zen", "zenith": "dunst", "compact": "dunst"},
             "zenith.panels.compact-menus": {"zen": "off", "zenith": "off", "compact": "on"},
             "zenith.panels.glance": {"zen": "off", "zenith": "off", "compact": "off"},
+            "zenith.panels.menu-icons": {"zen": "off", "zenith": "off", "compact": "off"},
         },
     },
     "zenith.motion.preset": {
@@ -116,6 +117,7 @@ PARENTS = {
     "zenith.peek.units": "zenith.peek.web-cards",
     "zenith.peek.weather-history": "zenith.peek.web-cards",
     "zenith.peek.pomodoro": "zenith.peek.enabled",
+    "zenith.plus.switcher-scope": "zenith.plus.switcher",
 }
 
 SECTIONS = [
@@ -124,10 +126,11 @@ SECTIONS = [
         "blurb": "Size, colour, glass and the window around the page.",
         "groups": [
             ("Size", ["zenith.core.density", "zenith.core.scale"]),
-            ("Colour and shape", ["zenith.core.accent", "zenith.core.corners", "zenith.core.pills"]),
+            ("Colour and shape", ["zenith.core.accent", "zenith.action.colours-image", "zenith.action.colours-wallpaper",
+                                  "zenith.core.corners", "zenith.core.pills"]),
             ("Glass", ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
                        "zenith.core.floating-sidebar", "zenith.plus.material-windows", "zenith.plus.material-macos",
-                       "zenith.plus.material-linux", "zenith.plus.see-through-pages"]),
+                       "zenith.plus.material-linux", "zenith.plus.see-through-pages", "zenith.plus.blend"]),
             ("Window", ["zenith.core.page", "zen.view.hide-window-controls"]),
         ],
     },
@@ -149,10 +152,10 @@ SECTIONS = [
         "preset": "zenith.tabs.preset",
         "groups": [
             ("The sidebar", ["zenith.tabs.reveal", "zenith.tabs.reveal-delay", "zenith.tabs.close-hover",
-                             "zenith.plus.hover-cards", "zen.tabs.open-pinned-in-new-tab", "zenith.plus.minimap",
+                             "zen.tabs.open-pinned-in-new-tab", "zenith.plus.minimap",
                              "zenith.plus.key-switch-flash"]),
             ("Spaces", ["zenith.plus.workspace-dots", "zenith.plus.workspace-flash"]),
-            ("Links", ["zenith.action.space-routing"]),
+            ("Links", ["zenith.plus.external-links", "zenith.action.space-routing"]),
             ("Signals", ["zenith.tabs.unloaded", "zenith.tabs.attention", "zenith.tabs.folder-activity",
                          "zenith.tabs.container", "zenith.tabs.audio-wave", "zenith.tabs.split-vertical"]),
             ("Media", ["zenith.tabs.mini-player", "zenith.plus.media-art"]),
@@ -178,7 +181,9 @@ SECTIONS = [
             ("Split view", ["zenith.panels.split", "zenith.panels.gap"]),
             ("Notices and links", ["zenith.panels.notifications", "zenith.panels.status-delay"]),
             ("Media", ["zenith.panels.pip"]),
-            ("Menus", ["zenith.panels.compact-menus", "zenith.plus.more-menu"]),
+            ("Menus", ["zenith.panels.compact-menus", "zenith.plus.more-menu", "zenith.panels.menu-icons"]),
+            ("Tab previews", ["zenith.panels.tab-preview"]),
+            ("Bookmarks", ["zenith.plus.bookmarks-bar"]),
             ("Extras", ["zenith.panels.glance"]),
         ],
     },
@@ -194,9 +199,11 @@ SECTIONS = [
     },
     {
         "id": "keys", "title": "Keys", "icon": "keys",
-        "blurb": "Jump anywhere with Alt+W, read without distractions with Alt+Z.",
+        "blurb": "Jump anywhere with Alt+W, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
         "groups": [
-            ("Switcher", ["zenith.plus.switcher"]),
+            ("Switcher", ["zenith.plus.switcher", "zenith.plus.switcher-scope"]),
+            ("Ctrl+Tab", ["zenith.plus.ctrl-tab"]),
+            ("Tab manager", ["zenith.plus.tab-manager"]),
             ("Focus mode", ["zenith.plus.focus-key"]),
         ],
     },
@@ -264,8 +271,6 @@ DESCRIPTIONS = {
     # Tabs
     "zenith.tabs.reveal": "When the hidden sidebar slides out: over the page, pushing the page aside by exactly its "
                           "width, or dimming the page.",
-    "zenith.plus.hover-cards": "Rest on a tab for half a second: a small card beside the sidebar shows its whole title, "
-                               "its site, its container and whether it's playing or asleep.",
     "zenith.plus.key-switch-flash": "In compact mode, the sidebar shows for a moment when you switch tabs from the "
                                     "keyboard, so you see where you landed.",
     "zenith.plus.workspace-dots": "Waybar-style dots at the top of the page, one per space, with the current one's "
@@ -276,8 +281,28 @@ DESCRIPTIONS = {
     "zenith.plus.ready-pulse": "A tab opened in the background has finished loading: the page's edge glows once.",
     "zenith.plus.more-menu": "Rare items in the right-click menus (view source, send to device, set as desktop "
                              "background and so on) move into a More submenu at the end. Nothing is removed.",
-    "zenith.plus.scroll": "How pages scroll: Zen's own glide, instant steps, Firefox's classic short ease, or a "
-                          "longer macOS-like glide that bounces at the ends.",
+    "zenith.plus.scroll": "How the mouse wheel and the keyboard scroll pages: Zen's own short glide, instant jumps, a "
+                          "crisp quick ease, a slower even one, or a macOS-like glide that goes further and bounces at "
+                          "the ends. A touchpad follows your fingers and isn't changed.",
+    "zenith.plus.switcher-scope": "Every space, so Enter switches space when it has to, or only this space's tabs "
+                                  "(and the essentials).",
+    "zenith.plus.external-links": "Ask each time: a link from another app that no Space routing rule sends somewhere "
+                                  "stops at a small card to pick its space (and so its container), with an option to "
+                                  "always send that site there.",
+    "zenith.plus.blend": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the "
+                         "page you're on, so the window runs into the page.",
+    "zenith.plus.tab-manager": "Alt+Shift+T (or :tabs in the switcher): every space's tabs at a glance, with duplicates, "
+                               "tabs you haven't used for days, awake tabs and busy sites to tidy up. Nothing happens "
+                               "until you press a button, and closed tabs come back with Undo.",
+    "zenith.plus.ctrl-tab": "In order, as Zen does, or recently used like Alt+Tab: hold Ctrl and press Tab to step back "
+                            "through the tabs you used last, with pictures of them, and let go to land.",
+    "zenith.plus.bookmarks-bar": "When the bookmarks bar is on (Ctrl+Shift+B): a slim strip above the page, the same "
+                                 "strip over the page that shows when the pointer reaches the top, or Zen's own place "
+                                 "beside the window buttons.",
+    "zenith.panels.menu-icons": "Small icons on the right-click items you use most (open, copy, paste, save, close, pin) "
+                                "and on More, from Zen's own icon set.",
+    "zenith.panels.tab-preview": "Firefox's card with a picture of the page when you rest on a tab, in Zenith's "
+                                 "corners and colours, or left as Firefox draws it.",
     "zenith.plus.switcher": "Alt+W: type part of a tab's title or site, a folder or a space, and Enter goes there. "
                             "Start with : for commands, like :focus or :timer 10m tea.",
     "zenith.plus.focus-key": "Alt+Z hides the sidebar, the edges, the minimap, pills and the link address, for "
@@ -336,8 +361,21 @@ DESCRIPTIONS = {
 # Buttons on the page that open something of Zen's, with no setting behind
 # them (property names are only ids).
 ACTIONS = {
+    "zenith.action.colours-image": {
+        "label": "Colours from an image",
+        "desc": "Pick a picture: its main colours become this space's colours, as in Zen's theme picker "
+                "(:colours undo in the switcher puts the old ones back).",
+        "button": "Choose an image",
+        "command": "zenith-colours-image",
+    },
+    "zenith.action.colours-wallpaper": {
+        "label": "Colours from your wallpaper",
+        "desc": "The same, from the wallpaper Zenith draws behind the window (Window material: Wallpaper).",
+        "button": "Use the wallpaper",
+        "command": "zenith-colours-wallpaper",
+    },
     "zenith.action.space-routing": {
-        "label": "Links from other apps",
+        "label": "Space routing",
         "desc": "Zen's Space routing sends links from other apps (and any site you choose, like a login page) to a "
                 "space, and so to that space's container.",
         "button": "Space routing",
@@ -371,7 +409,6 @@ LABELS = {
     "zenith.tabs.close-hover": "Close buttons on hover",
     "zen.tabs.open-pinned-in-new-tab": "Pinned tabs open sites in new tabs",
     "zenith.plus.minimap": "Minimap",
-    "zenith.plus.hover-cards": "Hover cards",
     "zenith.plus.key-switch-flash": "Show the sidebar on key switches",
     "zenith.plus.workspace-dots": "Workspace dots",
     "zenith.plus.workspace-flash": "Workspace flash",
@@ -379,8 +416,16 @@ LABELS = {
     "zenith.plus.ready-pulse": "Background tab ready",
     "zenith.plus.more-menu": "More submenu",
     "zenith.plus.scroll": "Scroll feel",
+    "zenith.plus.switcher-scope": "Finds tabs in",
+    "zenith.plus.ctrl-tab": "Ctrl+Tab",
+    "zenith.plus.bookmarks-bar": "Bookmarks bar",
+    "zenith.panels.menu-icons": "Menu icons",
+    "zenith.panels.tab-preview": "Tab previews",
     "zenith.plus.switcher": "Switcher (Alt+W)",
     "zenith.plus.focus-key": "Focus mode (Alt+Z)",
+    "zenith.plus.tab-manager": "Tab manager (Alt+Shift+T)",
+    "zenith.plus.external-links": "Where they open",
+    "zenith.plus.blend": "Blend with the page",
     "zenith.tabs.audio-wave": "Audio wave",
     "zenith.tabs.split-vertical": "Split-view groups",
     "zenith.tabs.mini-player": "Slim media card",

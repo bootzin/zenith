@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.10.0
+// @version        0.11.0
 // ==/UserScript==
 
 // Zen's mod settings list every option flat, with no way to show that one
@@ -300,6 +300,17 @@ const RULES = {
     "why": "Only on Linux",
     "conditions": [],
     "platform": "Linux"
+  },
+  "zenith.plus.switcher-scope": {
+    "why": "The switcher is off",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.switcher",
+          "value": true
+        }
+      }
+    ]
   }
 };
 // --- end of generated rules ---

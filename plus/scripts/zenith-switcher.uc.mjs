@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.10.0
+// @version        0.11.0
 // ==/UserScript==
 
 // A rofi-style list over the page. Alt+W opens it; type a few letters of a
@@ -37,6 +37,7 @@ function make(tag, attrs = {}, text = "") {
 }
 
 const PREF = "zenith.plus.switcher";
+const SCOPE = "zenith.plus.switcher-scope"; // "" every space, "here" this space only
 const MAX = 9;
 
 /* --- Matching ---------------------------------------------------------------- */
@@ -84,27 +85,58 @@ const Items = {
     return this.spaces().find(s => s.uuid === id)?.name ?? "";
   },
 
-  host(tab) {
+  // Where a tab is, short enough to read: the site for web pages, the
+  // file's name, "about:config", never a whole address.
+  site(tab) {
     const uri = tab.linkedBrowser?.currentURI;
     if (!uri || uri.spec === "about:blank") return "";
-    return /^https?$/.test(uri.scheme) ? uri.host.replace(/^www\./, "") : uri.spec.slice(0, 60);
+    try {
+      if (/^https?$/.test(uri.scheme)) return uri.host.replace(/^www\./, "");
+      if (uri.scheme === "file") return decodeURIComponent(uri.spec.split(/[\\/]/).filter(Boolean).pop() ?? "File");
+      if (uri.scheme === "about") return uri.spec.split(/[?#]/)[0];
+      if (uri.scheme === "moz-extension") return "Extension page";
+      if (/^(data|blob|javascript)$/.test(uri.scheme)) return uri.scheme;
+      return uri.host || uri.scheme;
+    } catch {
+      return uri.scheme;
+    }
+  },
+
+  // Every tab, in every space: Zen keeps other spaces' tabs out of
+  // gBrowser.tabs. With "This space only", just this space's (and the
+  // essentials).
+  tabs() {
+    const all = window.gZenWorkspaces?.allStoredTabs ?? gBrowser.tabs;
+    const active = gZenWorkspaces?.activeWorkspace;
+    const here = Services.prefs.getStringPref(SCOPE, "") === "here";
+    return [...new Set(all)].filter(tab => !here || tab.hasAttribute("zen-essential") || !tab.getAttribute("zen-workspace-id") ||
+                                           tab.getAttribute("zen-workspace-id") === active);
+  },
+
+  folders() {
+    const all = window.gZenWorkspaces?.allTabGroups ?? gBrowser.tabGroups ?? [...document.querySelectorAll("zen-folder, tab-group")];
+    const active = gZenWorkspaces?.activeWorkspace;
+    const here = Services.prefs.getStringPref(SCOPE, "") === "here";
+    return [...new Set(all)].filter(f => !here || !f.getAttribute("zen-workspace-id") || f.getAttribute("zen-workspace-id") === active);
   },
 
   all() {
     const active = gZenWorkspaces?.activeWorkspace;
     const out = [];
-    for (const tab of gBrowser.tabs) {
-      if (tab.hasAttribute("zen-empty-tab") || tab.hasAttribute("zen-glance-tab") || tab.closing) continue;
+    for (const tab of this.tabs()) {
+      if (!tab.isConnected || tab.hasAttribute("zen-empty-tab") || tab.hasAttribute("zen-glance-tab") || tab.closing) continue;
       const space = tab.getAttribute("zen-workspace-id");
       const elsewhere = space && space !== active && !tab.hasAttribute("zen-essential");
+      const site = this.site(tab);
+      // A page without a title shows its address as one: the site reads better.
+      const untitled = !tab.label || /^[a-z-]+:\/\//i.test(tab.label);
       out.push({
-        kind: "tab", tab, title: tab.label || this.host(tab) || "New tab", sub: this.host(tab),
+        kind: "tab", tab, title: untitled ? site || "New tab" : tab.label, sub: untitled ? "" : site,
         space: elsewhere ? this.spaceName(space) : "", icon: tab.getAttribute("image") || "",
         recent: tab.lastAccessed || 0, current: tab.selected,
       });
     }
-    const folders = gBrowser.tabGroups ?? [...document.querySelectorAll("zen-folder, tab-group")];
-    for (const folder of folders) {
+    for (const folder of this.folders()) {
       const space = folder.getAttribute("zen-workspace-id");
       const count = folder.tabs?.length ?? 0;
       out.push({
@@ -164,6 +196,10 @@ const COMMANDS = [
   { name: "pomo", arg: "", text: "A pomodoro (pomo 25 5 4)", ok: () => !!peek() && !!window.ZenithTimers,
     preview: a => peek().command(`pomo ${a}`.trim()) },
   { name: "peek", arg: "what to look up", text: "Look it up in a Peek", ok: () => !!peek(), run: a => (a ? peek().lookup(a) : peek().prompt("")) },
+  { name: "tabs", text: "The tab manager: duplicates, unused and awake tabs (Alt+Shift+T)", ok: () => !!window.ZenithTabs,
+    run: () => window.ZenithTabs.show() },
+  { name: "colours", arg: "", text: "This space's colours from an image (:colours wallpaper, :colours undo)", ok: () => !!window.ZenithColours,
+    run: a => (/^wall/i.test(a) ? window.ZenithColours.fromWallpaper() : /^undo/i.test(a) ? window.ZenithColours.undo() : window.ZenithColours.pickFile()) },
   { name: "routing", text: "Links from other apps: Zen's space routing", ok: () => !!document.getElementById("cmd_zenOpenSpaceRoutingSettings"),
     run: () => document.getElementById("cmd_zenOpenSpaceRoutingSettings").doCommand() },
 ];
@@ -350,6 +386,7 @@ function addKeys() {
   window.addEventListener("unload", () => Services.prefs.removeObserver(PREF, watch), { once: true });
   watch();
   window.ZenithSwitcher = Switcher; // for tools/checks
+  Switcher.Items = Items;
 }
 
 start("hotkey", addKeys);

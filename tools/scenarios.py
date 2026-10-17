@@ -104,6 +104,19 @@ class Handler(BaseHTTPRequestHandler):
                        "setInterval(() => { t++; g.fillStyle = `hsl(${t % 360} 60% 45%)`; g.fillRect(0, 0, 640, 360);"
                        " g.fillStyle = '#fff'; g.font = '48px sans-serif'; g.fillText('Zenith ' + t, 40, 200); }, 50);"
                        "v.srcObject = c.captureStream(20);</script>")
+        elif path == "/long":
+            # A long page that times its own scrolling: from the first wheel
+            # turn, where it is after 50, 100, 200, 400 and 800ms (in its title).
+            rows = "".join(f"<p>Row {i}: the quick brown fox jumps over the lazy dog.</p>" for i in range(400))
+            self._html("<!doctype html><title>Long page</title><body style='font:16px system-ui;margin:40px'>" + rows +
+                       "<script>let t0 = 0; const marks = [50, 100, 200, 400, 800], out = [];"
+                       "addEventListener('wheel', () => { if (t0) return; t0 = performance.now(); const y0 = scrollY;"
+                       " const tick = () => { const dt = performance.now() - t0;"
+                       "  while (out.length < marks.length && dt >= marks[out.length]) out.push(Math.round(scrollY - y0));"
+                       "  if (out.length < marks.length) requestAnimationFrame(tick); else document.title = 'scrolled ' + out.join(' '); };"
+                       " requestAnimationFrame(tick); }, { passive: true });"
+                       "addEventListener('keydown', e => { if (e.key === 'r') { t0 = 0; out.length = 0; scrollTo(0, 0); document.title = 'Long page'; } });"
+                       "window.zthReset = () => { t0 = 0; out.length = 0; scrollTo(0, 0); document.title = 'Long page'; };</script>")
         elif path == "/camera":
             self._html("<!doctype html><title>Camera page</title><h1>Camera</h1><video id=v autoplay muted></video>"
                        "<script>navigator.mediaDevices.getUserMedia({video:true,audio:true})"

@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.10.0
+// @version        0.11.0
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -140,6 +140,26 @@ const SCHEMA = [
        }
       ],
       "default": "workspace"
+     },
+     {
+      "property": "zenith.action.colours-image",
+      "label": "Colours from an image",
+      "type": "action",
+      "extra": false,
+      "desc": "Pick a picture: its main colours become this space's colours, as in Zen's theme picker (:colours undo in the switcher puts the old ones back).",
+      "button": "Choose an image",
+      "command": "zenith-colours-image",
+      "host": "Zen"
+     },
+     {
+      "property": "zenith.action.colours-wallpaper",
+      "label": "Colours from your wallpaper",
+      "type": "action",
+      "extra": false,
+      "desc": "The same, from the wallpaper Zenith draws behind the window (Window material: Wallpaper).",
+      "button": "Use the wallpaper",
+      "command": "zenith-colours-wallpaper",
+      "host": "Zen"
      },
      {
       "property": "zenith.core.corners",
@@ -421,6 +441,25 @@ const SCHEMA = [
       "desc": "Zen's own pages (Settings, Add-ons, about:config, Downloads) show the window's glass behind them, like the docked sidebar. Web pages stay as they are.",
       "host": "Zenith Plus",
       "default": false
+     },
+     {
+      "property": "zenith.plus.blend",
+      "label": "Blend with the page",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the page you're on, so the window runs into the page.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Off",
+        "value": "off"
+       },
+       {
+        "label": "On",
+        "value": "on"
+       }
+      ],
+      "default": "off"
      }
     ]
    },
@@ -1063,15 +1102,6 @@ const SCHEMA = [
       "default": "on"
      },
      {
-      "property": "zenith.plus.hover-cards",
-      "label": "Hover cards",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Rest on a tab for half a second: a small card beside the sidebar shows its whole title, its site, its container and whether it's playing or asleep.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
       "property": "zen.tabs.open-pinned-in-new-tab",
       "label": "Pinned tabs open sites in new tabs",
       "type": "checkbox",
@@ -1141,8 +1171,27 @@ const SCHEMA = [
     "title": "Links",
     "settings": [
      {
+      "property": "zenith.plus.external-links",
+      "label": "Where they open",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Ask each time: a link from another app that no Space routing rule sends somewhere stops at a small card to pick its space (and so its container), with an option to always send that site there.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Where Zen's Space routing sends them",
+        "value": "zen"
+       },
+       {
+        "label": "Ask each time",
+        "value": "ask"
+       }
+      ],
+      "default": "zen"
+     },
+     {
       "property": "zenith.action.space-routing",
-      "label": "Links from other apps",
+      "label": "Space routing",
       "type": "action",
       "extra": false,
       "desc": "Zen's Space routing sends links from other apps (and any site you choose, like a login page) to a space, and so to that space's container.",
@@ -1576,6 +1625,11 @@ const SCHEMA = [
      "zen": "off",
      "zenith": "off",
      "compact": "off"
+    },
+    "zenith.panels.menu-icons": {
+     "zen": "off",
+     "zenith": "off",
+     "compact": "off"
     }
    },
    "values": [
@@ -1861,6 +1915,77 @@ const SCHEMA = [
       "desc": "Rare items in the right-click menus (view source, send to device, set as desktop background and so on) move into a More submenu at the end. Nothing is removed.",
       "host": "Zenith Plus",
       "default": true
+     },
+     {
+      "property": "zenith.panels.menu-icons",
+      "label": "Menu icons",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "Small icons on the right-click items you use most (open, copy, paste, save, close, pin) and on More, from Zen's own icon set.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     }
+    ]
+   },
+   {
+    "title": "Tab previews",
+    "settings": [
+     {
+      "property": "zenith.panels.tab-preview",
+      "label": "Tab previews",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Firefox's card with a picture of the page when you rest on a tab, in Zenith's corners and colours, or left as Firefox draws it.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "Zenith",
+        "value": "zenith"
+       },
+       {
+        "label": "Firefox's own",
+        "value": "firefox"
+       }
+      ],
+      "default": "zenith"
+     }
+    ]
+   },
+   {
+    "title": "Bookmarks",
+    "settings": [
+     {
+      "property": "zenith.plus.bookmarks-bar",
+      "label": "Bookmarks bar",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "When the bookmarks bar is on (Ctrl+Shift+B): a slim strip above the page, the same strip over the page that shows when the pointer reaches the top, or Zen's own place beside the window buttons.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Above the page",
+        "value": "above"
+       },
+       {
+        "label": "Over the page, on hover",
+        "value": "hover"
+       },
+       {
+        "label": "Zen's own, with the window buttons",
+        "value": "zen"
+       }
+      ],
+      "default": "above"
      }
     ]
    },
@@ -2040,7 +2165,7 @@ const SCHEMA = [
       "label": "Scroll feel",
       "type": "dropdown",
       "extra": false,
-      "desc": "How pages scroll: Zen's own glide, instant steps, Firefox's classic short ease, or a longer macOS-like glide that bounces at the ends.",
+      "desc": "How the mouse wheel and the keyboard scroll pages: Zen's own short glide, instant jumps, a crisp quick ease, a slower even one, or a macOS-like glide that goes further and bounces at the ends. A touchpad follows your fingers and isn't changed.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -2050,6 +2175,10 @@ const SCHEMA = [
        {
         "label": "Instant",
         "value": "instant"
+       },
+       {
+        "label": "Quick",
+        "value": "quick"
        },
        {
         "label": "Smooth",
@@ -2114,7 +2243,7 @@ const SCHEMA = [
   "id": "keys",
   "title": "Keys",
   "icon": "keys",
-  "blurb": "Jump anywhere with Alt+W, read without distractions with Alt+Z.",
+  "blurb": "Jump anywhere with Alt+W, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
   "groups": [
    {
     "title": "Switcher",
@@ -2125,6 +2254,75 @@ const SCHEMA = [
       "type": "checkbox",
       "extra": false,
       "desc": "Alt+W: type part of a tab's title or site, a folder or a space, and Enter goes there. Start with : for commands, like :focus or :timer 10m tea.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.switcher-scope",
+      "label": "Finds tabs in",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Every space, so Enter switches space when it has to, or only this space's tabs (and the essentials).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Every space",
+        "value": "all"
+       },
+       {
+        "label": "This space only",
+        "value": "here"
+       }
+      ],
+      "default": "all",
+      "parent": "zenith.plus.switcher",
+      "rule": {
+       "why": "The switcher is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.switcher",
+          "value": true
+         }
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "Ctrl+Tab",
+    "settings": [
+     {
+      "property": "zenith.plus.ctrl-tab",
+      "label": "Ctrl+Tab",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "In order, as Zen does, or recently used like Alt+Tab: hold Ctrl and press Tab to step back through the tabs you used last, with pictures of them, and let go to land.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "In order",
+        "value": "order"
+       },
+       {
+        "label": "Recently used, with pictures (like Alt+Tab)",
+        "value": "recent"
+       }
+      ],
+      "default": "order"
+     }
+    ]
+   },
+   {
+    "title": "Tab manager",
+    "settings": [
+     {
+      "property": "zenith.plus.tab-manager",
+      "label": "Tab manager (Alt+Shift+T)",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt+Shift+T (or :tabs in the switcher): every space's tabs at a glance, with duplicates, tabs you haven't used for days, awake tabs and busy sites to tidy up. Nothing happens until you press a button, and closed tabs come back with Undo.",
       "host": "Zenith Plus",
       "default": true
      }
@@ -2641,7 +2839,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.10.0";
+const SCHEMA_VERSION = "0.11.0";
 
 class SettingsView {
   constructor(kind) {

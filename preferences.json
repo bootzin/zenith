@@ -1191,6 +1191,38 @@
     ]
   },
   {
+    "property": "zenith.panels.menu-icons",
+    "label": "Extra: icons on the most used menu items",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.tab-preview",
+    "label": "Tab previews (Firefox's card when you rest on a tab)",
+    "type": "dropdown",
+    "placeholder": "Default (Zenith)",
+    "options": [
+      {
+        "label": "Zenith",
+        "value": "zenith"
+      },
+      {
+        "label": "Firefox's own",
+        "value": "firefox"
+      }
+    ]
+  },
+  {
     "type": "separator",
     "label": "Motion"
   },
@@ -1650,13 +1682,17 @@
   },
   {
     "property": "zenith.plus.scroll",
-    "label": "Scroll feel",
+    "label": "Scroll feel (mouse wheel and keys)",
     "type": "dropdown",
     "placeholder": "Default (Zen's own)",
     "options": [
       {
         "label": "Instant",
         "value": "instant"
+      },
+      {
+        "label": "Quick",
+        "value": "quick"
       },
       {
         "label": "Smooth",
@@ -1674,6 +1710,112 @@
     "label": "Switcher: Alt+W jumps to any tab, folder or space; : runs commands",
     "type": "checkbox",
     "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.switcher-scope",
+    "label": "Switcher finds tabs in",
+    "type": "dropdown",
+    "placeholder": "Default (Every space)",
+    "options": [
+      {
+        "label": "Every space",
+        "value": "all"
+      },
+      {
+        "label": "This space only",
+        "value": "here"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.switcher",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The switcher is off"
+  },
+  {
+    "property": "zenith.plus.external-links",
+    "label": "Links from other apps",
+    "type": "dropdown",
+    "placeholder": "Default (Where Zen's Space routing sends them)",
+    "options": [
+      {
+        "label": "Where Zen's Space routing sends them",
+        "value": "zen"
+      },
+      {
+        "label": "Ask each time",
+        "value": "ask"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.blend",
+    "label": "Extra: blend with the page (the glass takes the page's colour)",
+    "type": "dropdown",
+    "placeholder": "Default (Off)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "On",
+        "value": "on"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.tab-manager",
+    "label": "Tab manager on Alt+Shift+T: duplicates, unused and awake tabs, busy sites",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.ctrl-tab",
+    "label": "Ctrl+Tab",
+    "type": "dropdown",
+    "placeholder": "Default (In order)",
+    "options": [
+      {
+        "label": "In order",
+        "value": "order"
+      },
+      {
+        "label": "Recently used, with pictures (like Alt+Tab)",
+        "value": "recent"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.bookmarks-bar",
+    "label": "Bookmarks bar (when it's on)",
+    "type": "dropdown",
+    "placeholder": "Default (Above the page)",
+    "options": [
+      {
+        "label": "Above the page",
+        "value": "above"
+      },
+      {
+        "label": "Over the page, on hover",
+        "value": "hover"
+      },
+      {
+        "label": "Zen's own, with the window buttons",
+        "value": "zen"
+      }
+    ],
     "usedBy": "zenith-plus"
   },
   {
@@ -1707,13 +1849,6 @@
   {
     "property": "zenith.plus.workspace-flash",
     "label": "Workspace flash: the top edge shows the new space's colour",
-    "type": "checkbox",
-    "defaultValue": true,
-    "usedBy": "zenith-plus"
-  },
-  {
-    "property": "zenith.plus.hover-cards",
-    "label": "Tab hover cards: the full title and site beside the sidebar",
     "type": "checkbox",
     "defaultValue": true,
     "usedBy": "zenith-plus"

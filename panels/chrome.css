@@ -305,7 +305,7 @@
 
 /* --- Menus ----------------------------------------------------------------
    Corners follow Core everywhere (unless "Zen default"); compact menus are
-   opt-in. Moving rare items into a "More" submenu needs the phase 2 script. */
+   opt-in. Rare items move into a "More" submenu with Zenith Plus. */
 
 :root:not(:has(#theme-Zenith-Panels[zenith-panels-preset="zen"])) :is(menupopup, panel)::part(content) {
   border-radius: var(--zth-radius) !important;
@@ -332,6 +332,146 @@
      reload row, which is icon-only */
   & :is(menu, menuitem):not([type="checkbox"], [type="radio"], .webextension-menuitem, #context-navigation *) > .menu-icon {
     display: none !important;
+  }
+}
+
+/* Extra: icons on the most used items of the page's and the tab's menus,
+   from Zen's own icon set, shown even with compact menus. The More submenu
+   gets one too. */
+:root:has(#theme-Zenith-Panels[zenith-panels-menu-icons="on"]) {
+  & :is(#context-openlinkintab, #context-openlink, #context-openlinkprivate, #context-zenOpenLinkInGlance, #context-zenSplitLink, #context-copylink, #context-cut, #context-copy, #context-paste, #context-delete, #context-saveimage, #context-savelink, #context-savepage, #context-copyimage-contents, #context-viewimage, #context-searchselect, #context-translate-selection, #context-take-screenshot, #context-inspect, #context-print-selection, #context-viewsource, #context-sendpagetodevice, #context-sendlinktodevice, #context-media-mute, #context-media-unmute, #context_openANewTab, #context_reloadTab, #context_toggleMuteTab, #context_duplicateTab, #context_pinTab, #context_unpinTab, #context_zen-add-essential, #context_zen-remove-essential, #context_zenSplitTabs, #context_zenMoveToFolder, #context_unloadTab, #context_closeTab, #context_undoCloseTab, #context_bookmarkTab, #context_zen-edit-tab-icon, #context_sendTabToDevice, .zenith-more):not(#zth-a):not(#zth-b) {
+    /* (two IDs outrank compact menus, which hide icons) */
+    -moz-context-properties: fill, fill-opacity;
+    fill: currentColor;
+
+    /* (Firefox's menu icons are images hidden on items without one.) */
+    & > .menu-icon {
+      display: flex !important;
+      visibility: visible !important;
+      width: 16px;
+      height: 16px;
+      content: var(--zth-menu-icon) !important;
+      -moz-context-properties: fill, fill-opacity;
+      fill: currentColor;
+    }
+  }
+
+  & .zenith-more { --zth-menu-icon: url("chrome://browser/skin/zen-icons/menu.svg"); }
+  & #context-openlinkintab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/tab.svg"); }
+  & #context-openlink { --zth-menu-icon: url("chrome://browser/skin/zen-icons/window.svg"); }
+  & #context-openlinkprivate { --zth-menu-icon: url("chrome://browser/skin/zen-icons/private-window.svg"); }
+  & #context-zenOpenLinkInGlance { --zth-menu-icon: url("chrome://browser/skin/zen-icons/popup.svg"); }
+  & #context-zenSplitLink { --zth-menu-icon: url("chrome://browser/skin/zen-icons/split.svg"); }
+  & #context-copylink { --zth-menu-icon: url("chrome://browser/skin/zen-icons/link.svg"); }
+  & #context-cut { --zth-menu-icon: url("chrome://browser/skin/zen-icons/edit-cut.svg"); }
+  & #context-copy { --zth-menu-icon: url("chrome://browser/skin/zen-icons/edit-copy.svg"); }
+  & #context-paste { --zth-menu-icon: url("chrome://browser/skin/zen-icons/edit-paste.svg"); }
+  & #context-delete { --zth-menu-icon: url("chrome://browser/skin/zen-icons/edit-delete.svg"); }
+  & #context-saveimage { --zth-menu-icon: url("chrome://browser/skin/zen-icons/save.svg"); }
+  & #context-savelink { --zth-menu-icon: url("chrome://browser/skin/zen-icons/save.svg"); }
+  & #context-savepage { --zth-menu-icon: url("chrome://browser/skin/zen-icons/save.svg"); }
+  & #context-copyimage-contents { --zth-menu-icon: url("chrome://browser/skin/zen-icons/edit-copy.svg"); }
+  & #context-viewimage { --zth-menu-icon: url("chrome://browser/skin/zen-icons/open.svg"); }
+  & #context-searchselect { --zth-menu-icon: url("chrome://browser/skin/zen-icons/search-glass.svg"); }
+  & #context-translate-selection { --zth-menu-icon: url("chrome://browser/skin/zen-icons/translations.svg"); }
+  & #context-take-screenshot { --zth-menu-icon: url("chrome://browser/skin/zen-icons/screenshot.svg"); }
+  & #context-inspect { --zth-menu-icon: url("chrome://browser/skin/zen-icons/developer.svg"); }
+  & #context-print-selection { --zth-menu-icon: url("chrome://browser/skin/zen-icons/print.svg"); }
+  & #context-viewsource { --zth-menu-icon: url("chrome://browser/skin/zen-icons/brackets-curly.svg"); }
+  & #context-sendpagetodevice { --zth-menu-icon: url("chrome://browser/skin/zen-icons/send-to-device.svg"); }
+  & #context-sendlinktodevice { --zth-menu-icon: url("chrome://browser/skin/zen-icons/send-to-device.svg"); }
+  & #context-media-mute { --zth-menu-icon: url("chrome://browser/skin/zen-icons/media-mute.svg"); }
+  & #context-media-unmute { --zth-menu-icon: url("chrome://browser/skin/zen-icons/media-unmute.svg"); }
+  & #context_openANewTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/plus.svg"); }
+  & #context_reloadTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/reload.svg"); }
+  & #context_toggleMuteTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/media-mute.svg"); }
+  & #context_duplicateTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/duplicate-tab.svg"); }
+  & #context_pinTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/pin.svg"); }
+  & #context_unpinTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/unpin.svg"); }
+  & #context_zen-add-essential { --zth-menu-icon: url("chrome://browser/skin/zen-icons/essential-add.svg"); }
+  & #context_zen-remove-essential { --zth-menu-icon: url("chrome://browser/skin/zen-icons/essential-remove.svg"); }
+  & #context_zenSplitTabs { --zth-menu-icon: url("chrome://browser/skin/zen-icons/split.svg"); }
+  & #context_zenMoveToFolder { --zth-menu-icon: url("chrome://browser/skin/zen-icons/folder.svg"); }
+  & #context_unloadTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/moon-stars.svg"); }
+  & #context_closeTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/close.svg"); }
+  & #context_undoCloseTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/u-turn-to-left.svg"); }
+  & #context_bookmarkTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/bookmark-hollow.svg"); }
+  & #context_zen-edit-tab-icon { --zth-menu-icon: url("chrome://browser/skin/zen-icons/paintbrush.svg"); }
+  & #context_sendTabToDevice { --zth-menu-icon: url("chrome://browser/skin/zen-icons/send-to-device.svg"); }
+}
+
+/* --- Tab previews -------------------------------------------------------------
+   Firefox's own card when you rest on a tab (title, address and a picture of
+   the page), with Zenith's corners and colours: the same look as the menus.
+   "Firefox's own" leaves it as it is. */
+:root:not(:has(#theme-Zenith-Panels:is([zenith-panels-tab-preview="firefox"], [zenith-panels-preset="zen"]))) #tab-preview-panel {
+  --panel-border-radius: var(--zth-radius) !important;
+  --panel-border-color: var(--zth-hairline) !important;
+  --panel-width: 264px;
+  font-size: var(--zth-font);
+
+  & .tab-preview-title {
+    color: var(--zth-ink);
+    font-weight: 600;
+  }
+
+  & :is(.tab-preview-uri, .tab-preview-pid-activeness) {
+    color: var(--zth-ink-dim);
+  }
+
+  /* (A plain picture: Zen's squircle radius would read as very round.) */
+  & .tab-preview-thumbnail-container > canvas {
+    border-color: var(--zth-hairline) !important;
+    border-radius: 8px !important;
+  }
+}
+
+/* --- Ctrl+Tab panel -----------------------------------------------------------
+   Firefox's row of page pictures for Ctrl+Tab in recently-used order
+   (Zenith Plus › Ctrl+Tab › Recently used): a frosted card with rounded
+   pictures, the one you'd land on outlined in the accent colour. */
+:root:not(:has(#theme-Zenith-Panels[zenith-panels-preset="zen"])) #ctrlTab-panel {
+  /* Firefox paints the card inside the panel's shadow DOM from these
+     variables (an outside !important can't reach in there). */
+  --panel-background: color-mix(in srgb, var(--zth-glass-color) 94%, transparent) !important;
+  --panel-border-color: var(--zth-hairline) !important;
+  --panel-border-radius: calc(var(--zth-radius) + 4px) !important;
+  --panel-padding: 16px 8px 8px !important;
+  --panel-shadow: var(--zth-shadow) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: var(--zth-ink) !important;
+  font-size: var(--zth-font);
+
+  & :is(.ctrlTab-preview, #ctrlTab-showAll) {
+    text-shadow: none !important;
+  }
+
+  & :is(.ctrlTab-preview-inner, #ctrlTab-showAll) {
+    border-radius: var(--zth-radius) !important;
+    border-width: 2px !important;
+  }
+
+  & .ctrlTab-canvas {
+    border-radius: calc(var(--zth-radius) - 4px);
+    box-shadow: 0 0 0 1px var(--zth-hairline) !important;
+    overflow: clip;
+  }
+
+  & .ctrlTab-favicon[src] {
+    border-radius: var(--zth-radius) !important;
+    border-color: var(--zth-hairline) !important;
+  }
+
+  & :is(.ctrlTab-preview:focus > .ctrlTab-preview-inner, #ctrlTab-showAll:focus) {
+    background-color: var(--zth-accent-soft) !important;
+    border-color: var(--zth-accent) !important;
+  }
+
+  & #ctrlTab-showAll {
+    background-color: color-mix(in srgb, var(--zth-ink) 8%, transparent) !important;
   }
 }
 

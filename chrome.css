@@ -1788,7 +1788,7 @@
 
 /* --- Menus ----------------------------------------------------------------
    Corners follow Core everywhere (unless "Zen default"); compact menus are
-   opt-in. Moving rare items into a "More" submenu needs the phase 2 script. */
+   opt-in. Rare items move into a "More" submenu with Zenith Plus. */
 
 :root:not(:has(#theme-Zenith[zenith-panels-preset="zen"])) :is(menupopup, panel)::part(content) {
   border-radius: var(--zth-radius) !important;
@@ -1815,6 +1815,146 @@
      reload row, which is icon-only */
   & :is(menu, menuitem):not([type="checkbox"], [type="radio"], .webextension-menuitem, #context-navigation *) > .menu-icon {
     display: none !important;
+  }
+}
+
+/* Extra: icons on the most used items of the page's and the tab's menus,
+   from Zen's own icon set, shown even with compact menus. The More submenu
+   gets one too. */
+:root:has(#theme-Zenith[zenith-panels-menu-icons="on"]) {
+  & :is(#context-openlinkintab, #context-openlink, #context-openlinkprivate, #context-zenOpenLinkInGlance, #context-zenSplitLink, #context-copylink, #context-cut, #context-copy, #context-paste, #context-delete, #context-saveimage, #context-savelink, #context-savepage, #context-copyimage-contents, #context-viewimage, #context-searchselect, #context-translate-selection, #context-take-screenshot, #context-inspect, #context-print-selection, #context-viewsource, #context-sendpagetodevice, #context-sendlinktodevice, #context-media-mute, #context-media-unmute, #context_openANewTab, #context_reloadTab, #context_toggleMuteTab, #context_duplicateTab, #context_pinTab, #context_unpinTab, #context_zen-add-essential, #context_zen-remove-essential, #context_zenSplitTabs, #context_zenMoveToFolder, #context_unloadTab, #context_closeTab, #context_undoCloseTab, #context_bookmarkTab, #context_zen-edit-tab-icon, #context_sendTabToDevice, .zenith-more):not(#zth-a):not(#zth-b) {
+    /* (two IDs outrank compact menus, which hide icons) */
+    -moz-context-properties: fill, fill-opacity;
+    fill: currentColor;
+
+    /* (Firefox's menu icons are images hidden on items without one.) */
+    & > .menu-icon {
+      display: flex !important;
+      visibility: visible !important;
+      width: 16px;
+      height: 16px;
+      content: var(--zth-menu-icon) !important;
+      -moz-context-properties: fill, fill-opacity;
+      fill: currentColor;
+    }
+  }
+
+  & .zenith-more { --zth-menu-icon: url("chrome://browser/skin/zen-icons/menu.svg"); }
+  & #context-openlinkintab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/tab.svg"); }
+  & #context-openlink { --zth-menu-icon: url("chrome://browser/skin/zen-icons/window.svg"); }
+  & #context-openlinkprivate { --zth-menu-icon: url("chrome://browser/skin/zen-icons/private-window.svg"); }
+  & #context-zenOpenLinkInGlance { --zth-menu-icon: url("chrome://browser/skin/zen-icons/popup.svg"); }
+  & #context-zenSplitLink { --zth-menu-icon: url("chrome://browser/skin/zen-icons/split.svg"); }
+  & #context-copylink { --zth-menu-icon: url("chrome://browser/skin/zen-icons/link.svg"); }
+  & #context-cut { --zth-menu-icon: url("chrome://browser/skin/zen-icons/edit-cut.svg"); }
+  & #context-copy { --zth-menu-icon: url("chrome://browser/skin/zen-icons/edit-copy.svg"); }
+  & #context-paste { --zth-menu-icon: url("chrome://browser/skin/zen-icons/edit-paste.svg"); }
+  & #context-delete { --zth-menu-icon: url("chrome://browser/skin/zen-icons/edit-delete.svg"); }
+  & #context-saveimage { --zth-menu-icon: url("chrome://browser/skin/zen-icons/save.svg"); }
+  & #context-savelink { --zth-menu-icon: url("chrome://browser/skin/zen-icons/save.svg"); }
+  & #context-savepage { --zth-menu-icon: url("chrome://browser/skin/zen-icons/save.svg"); }
+  & #context-copyimage-contents { --zth-menu-icon: url("chrome://browser/skin/zen-icons/edit-copy.svg"); }
+  & #context-viewimage { --zth-menu-icon: url("chrome://browser/skin/zen-icons/open.svg"); }
+  & #context-searchselect { --zth-menu-icon: url("chrome://browser/skin/zen-icons/search-glass.svg"); }
+  & #context-translate-selection { --zth-menu-icon: url("chrome://browser/skin/zen-icons/translations.svg"); }
+  & #context-take-screenshot { --zth-menu-icon: url("chrome://browser/skin/zen-icons/screenshot.svg"); }
+  & #context-inspect { --zth-menu-icon: url("chrome://browser/skin/zen-icons/developer.svg"); }
+  & #context-print-selection { --zth-menu-icon: url("chrome://browser/skin/zen-icons/print.svg"); }
+  & #context-viewsource { --zth-menu-icon: url("chrome://browser/skin/zen-icons/brackets-curly.svg"); }
+  & #context-sendpagetodevice { --zth-menu-icon: url("chrome://browser/skin/zen-icons/send-to-device.svg"); }
+  & #context-sendlinktodevice { --zth-menu-icon: url("chrome://browser/skin/zen-icons/send-to-device.svg"); }
+  & #context-media-mute { --zth-menu-icon: url("chrome://browser/skin/zen-icons/media-mute.svg"); }
+  & #context-media-unmute { --zth-menu-icon: url("chrome://browser/skin/zen-icons/media-unmute.svg"); }
+  & #context_openANewTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/plus.svg"); }
+  & #context_reloadTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/reload.svg"); }
+  & #context_toggleMuteTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/media-mute.svg"); }
+  & #context_duplicateTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/duplicate-tab.svg"); }
+  & #context_pinTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/pin.svg"); }
+  & #context_unpinTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/unpin.svg"); }
+  & #context_zen-add-essential { --zth-menu-icon: url("chrome://browser/skin/zen-icons/essential-add.svg"); }
+  & #context_zen-remove-essential { --zth-menu-icon: url("chrome://browser/skin/zen-icons/essential-remove.svg"); }
+  & #context_zenSplitTabs { --zth-menu-icon: url("chrome://browser/skin/zen-icons/split.svg"); }
+  & #context_zenMoveToFolder { --zth-menu-icon: url("chrome://browser/skin/zen-icons/folder.svg"); }
+  & #context_unloadTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/moon-stars.svg"); }
+  & #context_closeTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/close.svg"); }
+  & #context_undoCloseTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/u-turn-to-left.svg"); }
+  & #context_bookmarkTab { --zth-menu-icon: url("chrome://browser/skin/zen-icons/bookmark-hollow.svg"); }
+  & #context_zen-edit-tab-icon { --zth-menu-icon: url("chrome://browser/skin/zen-icons/paintbrush.svg"); }
+  & #context_sendTabToDevice { --zth-menu-icon: url("chrome://browser/skin/zen-icons/send-to-device.svg"); }
+}
+
+/* --- Tab previews -------------------------------------------------------------
+   Firefox's own card when you rest on a tab (title, address and a picture of
+   the page), with Zenith's corners and colours: the same look as the menus.
+   "Firefox's own" leaves it as it is. */
+:root:not(:has(#theme-Zenith:is([zenith-panels-tab-preview="firefox"], [zenith-panels-preset="zen"]))) #tab-preview-panel {
+  --panel-border-radius: var(--zth-radius) !important;
+  --panel-border-color: var(--zth-hairline) !important;
+  --panel-width: 264px;
+  font-size: var(--zth-font);
+
+  & .tab-preview-title {
+    color: var(--zth-ink);
+    font-weight: 600;
+  }
+
+  & :is(.tab-preview-uri, .tab-preview-pid-activeness) {
+    color: var(--zth-ink-dim);
+  }
+
+  /* (A plain picture: Zen's squircle radius would read as very round.) */
+  & .tab-preview-thumbnail-container > canvas {
+    border-color: var(--zth-hairline) !important;
+    border-radius: 8px !important;
+  }
+}
+
+/* --- Ctrl+Tab panel -----------------------------------------------------------
+   Firefox's row of page pictures for Ctrl+Tab in recently-used order
+   (Zenith Plus › Ctrl+Tab › Recently used): a frosted card with rounded
+   pictures, the one you'd land on outlined in the accent colour. */
+:root:not(:has(#theme-Zenith[zenith-panels-preset="zen"])) #ctrlTab-panel {
+  /* Firefox paints the card inside the panel's shadow DOM from these
+     variables (an outside !important can't reach in there). */
+  --panel-background: color-mix(in srgb, var(--zth-glass-color) 94%, transparent) !important;
+  --panel-border-color: var(--zth-hairline) !important;
+  --panel-border-radius: calc(var(--zth-radius) + 4px) !important;
+  --panel-padding: 16px 8px 8px !important;
+  --panel-shadow: var(--zth-shadow) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: var(--zth-ink) !important;
+  font-size: var(--zth-font);
+
+  & :is(.ctrlTab-preview, #ctrlTab-showAll) {
+    text-shadow: none !important;
+  }
+
+  & :is(.ctrlTab-preview-inner, #ctrlTab-showAll) {
+    border-radius: var(--zth-radius) !important;
+    border-width: 2px !important;
+  }
+
+  & .ctrlTab-canvas {
+    border-radius: calc(var(--zth-radius) - 4px);
+    box-shadow: 0 0 0 1px var(--zth-hairline) !important;
+    overflow: clip;
+  }
+
+  & .ctrlTab-favicon[src] {
+    border-radius: var(--zth-radius) !important;
+    border-color: var(--zth-hairline) !important;
+  }
+
+  & :is(.ctrlTab-preview:focus > .ctrlTab-preview-inner, #ctrlTab-showAll:focus) {
+    background-color: var(--zth-accent-soft) !important;
+    border-color: var(--zth-accent) !important;
+  }
+
+  & #ctrlTab-showAll {
+    background-color: color-mix(in srgb, var(--zth-ink) 8%, transparent) !important;
   }
 }
 
@@ -2941,84 +3081,30 @@ browser[zenith-see-through] {
   }
 }
 
-/* The flash: the top edge lights up in the new space's colour. */
+/* The flash: the top of the page lights up in the new space's colour, a
+   bright edge with a glow that falls a little way down the page, and fades. */
 #zenith-space-flash {
   position: absolute;
   inset: 0 0 auto 0;
-  height: calc(var(--zth-edge) + 1px);
+  height: 64px;
   z-index: 12;
   pointer-events: none;
   opacity: 0;
-  background: linear-gradient(to right, transparent, var(--zth-flash, var(--zth-accent)) 20%, var(--zth-flash, var(--zth-accent)) 80%, transparent);
-  box-shadow: 0 0 14px 1px color-mix(in srgb, var(--zth-flash, var(--zth-accent)) 70%, transparent);
+  background:
+    linear-gradient(to right, transparent, var(--zth-flash, var(--zth-accent)) 15%, var(--zth-flash, var(--zth-accent)) 85%, transparent) 0 0 / 100% 3px no-repeat,
+    linear-gradient(to bottom, color-mix(in srgb, var(--zth-flash, var(--zth-accent)) 45%, transparent), transparent);
+  mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
 
   &[go] {
-    animation: zth-space-flash 0.9s ease-out;
+    animation: zth-space-flash 1.3s ease-out;
   }
 }
 
 @keyframes zth-space-flash {
-  0% { opacity: 0; transform: scaleX(0.3); }
-  20% { opacity: 1; transform: scaleX(1); }
+  0% { opacity: 0; transform: scaleX(0.4); }
+  18% { opacity: 1; transform: scaleX(1); }
+  45% { opacity: 1; }
   100% { opacity: 0; transform: scaleX(1); }
-}
-
-/* === Hover cards ================================================================== */
-
-#zenith-hover-card {
-  position: fixed;
-  z-index: 320;
-  box-sizing: border-box;
-  max-width: 300px;
-  padding: 8px 12px;
-  border-radius: var(--zth-radius, 10px);
-  outline: 1px solid var(--zth-hairline);
-  background: var(--zth-panel-bg);
-  backdrop-filter: var(--zth-panel-filter);
-  box-shadow: var(--zth-shadow), var(--zth-glass-shine);
-  color: var(--zth-ink);
-  font: var(--zth-font, 13px) / 1.35 system-ui, sans-serif;
-  pointer-events: none;
-  animation: zth-fade-in var(--zth-dur) var(--zth-ease);
-
-  &[hidden] {
-    display: none;
-  }
-}
-
-.zenith-hover-title {
-  font-weight: 600;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-}
-
-.zenith-hover-site {
-  margin-top: 2px;
-  color: var(--zth-ink-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.zenith-hover-meta {
-  margin-top: 4px;
-  color: var(--zth-ink-dim);
-  font-size: 0.9em;
-
-  #zenith-hover-card[style*="--zth-card-dot"] &::before {
-    content: "";
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    margin-inline-end: 6px;
-    border-radius: 50%;
-    corner-shape: round !important;
-    vertical-align: 0.5px;
-    background: var(--zth-card-dot);
-  }
 }
 
 /* === More: rare menu items in a submenu ============================================ */
@@ -3106,7 +3192,7 @@ menuseparator[zenith-collapse] {
 }
 
 #zenith-switcher-list {
-  max-height: calc(9 * (var(--zth-row) + 6px));
+  max-height: calc(9 * (var(--zth-row) + 14px));
   overflow-y: auto;
   margin: 0 4px;
   padding: 4px 0;
@@ -3118,8 +3204,8 @@ menuseparator[zenith-collapse] {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: var(--zth-row);
-  padding: 3px 10px;
+  min-height: calc(var(--zth-row) + 6px);
+  padding: 4px 10px;
   border-radius: calc(var(--zth-radius) - 4px);
   cursor: default;
 
@@ -3167,16 +3253,18 @@ menuseparator[zenith-collapse] {
   }
 }
 
+/* Two lines: the name, and under it where it is, each cut short with an
+   ellipsis rather than squeezed against the other. */
 .zenith-switch-text {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  flex-direction: column;
+  justify-content: center;
   min-width: 0;
   flex: 1;
 }
 
-.zenith-switch-title {
-  flex: 0 1 auto;
+.zenith-switch-title,
+.zenith-switch-sub {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3184,13 +3272,9 @@ menuseparator[zenith-collapse] {
 }
 
 .zenith-switch-sub {
-  flex: 0 10 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--zth-ink-dim);
-  font-size: 0.92em;
+  font-size: 0.86em;
+  line-height: 1.2;
 }
 
 .zenith-switch-space {
@@ -3214,4 +3298,462 @@ menuseparator[zenith-collapse] {
   border-top: 1px solid var(--zth-hairline);
   color: var(--zth-ink-dim);
   font-size: 0.88em;
+}
+
+/* === Bookmarks bar ================================================================ */
+
+/* Its own slim strip at the top of the page column (Plus moves it there out
+   of the strip with the window buttons). "Above the page" takes room; "Over
+   the page, on hover" floats as frosted glass and tucks up out of sight
+   until the pointer reaches the top edge or a folder of it is open. */
+:root[zenith-bookmarks] #PersonalToolbar:not([collapsed]) {
+  min-height: 0 !important;
+  height: calc(var(--zth-row) - 2px);
+  margin: 0 !important;
+  padding: 0 8px !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--zth-ink);
+  font-size: calc(var(--zth-font) - 0.5px);
+
+  & toolbarbutton.bookmark-item {
+    margin: 0 1px !important;
+    padding: 2px 8px !important;
+    border-radius: var(--zth-pill-radius) !important;
+    corner-shape: var(--zth-pill-shape);
+    color: inherit !important;
+    background: transparent !important;
+
+    &:hover {
+      background: color-mix(in srgb, var(--zth-ink) 9%, transparent) !important;
+    }
+
+    &[open] {
+      background: var(--zth-accent-soft) !important;
+    }
+  }
+
+  & .toolbarbutton-icon {
+    width: 14px !important;
+    height: 14px !important;
+  }
+}
+
+:root[zenith-bookmarks="above"] #PersonalToolbar:not([collapsed]) {
+  border-bottom: 1px solid var(--zth-hairline) !important;
+}
+
+/* (12px of it stay in reach at the top: a window that isn't maximised keeps
+   its top 8 or so pixels for resizing.) */
+:root[zenith-bookmarks="hover"] {
+  & #zen-tabbox-wrapper {
+    position: relative;
+  }
+
+  & #PersonalToolbar:not([collapsed]) {
+    position: absolute !important;
+    inset: 0 0 auto 0;
+    z-index: 4;
+    background: var(--zth-panel-bg) !important;
+    backdrop-filter: var(--zth-panel-filter);
+    border-bottom: 1px solid var(--zth-hairline) !important;
+    box-shadow: var(--zth-shadow);
+    translate: 0 calc(-100% + 12px);
+    opacity: 0;
+    transition: translate 0.18s var(--zth-ease), opacity 0.18s var(--zth-ease);
+    transition-delay: 0.25s;
+
+    &:is(:hover, :has([open])) {
+      translate: 0 0;
+      opacity: 1;
+      transition-delay: 0s;
+    }
+  }
+}
+
+/* === Tab manager (Alt+Shift+T) ================================================== */
+
+#zenith-tabs {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 8vh;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+#zenith-tabs-card {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 90vw);
+  max-height: 84vh;
+  box-sizing: border-box;
+  border-radius: calc(var(--zth-radius) + 4px);
+  outline: 1px solid var(--zth-hairline);
+  background: var(--zth-panel-bg);
+  backdrop-filter: var(--zth-panel-filter);
+  box-shadow: var(--zth-shadow), var(--zth-glass-shine);
+  color: var(--zth-ink);
+  font: var(--zth-font) / 1.35 system-ui, sans-serif;
+  animation: zth-enter var(--zth-dur) var(--zth-ease);
+
+  &:focus-visible {
+    outline: 1px solid var(--zth-hairline);
+  }
+
+  & h2 {
+    margin: 0;
+    font-size: 1.25em;
+    font-weight: 600;
+  }
+
+  & h3 {
+    margin: 0;
+    font-size: 1em;
+    font-weight: 600;
+  }
+
+  & button {
+    appearance: none;
+    margin: 0;
+    min-height: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+}
+
+.zth-tm-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid var(--zth-hairline);
+}
+
+.zth-tm-sum {
+  color: var(--zth-ink-dim);
+}
+
+.zth-tm-x {
+  margin-inline-start: auto !important;
+  border: none;
+  background: none;
+  color: var(--zth-ink-dim) !important;
+  font-size: 1.4em !important;
+  line-height: 1;
+}
+
+.zth-tm-body {
+  overflow-y: auto;
+  padding: 6px 18px 12px;
+  scrollbar-width: thin;
+}
+
+.zth-tm-spaces {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 10px;
+}
+
+.zth-tm-space {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 12px;
+  border: 1px solid var(--zth-hairline);
+  border-radius: var(--zth-pill-radius);
+  corner-shape: var(--zth-pill-shape);
+  background: color-mix(in srgb, var(--zth-ink) 5%, transparent);
+
+  &[here] {
+    border-color: var(--zth-accent);
+    background: var(--zth-accent-soft);
+  }
+
+  &:hover {
+    border-color: var(--zth-accent);
+  }
+}
+
+.zth-tm-space-name {
+  font-weight: 600;
+}
+
+:is(.zth-tm-space-n, .zth-tm-ess, .zth-tm-why, .zth-tm-site, .zth-tm-none) {
+  color: var(--zth-ink-dim);
+}
+
+.zth-tm-section {
+  padding: 10px 0;
+  border-top: 1px solid var(--zth-hairline);
+}
+
+.zth-tm-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zth-tm-count {
+  padding: 0 8px;
+  border-radius: var(--zth-pill-radius);
+  corner-shape: var(--zth-pill-shape);
+  background: color-mix(in srgb, var(--zth-ink) 9%, transparent);
+  font-size: 0.88em;
+}
+
+.zth-tm-days {
+  display: flex;
+  gap: 2px;
+  margin-inline-start: auto;
+  padding: 2px;
+  border-radius: var(--zth-pill-radius);
+  background: color-mix(in srgb, var(--zth-ink) 7%, transparent);
+
+  & button {
+    border: none;
+    background: none;
+    padding: 1px 8px;
+    border-radius: var(--zth-pill-radius);
+    font-size: 0.88em;
+  }
+
+  & button[selected] {
+    background: var(--zth-accent-soft);
+  }
+}
+
+.zth-tm-why,
+.zth-tm-none {
+  margin: 2px 0 6px;
+  font-size: 0.92em;
+}
+
+.zth-tm-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.zth-tm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 6px;
+  border-radius: calc(var(--zth-radius) - 4px);
+
+  &:hover {
+    background: color-mix(in srgb, var(--zth-ink) 6%, transparent);
+  }
+
+  & input {
+    flex: none;
+    margin: 0;
+    accent-color: var(--zth-accent);
+  }
+
+  &:has(input:not(:checked)) .zth-tm-text {
+    opacity: 0.5;
+  }
+}
+
+.zth-tm-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+
+  & img {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.zth-tm-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+:is(.zth-tm-title, .zth-tm-site) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zth-tm-site {
+  font-size: 0.86em;
+}
+
+.zth-tm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.zth-tm-act {
+  padding: 4px 12px;
+  border: 1px solid var(--zth-hairline);
+  border-radius: var(--zth-pill-radius);
+  corner-shape: var(--zth-pill-shape);
+  background: color-mix(in srgb, var(--zth-ink) 6%, transparent);
+
+  &:hover {
+    border-color: var(--zth-accent);
+    background: var(--zth-accent-soft);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.zth-tm-busy {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  padding: 4px 6px;
+
+  & .zth-tm-site {
+    grid-row: 2;
+  }
+
+  & .zth-tm-act {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+.zth-tm-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px 12px;
+  border-top: 1px solid var(--zth-hairline);
+  color: var(--zth-ink-dim);
+  font-size: 0.92em;
+
+  & .zth-tm-act {
+    color: var(--zth-ink);
+  }
+}
+
+/* === Extension buttons per space =================================================== */
+
+/* A button set to "Only in this space" (right-click it), in another space. */
+[zenith-other-space] {
+  display: none !important;
+}
+
+/* === Links from other apps: where should this open? ================================ */
+
+#zenith-linkask {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 16vh;
+}
+
+#zenith-linkask-box {
+  width: min(520px, 86vw);
+  box-sizing: border-box;
+  padding: 12px 12px 8px;
+  border-radius: calc(var(--zth-radius) + 4px);
+  outline: 1px solid var(--zth-hairline);
+  background: var(--zth-panel-bg);
+  backdrop-filter: var(--zth-panel-filter);
+  box-shadow: var(--zth-shadow), var(--zth-glass-shine);
+  color: var(--zth-ink);
+  font: var(--zth-font) / 1.35 system-ui, sans-serif;
+  animation: zth-enter var(--zth-dur) var(--zth-ease);
+}
+
+.zth-la-head {
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+.zth-la-site {
+  padding: 2px 6px 8px;
+  color: var(--zth-ink-dim);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.zth-la-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.zth-la-row {
+  appearance: none;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  padding: 6px 8px;
+  border: none;
+  border-radius: calc(var(--zth-radius) - 4px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  &:is([selected], :hover, :focus-visible) {
+    background: var(--zth-accent-soft);
+    outline: none;
+  }
+}
+
+.zth-la-name {
+  font-weight: 600;
+}
+
+.zth-la-container,
+.zth-la-foot {
+  color: var(--zth-ink-dim);
+  font-size: 0.88em;
+}
+
+.zth-la-always {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px 4px;
+  font-size: 0.92em;
+
+  & input {
+    margin: 0;
+    accent-color: var(--zth-accent);
+  }
+}
+
+.zth-la-foot {
+  padding: 4px 6px 0;
+}
+
+/* === Blend with the page =========================================================== */
+
+/* The glass takes the colour along the top of the page (Plus samples it). */
+:root[zenith-blend="on"] {
+  --zth-glass-color: color-mix(in srgb, var(--zth-page-tint, var(--zth-paint)) 30%, var(--zth-mica)) !important;
 }

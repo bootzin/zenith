@@ -238,5 +238,37 @@
         "value": "off"
       }
     ]
+  },
+  {
+    "property": "zenith.panels.menu-icons",
+    "label": "Extra: icons on the most used menu items",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.tab-preview",
+    "label": "Tab previews (Firefox's card when you rest on a tab)",
+    "type": "dropdown",
+    "placeholder": "Default (Zenith)",
+    "options": [
+      {
+        "label": "Zenith",
+        "value": "zenith"
+      },
+      {
+        "label": "Firefox's own",
+        "value": "firefox"
+      }
+    ]
   }
 ]

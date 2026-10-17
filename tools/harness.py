@@ -101,6 +101,12 @@ REAL_SETTINGS = [
 def setup_profile():
     """(Re)build the test profile: prefs + all six Zenith mods enabled."""
     TEST_PROFILE.mkdir(parents=True, exist_ok=True)
+    # A fresh session every run: no tabs or spaces left over from earlier
+    # checks (Zen restores them, and spaces pile up).
+    for name in ("sessionstore.jsonlz4", "zen-sessions.jsonlz4"):
+        (TEST_PROFILE / name).unlink(missing_ok=True)
+    for name in ("sessionstore-backups", "zen-sessions-backup"):
+        shutil.rmtree(TEST_PROFILE / name, ignore_errors=True)
     prefs = dict(TEST_PREFS)
     # Start every run from Zenith's defaults: blank every Zenith text/dropdown
     # setting and reset its tick boxes, whatever earlier runs changed.
