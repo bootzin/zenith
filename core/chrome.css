@@ -196,16 +196,19 @@
     box-shadow: var(--zth-glass-shine) !important;
   }
 
-  /* Where you press, the glass lights up: a soft spot under the pointer
-     and a faint wash over the whole surface. Zenith Plus marks the surface,
-     follows the pointer while you hold, and fades it after you let go
-     (--zth-press, 0 to 1; mod stylesheets can't animate it themselves). */
-  & [zenith-press] {
+  /* Under the pointer the glass lights up: a soft spot and a faint wash,
+     gentle on hover and full while pressed. Zenith Plus marks the surface,
+     follows the pointer and fades the light (--zth-press, 0 to 1; mod
+     stylesheets can't animate it themselves). It draws over whatever image
+     the surface already has (--zth-under-light: a container tab's tint),
+     and the two IDs outrank the rules that set those images. */
+  & [zenith-press]:not(#zth-a, #zth-b) {
     background-image:
       radial-gradient(circle var(--zth-press-r, 64px) at var(--zth-press-x, 50%) var(--zth-press-y, 50%),
         light-dark(rgb(255 255 255 / calc(var(--zth-press, 0) * 0.9)), rgb(255 255 255 / calc(var(--zth-press, 0) * 0.42))),
         transparent),
-      linear-gradient(light-dark(rgb(255 255 255 / calc(var(--zth-press, 0) * 0.25)), rgb(255 255 255 / calc(var(--zth-press, 0) * 0.06))) 0 0) !important;
+      linear-gradient(light-dark(rgb(255 255 255 / calc(var(--zth-press, 0) * 0.25)), rgb(255 255 255 / calc(var(--zth-press, 0) * 0.06))) 0 0),
+      var(--zth-under-light, none) !important;
   }
 }
 
@@ -283,7 +286,7 @@
    the rest of the time it shows flat grey. Around the page Zenith shows
    the glass colour in full then instead. */
 @media (-moz-platform: windows) {
-  :root:-moz-window-inactive {
+  :root:not([zenith-wallpaper]):-moz-window-inactive {
     --zth-desk-alpha: 1 !important;
   }
 }
@@ -320,6 +323,33 @@
   &::before,
   &::after {
     opacity: 0 !important;
+  }
+}
+
+/* Wallpaper (Zenith Plus on Windows, Window material "Wallpaper"): the
+   desktop wallpaper, drawn where it sits on the screen (--zth-wall-x/y/w/h),
+   is what's behind the window. It gets the panels' Frost and dimming and
+   then the glass colour on top, so the docked sidebar is the floating
+   sidebar's recipe with the wallpaper in place of the page. The picture
+   reaches past the edges so the blur doesn't fade them. */
+:root[zenith-wallpaper]:not(:has(#theme-Zenith-Core[zenith-core-floating-sidebar="zen"])) #zen-browser-background {
+  --zth-wall-edge: calc(var(--zth-glass-blur) * 6 + 4px);
+  overflow: clip !important;
+  background: var(--zth-mica) !important;
+
+  &::before {
+    opacity: 1 !important;
+    inset: calc(-1 * var(--zth-wall-edge)) !important;
+    background: var(--zth-wall) calc(var(--zth-wall-x) + var(--zth-wall-edge)) calc(var(--zth-wall-y) + var(--zth-wall-edge)) /
+      var(--zth-wall-w) var(--zth-wall-h) no-repeat var(--zth-mica) !important;
+    filter: var(--zth-panel-filter) !important;
+    transition: none !important;
+  }
+
+  &::after {
+    opacity: 1 !important;
+    background: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent) !important;
+    transition: background-color 0.3s ease !important;
   }
 }
 

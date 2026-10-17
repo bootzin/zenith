@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.9.0
+// @version        0.9.1
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -230,7 +230,7 @@ const SCHEMA = [
       "label": "Frost",
       "type": "dropdown",
       "extra": false,
-      "desc": "How much see-through surfaces blur the page behind them. Behind the docked sidebar it's the desktop, which Windows blurs at its own strength.",
+      "desc": "How much see-through surfaces blur what's behind them: the page, or (with Window material on Wallpaper) the wallpaper behind the docked sidebar. Acrylic and Mica are blurred by Windows, at its own strength.",
       "host": "Zenith Core",
       "options": [
        {
@@ -301,12 +301,16 @@ const SCHEMA = [
       "label": "Window material",
       "type": "dropdown",
       "extra": false,
-      "desc": "What Windows draws where the window itself shows through: behind the docked sidebar and around a rounded page. In compact mode the page fills the window, so it doesn't show. Acrylic blurs the windows behind; Mica and Mica Alt tint with your wallpaper. Only while Zen is the active window.",
+      "desc": "What shows behind the docked sidebar and around a rounded page. Wallpaper: your desktop wallpaper, drawn by Zenith where it sits on the screen, so Frost and Window transparency work there as they do over the page. Acrylic: Windows' blur of the windows behind, at one strength, only while Zen is active. Mica and Mica Alt: Windows' wallpaper tint. In compact mode the page fills the window.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Acrylic",
+        "label": "Wallpaper",
         "value": ""
+       },
+       {
+        "label": "Acrylic",
+        "value": "acrylic"
        },
        {
         "label": "Mica",
@@ -319,6 +323,10 @@ const SCHEMA = [
        {
         "label": "Automatic",
         "value": "auto"
+       },
+       {
+        "label": "Zen's own",
+        "value": "zen"
        },
        {
         "label": "None",
@@ -2377,7 +2385,8 @@ const PICTURES = {
     ${v === "liquid" ? `<rect x="16.6" y="12.6" width="62.8" height="34.8" rx="8.6" class="zp-rim-liquid"/>
       <circle cx="58" cy="34" r="12" class="zp-press"/>` : ""}</svg>`,
   "zenith.plus.material-windows": v => {
-    if (v === "acrylic" || v === "") return W(`${STRIPES}<rect x="1" y="1" width="94" height="58" rx="6" class="zp-tint" style="opacity:.25;filter:blur(2px)"/>${PAGE()}${ROWS(8, 10, 5)}`, `style="filter:none"`);
+    if (v === "") return W(`<rect x="1" y="1" width="94" height="58" rx="6" class="zp-wallpaper" style="filter:blur(1.5px)"/><rect x="1" y="1" width="94" height="58" rx="6" class="zp-tint" style="opacity:.3"/>${PAGE()}${ROWS(8, 10, 5)}`);
+    if (v === "acrylic" || v === "zen") return W(`${STRIPES}<rect x="1" y="1" width="94" height="58" rx="6" class="zp-tint" style="opacity:.25;filter:blur(2px)"/>${PAGE()}${ROWS(8, 10, 5)}`, `style="filter:none"`);
     if (v === "off") return W(`<rect x="1" y="1" width="94" height="58" rx="6" class="zp-side zp-dark"/>${PAGE()}${ROWS(8, 10, 5)}`);
     const tint = v === "mica-alt" ? 0.5 : 0.75;
     return W(`<rect x="1" y="1" width="94" height="58" rx="6" class="zp-wallpaper"/><rect x="1" y="1" width="94" height="58" rx="6" class="zp-side zp-dark" style="opacity:${tint}"/>${PAGE()}${ROWS(8, 10, 5)}`);
@@ -2432,7 +2441,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.9.0";
+const SCHEMA_VERSION = "0.9.1";
 
 class SettingsView {
   constructor(kind) {

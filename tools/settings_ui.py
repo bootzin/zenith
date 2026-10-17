@@ -215,16 +215,18 @@ DESCRIPTIONS = {
     "zenith.core.pills": "Small badges like the zoom pill and number chips.",
     "zenith.core.window-transparency": "How much shows through every see-through surface: the sidebar, docked or "
                                        "floating, and the panels. All of them use the same colour and strength.",
-    "zenith.core.glass": "How much see-through surfaces blur the page behind them. Behind the docked sidebar it's the "
-                         "desktop, which Windows blurs at its own strength.",
+    "zenith.core.glass": "How much see-through surfaces blur what's behind them: the page, or (with Window material "
+                         "on Wallpaper) the wallpaper behind the docked sidebar. Acrylic and Mica are blurred by "
+                         "Windows, at its own strength.",
     "zenith.core.glass-edge": "The rim of glass surfaces: a fine highlight along the top, or liquid glass that catches "
                               "the light around its edge, on panels, the selected tab and essentials, and lights up "
                               "where you press (with Zenith Plus).",
     "zenith.core.floating-sidebar": "See-through like every panel, always solid, or Zen's own colours and blur.",
-    "zenith.plus.material-windows": "What Windows draws where the window itself shows through: behind the docked "
-                                    "sidebar and around a rounded page. In compact mode the page fills the window, "
-                                    "so it doesn't show. Acrylic blurs the windows behind; Mica and Mica Alt tint "
-                                    "with your wallpaper. Only while Zen is the active window.",
+    "zenith.plus.material-windows": "What shows behind the docked sidebar and around a rounded page. Wallpaper: "
+                                    "your desktop wallpaper, drawn by Zenith where it sits on the screen, so Frost and "
+                                    "Window transparency work there as they do over the page. Acrylic: Windows' blur "
+                                    "of the windows behind, at one strength, only while Zen is active. Mica and Mica "
+                                    "Alt: Windows' wallpaper tint. In compact mode the page fills the window.",
     "zenith.plus.material-macos": "The macOS material behind Zen's window.",
     "zenith.plus.material-linux": "Lets the desktop show through Zen. Blur comes from your desktop: "
                                   "KDE's Better Blur or GNOME's Blur My Shell.",

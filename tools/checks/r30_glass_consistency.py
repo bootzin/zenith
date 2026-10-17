@@ -85,6 +85,8 @@ try:
         ZEN["pid"] = z.proc.pid
         z.js("""window.moveTo(0, 0); window.resizeTo(1366, 720);
                 if (document.documentElement.getAttribute('zen-compact-mode') === 'true') gZenCompactModeManager.preference = false;
+                // Windows' Acrylic behind the docked sidebar, so it shows the same stripes as the page (r32 checks Wallpaper).
+                Services.prefs.setStringPref('zenith.plus.material-windows', 'acrylic');
                 zth.open(arguments[0]); await zth.sleep(1500); window.focus(); await zth.sleep(800); return 1""", STRIPES)
         side = (24, 300, 150, 260)  # an empty stretch of the sidebar
 

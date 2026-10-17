@@ -1,6 +1,6 @@
 # Zenith Plus
 
-Version 0.9.0
+Version 0.9.1
 
 The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
 
@@ -29,7 +29,7 @@ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus a
 
 **Settings**: Plus adds a **Zenith** page to Zen's Settings: every option with a sentence on what it does, switches, small pictures for looks, and presets that fill in the settings they cover (it says "Custom" once you change one). Press **Alt+Shift+Z** for the same settings as a live panel over the page you're on, or type `set` and a few words in Peek (`set frost`): Tab changes the setting there and then, Enter opens it in the live panel, and the last row searches Zen's own settings. Options that another setting makes irrelevant are greyed out, with the reason; in Sine's mods page your installed mods come first and the marketplace folds behind a button (searching opens it).
 
-**Window**: the window material behind Zen (Windows: Acrylic, Mica, Mica Alt; macOS: its materials; Linux: see-through), and, with Glass edge on Liquid, glass that lights up under the pointer while you press it (tabs, essentials, the media card, Peek, notices).
+**Window**: the window material behind Zen (Windows: Acrylic, Mica, Mica Alt; macOS: its materials; Linux: see-through), with Wallpaper as the default on Windows: your desktop wallpaper drawn behind the window by Zenith, so Frost and Window transparency apply to the docked sidebar too. With Glass edge on Liquid, glass lights up softly under the pointer as you hover, and brighter as you press (tabs, essentials, the media card, Peek, notices).
 
 **What it touches:** the scripts run inside the browser with full access, like any Zen script mod. They collect nothing and send nothing about you. The network requests they cause:
 

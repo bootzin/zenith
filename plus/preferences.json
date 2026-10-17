@@ -227,8 +227,12 @@
     "property": "zenith.plus.material-windows",
     "label": "Windows: window material",
     "type": "dropdown",
-    "placeholder": "Default (Acrylic)",
+    "placeholder": "Default (Wallpaper)",
     "options": [
+      {
+        "label": "Acrylic",
+        "value": "acrylic"
+      },
       {
         "label": "Mica",
         "value": "mica"
@@ -240,6 +244,10 @@
       {
         "label": "Automatic",
         "value": "auto"
+      },
+      {
+        "label": "Zen's own",
+        "value": "zen"
       },
       {
         "label": "None",

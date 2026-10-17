@@ -237,7 +237,9 @@
   )
   .tabbrowser-tab[usercontextid]:not([usercontextid="0"], [zen-essential]) > .tab-stack > .tab-background {
   box-shadow: inset 2px 0 0 var(--identity-icon-color) !important;
-  background-image: linear-gradient(to right, color-mix(in srgb, var(--identity-icon-color) 12%, transparent), transparent 70%) !important;
+  /* (Also handed to Core's glass light, which draws over it.) */
+  --zth-under-light: linear-gradient(to right, color-mix(in srgb, var(--identity-icon-color) 12%, transparent), transparent 70%);
+  background-image: var(--zth-under-light) !important;
 
   & > .tab-context-line {
     display: none !important;
@@ -247,7 +249,8 @@
 :root:has(#theme-Zenith-Tabs[zenith-tabs-container="strong"])
   .tabbrowser-tab[usercontextid]:not([usercontextid="0"], [zen-essential]) > .tab-stack > .tab-background {
   box-shadow: inset 3px 0 0 var(--identity-icon-color) !important;
-  background-image: linear-gradient(to right, color-mix(in srgb, var(--identity-icon-color) 22%, transparent), color-mix(in srgb, var(--identity-icon-color) 5%, transparent)) !important;
+  --zth-under-light: linear-gradient(to right, color-mix(in srgb, var(--identity-icon-color) 22%, transparent), color-mix(in srgb, var(--identity-icon-color) 5%, transparent));
+  background-image: var(--zth-under-light) !important;
 
   & > .tab-context-line {
     display: none !important;
@@ -261,7 +264,8 @@
   )
   .tabbrowser-tab[pending][usercontextid]:not([usercontextid="0"], [zen-essential], [selected]) > .tab-stack > .tab-background {
   box-shadow: inset 2px 0 0 color-mix(in srgb, var(--identity-icon-color) 40%, gray) !important;
-  background-image: linear-gradient(to right, color-mix(in srgb, color-mix(in srgb, var(--identity-icon-color) 40%, gray) 10%, transparent), transparent 70%) !important;
+  --zth-under-light: linear-gradient(to right, color-mix(in srgb, color-mix(in srgb, var(--identity-icon-color) 40%, gray) 10%, transparent), transparent 70%);
+  background-image: var(--zth-under-light) !important;
 }
 
 /* --- Vertical split-view groups (Informative) ----------------------------

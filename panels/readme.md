@@ -1,6 +1,6 @@
 # Zenith Panels
 
-Version 0.9.0
+Version 0.9.1
 
 Find bar, Library card (Ctrl+H), link URL pill, Glance, split view, notifications and menus, all on the same glass and corners.
 

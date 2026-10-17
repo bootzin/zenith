@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.9.0
+// @version        0.9.1
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -480,113 +480,268 @@ const MotionBridge = {
   },
 };
 
-/* --- Press light: liquid glass lights up where you press ------------------
-   With Glass edge on Liquid, pressing a tab, an essential, the media card,
-   the Peek prompt, a notice or a card in the live panel lights that glass
-   up under the pointer: it brightens quickly, follows the pointer while you
-   hold, and fades after you let go (inspired by Zia). Zenith Core draws it
-   from --zth-press; this sets it each frame, because a mod stylesheet can't
-   register the property that a CSS animation of it would need. */
-const PressLight = {
-  // [what you press, the part that's painted (null: itself)]
+/* --- Glass light: liquid glass lights up under the pointer -----------------
+   With Glass edge on Liquid, a tab, an essential, the media card, the Peek
+   prompt, a notice or a card in the live panel glows softly under the
+   pointer while you hover it, and brighter while you press it: the light
+   follows the pointer, rises quickly and fades after you leave or let go
+   (inspired by Zia). Zenith Core draws it from --zth-press (0 to 1); this
+   sets it each frame, because a mod stylesheet can't register the property
+   that a CSS animation of it would need. */
+const GlassLight = {
+  // [what the pointer is over, the part that's painted (null: itself)]
   SURFACES: [[".tabbrowser-tab", ".tab-background"], [".zen-media-card", null], ["#zenith-peek-box", null],
              [".zenith-toast", null], ["#zenith-live .zp-card", null], ["#zenith-live .zp-chip", null]],
-  RISE: 90,    // ms to full light
-  HOLD: 140,   // ms it stays at least, for a quick click
-  FADE: 320,   // ms to fade after you let go
+  HOVER: 0.45, // hover strength; a press is 1
+  RISE: 90,    // ms from nothing to full
+  FADE: 320,   // ms from full to nothing
+  HOLD: 140,   // ms a press stays full at least, for a quick click
 
   init() {
-    const onDown = e => this.press(e);
-    const onMove = e => this.follow(e);
-    const onUp = () => this.release();
-    window.addEventListener("pointerdown", onDown, true);
-    window.addEventListener("pointermove", onMove, true);
-    window.addEventListener("pointerup", onUp, true);
-    window.addEventListener("pointercancel", onUp, true);
-    window.addEventListener("blur", onUp);
+    this.lights = new Map(); // glass -> { level, x, y }
+    const watch = () => (this.on = Services.prefs.getStringPref("zenith.core.glass-edge", "") === "liquid");
+    watch();
+    Services.prefs.addObserver("zenith.core.glass-edge", watch);
+    const handlers = {
+      pointermove: e => this.move(e),
+      pointerdown: e => this.press(e),
+      pointerup: () => this.release(),
+      pointercancel: () => this.release(),
+    };
+    for (const [type, fn] of Object.entries(handlers)) window.addEventListener(type, fn, true);
+    const leave = e => { if (!e.relatedTarget) this.point(null); };
+    const blur = () => { this.release(); this.point(null); };
+    document.addEventListener("mouseout", leave);
+    window.addEventListener("blur", blur);
     onUnload(() => {
-      window.removeEventListener("pointerdown", onDown, true);
-      window.removeEventListener("pointermove", onMove, true);
-      window.removeEventListener("pointerup", onUp, true);
-      window.removeEventListener("pointercancel", onUp, true);
-      window.removeEventListener("blur", onUp);
+      Services.prefs.removeObserver("zenith.core.glass-edge", watch);
+      for (const [type, fn] of Object.entries(handlers)) window.removeEventListener(type, fn, true);
+      document.removeEventListener("mouseout", leave);
+      window.removeEventListener("blur", blur);
+      for (const glass of this.lights.keys()) this.clear(glass);
     });
   },
 
   surface(target) {
     for (const [hit, part] of this.SURFACES) {
-      const host = target.closest?.(hit);
+      const host = target?.closest?.(hit);
       if (host) return part ? host.querySelector(part) : host;
     }
     return null;
   },
 
-  place(glass, e) {
-    const box = glass.getBoundingClientRect();
-    glass.style.setProperty("--zth-press-x", `${Math.round(e.clientX - box.left)}px`);
-    glass.style.setProperty("--zth-press-y", `${Math.round(e.clientY - box.top)}px`);
+  // The surface under the pointer (or none), and where on it.
+  point(glass, e) {
+    if (glass !== this.hovered) this.hovered = glass;
+    if (glass && e) {
+      const box = glass.getBoundingClientRect();
+      glass.style.setProperty("--zth-press-x", `${Math.round(e.clientX - box.left)}px`);
+      glass.style.setProperty("--zth-press-y", `${Math.round(e.clientY - box.top)}px`);
+      if (!this.lights.has(glass)) {
+        this.lights.set(glass, { level: 0 });
+        glass.setAttribute("zenith-press", "true");
+      }
+    }
+    this.run();
+  },
+
+  move(e) {
+    if (!this.on && !this.lights.size) return;
+    this.point(this.on ? this.surface(e.target) : null, e);
   },
 
   press(e) {
-    if (Services.prefs.getStringPref("zenith.core.glass-edge", "") !== "liquid" || e.button !== 0) return;
+    if (!this.on || e.button !== 0) return;
     const glass = this.surface(e.target);
     if (!glass) return;
-    if (this.glass && this.glass !== glass) this.clear(this.glass);
-    this.glass = glass;
-    this.down = performance.now();
+    this.pressed = glass;
     this.held = true;
-    this.from = this.level(glass);
-    this.place(glass, e);
-    glass.setAttribute("zenith-press", "true");
-    this.run();
-  },
-
-  follow(e) {
-    if (this.held && this.glass?.isConnected) this.place(this.glass, e);
+    this.until = performance.now() + this.HOLD;
+    this.point(glass, e);
   },
 
   release() {
-    if (!this.held) return;
     this.held = false;
-    this.up = Math.max(performance.now(), this.down + this.HOLD);
-    this.run();
   },
 
-  level(glass) {
-    return parseFloat(glass.style.getPropertyValue("--zth-press")) || 0;
+  // Where each light is heading: full while pressed (and for a moment
+  // after), the hover strength under the pointer, otherwise nothing.
+  target(glass, now) {
+    if (glass === this.pressed && (this.held || now < this.until)) return 1;
+    if (glass === this.pressed && !this.held && now >= this.until) this.pressed = null;
+    return glass === this.hovered ? this.HOVER : 0;
   },
 
-  // One animation frame loop: rise while held, then fade.
   run() {
     if (this.frame) return;
+    let last = performance.now();
     const step = now => {
       this.frame = null;
-      const glass = this.glass;
-      if (!glass?.isConnected) return this.clear(glass);
-      let level;
-      if (this.held || now < this.up) {
-        const t = Math.min(1, (now - this.down) / this.RISE);
-        level = this.from + (1 - this.from) * (1 - (1 - t) ** 2);
-      } else {
-        const t = Math.min(1, (now - this.up) / this.FADE);
-        level = (1 - t) ** 2;
-        if (t >= 1) return this.clear(glass);
+      const dt = now - last;
+      last = now;
+      for (const [glass, light] of this.lights) {
+        if (!glass.isConnected) {
+          this.clear(glass);
+          continue;
+        }
+        const goal = this.target(glass, now);
+        if (light.level < goal) light.level = Math.min(goal, light.level + dt / this.RISE);
+        else if (light.level > goal) light.level = Math.max(goal, light.level - dt / this.FADE);
+        if (light.level <= 0 && goal === 0) {
+          this.clear(glass);
+          continue;
+        }
+        // An eased curve, so it starts and ends softly.
+        glass.style.setProperty("--zth-press", (light.level * light.level * (3 - 2 * light.level)).toFixed(3));
       }
-      glass.style.setProperty("--zth-press", level.toFixed(3));
-      this.frame = requestAnimationFrame(step);
+      if (this.lights.size) this.frame = requestAnimationFrame(step);
     };
     this.frame = requestAnimationFrame(step);
   },
 
   clear(glass) {
-    if (!glass) return;
     glass.removeAttribute("zenith-press");
     for (const p of ["--zth-press", "--zth-press-x", "--zth-press-y"]) glass.style.removeProperty(p);
-    if (glass === this.glass) {
-      this.glass = null;
-      if (this.frame) cancelAnimationFrame(this.frame);
-      this.frame = null;
+    this.lights.delete(glass);
+    if (this.hovered === glass) this.hovered = null;
+    if (this.pressed === glass) this.pressed = null;
+  },
+};
+
+/* --- Wallpaper (Windows): the desktop behind the window, drawn by Zenith ----
+   Around the page (the docked sidebar, the gap round a rounded page) the
+   desktop shows through, and Windows blurs it at one fixed strength. With
+   Window material on Wallpaper (the default), Zenith draws your desktop
+   wallpaper there itself, exactly where it sits on the screen, and Core
+   blurs it by Frost and tints it like every other glass surface: so the
+   docked sidebar looks like the floating one. Windows behind Zen don't show
+   through; the wallpaper does (as with Mica, which is Windows' own blurred
+   wallpaper). The picture is scaled to the screen once (as Windows fits it:
+   fill, fit, stretch, centre, tile), kept as a small JPEG, and drawn again
+   when the wallpaper, the screen or its scale change. */
+const Wallpaper = {
+  PREF: "zenith.plus.material-windows",
+  DESKTOP: "Control Panel\\Desktop",
+
+  init() {
+    if (Services.appinfo.OS !== "WINNT") return;
+    const refresh = () => this.refresh();
+    Services.prefs.addObserver(this.PREF, refresh);
+    window.addEventListener("focus", refresh);
+    // The window has no "moved" event: check its place a few times a second
+    // (cheap), and the wallpaper itself once a minute (a slideshow).
+    const place = setInterval(() => this.place(), 250);
+    const check = setInterval(refresh, 60000);
+    onUnload(() => {
+      Services.prefs.removeObserver(this.PREF, refresh);
+      window.removeEventListener("focus", refresh);
+      clearInterval(place);
+      clearInterval(check);
+      this.off();
+    });
+    this.refresh();
+  },
+
+  read(path, name) {
+    const key = Cc["@mozilla.org/windows-registry-key;1"].createInstance(Ci.nsIWindowsRegKey);
+    try {
+      key.open(key.ROOT_KEY_CURRENT_USER, path, key.ACCESS_READ);
+      try {
+        return key.hasValue(name) ? key.readStringValue(name) : "";
+      } finally {
+        key.close();
+      }
+    } catch {
+      return "";
     }
+  },
+
+  // The picture Windows shows, how it's fitted, and the colour around it.
+  async source() {
+    const themes = PathUtils.join(Services.dirsvc.get("AppData", Ci.nsIFile).path, "Microsoft", "Windows", "Themes", "TranscodedWallpaper");
+    const fit = this.read(this.DESKTOP, "TileWallpaper") === "1" ? "tile"
+      : { 0: "center", 2: "stretch", 6: "fit", 10: "fill", 22: "fill" }[this.read(this.DESKTOP, "WallpaperStyle")] ?? "fill";
+    const colour = this.read("Control Panel\\Colors", "Background") || "0 0 0";
+    for (const file of [this.read(this.DESKTOP, "WallPaper"), themes]) {
+      if (!file) continue;
+      try {
+        const info = await IOUtils.stat(file);
+        if (info.type === "regular") return { file, time: info.lastModified, fit, colour };
+      } catch {}
+    }
+    return { file: null, time: 0, fit, colour };
+  },
+
+  async refresh() {
+    if (Services.prefs.getStringPref(this.PREF, "") !== "") return this.off();
+    if (this.busy) return;
+    this.busy = true;
+    try {
+      const src = await this.source();
+      const sig = JSON.stringify([src, screen.width, screen.height, devicePixelRatio]);
+      if (sig !== this.sig) {
+        const url = await this.render(src);
+        if (this.url) URL.revokeObjectURL(this.url);
+        this.url = url;
+        this.sig = sig;
+        root.style.setProperty("--zth-wall", `url("${url}")`);
+        root.setAttribute("zenith-wallpaper", "true");
+      }
+      this.place(true);
+    } catch (e) {
+      console.error("[Zenith] wallpaper", e);
+      this.off();
+    } finally {
+      this.busy = false;
+    }
+  },
+
+  // The screen's wallpaper as a JPEG the size of the screen.
+  async render(src) {
+    const W = Math.round(screen.width * devicePixelRatio), H = Math.round(screen.height * devicePixelRatio);
+    const canvas = document.createElementNS(HTML_NS, "canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = `rgb(${src.colour.trim().split(/\s+/).join(" ")})`;
+    ctx.fillRect(0, 0, W, H);
+    if (src.file) {
+      const picture = await createImageBitmap(new Blob([await IOUtils.read(src.file)]));
+      const { width: iw, height: ih } = picture;
+      if (src.fit === "tile") {
+        ctx.fillStyle = ctx.createPattern(picture, "repeat");
+        ctx.fillRect(0, 0, W, H);
+      } else {
+        const s = src.fit === "fill" ? Math.max(W / iw, H / ih) : src.fit === "fit" ? Math.min(W / iw, H / ih) : 1;
+        const [w, h] = src.fit === "stretch" ? [W, H] : [iw * s, ih * s];
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(picture, (W - w) / 2, (H - h) / 2, w, h);
+      }
+      picture.close();
+    }
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.9));
+    return URL.createObjectURL(blob);
+  },
+
+  // Where the screen's top-left corner is, from the window's.
+  place(force = false) {
+    if (!this.url) return;
+    const at = [screen.left - mozInnerScreenX, screen.top - mozInnerScreenY, screen.width, screen.height];
+    const key = at.join();
+    if (!force && key === this.at) return;
+    // Another screen (or scale): the picture is drawn again for it.
+    if (this.at && (at[2] !== screen.width || at[3] !== screen.height || !this.sig?.includes(`,${screen.width},${screen.height},`))) {
+      this.refresh();
+    }
+    this.at = key;
+    ["x", "y", "w", "h"].forEach((n, i) => root.style.setProperty(`--zth-wall-${n}`, `${at[i]}px`));
+  },
+
+  off() {
+    root.removeAttribute("zenith-wallpaper");
+    for (const n of ["", "-x", "-y", "-w", "-h"]) root.style.removeProperty(`--zth-wall${n}`);
+    if (this.url) URL.revokeObjectURL(this.url);
+    this.url = this.sig = this.at = null;
   },
 };
 
@@ -604,9 +759,12 @@ const WindowMaterial = {
     const s = name => Services.prefs.getStringPref(name, "");
     switch (Services.appinfo.OS) {
       case "WINNT": {
+        // "" is Wallpaper (Zenith draws it; see Wallpaper below) and "zen"
+        // Zen's own: both leave Windows' backdrop to Zen.
         const v = s("zenith.plus.material-windows");
+        const own = v === "" || v === "zen";
         return {
-          "widget.windows.mica": v ? v !== "off" : null,
+          "widget.windows.mica": own ? null : v !== "off",
           "widget.windows.mica.toplevel-backdrop": { auto: 0, mica: 1, acrylic: 2, "mica-alt": 3 }[v] ?? null,
         };
       }
@@ -960,5 +1118,6 @@ start("zoom pills", () => ZoomPills.init());
 start("media art", () => MediaArt.init());
 start("window material", () => WindowMaterial.init());
 start("live settings", () => LiveSettings.init());
-start("press light", () => PressLight.init());
+start("glass light", () => GlassLight.init());
+start("wallpaper", () => Wallpaper.init());
 start("core check", checkCore);
