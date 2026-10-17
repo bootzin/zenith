@@ -313,6 +313,104 @@
     "zenithWhy": "Only on Linux"
   },
   {
+    "property": "zenith.plus.see-through-pages",
+    "label": "See-through Zen pages: Settings, Add-ons and other about: pages show the glass behind",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.scroll",
+    "label": "Scroll feel",
+    "type": "dropdown",
+    "placeholder": "Default (Zen's own)",
+    "options": [
+      {
+        "label": "Instant",
+        "value": "instant"
+      },
+      {
+        "label": "Smooth",
+        "value": "smooth"
+      },
+      {
+        "label": "macOS-like",
+        "value": "glide"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.switcher",
+    "label": "Switcher: Alt+W jumps to any tab, folder or space; : runs commands",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.focus-key",
+    "label": "Focus mode on Alt+Z: hides the sidebar, edges and pills",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.workspace-dots",
+    "label": "Workspace dots",
+    "type": "dropdown",
+    "placeholder": "Default (On switch)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "On switch",
+        "value": "switch"
+      },
+      {
+        "label": "Always",
+        "value": "always"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.workspace-flash",
+    "label": "Workspace flash: the top edge shows the new space's colour",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.hover-cards",
+    "label": "Tab hover cards: the full title and site beside the sidebar",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.more-menu",
+    "label": "Rare right-click menu items in a More submenu",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.key-switch-flash",
+    "label": "Extra: in compact mode, the sidebar shows briefly when you switch tabs by keyboard",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.ready-pulse",
+    "label": "Extra: a pulse on the page's edge when a background tab has loaded",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.plus.minimap",
     "label": "Sidebar minimap while the sidebar is hidden",
     "type": "checkbox",

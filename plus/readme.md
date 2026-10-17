@@ -1,6 +1,6 @@
 # Zenith Plus
 
-Version 0.9.1
+Version 0.10.0
 
 The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
 
@@ -15,8 +15,18 @@ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus a
 - **Answers from the web**: `$ 100 usd eur` (or just `100 usd to eur`) converts currency, `d word` shows a definition, `wt city` the weather (`wt` alone: the weather near you, with the places you looked up lately underneath), all in the prompt. Weather units follow your country, or the "Peek weather units" setting. Enter copies a conversion or opens the full page. Switch these off in settings if you'd rather nothing is looked up as you type.
 - **Timers**: `timer 10m tea` starts a countdown, `pomo` a pomodoro (`pomo 15 10 4`, or `pomo focus 10, 5 break, 3 rounds`, for your own pattern), and `timer` lists them (Delete cancels). A running timer drains down the left edge of the page, and a small card in the corner says when it ends.
 
+**Switcher**: **Alt+W** opens a list over the page. Type a few letters of a tab's title or site, a folder or a space (in any order, with gaps: `gh zen`), and Enter goes there, switching space if it has to. With nothing typed, the tabs you used last come first. Start with `:` for commands: `:focus`, `:compact`, `:settings`, `:set frost`, `:timer 10m tea`, `:pomo`, `:peek something`, `:routing`.
+
+**Focus mode**: **Alt+Z** hides the sidebar (compact mode, if it wasn't on), the edges, the minimap, pills and the link address. The sharing alarm still shows. Alt+Z again brings everything back.
+
 **Also**
 
+- Hover cards: rest on a tab for half a second to see its whole title, its site, its container and whether it's playing or asleep
+- Workspace dots at the top of the page when you switch space (or always), and the top edge lighting up in the new space's colour
+- Push: with Revealed sidebar on Push the page, the page moves aside by exactly the sidebar's width
+- Rare right-click menu items in a More submenu
+- Scroll feel: Zen's own, instant, smooth or macOS-like
+- Extras: in compact mode, the sidebar shows briefly when you switch tabs by keyboard; a pulse on the page's edge when a background tab has loaded
 - Real progress on the load and download edges
 - A minimap of the hidden compact sidebar
 - Zoom pills on zoomed pages (click to reset)
@@ -29,7 +39,7 @@ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus a
 
 **Settings**: Plus adds a **Zenith** page to Zen's Settings: every option with a sentence on what it does, switches, small pictures for looks, and presets that fill in the settings they cover (it says "Custom" once you change one). Press **Alt+Shift+Z** for the same settings as a live panel over the page you're on, or type `set` and a few words in Peek (`set frost`): Tab changes the setting there and then, Enter opens it in the live panel, and the last row searches Zen's own settings. Options that another setting makes irrelevant are greyed out, with the reason; in Sine's mods page your installed mods come first and the marketplace folds behind a button (searching opens it).
 
-**Window**: the window material behind Zen (Windows: Acrylic, Mica, Mica Alt; macOS: its materials; Linux: see-through), with Wallpaper as the default on Windows: your desktop wallpaper drawn behind the window by Zenith, so Frost and Window transparency apply to the docked sidebar too. With Glass edge on Liquid, glass lights up softly under the pointer as you hover, and brighter as you press (tabs, essentials, the media card, Peek, notices).
+**Window**: the window material behind Zen (Windows: Acrylic, Mica, Mica Alt; macOS: its materials; Linux: see-through), with Wallpaper as the default on Windows: your desktop wallpaper drawn behind the window by Zenith, each screen's own, so Frost and Window transparency apply to the docked sidebar too. See-through Zen pages (off by default) lets Settings, Add-ons and Zen's other own pages show that glass too; web pages stay as they are. With Glass edge on Liquid, glass lights up softly under the pointer as you hover, and brighter as you press (tabs, essentials, the media card, Peek, notices).
 
 **What it touches:** the scripts run inside the browser with full access, like any Zen script mod. They collect nothing and send nothing about you. The network requests they cause:
 

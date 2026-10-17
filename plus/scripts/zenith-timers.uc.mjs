@@ -2,7 +2,7 @@
 // @name           Zenith Timers
 // @description    Zenith Plus: countdown timers and pomodoros, started from Peek.
 // @include        main
-// @version        0.9.1
+// @version        0.10.0
 // ==/UserScript==
 
 // Timers are started from the Peek prompt (Alt+Q):

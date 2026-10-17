@@ -156,7 +156,7 @@ MODS = {
         dropdown("zenith.tabs.preset", "Preset", "Informative",
                  ("Plain", "plain"), ("Informative", "informative"), ("Everything", "everything")),
         dropdown("zenith.tabs.reveal", "Revealed sidebar", "Overlay",
-                 ("Overlay", "overlay"), ("Dim", "dim")),
+                 ("Overlay", "overlay"), ("Push the page", "push"), ("Dim", "dim")),
         tri("zenith.tabs.close-hover", "Close button only on hover"),
         dropdown("zenith.tabs.unloaded", "Sleeping tabs", "Grey and dim",
                  ("Grey and dim", "grey"), ("Italic title", "italic"), ("Hide favicon", "nofavicon"),
@@ -178,6 +178,7 @@ MODS = {
          "options": [{"label": "Off", "value": "off"}, {"label": "Always", "value": "on"},
                      {"label": "While holding Ctrl (needs Zenith Plus)", "value": "ctrl"}]},
         tri("zenith.tabs.lowercase", "Extra: lowercase mode"),
+        tri("zenith.tabs.badge-only", "Extra: extension buttons only when they show a badge"),
     ],
     "urlbar": [
         dropdown("zenith.urlbar.preset", "Preset", "Spotlight",
@@ -270,6 +271,19 @@ MODS = {
         only_on(script(dropdown("zenith.plus.material-linux", "Linux: see-through window (restart Zen)", "Off",
                                 ("On", "on"))),
                 "Linux", "Only on Linux"),
+        script(checkbox("zenith.plus.see-through-pages",
+                        "See-through Zen pages: Settings, Add-ons and other about: pages show the glass behind", False)),
+        script(dropdown("zenith.plus.scroll", "Scroll feel", "Zen's own",
+                        ("Instant", "instant"), ("Smooth", "smooth"), ("macOS-like", "glide"))),
+        script(checkbox("zenith.plus.switcher", "Switcher: Alt+W jumps to any tab, folder or space; : runs commands", True)),
+        script(checkbox("zenith.plus.focus-key", "Focus mode on Alt+Z: hides the sidebar, edges and pills", True)),
+        script(dropdown("zenith.plus.workspace-dots", "Workspace dots", "On switch",
+                        ("Off", "off"), ("On switch", "switch"), ("Always", "always"))),
+        script(checkbox("zenith.plus.workspace-flash", "Workspace flash: the top edge shows the new space's colour", True)),
+        script(checkbox("zenith.plus.hover-cards", "Tab hover cards: the full title and site beside the sidebar", True)),
+        script(checkbox("zenith.plus.more-menu", "Rare right-click menu items in a More submenu", True)),
+        script(checkbox("zenith.plus.key-switch-flash", "Extra: in compact mode, the sidebar shows briefly when you switch tabs by keyboard", False)),
+        script(checkbox("zenith.plus.ready-pulse", "Extra: a pulse on the page's edge when a background tab has loaded", False)),
         script(checkbox("zenith.plus.minimap", "Sidebar minimap while the sidebar is hidden", True)),
         script(checkbox("zenith.plus.zoom-pill", "Zoom pill on zoomed pages", True)),
         script(checkbox("zenith.plus.media-art", "Cover art of what's playing behind the media card", True)),
@@ -297,7 +311,8 @@ def write_helper_rules(root):
 MOD_NAMES = {"core": "Zenith Core", "edges": "Zenith Edges", "tabs": "Zenith Tabs", "urlbar": "Zenith URL bar",
              "panels": "Zenith Panels", "motion": "Zenith Motion", "plus": "Zenith Plus"}
 # Settings whose default is "leave it to Zen" (a choice that clears them).
-ZEN_DEFAULTS = {"zenith.plus.material-windows", "zenith.plus.material-macos", "zenith.plus.material-linux"}
+ZEN_DEFAULTS = {"zenith.plus.material-windows", "zenith.plus.material-macos", "zenith.plus.material-linux",
+                "zenith.plus.scroll"}
 # "Follow preset" settings that no preset covers: what Zenith's CSS does
 # when they're left blank.
 FOLLOW_DEFAULTS = {"zenith.tabs.close-hover": "on"}
@@ -308,12 +323,16 @@ def page_schema():
     against the settings: each appears once, with a description."""
     import settings_ui as ui
     entries = {e["property"]: (mod, e) for mod, prefs in MODS.items() for e in prefs if e["type"] != "separator"}
+    # Buttons on the page that open something of Zen's (no setting behind them).
+    entries.update({prop: ("action", {"property": prop, "type": "action", "label": a["label"]})
+                    for prop, a in ui.ACTIONS.items()})
     placed = [p for s in ui.SECTIONS for _, props in s["groups"] for p in props] + \
              [s["preset"] for s in ui.SECTIONS if s.get("preset")]
     problems = [f"not on the page: {p}" for p in entries if p not in placed]
     problems += [f"on the page twice: {p}" for p in set(placed) if placed.count(p) > 1]
     problems += [f"not a setting: {p}" for p in placed if p not in entries]
-    problems += [f"no description: {p}" for p in entries if p not in ui.DESCRIPTIONS and not p.endswith(".preset")]
+    problems += [f"no description: {p}" for p in entries
+                 if p not in ui.DESCRIPTIONS and not p.endswith(".preset") and p not in ui.ACTIONS]
     for preset, info in ui.PRESETS.items():
         for prop, by_preset in info["sets"].items():
             options = {o["value"] for o in entries[prop][1].get("options", [])}
@@ -323,6 +342,10 @@ def page_schema():
 
     def setting(prop):
         mod, e = entries[prop]
+        if mod == "action":
+            a = ui.ACTIONS[prop]
+            return {"property": prop, "label": a["label"], "type": "action", "extra": False, "desc": a["desc"],
+                    "button": a["button"], "command": a["command"], "host": "Zen"}
         label = ui.LABELS.get(prop) or e["label"].removeprefix("Extra: ")
         out = {"property": prop, "label": label[:1].upper() + label[1:], "type": e["type"],
                "extra": e["label"].startswith("Extra: "), "desc": ui.DESCRIPTIONS.get(prop, ""),

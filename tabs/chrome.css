@@ -34,6 +34,24 @@
   filter: brightness(0.65);
 }
 
+/* Push: the page moves aside by exactly what the sidebar covers (Zenith
+   Plus measures it; without Plus, the usual sidebar width), and comes back
+   as the sidebar leaves. It slides rather than resizes, so the page doesn't
+   have to lay itself out again on every frame. */
+:root[zen-compact-mode="true"]:has(#theme-Zenith-Tabs[zenith-tabs-reveal="push"]) #zen-tabbox-wrapper {
+  transition: translate 0.22s var(--zth-ease);
+}
+
+:root[zen-compact-mode="true"]:has(#theme-Zenith-Tabs[zenith-tabs-reveal="push"]):has(#navigator-toolbox:is([zen-has-hover], [zen-user-show], [has-popup-menu], [zen-compact-mode-active]))
+  #zen-tabbox-wrapper {
+  translate: var(--zth-sidebar-push, var(--zth-sidebar-w)) 0;
+}
+
+:root[zen-compact-mode="true"][zen-right-side="true"]:has(#theme-Zenith-Tabs[zenith-tabs-reveal="push"]):has(#navigator-toolbox:is([zen-has-hover], [zen-user-show], [has-popup-menu], [zen-compact-mode-active]))
+  #zen-tabbox-wrapper {
+  translate: calc(-1 * var(--zth-sidebar-push, var(--zth-sidebar-w))) 0;
+}
+
 /* Extra: delay before the sidebar slides out on hover. Only hover reveals
    wait; keyboard reveals stay instant. */
 :root { --zth-reveal-delay: 0s; }
@@ -44,6 +62,16 @@
 
 :root[zen-compact-mode="true"] #navigator-toolbox[zen-has-hover]:not([zen-user-show]) {
   transition-delay: var(--zth-reveal-delay) !important;
+}
+
+/* --- Extra: extension buttons only when they have something to say -------
+   Pinned extension buttons hide unless they show a badge (an unread count,
+   say). Hovering the toolbar brings them all back; so does customising. */
+
+:root:not([customizing]):is(:has(#theme-Zenith-Tabs[zenith-tabs-badge-only="on"]), :has(#theme-Zenith-Tabs[zenith-tabs-preset="everything"]):not(:has(#theme-Zenith-Tabs[zenith-tabs-badge-only="off"])))
+  :is(#nav-bar, #zen-sidebar-top-buttons, #TabsToolbar):not(:hover)
+  :is(.unified-extensions-item, toolbarbutton.webextension-browser-action):not([badge]):not(:has([badge]:not([badge=""]))) {
+  display: none !important;
 }
 
 /* --- Close button ---------------------------------------------------------

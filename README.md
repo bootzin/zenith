@@ -20,10 +20,14 @@ Zenith comes in two parts.
 - **Peek:** quick lookups in a floating page that leaves nothing behind, with Alt+Q and instant answers.
 - **Live edges:** real load and download progress.
 - **Peek extras:** currency, definitions and weather in the prompt, timers and pomodoros, and `set` to find a setting, change it, or open it in the live panel.
-- **Sidebar extras:** a minimap of the hidden sidebar, numbered tabs while you hold Ctrl, and the cover art of what's playing behind the media card.
+- **Switcher:** **Alt+W** jumps to any tab, folder or space by typing a few letters; `:` runs commands (`:focus`, `:timer 10m tea`, `:set frost`).
+- **Focus mode:** **Alt+Z** hides the sidebar, edges and pills for reading or video.
+- **Sidebar extras:** hover cards with a tab's full title and site, the page pushed aside by exactly the sidebar's width (Revealed sidebar › Push the page), workspace dots and a flash in the new space's colour, a minimap of the hidden sidebar, numbered tabs while you hold Ctrl, and the cover art of what's playing behind the media card.
+- **Menus:** rare right-click items (view source, send to device and so on) in a More submenu; nothing is removed.
+- **Scrolling:** one setting for how pages scroll: Zen's own, instant, smooth or macOS-like.
 - **Pages:** zoom pills, plus text selection in the workspace colour.
 - **Settings:** a Zenith page in Zen's Settings with every option explained, presets that fill in what they cover, and pictures for looks; the same settings as a live panel over the page (**Alt+Shift+Z**). Also greys out options that don't apply, and puts your mods ahead of the marketplace in Sine's page.
-- **Window:** the window material (Windows: your wallpaper drawn behind the window so Frost applies there too, or Acrylic, Mica, Mica Alt; macOS: its materials; Linux: see-through), and the liquid glass edge that lights up under the pointer.
+- **Window:** the window material (Windows: your wallpaper drawn behind the window so Frost applies there too, each screen's own, or Acrylic, Mica, Mica Alt; macOS: its materials; Linux: see-through), optional see-through Zen pages (Settings, Add-ons, about: pages), and the liquid glass edge that lights up under the pointer.
 
 ## Install
 
@@ -43,7 +47,7 @@ Zenith is built and tested on **Windows 11**. It's plain CSS and standard Firefo
 
 **Windows 11**
 - Zenith › Look › Window material picks what shows behind the docked sidebar and around a rounded page (in compact mode the page fills the window):
-  - **Wallpaper** (the default, with Zenith Plus): your desktop wallpaper, drawn by Zenith exactly where it sits on the screen. Frost and Window transparency work on it as they do over the page, so the docked sidebar matches the floating one. Windows behind Zen don't show through.
+  - **Wallpaper** (the default, with Zenith Plus): your desktop wallpaper, drawn by Zenith exactly where it sits on the screen. Frost and Window transparency work on it as they do over the page, so the docked sidebar matches the floating one. With several screens, each shows its own wallpaper, even with the window across two. A new wallpaper shows within 15 seconds. Windows behind Zen don't show through.
   - **Acrylic:** Windows' blur of the windows behind, at one fixed strength. **Mica** and **Mica Alt:** Windows' wallpaper tint. **Automatic**, **Zen's own** or **None**.
 - Nothing to turn on in about:config: Zen's transparency on Windows is on by default.
 - Windows only draws Acrylic while Zen is the active window, and flat grey otherwise; Zenith shows your workspace colour then instead.
@@ -73,6 +77,8 @@ The network requests it causes:
 Specific things it changes:
 
 - `ui.prefersReducedMotion`: set to 0, so Zen animates, while "Let Zen and Zenith animate" is on. It's cleared when you switch that off.
+- Window material and Scroll feel write Zen's and Firefox's own settings for them (`widget.windows.mica…`, `general.smoothScroll…`). Your earlier values are kept and put back when you choose "Zen's own" again.
+- On Windows, Wallpaper reads your wallpaper's file and position through Windows' wallpaper service; it never changes it.
 
 ## Development
 

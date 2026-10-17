@@ -48,6 +48,7 @@ PRESETS = {
             "zenith.tabs.pinned-drift": {"plain": "off", "informative": "off", "everything": "on"},
             "zenith.tabs.numbers": {"plain": "off", "informative": "off", "everything": "on"},
             "zenith.tabs.lowercase": {"plain": "off", "informative": "off", "everything": "on"},
+            "zenith.tabs.badge-only": {"plain": "off", "informative": "off", "everything": "on"},
         },
     },
     "zenith.urlbar.preset": {
@@ -126,7 +127,7 @@ SECTIONS = [
             ("Colour and shape", ["zenith.core.accent", "zenith.core.corners", "zenith.core.pills"]),
             ("Glass", ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
                        "zenith.core.floating-sidebar", "zenith.plus.material-windows", "zenith.plus.material-macos",
-                       "zenith.plus.material-linux"]),
+                       "zenith.plus.material-linux", "zenith.plus.see-through-pages"]),
             ("Window", ["zenith.core.page", "zen.view.hide-window-controls"]),
         ],
     },
@@ -148,12 +149,16 @@ SECTIONS = [
         "preset": "zenith.tabs.preset",
         "groups": [
             ("The sidebar", ["zenith.tabs.reveal", "zenith.tabs.reveal-delay", "zenith.tabs.close-hover",
-                             "zen.tabs.open-pinned-in-new-tab", "zenith.plus.minimap"]),
+                             "zenith.plus.hover-cards", "zen.tabs.open-pinned-in-new-tab", "zenith.plus.minimap",
+                             "zenith.plus.key-switch-flash"]),
+            ("Spaces", ["zenith.plus.workspace-dots", "zenith.plus.workspace-flash"]),
+            ("Links", ["zenith.action.space-routing"]),
             ("Signals", ["zenith.tabs.unloaded", "zenith.tabs.attention", "zenith.tabs.folder-activity",
                          "zenith.tabs.container", "zenith.tabs.audio-wave", "zenith.tabs.split-vertical"]),
             ("Media", ["zenith.tabs.mini-player", "zenith.plus.media-art"]),
             ("Numbers", ["zenith.tabs.numbers"]),
-            ("Extras", ["zenith.tabs.hover-mute", "zenith.tabs.pinned-drift", "zenith.tabs.lowercase"]),
+            ("Extras", ["zenith.tabs.hover-mute", "zenith.tabs.pinned-drift", "zenith.tabs.lowercase",
+                        "zenith.tabs.badge-only", "zenith.plus.ready-pulse"]),
         ],
     },
     {
@@ -173,7 +178,7 @@ SECTIONS = [
             ("Split view", ["zenith.panels.split", "zenith.panels.gap"]),
             ("Notices and links", ["zenith.panels.notifications", "zenith.panels.status-delay"]),
             ("Media", ["zenith.panels.pip"]),
-            ("Menus", ["zenith.panels.compact-menus"]),
+            ("Menus", ["zenith.panels.compact-menus", "zenith.plus.more-menu"]),
             ("Extras", ["zenith.panels.glance"]),
         ],
     },
@@ -183,7 +188,16 @@ SECTIONS = [
         "preset": "zenith.motion.preset",
         "groups": [
             ("Movement", ["zenith.motion.tab-switch", "zenith.motion.swipe", "zenith.motion.swipe-round"]),
+            ("Scrolling", ["zenith.plus.scroll"]),
             ("Less motion", ["zenith.motion.reduced", "zenith.plus.animate-zen"]),
+        ],
+    },
+    {
+        "id": "keys", "title": "Keys", "icon": "keys",
+        "blurb": "Jump anywhere with Alt+W, read without distractions with Alt+Z.",
+        "groups": [
+            ("Switcher", ["zenith.plus.switcher"]),
+            ("Focus mode", ["zenith.plus.focus-key"]),
         ],
     },
     {
@@ -230,6 +244,8 @@ DESCRIPTIONS = {
     "zenith.plus.material-macos": "The macOS material behind Zen's window.",
     "zenith.plus.material-linux": "Lets the desktop show through Zen. Blur comes from your desktop: "
                                   "KDE's Better Blur or GNOME's Blur My Shell.",
+    "zenith.plus.see-through-pages": "Zen's own pages (Settings, Add-ons, about:config, Downloads) show the window's "
+                                     "glass behind them, like the docked sidebar. Web pages stay as they are.",
     "zenith.core.page": "The page flush against the window, rounded with a small gap, or Zen's own frame.",
     "zen.view.hide-window-controls": "Minimise, maximise and close appear only when you hover the top edge.",
     # Edges
@@ -246,7 +262,26 @@ DESCRIPTIONS = {
     "zenith.edges.muted": "A short mark in the top-left corner while the tab is muted.",
     "zenith.edges.focus-border": "A thin accent frame while the window is focused.",
     # Tabs
-    "zenith.tabs.reveal": "When the hidden sidebar slides out: over the page, or dimming it.",
+    "zenith.tabs.reveal": "When the hidden sidebar slides out: over the page, pushing the page aside by exactly its "
+                          "width, or dimming the page.",
+    "zenith.plus.hover-cards": "Rest on a tab for half a second: a small card beside the sidebar shows its whole title, "
+                               "its site, its container and whether it's playing or asleep.",
+    "zenith.plus.key-switch-flash": "In compact mode, the sidebar shows for a moment when you switch tabs from the "
+                                    "keyboard, so you see where you landed.",
+    "zenith.plus.workspace-dots": "Waybar-style dots at the top of the page, one per space, with the current one's "
+                                  "name: for a moment when you switch, or always.",
+    "zenith.plus.workspace-flash": "The page's top edge lights up in the new space's colour as you switch.",
+    "zenith.tabs.badge-only": "Pinned extension buttons hide unless they show a badge, like an unread count. "
+                              "Hovering the toolbar shows them all.",
+    "zenith.plus.ready-pulse": "A tab opened in the background has finished loading: the page's edge glows once.",
+    "zenith.plus.more-menu": "Rare items in the right-click menus (view source, send to device, set as desktop "
+                             "background and so on) move into a More submenu at the end. Nothing is removed.",
+    "zenith.plus.scroll": "How pages scroll: Zen's own glide, instant steps, Firefox's classic short ease, or a "
+                          "longer macOS-like glide that bounces at the ends.",
+    "zenith.plus.switcher": "Alt+W: type part of a tab's title or site, a folder or a space, and Enter goes there. "
+                            "Start with : for commands, like :focus or :timer 10m tea.",
+    "zenith.plus.focus-key": "Alt+Z hides the sidebar, the edges, the minimap, pills and the link address, for "
+                             "reading or video. The sharing alarm still shows. Alt+Z again brings it all back.",
     "zenith.tabs.reveal-delay": "A short wait before the sidebar slides out on hover.",
     "zenith.tabs.close-hover": "Close buttons show only on the tab under the mouse.",
     "zen.tabs.open-pinned-in-new-tab": "Zen's own setting. Off: a pinned tab goes to the other site itself.",
@@ -298,6 +333,18 @@ DESCRIPTIONS = {
     "zenith.plus.sine-mods-first": "In Sine's mods page, your mods come first and the marketplace folds away.",
 }
 
+# Buttons on the page that open something of Zen's, with no setting behind
+# them (property names are only ids).
+ACTIONS = {
+    "zenith.action.space-routing": {
+        "label": "Links from other apps",
+        "desc": "Zen's Space routing sends links from other apps (and any site you choose, like a login page) to a "
+                "space, and so to that space's container.",
+        "button": "Space routing",
+        "command": "cmd_zenOpenSpaceRoutingSettings",
+    },
+}
+
 # Shorter names for the page, where each setting's description carries the
 # rest (Sine's and Zen's lists keep the longer labels, which need it).
 LABELS = {
@@ -307,6 +354,7 @@ LABELS = {
     "zenith.plus.material-macos": "Window material",
     "zenith.plus.material-linux": "See-through window",
     "zen.view.hide-window-controls": "Window buttons on hover",
+    "zenith.plus.see-through-pages": "See-through Zen pages",
     "zenith.edges.load": "Load line",
     "zenith.edges.download": "Download line",
     "zenith.edges.insecure": "Not-secure warning",
@@ -323,6 +371,16 @@ LABELS = {
     "zenith.tabs.close-hover": "Close buttons on hover",
     "zen.tabs.open-pinned-in-new-tab": "Pinned tabs open sites in new tabs",
     "zenith.plus.minimap": "Minimap",
+    "zenith.plus.hover-cards": "Hover cards",
+    "zenith.plus.key-switch-flash": "Show the sidebar on key switches",
+    "zenith.plus.workspace-dots": "Workspace dots",
+    "zenith.plus.workspace-flash": "Workspace flash",
+    "zenith.tabs.badge-only": "Extension buttons only with a badge",
+    "zenith.plus.ready-pulse": "Background tab ready",
+    "zenith.plus.more-menu": "More submenu",
+    "zenith.plus.scroll": "Scroll feel",
+    "zenith.plus.switcher": "Switcher (Alt+W)",
+    "zenith.plus.focus-key": "Focus mode (Alt+Z)",
     "zenith.tabs.audio-wave": "Audio wave",
     "zenith.tabs.split-vertical": "Split-view groups",
     "zenith.tabs.mini-player": "Slim media card",

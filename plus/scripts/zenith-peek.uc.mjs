@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.9.1
+// @version        0.10.0
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -1155,6 +1155,16 @@ function migrateWeatherPlace() {
   if (!old) return;
   if (!WebCards.recentPlaces().length) Services.prefs.setStringPref(WebCards.RECENT_PREF, JSON.stringify([old]));
   Services.prefs.clearUserPref("zenith.internal.weather-place");
+}
+
+// For the switcher (zenith-switcher.uc.mjs): its ":set", ":timer", ":pomo"
+// and ":peek" use Peek's prompt, commands and lookups.
+if (FIRST) {
+  window.ZenithPeek = {
+    prompt: text => Prompt.show(text),
+    command: text => Commands.match(text),
+    lookup: text => Peek.show(Lookup.resolve(text)),
+  };
 }
 
 start("prefixes", migratePrefixes);

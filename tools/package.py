@@ -71,6 +71,8 @@ PLUS_SCRIPTS = {
                            ["chrome://browser/content/browser.xhtml"]),
     "zenith-timers.uc.mjs": ("Timers", "Countdowns and pomodoros started from Peek, on the page edge.",
                              ["chrome://browser/content/browser.xhtml"]),
+    "zenith-switcher.uc.mjs": ("Switcher", "Jump to any tab, folder or space by typing (Alt+W); : runs commands.",
+                               ["chrome://browser/content/browser.xhtml"]),
     "zenith-settings.uc.mjs": ("Settings helper", "Greys out Zenith settings that don't apply, and says why.",
                                ["about:preferences*", "about:settings*"]),
     "zenith-settings-page.uc.mjs": ("Settings page and live panel", "The Zenith page in Zen's Settings, and the live panel (Alt+Shift+Z).",

@@ -30,6 +30,10 @@
         "value": "overlay"
       },
       {
+        "label": "Push the page",
+        "value": "push"
+      },
+      {
         "label": "Dim",
         "value": "dim"
       }
@@ -263,6 +267,22 @@
   {
     "property": "zenith.tabs.lowercase",
     "label": "Extra: lowercase mode",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
+    "property": "zenith.tabs.badge-only",
+    "label": "Extra: extension buttons only when they show a badge",
     "type": "dropdown",
     "placeholder": "Follow preset",
     "options": [

@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.9.1
+// @version        0.10.0
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -412,6 +412,15 @@ const SCHEMA = [
        "conditions": [],
        "platform": "Linux"
       }
+     },
+     {
+      "property": "zenith.plus.see-through-pages",
+      "label": "See-through Zen pages",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Zen's own pages (Settings, Add-ons, about:config, Downloads) show the window's glass behind them, like the docked sidebar. Web pages stay as they are.",
+      "host": "Zenith Plus",
+      "default": false
      }
     ]
    },
@@ -950,6 +959,11 @@ const SCHEMA = [
      "plain": "off",
      "informative": "off",
      "everything": "on"
+    },
+    "zenith.tabs.badge-only": {
+     "plain": "off",
+     "informative": "off",
+     "everything": "on"
     }
    },
    "values": [
@@ -979,12 +993,16 @@ const SCHEMA = [
       "label": "Revealed sidebar",
       "type": "dropdown",
       "extra": false,
-      "desc": "When the hidden sidebar slides out: over the page, or dimming it.",
+      "desc": "When the hidden sidebar slides out: over the page, pushing the page aside by exactly its width, or dimming the page.",
       "host": "Zenith Tabs",
       "options": [
        {
         "label": "Overlay",
         "value": "overlay"
+       },
+       {
+        "label": "Push the page",
+        "value": "push"
        },
        {
         "label": "Dim",
@@ -1045,6 +1063,15 @@ const SCHEMA = [
       "default": "on"
      },
      {
+      "property": "zenith.plus.hover-cards",
+      "label": "Hover cards",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Rest on a tab for half a second: a small card beside the sidebar shows its whole title, its site, its container and whether it's playing or asleep.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
       "property": "zen.tabs.open-pinned-in-new-tab",
       "label": "Pinned tabs open sites in new tabs",
       "type": "checkbox",
@@ -1061,6 +1088,67 @@ const SCHEMA = [
       "desc": "Small ticks at the edge for tabs that are loading, playing or want attention.",
       "host": "Zenith Plus",
       "default": true
+     },
+     {
+      "property": "zenith.plus.key-switch-flash",
+      "label": "Show the sidebar on key switches",
+      "type": "checkbox",
+      "extra": true,
+      "desc": "In compact mode, the sidebar shows for a moment when you switch tabs from the keyboard, so you see where you landed.",
+      "host": "Zenith Plus",
+      "default": false
+     }
+    ]
+   },
+   {
+    "title": "Spaces",
+    "settings": [
+     {
+      "property": "zenith.plus.workspace-dots",
+      "label": "Workspace dots",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Waybar-style dots at the top of the page, one per space, with the current one's name: for a moment when you switch, or always.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Off",
+        "value": "off"
+       },
+       {
+        "label": "On switch",
+        "value": "switch"
+       },
+       {
+        "label": "Always",
+        "value": "always"
+       }
+      ],
+      "default": "switch"
+     },
+     {
+      "property": "zenith.plus.workspace-flash",
+      "label": "Workspace flash",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The page's top edge lights up in the new space's colour as you switch.",
+      "host": "Zenith Plus",
+      "default": true
+     }
+    ]
+   },
+   {
+    "title": "Links",
+    "settings": [
+     {
+      "property": "zenith.action.space-routing",
+      "label": "Links from other apps",
+      "type": "action",
+      "extra": false,
+      "desc": "Zen's Space routing sends links from other apps (and any site you choose, like a login page) to a space, and so to that space's container.",
+      "button": "Space routing",
+      "command": "cmd_zenOpenSpaceRoutingSettings",
+      "host": "Zen"
      }
     ]
    },
@@ -1315,6 +1403,34 @@ const SCHEMA = [
        }
       ],
       "default": null
+     },
+     {
+      "property": "zenith.tabs.badge-only",
+      "label": "Extension buttons only with a badge",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "Pinned extension buttons hide unless they show a badge, like an unread count. Hovering the toolbar shows them all.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.plus.ready-pulse",
+      "label": "Background tab ready",
+      "type": "checkbox",
+      "extra": true,
+      "desc": "A tab opened in the background has finished loading: the page's edge glows once.",
+      "host": "Zenith Plus",
+      "default": false
      }
     ]
    }
@@ -1736,6 +1852,15 @@ const SCHEMA = [
        }
       ],
       "default": null
+     },
+     {
+      "property": "zenith.plus.more-menu",
+      "label": "More submenu",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Rare items in the right-click menus (view source, send to device, set as desktop background and so on) move into a More submenu at the end. Nothing is removed.",
+      "host": "Zenith Plus",
+      "default": true
      }
     ]
    },
@@ -1908,6 +2033,38 @@ const SCHEMA = [
     ]
    },
    {
+    "title": "Scrolling",
+    "settings": [
+     {
+      "property": "zenith.plus.scroll",
+      "label": "Scroll feel",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How pages scroll: Zen's own glide, instant steps, Firefox's classic short ease, or a longer macOS-like glide that bounces at the ends.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Zen's own",
+        "value": ""
+       },
+       {
+        "label": "Instant",
+        "value": "instant"
+       },
+       {
+        "label": "Smooth",
+        "value": "smooth"
+       },
+       {
+        "label": "macOS-like",
+        "value": "glide"
+       }
+      ],
+      "default": ""
+     }
+    ]
+   },
+   {
     "title": "Less motion",
     "settings": [
      {
@@ -1946,6 +2103,42 @@ const SCHEMA = [
       "type": "checkbox",
       "extra": false,
       "desc": "Keep Zen's own animations too, whatever the system says.",
+      "host": "Zenith Plus",
+      "default": true
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "keys",
+  "title": "Keys",
+  "icon": "keys",
+  "blurb": "Jump anywhere with Alt+W, read without distractions with Alt+Z.",
+  "groups": [
+   {
+    "title": "Switcher",
+    "settings": [
+     {
+      "property": "zenith.plus.switcher",
+      "label": "Switcher (Alt+W)",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt+W: type part of a tab's title or site, a folder or a space, and Enter goes there. Start with : for commands, like :focus or :timer 10m tea.",
+      "host": "Zenith Plus",
+      "default": true
+     }
+    ]
+   },
+   {
+    "title": "Focus mode",
+    "settings": [
+     {
+      "property": "zenith.plus.focus-key",
+      "label": "Focus mode (Alt+Z)",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt+Z hides the sidebar, the edges, the minimap, pills and the link address, for reading or video. The sharing alarm still shows. Alt+Z again brings it all back.",
       "host": "Zenith Plus",
       "default": true
      }
@@ -2313,6 +2506,13 @@ function effective(s, section) {
   return s.default ?? "";
 }
 
+// A button that opens something of Zen's (Space routing): run its command
+// in the browser window, wherever the page is.
+function runAction(s) {
+  const win = window.gBrowser ? window : Services.wm.getMostRecentWindow("navigator:browser");
+  win?.document.getElementById(s.command)?.doCommand();
+}
+
 function write(s, value) {
   if (s.type === "checkbox") P.setBoolPref(s.property, value);
   else if (value === "" || value == null) P.clearUserPref(s.property);
@@ -2441,7 +2641,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.9.1";
+const SCHEMA_VERSION = "0.10.0";
 
 class SettingsView {
   constructor(kind) {
@@ -2574,6 +2774,11 @@ class SettingsView {
   // The right control for a setting: a switch, a row of segments, picture
   // cards, a list, or a text field.
   control(s) {
+    if (s.type === "action") {
+      const button = el("button", { class: "zp-chip zp-action", type: "button" }, s.button);
+      button.addEventListener("click", () => runAction(s));
+      return { node: button, update: () => {} };
+    }
     const values = (s.options ?? []).map(o => o.value);
     const isToggle = s.type === "checkbox" || (values.length === 2 && values.includes("on") && values.includes("off"));
     if (isToggle) {
@@ -2996,6 +3201,12 @@ const Find = {
       for (const group of section.groups) {
         for (const s of group.settings) {
           if ((s.rule?.platform && s.rule.platform !== OS) || s.type === "string") continue;
+          if (s.type === "action") {
+            this.all.push({ kind: "action", s, section, label: s.label, place: `${section.title} › ${group.title}`,
+                            options: [{ label: s.button, value: "" }],
+                            words: `${s.label} ${section.title} ${group.title} ${s.desc} ${s.button}`.toLowerCase() });
+            continue;
+          }
           const options = s.type === "checkbox" ? [{ label: "On", value: true }, { label: "Off", value: false }] : s.options;
           this.all.push({ kind: "setting", s, section, label: s.label, place: `${section.title} › ${group.title}`, options,
                           words: `${s.label} ${section.title} ${group.title} ${s.desc} ${options.map(o => o.label).join(" ")}`.toLowerCase() });
@@ -3006,6 +3217,7 @@ const Find = {
   },
 
   current(e) {
+    if (e.kind === "action") return "";
     return e.kind === "preset" ? presetOf(e.section) : effective(e.s, e.section);
   },
 
@@ -3045,6 +3257,7 @@ const Find = {
 
   // The next (dir 1) or previous (-1) choice, written at once.
   step(e, dir) {
+    if (e.kind === "action") return runAction(e.s);
     const values = e.options.map(o => o.value);
     const i = values.indexOf(this.current(e));
     const next = values[(i + dir + values.length) % values.length];
@@ -3053,6 +3266,7 @@ const Find = {
   },
 
   open(e) {
+    if (e.kind === "action") return runAction(e.s);
     Live.open(e);
   },
 };
