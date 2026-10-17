@@ -627,6 +627,54 @@
   white-space: nowrap;
 }
 
+/* Settings ("set" in the prompt): the setting's name, what it's set to (a
+   pill that changes it), and where it lives on the Zenith page. */
+.zenith-peek-setting {
+  & > .zenith-peek-key {
+    flex: none;
+    width: 170px;
+    padding: 0;
+    background: none;
+    font: inherit;
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &[off] > :is(.zenith-peek-key, .zenith-peek-value) {
+    opacity: 0.5;
+  }
+}
+
+#zenith-peek .zenith-peek-value {
+  appearance: none !important;
+  flex: none;
+  max-width: 170px;
+  margin: 0 !important;
+  min-height: 0 !important;
+  padding: 1px 9px !important;
+  border: none !important;
+  border-radius: var(--zth-pill-radius) !important;
+  corner-shape: var(--zth-pill-shape);
+  background: var(--zth-accent-soft) !important;
+  color: var(--zth-ink) !important;
+  font: inherit !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--zth-accent) 40%, transparent) !important;
+  }
+}
+
+.zenith-peek-zen-search > .zenith-peek-name {
+  flex: 1;
+  width: auto;
+}
+
 .zenith-peek-place > .zenith-peek-key {
   min-width: 72px;
   max-width: 110px;

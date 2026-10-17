@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.8.0
+// @version        0.9.0
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -15,7 +15,7 @@
 //   #zenith-download-edge   at the bottom of the page area
 //   #zenith-minimap         at the window edge, for the hidden sidebar
 //   .zenith-zoom-pill       in any pane whose zoom isn't 100%
-// and copies the workspace colour to the root for the sidebar (--zth-window-paint).
+// and gives Zenith's glass the workspace colour Zen paints (--zth-paint).
 // Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
 // work without any of this. Peek has its own script, zenith-peek.uc.mjs.
 
@@ -139,27 +139,36 @@ const InsecureHint = {
   },
 };
 
-/* --- Window paint: the workspace colour, for the sidebar ------------------
-   Zen sets the window's workspace colour only on #zen-browser-background,
-   so nothing else can read it. Zenith Core paints the sidebar (docked and
-   floating) with the same colour, so this copies it to the root as
-   --zth-window-paint whenever Zen changes it. */
+/* --- Window paint: the workspace colour, for Zenith's glass ----------------
+   Zen keeps the window's workspace colour only on #zen-browser-background
+   (one colour, or a gradient of up to three, each with Zen's opacity), so
+   nothing else can read it. Every Zenith glass surface uses one colour made
+   from it: this averages Zen's colours and hands Core the result and its
+   strength (--zth-paint, --zth-paint-share) whenever Zen changes them. */
 
 const WindowPaint = {
-  NAMES: [
-    ["--zen-main-browser-background", "--zth-window-paint"],
-    ["--zen-main-browser-background-old", "--zth-window-paint-old"],
-  ],
+  colours(value) {
+    const found = [...value.matchAll(/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)/g)];
+    return found.map(m => {
+      let a = m[4] === undefined ? 1 : parseFloat(m[4]);
+      if (m[4]?.endsWith("%")) a /= 100;
+      return [+m[1], +m[2], +m[3], a];
+    });
+  },
 
   init() {
     const bg = document.getElementById("zen-browser-background");
     if (!bg) return;
     const copy = () => {
-      for (const [from, to] of this.NAMES) {
-        const value = bg.style.getPropertyValue(from);
-        if (value) root.style.setProperty(to, value);
-        else root.style.removeProperty(to);
+      const colours = this.colours(bg.style.getPropertyValue("--zen-main-browser-background"));
+      if (!colours.length) {
+        root.style.removeProperty("--zth-paint");
+        root.style.removeProperty("--zth-paint-share");
+        return;
       }
+      const avg = i => colours.reduce((n, c) => n + c[i], 0) / colours.length;
+      root.style.setProperty("--zth-paint", `rgb(${[0, 1, 2].map(i => Math.round(avg(i))).join(" ")})`);
+      root.style.setProperty("--zth-paint-share", `${Math.round(avg(3) * 100)}%`);
     };
     const mo = new MutationObserver(copy);
     mo.observe(bg, { attributes: true, attributeFilter: ["style"] });
@@ -473,35 +482,110 @@ const MotionBridge = {
 
 /* --- Press light: liquid glass lights up where you press ------------------
    With Glass edge on Liquid, pressing a tab, an essential, the media card,
-   the Peek prompt or a notice lights that glass up from the spot you pressed
-   (Zenith Core draws it; this says where and when). */
+   the Peek prompt, a notice or a card in the live panel lights that glass
+   up under the pointer: it brightens quickly, follows the pointer while you
+   hold, and fades after you let go (inspired by Zia). Zenith Core draws it
+   from --zth-press; this sets it each frame, because a mod stylesheet can't
+   register the property that a CSS animation of it would need. */
 const PressLight = {
   // [what you press, the part that's painted (null: itself)]
-  SURFACES: [[".tabbrowser-tab", ".tab-background"], [".zen-media-card", null], ["#zenith-peek-box", null], [".zenith-toast", null]],
+  SURFACES: [[".tabbrowser-tab", ".tab-background"], [".zen-media-card", null], ["#zenith-peek-box", null],
+             [".zenith-toast", null], ["#zenith-live .zp-card", null], ["#zenith-live .zp-chip", null]],
+  RISE: 90,    // ms to full light
+  HOLD: 140,   // ms it stays at least, for a quick click
+  FADE: 320,   // ms to fade after you let go
 
   init() {
     const onDown = e => this.press(e);
+    const onMove = e => this.follow(e);
+    const onUp = () => this.release();
     window.addEventListener("pointerdown", onDown, true);
-    onUnload(() => window.removeEventListener("pointerdown", onDown, true));
+    window.addEventListener("pointermove", onMove, true);
+    window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onUp, true);
+    window.addEventListener("blur", onUp);
+    onUnload(() => {
+      window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("pointermove", onMove, true);
+      window.removeEventListener("pointerup", onUp, true);
+      window.removeEventListener("pointercancel", onUp, true);
+      window.removeEventListener("blur", onUp);
+    });
+  },
+
+  surface(target) {
+    for (const [hit, part] of this.SURFACES) {
+      const host = target.closest?.(hit);
+      if (host) return part ? host.querySelector(part) : host;
+    }
+    return null;
+  },
+
+  place(glass, e) {
+    const box = glass.getBoundingClientRect();
+    glass.style.setProperty("--zth-press-x", `${Math.round(e.clientX - box.left)}px`);
+    glass.style.setProperty("--zth-press-y", `${Math.round(e.clientY - box.top)}px`);
   },
 
   press(e) {
     if (Services.prefs.getStringPref("zenith.core.glass-edge", "") !== "liquid" || e.button !== 0) return;
-    for (const [hit, part] of this.SURFACES) {
-      const host = e.target.closest?.(hit);
-      if (!host) continue;
-      const glass = part ? host.querySelector(part) : host;
-      if (!glass) return;
-      const box = glass.getBoundingClientRect();
-      glass.style.setProperty("--zth-press-x", `${Math.round(e.clientX - box.left)}px`);
-      glass.style.setProperty("--zth-press-y", `${Math.round(e.clientY - box.top)}px`);
-      // Restart the glow if it's still fading from the last press.
-      glass.removeAttribute("zenith-press");
-      void glass.getBoundingClientRect();
-      glass.setAttribute("zenith-press", "true");
-      clearTimeout(glass.zenithPressTimer);
-      glass.zenithPressTimer = setTimeout(() => glass.removeAttribute("zenith-press"), 800);
-      return;
+    const glass = this.surface(e.target);
+    if (!glass) return;
+    if (this.glass && this.glass !== glass) this.clear(this.glass);
+    this.glass = glass;
+    this.down = performance.now();
+    this.held = true;
+    this.from = this.level(glass);
+    this.place(glass, e);
+    glass.setAttribute("zenith-press", "true");
+    this.run();
+  },
+
+  follow(e) {
+    if (this.held && this.glass?.isConnected) this.place(this.glass, e);
+  },
+
+  release() {
+    if (!this.held) return;
+    this.held = false;
+    this.up = Math.max(performance.now(), this.down + this.HOLD);
+    this.run();
+  },
+
+  level(glass) {
+    return parseFloat(glass.style.getPropertyValue("--zth-press")) || 0;
+  },
+
+  // One animation frame loop: rise while held, then fade.
+  run() {
+    if (this.frame) return;
+    const step = now => {
+      this.frame = null;
+      const glass = this.glass;
+      if (!glass?.isConnected) return this.clear(glass);
+      let level;
+      if (this.held || now < this.up) {
+        const t = Math.min(1, (now - this.down) / this.RISE);
+        level = this.from + (1 - this.from) * (1 - (1 - t) ** 2);
+      } else {
+        const t = Math.min(1, (now - this.up) / this.FADE);
+        level = (1 - t) ** 2;
+        if (t >= 1) return this.clear(glass);
+      }
+      glass.style.setProperty("--zth-press", level.toFixed(3));
+      this.frame = requestAnimationFrame(step);
+    };
+    this.frame = requestAnimationFrame(step);
+  },
+
+  clear(glass) {
+    if (!glass) return;
+    glass.removeAttribute("zenith-press");
+    for (const p of ["--zth-press", "--zth-press-x", "--zth-press-y"]) glass.style.removeProperty(p);
+    if (glass === this.glass) {
+      this.glass = null;
+      if (this.frame) cancelAnimationFrame(this.frame);
+      this.frame = null;
     }
   },
 };

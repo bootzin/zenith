@@ -19,7 +19,7 @@ Zenith comes in two parts.
 
 - **Peek:** quick lookups in a floating page that leaves nothing behind, with Alt+Q and instant answers.
 - **Live edges:** real load and download progress.
-- **Peek extras:** currency, definitions and weather in the prompt, plus timers and pomodoros.
+- **Peek extras:** currency, definitions and weather in the prompt, timers and pomodoros, and `set` to find a setting, change it, or open it in the live panel.
 - **Sidebar extras:** a minimap of the hidden sidebar, numbered tabs while you hold Ctrl, and the cover art of what's playing behind the media card.
 - **Pages:** zoom pills, plus text selection in the workspace colour.
 - **Settings:** a Zenith page in Zen's Settings with every option explained, presets that fill in what they cover, and pictures for looks; the same settings as a live panel over the page (**Alt+Shift+Z**). Also greys out options that don't apply, and puts your mods ahead of the marketplace in Sine's page.
@@ -42,9 +42,11 @@ Zenith is built and tested on Windows 11 with Zen. It's plain CSS and standard F
 Zenith is built and tested on **Windows 11**. It's plain CSS and standard Firefox features, so it should work on **macOS** and **Linux**, but those haven't been tested yet: if something looks off, please open an issue with a screenshot.
 
 **Windows 11**
-- Zenith › Look › Window material picks what Windows draws behind Zen: Acrylic (blurs the windows behind; Zen's default), Mica or Mica Alt (tinted by your wallpaper), Automatic or None.
+- Zenith › Look › Window material picks what Windows draws behind Zen: Acrylic (blurs the windows behind; Zen's default), Mica or Mica Alt (tinted by your wallpaper), Automatic or None. It shows where the window itself is see-through: behind the docked sidebar, and around a rounded page. In compact mode the page fills the window, so there's nothing to see.
+- Nothing to turn on in about:config: Zen's transparency on Windows is on by default.
 - Windows only draws Acrylic while Zen is the active window, and flat grey otherwise; Zenith shows your workspace colour then instead.
-- Using MicaForEveryone or DWMBlurGlass for Zen? Set the material there and leave Zenith's at its default.
+- Frost sets the blur wherever Zenith does it (over the page). Behind the docked sidebar, Windows blurs the desktop at one fixed strength. DWMBlurGlass, a separate program, can change Windows' blur for all apps.
+- MicaForEveryone and DWMBlurGlass are programs you install yourself, not settings. Using one for Zen? Set the material there and leave Zenith's at its default.
 
 **macOS**
 - Window material picks the macOS material behind Zen (HUD is Zen's default) or turns it off.

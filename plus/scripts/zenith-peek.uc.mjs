@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.8.0
+// @version        0.9.0
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -456,7 +456,7 @@ const Prompt = {
     this.input = make("input", {
       id: "zenith-peek-input",
       spellcheck: "false",
-      placeholder: "Peek: search, an address, maths, a prefix (? lists them) or timer 10m",
+      placeholder: "Peek: search, an address, maths, a prefix (? lists them), timer 10m or set (settings)",
     });
     this.row = make("div", { id: "zenith-peek-row" });
     this.tag = make("span", { id: "zenith-peek-tag" });
@@ -502,8 +502,21 @@ const Prompt = {
     return !!Commands.timers && /^timer$/i.test(this.input.value.trim()) && !Lookup.findPrefix("timer");
   },
 
+  // "set" or "settings", then what to find: the words after it (or "").
+  get settingsQuery() {
+    const m = this.input.value.match(/^\s*(set|settings)(?:\s+(.*))?$/i);
+    if (!m || !window.ZenithSettings || Lookup.findPrefix(m[1].toLowerCase())) return null;
+    return m[2] ?? "";
+  },
+
   update() {
     clearInterval(this.timerClock);
+    if (this.settingsQuery !== null) {
+      this.row.hidden = true;
+      this.settingSelected = 0;
+      this.renderSettings();
+      return;
+    }
     if (this.listing) {
       this.row.hidden = true;
       this.renderList();
@@ -662,6 +675,7 @@ const Prompt = {
   },
 
   onKey(e) {
+    if (this.settingsQuery !== null && this.onSettingsKey(e)) return;
     if (this.listing && this.onListKey(e)) return;
     if (this.timerListing && this.onTimerKey(e)) return;
     if (this.places?.length && this.onPlaceKey(e)) return;
@@ -805,6 +819,123 @@ const Prompt = {
     list.splice(i, 1);
     Lookup.savePrefixes(list);
     this.renderList();
+  },
+
+  /* --- "set": find a Zenith setting, change it, or open it -------------------- */
+
+  // The matches (at most eight), then a row that searches Zen's own settings.
+  renderSettings() {
+    const query = this.settingsQuery ?? "";
+    const Find = window.ZenithSettings;
+    this.settingMatches = Find.find(query).slice(0, 8);
+    const count = this.settingMatches.length + (query.trim() ? 1 : 0);
+    this.settingSelected = Math.min(this.settingSelected ?? 0, Math.max(0, count - 1));
+    this.list.hidden = false;
+    this.list.replaceChildren();
+    if (!query.trim()) {
+      this.list.append(make("div", { class: "zenith-peek-item zenith-peek-empty" },
+                            "Type what to find: “set frost”, “set numbers”, “set peek”."));
+    }
+    this.settingMatches.forEach((found, i) => {
+      const row = make("div", { class: "zenith-peek-item zenith-peek-setting" });
+      if (i === this.settingSelected) row.setAttribute("selected", "true");
+      const why = Find.why(found);
+      if (why) {
+        row.setAttribute("off", "true");
+        row.title = why;
+      }
+      const value = make("button", { class: "zenith-peek-value", title: "Change it (Tab)" }, Find.value(found));
+      value.addEventListener("mousedown", e => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.settingSelected = i;
+        this.changeSetting(e.shiftKey ? -1 : 1);
+      });
+      row.append(make("span", { class: "zenith-peek-key" }, found.label), value,
+                 make("span", { class: "zenith-peek-url" }, found.place));
+      row.addEventListener("mousedown", e => {
+        e.preventDefault();
+        this.openSetting(i);
+      });
+      this.list.append(row);
+    });
+    if (query.trim()) {
+      const i = this.settingMatches.length;
+      const zen = make("div", { class: "zenith-peek-item zenith-peek-zen-search" });
+      if (i === this.settingSelected) zen.setAttribute("selected", "true");
+      zen.append(make("span", { class: "zenith-peek-name" }, `Search Zen's own settings for “${query.trim()}”`));
+      zen.addEventListener("mousedown", e => {
+        e.preventDefault();
+        this.searchZen(query.trim());
+      });
+      this.list.append(zen);
+    }
+    const foot = make("div", { class: "zenith-peek-foot" });
+    foot.append(make("span", {}, this.settingMatches.length
+      ? "↑↓ choose · Tab changes it · Enter opens it in the live panel"
+      : query.trim() ? "No Zenith setting matches · Enter searches Zen's settings" : "Esc back"));
+    this.list.append(foot);
+  },
+
+  changeSetting(dir) {
+    const found = this.settingMatches?.[this.settingSelected];
+    if (!found) return;
+    window.ZenithSettings.step(found, dir);
+    // The setting is written at once; the page reads it back a moment later.
+    setTimeout(() => this.renderSettings(), 60);
+  },
+
+  openSetting(i) {
+    const found = this.settingMatches[i];
+    this.hide();
+    window.ZenithSettings.open(found);
+  },
+
+  // Zen's Settings, with its own search filled in.
+  async searchZen(query) {
+    this.hide();
+    window.openPreferences("paneGeneral");
+    for (let tries = 0; tries < 50; tries++) {
+      const doc = gBrowser.selectedBrowser.contentDocument;
+      const input = doc?.getElementById("searchInput");
+      if (input && doc.readyState === "complete") {
+        input.value = query;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new CustomEvent("command", { bubbles: true }));
+        input.focus();
+        return;
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+  },
+
+  // Keys while "set" shows; true when handled.
+  onSettingsKey(e) {
+    const count = (this.settingMatches?.length ?? 0) + ((this.settingsQuery ?? "").trim() ? 1 : 0);
+    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && count) {
+      e.preventDefault();
+      this.settingSelected = (this.settingSelected + (e.key === "ArrowDown" ? 1 : count - 1)) % count;
+      this.renderSettings();
+      return true;
+    }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      this.changeSetting(e.shiftKey ? -1 : 1);
+      return true;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (this.settingSelected < (this.settingMatches?.length ?? 0)) this.openSetting(this.settingSelected);
+      else if ((this.settingsQuery ?? "").trim()) this.searchZen(this.settingsQuery.trim());
+      return true;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      this.input.value = "";
+      this.update();
+      return true;
+    }
+    return false;
   },
 
   /* --- "timer": running timers, Delete cancels ------------------------------- */

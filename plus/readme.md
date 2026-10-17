@@ -1,6 +1,6 @@
 # Zenith Plus
 
-Version 0.8.0
+Version 0.9.0
 
 The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
 
@@ -27,9 +27,9 @@ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus a
 - The same workspace colour on the docked and floating sidebar
 - Zen's own animations, even when the system asks for less motion
 
-**Settings**: Plus adds a **Zenith** page to Zen's Settings: every option with a sentence on what it does, switches, small pictures for looks, and presets that fill in the settings they cover (it says "Custom" once you change one). Press **Alt+Shift+Z** for the same settings as a live panel over the page you're on. Options that another setting makes irrelevant are greyed out, with the reason; in Sine's mods page your installed mods come first and the marketplace folds behind a button (searching opens it).
+**Settings**: Plus adds a **Zenith** page to Zen's Settings: every option with a sentence on what it does, switches, small pictures for looks, and presets that fill in the settings they cover (it says "Custom" once you change one). Press **Alt+Shift+Z** for the same settings as a live panel over the page you're on, or type `set` and a few words in Peek (`set frost`): Tab changes the setting there and then, Enter opens it in the live panel, and the last row searches Zen's own settings. Options that another setting makes irrelevant are greyed out, with the reason; in Sine's mods page your installed mods come first and the marketplace folds behind a button (searching opens it).
 
-**Window**: the window material behind Zen (Windows: Acrylic, Mica, Mica Alt; macOS: its materials; Linux: see-through), and, with Glass edge on Liquid, glass that lights up where you press it.
+**Window**: the window material behind Zen (Windows: Acrylic, Mica, Mica Alt; macOS: its materials; Linux: see-through), and, with Glass edge on Liquid, glass that lights up under the pointer while you press it (tabs, essentials, the media card, Peek, notices).
 
 **What it touches:** the scripts run inside the browser with full access, like any Zen script mod. They collect nothing and send nothing about you. The network requests they cause:
 

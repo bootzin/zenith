@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.8.0
+// @version        0.9.0
 // ==/UserScript==
 
 // Zen's mod settings list every option flat, with no way to show that one

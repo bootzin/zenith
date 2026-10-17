@@ -102,8 +102,6 @@ def setup_profile():
     """(Re)build the test profile: prefs + all six Zenith mods enabled."""
     TEST_PROFILE.mkdir(parents=True, exist_ok=True)
     prefs = dict(TEST_PREFS)
-    # A check can add its own prefs for this run (JSON in ZENITH_EXTRA_PREFS).
-    prefs.update(json.loads(os.environ.get("ZENITH_EXTRA_PREFS", "{}")))
     # Start every run from Zenith's defaults: blank every Zenith text/dropdown
     # setting and reset its tick boxes, whatever earlier runs changed.
     for key in MOD_IDS:
@@ -111,6 +109,9 @@ def setup_profile():
             if not entry["property"].startswith("zenith."):
                 continue
             prefs[entry["property"]] = entry.get("defaultValue", False) if entry["type"] == "checkbox" else ""
+    # A check can add its own prefs for this run (JSON in ZENITH_EXTRA_PREFS);
+    # after the reset above, so Zenith settings can be among them.
+    prefs.update(json.loads(os.environ.get("ZENITH_EXTRA_PREFS", "{}")))
     prefs_js = TEST_PROFILE / "prefs.js"
     if prefs_js.exists():
         kept = [l for l in prefs_js.read_text(encoding="utf-8").splitlines()

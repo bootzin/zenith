@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.8.0
+// @version        0.9.0
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -194,7 +194,7 @@ const SCHEMA = [
       "label": "Window transparency",
       "type": "dropdown",
       "extra": false,
-      "desc": "How much of what's behind shows through the window, sidebar and panels.",
+      "desc": "How much shows through every see-through surface: the sidebar, docked or floating, and the panels. All of them use the same colour and strength.",
       "host": "Zenith Core",
       "options": [
        {
@@ -230,7 +230,7 @@ const SCHEMA = [
       "label": "Frost",
       "type": "dropdown",
       "extra": false,
-      "desc": "How strongly see-through surfaces blur what's behind them.",
+      "desc": "How much see-through surfaces blur the page behind them. Behind the docked sidebar it's the desktop, which Windows blurs at its own strength.",
       "host": "Zenith Core",
       "options": [
        {
@@ -253,7 +253,7 @@ const SCHEMA = [
       "label": "Glass edge",
       "type": "dropdown",
       "extra": false,
-      "desc": "The rim of glass surfaces: a fine highlight along the top, or liquid glass that catches the light around its edge and lights up where you press (with Zenith Plus).",
+      "desc": "The rim of glass surfaces: a fine highlight along the top, or liquid glass that catches the light around its edge, on panels, the selected tab and essentials, and lights up where you press (with Zenith Plus).",
       "host": "Zenith Core",
       "options": [
        {
@@ -277,7 +277,7 @@ const SCHEMA = [
       "label": "Sidebar",
       "type": "dropdown",
       "extra": false,
-      "desc": "See-through like the URL bar, always solid, or Zen's own darker floating sidebar.",
+      "desc": "See-through like every panel, always solid, or Zen's own colours and blur.",
       "host": "Zenith Core",
       "options": [
        {
@@ -301,7 +301,7 @@ const SCHEMA = [
       "label": "Window material",
       "type": "dropdown",
       "extra": false,
-      "desc": "What Windows draws behind Zen. Acrylic blurs the windows behind; Mica and Mica Alt tint with your wallpaper. Windows only shows it while Zen is the active window.",
+      "desc": "What Windows draws where the window itself shows through: behind the docked sidebar and around a rounded page. In compact mode the page fills the window, so it doesn't show. Acrylic blurs the windows behind; Mica and Mica Alt tint with your wallpaper. Only while Zen is the active window.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -2432,7 +2432,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.8.0";
+const SCHEMA_VERSION = "0.9.0";
 
 class SettingsView {
   constructor(kind) {
@@ -2678,6 +2678,12 @@ const STYLE = `
     padding-bottom: 80px;
   }
   .zp-view [zp-hidden] { display: none !important; }
+  /* The setting Peek's "set" opened: outlined for a moment. */
+  .zp-view [zp-found] { border-radius: 8px; animation: zp-found 2s ease-out forwards; }
+  @keyframes zp-found {
+    from, 40% { outline: 2px solid var(--zp-accent); outline-offset: 3px; }
+    to { outline: 2px solid transparent; outline-offset: 3px; }
+  }
   .zp-hero { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: center; margin: 8px 0 18px; }
   .zp-mark { grid-row: span 2; width: 44px; height: 44px; border-radius: 14px;
     background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--zp-accent) 70%, white), var(--zp-accent) 70%);
@@ -2905,10 +2911,30 @@ function startPage() {
 /* --- The live panel: the same settings over the browser, Alt+Shift+Z --------- */
 
 const Live = {
-  open() {
+  // With a setting from Find (Peek's "set"), shows that one: the search
+  // cleared, the setting scrolled into view, outlined for a moment, and its
+  // control focused.
+  open(found) {
     if (!this.host) this.build();
     this.host.hidden = false;
-    this.view.search.focus();
+    if (!found) {
+      this.view.search.focus();
+      return;
+    }
+    this.view.search.value = "";
+    this.view.filter("");
+    const node = found.kind === "preset"
+      ? this.host.querySelector(`[data-section="${found.section.id}"] .zp-presets`)
+      : this.host.querySelector(`.zp-row[data-prop="${found.s.property}"]`);
+    if (!node) return;
+    node.scrollIntoView({ block: "center" });
+    node.removeAttribute("zp-found");
+    void node.offsetWidth;
+    node.setAttribute("zp-found", "");
+    // The current choice first, else the control itself.
+    const control = ["[aria-checked='true']", "[selected]", ".zp-select", "button, input"]
+      .map(sel => node.querySelector(sel)).find(Boolean);
+    (control ?? this.view.search).focus({ preventScroll: true });
   },
 
   close() {
@@ -2944,6 +2970,84 @@ const Live = {
   },
 };
 
+/* --- Finding a setting from Peek ("set frost") -------------------------------- */
+
+const Find = {
+  // Every setting on this platform (and each section's preset), with where
+  // it lives and the words it can be found by.
+  entries() {
+    if (this.all) return this.all;
+    this.all = [];
+    for (const section of SCHEMA) {
+      if (section.preset) {
+        const options = section.preset.values.map(v => ({ label: v.label, value: v.value }));
+        this.all.push({ kind: "preset", section, label: `${section.title} preset`, place: section.title, options,
+                        words: `${section.title} preset ${options.map(o => o.label).join(" ")}`.toLowerCase() });
+      }
+      for (const group of section.groups) {
+        for (const s of group.settings) {
+          if ((s.rule?.platform && s.rule.platform !== OS) || s.type === "string") continue;
+          const options = s.type === "checkbox" ? [{ label: "On", value: true }, { label: "Off", value: false }] : s.options;
+          this.all.push({ kind: "setting", s, section, label: s.label, place: `${section.title} › ${group.title}`, options,
+                          words: `${s.label} ${section.title} ${group.title} ${s.desc} ${options.map(o => o.label).join(" ")}`.toLowerCase() });
+        }
+      }
+    }
+    return this.all;
+  },
+
+  current(e) {
+    return e.kind === "preset" ? presetOf(e.section) : effective(e.s, e.section);
+  },
+
+  // What it's set to, as the page shows it.
+  value(e) {
+    const v = this.current(e);
+    const label = e.options.find(o => o.value === v)?.label ?? String(v);
+    return e.kind === "preset" && isCustom(e.section) ? `${label} (changed)` : label;
+  },
+
+  // Why it does nothing right now, if it doesn't (the page greys it out).
+  why(e) {
+    if (e.kind !== "setting" || !e.s.rule?.conditions) return null;
+    try {
+      return holds(e.s.rule.conditions) ? null : e.s.rule.why;
+    } catch {
+      return null;
+    }
+  },
+
+  // Settings matching every word, the closest names first.
+  find(query) {
+    const q = query.trim().toLowerCase();
+    const words = q.split(/\s+/).filter(Boolean);
+    if (!words.length) return [];
+    const rank = e => {
+      const name = e.label.toLowerCase();
+      if (name === q) return 0;
+      if (name.startsWith(q)) return 1;
+      if (words.every(w => name.includes(w))) return 2;
+      if (words.every(w => `${name} ${e.place.toLowerCase()}`.includes(w))) return 3;
+      return 4;
+    };
+    return this.entries().filter(e => words.every(w => e.words.includes(w)))
+      .map((e, i) => [rank(e), i, e]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
+  },
+
+  // The next (dir 1) or previous (-1) choice, written at once.
+  step(e, dir) {
+    const values = e.options.map(o => o.value);
+    const i = values.indexOf(this.current(e));
+    const next = values[(i + dir + values.length) % values.length];
+    if (e.kind === "preset") choosePreset(e.section, next);
+    else write(e.s, next);
+  },
+
+  open(e) {
+    Live.open(e);
+  },
+};
+
 function startPanel() {
   // A command and key of our own (no inline handler, which the window's
   // policy blocks); "reserved" keeps pages from taking Alt+Shift+Z.
@@ -2963,6 +3067,7 @@ function startPanel() {
   keyset.append(key);
   document.documentElement.append(commandset, keyset);
   window.ZenithLive = Live; // for tools/checks
+  window.ZenithSettings = Find; // Peek's "set"
   return true;
 }
 

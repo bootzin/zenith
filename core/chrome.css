@@ -44,14 +44,21 @@
   --zth-pill-shape: round;
   --zth-page-radius: 0px;
 
-  /* Glass (Subtle by default), tinted towards the workspace colour */
+  /* Glass. Every see-through surface is one colour, the workspace colour
+     Zen paints mixed into a neutral base (Zenith Plus supplies Zen's exact
+     colour and strength), shown at the strength "Window transparency" sets,
+     over a blur of what's behind it (Frost, Subtle by default). */
   --zth-surface: color-mix(in srgb, var(--zen-primary-color) 8%, light-dark(rgb(250 250 252), rgb(22 22 26)));
+  --zth-mica: light-dark(#f3f3f3, #202020);
+  --zth-paint: var(--zen-primary-color);
+  --zth-paint-share: 25%;
+  --zth-glass-color: color-mix(in srgb, var(--zth-paint) var(--zth-paint-share), var(--zth-mica));
   --zth-glass-blur: 4px;
   --zth-glass-sat: 1.1;
-  --zth-glass-bg: color-mix(in srgb, var(--zth-surface) calc(var(--zth-glass-alpha) * 100%), transparent);
-  --zth-panel-bg: color-mix(in srgb, var(--zth-surface) calc(var(--zth-panel-alpha) * 100%), transparent);
+  --zth-glass-bg: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-glass-alpha) * 100%), transparent);
+  --zth-panel-bg: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-panel-alpha) * 100%), transparent);
   --zth-glass-filter: blur(var(--zth-glass-blur)) saturate(var(--zth-glass-sat));
-  --zth-panel-filter: blur(calc(var(--zth-glass-blur) * 2)) saturate(var(--zth-glass-sat));
+  --zth-panel-filter: blur(calc(var(--zth-glass-blur) * 2)) saturate(var(--zth-glass-sat)) brightness(var(--zth-backdrop-dim));
   --zth-glass-shine: 0 0 0 transparent; /* used inside box-shadow lists, so never "none" */
   --zth-shadow: 0 12px 32px -10px rgb(0 0 0 / 0.5), 0 2px 8px rgb(0 0 0 / 0.18);
 
@@ -153,9 +160,11 @@
    How see-through panels are comes from "Window transparency" below; this
    only sets how much they blur what is behind them. */
 
+/* (Off keeps the panels' dimming of what's behind, so they look the same
+   apart from the blur.) */
 :root:has(#theme-Zenith-Core[zenith-core-glass="off"]) {
-  --zth-glass-filter: none;
-  --zth-panel-filter: none;
+  --zth-glass-blur: 0px;
+  --zth-glass-sat: 1;
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-glass="strong"]) {
@@ -179,32 +188,25 @@
     inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.06)),
     inset 0 16px 24px -18px light-dark(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.24));
 
-  /* Liquid also rims the surfaces that have no shadow of their own. */
+  /* Liquid also rims the surfaces that have no shadow of their own: the
+     selected tab, essentials, the media card and the floating sidebar. */
   & #zen-media-controls-toolbar .zen-media-card,
   &[zen-compact-mode="true"] #navigator-toolbox:not(#zth-a, #zth-b) .zen-toolbar-background,
-  & .tabbrowser-tab[zen-essential] > .tab-stack > .tab-background {
+  & .tabbrowser-tab:is([zen-essential], [selected], [multiselected]) > .tab-stack > .tab-background {
     box-shadow: var(--zth-glass-shine) !important;
   }
 
-  /* Where you press, the glass lights up and fades (Zenith Plus sets the
-     spot and the attribute). */
+  /* Where you press, the glass lights up: a soft spot under the pointer
+     and a faint wash over the whole surface. Zenith Plus marks the surface,
+     follows the pointer while you hold, and fades it after you let go
+     (--zth-press, 0 to 1; mod stylesheets can't animate it themselves). */
   & [zenith-press] {
-    background-image: radial-gradient(circle at var(--zth-press-x, 50%) var(--zth-press-y, 50%),
-      light-dark(rgb(255 255 255 / calc(var(--zth-press) * 0.9)), rgb(255 255 255 / calc(var(--zth-press) * 0.22))),
-      transparent 70%) !important;
-    animation: zth-press 0.7s ease-out forwards;
+    background-image:
+      radial-gradient(circle var(--zth-press-r, 64px) at var(--zth-press-x, 50%) var(--zth-press-y, 50%),
+        light-dark(rgb(255 255 255 / calc(var(--zth-press, 0) * 0.9)), rgb(255 255 255 / calc(var(--zth-press, 0) * 0.42))),
+        transparent),
+      linear-gradient(light-dark(rgb(255 255 255 / calc(var(--zth-press, 0) * 0.25)), rgb(255 255 255 / calc(var(--zth-press, 0) * 0.06))) 0 0) !important;
   }
-}
-
-@property --zth-press {
-  syntax: "<number>";
-  inherits: false;
-  initial-value: 0;
-}
-
-@keyframes zth-press {
-  from { --zth-press: 1; }
-  to { --zth-press: 0; }
 }
 
 /* Windows "Animation effects" off: Zenith Motion decides what happens (see
@@ -212,93 +214,77 @@
 
 /* ==========================================================================
    Window transparency: one scale for every surface
-   Six named steps; Airy is the default and Balanced is Zen's own look.
-   Every surface follows:
-     window        On Windows 11 the window background is Windows' blur of
-                   the desktop under the workspace colour Zen paints. Solid
-                   and Dense add an underlay; Airy, Sheer and Glass thin the
-                   colour until only the desktop blur is left.
-     glass         find bar, toasts, pills, window buttons, media card
-                   (--zth-glass-bg)
-     panels        sidebar, URL bar popup, Library: text-heavy, so they
-                   stay readable a step longer (--zth-panel-bg)
-                   The sidebar can also stay solid (Sidebar: "Solid"),
-                   which keeps docked and floating identical over any page;
-                   see-through, the docked one shows the desktop and the
-                   floating one the page behind it (--zth-sidebar-alpha)
-   Web pages themselves stay opaque. Windows "Transparency effects" off
-   makes everything solid. Frost (the blur) only shows where a surface is
-   see-through, so it matters most from Airy up.
+   Six named steps; Airy is the default. Every see-through surface is the
+   glass colour at the strength its step sets:
+     panels        the sidebar (docked and floating), the live panel, Peek,
+                   the URL bar popup, the Library (--zth-panel-bg)
+     glass         find bar, toasts, pills, window buttons, media card: a
+                   little lighter (--zth-glass-bg)
+     window        what's around the page: the docked sidebar, and the gap
+                   around a rounded page, at the panels' strength
+                   (--zth-desk-alpha)
+   What shows through differs. Over the page (the floating sidebar and every
+   panel), Zenith blurs it by Frost and dims it as much as Windows dims the
+   desktop. Around the page, the desktop shows through Windows' own blur
+   (Acrylic) or wallpaper tint (Mica), at Windows' own strength: Frost
+   can't change it. Web pages themselves stay opaque. Windows "Transparency
+   effects" off makes everything solid.
    ========================================================================== */
 
 :root {
   /* Airy (the default) */
-  --zth-window-under: 0%;
-  --zth-window-tint: 0.6;
-  --zth-glass-alpha: 0.45;
-  --zth-panel-alpha: 0.7;
+  --zth-glass-alpha: 0.5;
+  --zth-panel-alpha: 0.66;
   --zth-sidebar-alpha: var(--zth-panel-alpha);
-  --zth-window-base: light-dark(#e9e9e9, #131313);
-  --zth-mica: light-dark(#f3f3f3, #202020);
-  /* How much the floating sidebar dims the page showing through it. The
-     docked one shows the desktop through Windows' dark blur, so a bright
-     page behind the floating one is toned down to stay close to that. */
-  --zth-float-dim: 0.4;
+  --zth-desk-alpha: var(--zth-sidebar-alpha);
+  /* How much a panel dims the page showing through it: as much as Windows'
+     dark blur dims the desktop behind the docked sidebar, so the two match.
+     Light mode doesn't dim. */
+  --zth-backdrop-dim: 0.7;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --zth-float-dim: 1;
+    --zth-backdrop-dim: 1;
   }
 }
 
-/* Sidebar: Solid keeps it opaque at every step. */
-:root:has(#theme-Zenith-Core[zenith-core-floating-sidebar="solid"]) {
-  --zth-sidebar-alpha: 1 !important;
-}
-
 :root:has(#theme-Zenith-Core[zenith-core-window-transparency="solid"]) {
-  --zth-window-under: 100%;
   --zth-glass-alpha: 1;
   --zth-panel-alpha: 1;
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-window-transparency="dense"]) {
-  --zth-window-under: 45%;
-  --zth-glass-alpha: 0.8;
-  --zth-panel-alpha: 0.96;
+  --zth-glass-alpha: 0.86;
+  --zth-panel-alpha: 0.92;
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-window-transparency="balanced"]) {
-  --zth-window-tint: 1;
-  --zth-glass-alpha: 0.62;
-  --zth-panel-alpha: 0.88;
+  --zth-glass-alpha: 0.7;
+  --zth-panel-alpha: 0.82;
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-window-transparency="sheer"]) {
-  --zth-window-tint: 0.3;
-  --zth-glass-alpha: 0.3;
-  --zth-panel-alpha: 0.5;
+  --zth-glass-alpha: 0.34;
+  --zth-panel-alpha: 0.46;
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-window-transparency="glass"]) {
-  --zth-window-tint: 0;
-  --zth-glass-alpha: 0.18;
-  --zth-panel-alpha: 0.32;
+  --zth-glass-alpha: 0.2;
+  --zth-panel-alpha: 0.28;
+}
 
-  /* The pinned sidebar is fully see-through, like the rest of the window.
-     The floating one keeps the panel tint: over a page it needs it. */
-  &:not([zen-compact-mode="true"]) {
-    --zth-sidebar-alpha: 0;
-  }
+/* Sidebar: Solid keeps it opaque at every step, docked or floating. */
+:root:has(#theme-Zenith-Core[zenith-core-floating-sidebar="solid"]) {
+  --zth-sidebar-alpha: 1 !important;
 }
 
 /* Windows draws its blur behind Zen only while Zen is the active window;
-   the rest of the time it shows flat grey. Zenith shows the workspace
-   colour then instead, as Balanced does. */
+   the rest of the time it shows flat grey. Around the page Zenith shows
+   the glass colour in full then instead. */
 @media (-moz-platform: windows) {
   :root:-moz-window-inactive {
-    --zth-window-tint: 1 !important;
+    --zth-desk-alpha: 1 !important;
   }
 }
 
@@ -308,6 +294,7 @@
     --zth-glass-alpha: 1 !important;
     --zth-panel-alpha: 1 !important;
     --zth-sidebar-alpha: 1 !important;
+    --zth-desk-alpha: 1 !important;
     --zth-glass-filter: none !important;
     --zth-panel-filter: none !important;
   }
@@ -317,60 +304,44 @@
   --zth-glass-alpha: 1 !important;
   --zth-panel-alpha: 1 !important;
   --zth-sidebar-alpha: 1 !important;
+  --zth-desk-alpha: 1 !important;
   --zth-glass-filter: none !important;
   --zth-panel-filter: none !important;
 }
 
-#zen-browser-background {
-  background-color: color-mix(in srgb, var(--zth-window-base) var(--zth-window-under), transparent) !important;
+/* Around the page, and behind the docked sidebar: the window background is
+   the glass colour. Zen's own workspace paint (two layers that cross-fade
+   between workspaces) is part of that colour, so it steps aside; the grain
+   stays. "Zen's own" sidebar leaves all of this to Zen. */
+:root:not(:has(#theme-Zenith-Core[zenith-core-floating-sidebar="zen"])) #zen-browser-background {
+  background: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent) !important;
+  transition: background-color 0.3s ease !important;
 
+  &::before,
   &::after {
-    opacity: calc(var(--zen-background-opacity, 1) * var(--zth-window-tint)) !important;
-  }
-
-  &::before {
-    opacity: calc((1 - var(--zen-background-opacity, 1)) * var(--zth-window-tint)) !important;
+    opacity: 0 !important;
   }
 }
 
-/* Sidebar: one paint for docked and floating ---------------------------
-   Zen paints the docked sidebar with the workspace colour over Windows'
-   desktop blur, but the floating one with a separate toolbar colour (the
-   workspace colour mixed 90% into dark grey) over a darkened blur of the
-   page, so the two never matched. Here both use the same layer: a base
-   colour standing in for the desktop blur, then the window's own workspace
-   colour on top, at the same strength. The Zenith script copies that colour
-   from the window background (--zth-window-paint), because Zen keeps it
-   there and nowhere else; without the script, Zen's toolbar colour is used.
-   Showing the layer while docked is what makes the two identical; the only
-   difference left is what shows through it, the desktop or the page.
+/* The floating sidebar (compact mode): the same glass as every panel, over
+   the page. Docked, it has no layer of its own (Zen shows none): the window
+   background behind it is the glass, so there's one layer, not two.
    (The :not() of two IDs outranks Zen's own frosted-sidebar rule.) */
 :root:not(:has(#theme-Zenith-Core[zenith-core-floating-sidebar="zen"]))
   #navigator-toolbox:not(#zth-a, #zth-b) .zen-toolbar-background {
-  display: flex !important;
-  background:
-    linear-gradient(color-mix(in srgb, var(--zth-window-base) var(--zth-window-under), transparent) 0 0),
-    color-mix(in srgb, var(--zth-mica) calc(var(--zth-sidebar-alpha) * 100%), transparent) !important;
+  background: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-sidebar-alpha) * 100%), transparent) !important;
   backdrop-filter: var(--zth-panel-filter) !important;
+  transition: background-color 0.3s ease !important;
 
-  :root[zen-compact-mode="true"] & {
-    backdrop-filter: var(--zth-panel-filter) brightness(var(--zth-float-dim)) !important;
-  }
-
+  &::before,
   &::after {
-    background: var(--zth-window-paint, var(--zen-main-browser-background-toolbar)) !important;
-    opacity: calc(var(--zen-background-opacity, 1) * var(--zth-window-tint)) !important;
-  }
-
-  &::before {
-    background: var(--zth-window-paint-old, var(--zen-main-browser-background-toolbar-old)) !important;
-    opacity: calc((1 - var(--zen-background-opacity, 1)) * var(--zth-window-tint)) !important;
+    opacity: 0 !important;
   }
 }
 
 /* URL bar popup */
 #urlbar:not(#zth-a, #zth-b) .urlbar-background {
-  background-color: color-mix(in srgb, light-dark(rgb(255 255 255), rgb(20 20 20)) calc(var(--zth-panel-alpha) * 100%), transparent) !important;
+  background-color: var(--zth-panel-bg) !important;
   backdrop-filter: var(--zth-panel-filter) !important;
 }
 
