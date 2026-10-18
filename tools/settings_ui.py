@@ -128,7 +128,7 @@ SECTIONS = [
         "groups": [
             ("Size", ["zenith.core.density", "zenith.core.scale"]),
             ("Colour and shape", ["zenith.core.accent", "zenith.plus.space-colour", "zenith.plus.colour-strength",
-                                  "zenith.action.colours-image", "zenith.action.colours-wallpaper", "zenith.plus.palette-sync",
+                                  "zenith.action.colours-image", "zenith.action.colours-wallpaper", "zenith.plus.palette-sync", "zenith.plus.palette-spaces",
                                   "zenith.action.colours-undo", "zenith.core.corners", "zenith.core.pills"]),
             ("Glass", ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
                        "zenith.core.floating-sidebar", "zenith.plus.material-windows", "zenith.plus.material-macos",
@@ -206,9 +206,9 @@ SECTIONS = [
         "groups": [
             ("Switcher", ["zenith.plus.switcher", "zenith.plus.switcher-scope"]),
             ("Ctrl+Tab", ["zenith.plus.ctrl-tab"]),
-            ("Tab manager", ["zenith.plus.tab-manager", "zenith.plus.tab-manager-view", "zenith.plus.tabs-auto-sleep",
+            ("Tab manager", ["zenith.plus.tab-manager", "zenith.plus.tabs-auto-sleep",
                              "zenith.plus.tabs-auto-close"]),
-            ("Focus mode", ["zenith.plus.focus-key"]),
+            ("Focus mode", ["zenith.plus.focus-key", "zenith.plus.focus-pages"]),
             ("Link hints", ["zenith.plus.link-hints"]),
             ("Float a tab", ["zenith.plus.float-tab"]),
         ],
@@ -228,7 +228,7 @@ SECTIONS = [
         "blurb": "Small touches inside web pages, a start page, and this settings page.",
         "groups": [
             ("In web pages", ["zenith.page.selection", "zenith.page.thin-scrollbars", "zenith.plus.zoom-pill"]),
-            ("Start page", ["zenith.plus.startpage"]),
+            ("Start page", ["zenith.plus.startpage", "zenith.plus.startpage-weather"]),
             ("Settings", ["zenith.plus.sine-mods-first"]),
         ],
     },
@@ -305,15 +305,16 @@ DESCRIPTIONS = {
                                   "stops at a small card to pick its space (and so its container), with an option to "
                                   "always send that site there.",
     "zenith.plus.blend": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the "
-                         "page you're on, so the window runs into the page.",
-    "zenith.plus.tab-manager": "Alt+Shift+T (or :tabs in the switcher) opens about:zenith-tabs: every space's tabs in columns "
-                               "to move, sleep, wake, put in folders or close (with Undo), tidying up (duplicates, unused, "
-                               "awake tabs, busy sites) and rules for grouping. Nothing happens until you press a button "
-                               "or set a rule.",
-    "zenith.plus.tab-manager-view": "The tab manager as its own page in a tab, or the small card over the page.",
+                         "page you're on, so the window runs into the page. "
+                         "Note: while it's on, the glass shows the page's colour instead of your space's, so your "
+                         "theme's colours can look off; turn it off if colours aren't what you expect.",
+    "zenith.plus.tab-manager": "Alt+Shift+T (or :tabs in the switcher) opens about:zenith-tabs: every tab in a table to sort "
+                               "and filter, with where the memory and CPU go; each space's tabs in columns; tidying up "
+                               "(duplicates, unused, awake tabs, busy sites, by topic) and rules. Move, sleep, wake, put in "
+                               "folders or close, with Undo. Nothing happens until you press a button or set a rule.",
     "zenith.plus.tabs-auto-sleep": "Off unless you choose: tabs you haven't been to for this long are unloaded (not the one "
                                    "you're on, playing tabs or tabs sharing your camera or screen).",
-    "zenith.plus.tabs-auto-close": "Off unless you choose: loose tabs (not pinned, not essentials, not in a folder or group) "
+    "zenith.plus.tabs-auto-close": "Off unless you choose: loose tabs (not pinned, not essentials, not in a folder) "
                                    "you haven't been to for this long close. The tab manager's Rules list them to bring back.",
     "zenith.plus.ctrl-tab": "In order, as Zen does (with or without a row of pictures), or recently used like Alt+Tab: "
                             "hold Ctrl and press Tab to step through the tabs, with pictures of them, and let go to land.",
@@ -336,8 +337,10 @@ DESCRIPTIONS = {
                                  "corners and colours, or left as Firefox draws it.",
     "zenith.plus.switcher": "Alt+W: type part of a tab's title or site, a folder or a space, and Enter goes there. "
                             "Start with : for commands, like :focus or :timer 10m tea.",
-    "zenith.plus.focus-key": "Alt+Z hides the sidebar, the edges, the minimap, pills and the link address, for "
-                             "reading or video. The sharing alarm still shows. Alt+Z again brings it all back.",
+    "zenith.plus.focus-key": "Alt+Z puts everything away but the page, for reading or video: the sidebar, the edges, "
+                             "the minimap, pills, the bookmarks bar and the link address hide, and whatever's open "
+                             "closes (bookmarks, the Library, this panel, the find bar). You can open any of them again. "
+                             "The sharing alarm still shows. Alt+Z again brings it all back.",
     "zenith.tabs.reveal-delay": "A short wait before the sidebar slides out on hover.",
     "zenith.tabs.close-hover": "Close buttons show only on the tab under the mouse.",
     "zen.tabs.open-pinned-in-new-tab": "Zen's own setting. Off: a pinned tab goes to the other site itself.",
@@ -348,10 +351,9 @@ DESCRIPTIONS = {
                                 "or one tint, all its colours averaged (0.11.0's look).",
     "zenith.plus.colour-strength": "How much of the space's colours the glass takes: the space's own opacity (Zen's theme "
                                    "picker), or at least a medium or strong share, so colours read even at a low opacity.",
-    "zenith.plus.unpinned-groups": "Zen's folders pin the tabs you put in them. Zen's folders, set per folder: right-click a "
-                                   "folder › Tabs act unpinned, and Ctrl+W closes its tabs and they keep the page they're on. "
-                                   "Firefox's tab groups: groups under the pinned tabs (right-click a tab › Add Tab to New "
-                                   "Group), drawn like folders, with split views kept whole.",
+    "zenith.plus.unpinned-groups": "Zen's folders pin the tabs you put in them. Right-click a folder › Tabs act unpinned: "
+                                   "Ctrl+W closes its tabs, they keep the page they're on, and the folder sits below the "
+                                   "pinned tabs' line, with your other tabs. Off hides the choice.",
     "zenith.tabs.pin-mark": "A small pin on pinned tabs, where the sleeping moon goes (not on essentials or tabs in a folder).",
     "zenith.tabs.folder-activity": "A dot on closed folders when a tab inside is playing or wants attention.",
     "zenith.tabs.container": "A coloured stripe on tabs in a container.",
@@ -395,11 +397,14 @@ DESCRIPTIONS = {
     "zenith.page.selection": "Selected text in web pages takes the accent colour.",
     "zenith.page.thin-scrollbars": "Thin scrollbars in the accent colour in web pages.",
     "zenith.plus.zoom-pill": "A small pill on zoomed pages; click it to reset.",
-    "zenith.plus.palette-sync": "pywal (winwal on Windows) and wallust pick colours from your wallpaper for your whole "
-                                "desktop. Every space takes that palette's most striking colours (one, two or three) the "
-                                "moment it changes. pywal writes ~/.cache/wal/colors.json itself; for wallust, add a "
-                                "template that writes the same file to ~/.cache/wallust/colors.json. Undo colours puts "
-                                "the spaces back.",
+    "zenith.plus.palette-sync": "For people who theme their whole desktop with pywal (winwal on Windows) or wallust: "
+                                "those tools pick colours from your wallpaper and write them to a file your terminal and "
+                                "other apps read. With this on, your spaces take that palette's most striking colours "
+                                "(one, two or three) the moment it changes. pywal writes ~/.cache/wal/colors.json itself; "
+                                "for wallust, add a template that writes the same file to ~/.cache/wallust/colors.json. "
+                                "Without those tools it does nothing (Colours from your wallpaper is the built-in way). "
+                                "Undo colours puts the spaces back.",
+    "zenith.plus.palette-spaces": "Every space follows the palette, or only the space you're in when it changes.",
     "zenith.plus.float-tab": "Alt+Shift+Space pops the tab you're on out into a small window that stays on top of "
                              "everything, in the bottom right corner; the page carries on as it was. Alt+Shift+Space in "
                              "that window puts it back.",
@@ -409,8 +414,15 @@ DESCRIPTIONS = {
                               "the sliver to bring it back.",
     "zenith.plus.startpage": "about:zenith-start, on the window's glass: a clock, a search box (Peek's engine) that also "
                              "finds your bookmarks as you type, and your bookmarks, 1–9 to open one. It becomes the home "
-                             "page (the Home button, and new windows if they open the home page); Off gives yours back. "
-                             "The weather is one line from wttr.in, for the last place you looked up in Peek.",
+                             "page (the Home button, and new windows if they open the home page); with new tabs too, "
+                             "Ctrl+T opens it instead of Zen's URL bar. Off gives yours back.",
+    "zenith.plus.startpage-weather": "A line from wttr.in for where you are (worked out from your connection, as Peek's "
+                                     "\"wt\"), then the places you looked up in Peek lately, as many as Peek's weather "
+                                     "history keeps.",
+    "zenith.plus.focus-pages": "Focus mode clears the browser around the page (and closes whatever was open); this is what "
+                               "it does to the page. Articles open in Firefox's Reader view; other pages that are mostly "
+                               "reading lose cookie banners, newsletter boxes, share bars, comments, sponsored blocks, ads, "
+                               "side columns and bars stuck to the window's edges. Leaving focus mode puts it all back.",
     "zenith.plus.link-hints": "Alt+J puts a few letters on every link, button and field you can see; type them to "
                               "follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+J opens a link in a "
                               "new tab in the background.",
@@ -492,6 +504,7 @@ LABELS = {
     "zenith.tabs.pin-mark": "Pin mark",
     "zenith.plus.space-colour": "Space colour",
     "zenith.plus.palette-sync": "Palette sync",
+    "zenith.plus.palette-spaces": "Palette colours",
     "zenith.plus.colour-strength": "Colour strength",
     "zenith.plus.unpinned-groups": "Groups that don't pin",
     "zenith.plus.ready-pulse": "Background tab ready",
@@ -510,7 +523,6 @@ LABELS = {
     "zenith.plus.switcher": "Switcher (Alt+W)",
     "zenith.plus.focus-key": "Focus mode (Alt+Z)",
     "zenith.plus.tab-manager": "Tab manager (Alt+Shift+T)",
-    "zenith.plus.tab-manager-view": "Opens as",
     "zenith.plus.tabs-auto-sleep": "Sleep on their own",
     "zenith.plus.tabs-auto-close": "Close on their own",
     "zenith.plus.external-links": "Where they open",
@@ -543,7 +555,9 @@ LABELS = {
     "zenith.plus.sine-mods-first": "Tidy Sine's mods page",
     "zenith.plus.fast-start": "Fast start",
     "zenith.plus.link-hints": "Link hints",
+    "zenith.plus.focus-pages": "Pages in focus mode",
     "zenith.plus.startpage": "Start page",
+    "zenith.plus.startpage-weather": "Weather",
     "zenith.plus.pip-extras": "Move and tuck",
     "zenith.plus.float-tab": "Float a tab",
     "zenith.plus.local-ai": "Local AI",

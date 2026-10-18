@@ -62,20 +62,8 @@ with Scene() as z:
       out['in its own space'] = getComputedStyle(item).display;
       await W.changeWorkspaceWithID(here); await zth.sleep(900);
       out['back here'] = getComputedStyle(item).display;
-      // The right-click item, on the toolbar menu.
-      const menu = document.getElementById('toolbar-context-menu');
-      const shown = new Promise(r => menu.addEventListener('popupshown', r, { once: true }));
-      // (As a right-click on the button would: the menu knows what was clicked.)
-      Object.defineProperty(menu, 'triggerNode', { value: item.firstChild, configurable: true });
-      menu.openPopup(item.firstChild, 'after_start', 0, 0, true, false); await shown; await zth.sleep(150);
-      delete menu.triggerNode;
-      const sub = [...menu.children].find(n => n.getAttribute('label') === 'Pinned in spaces');
-      const ticks = () => [...sub.menupopup.children].filter(n => n.localName === 'menuitem').map(n => [n.getAttribute('label'), n.hasAttribute('checked')]);
-      out['Pinned in spaces'] = sub ? [sub.hidden, ticks()] : 'missing';
-      // Tick this space too: pinned in both, so back to every space.
-      [...sub.menupopup.children].find(n => n.getAttribute('label')?.endsWith(W.getWorkspaceFromId(here).name)).doCommand(); await zth.sleep(100);
-      out['ticked here as well'] = [JSON.stringify(E.map), ticks()];
-      menu.hidePopup(); E.save({}); item.remove();
+      // (The right-click lists, with a real extension: r54.)
+      E.save({}); item.remove();
       return out;""")
     res["css errors"] = z.console_errors()
 print(json.dumps(res, indent=1, ensure_ascii=False))

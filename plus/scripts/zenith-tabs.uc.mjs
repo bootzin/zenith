@@ -2,27 +2,27 @@
 // @name           Zenith Tab manager
 // @description    Zenith Plus: every tab of every space on one page (about:zenith-tabs), tidying up, and rules for grouping, sleeping and closing.
 // @include        main
-// @version        0.12.0
+// @version        0.12.1
 // ==/UserScript==
 
 // The tab manager (the "tab report" in DESIGN.md). Alt+Shift+T, or ":tabs"
-// in the switcher, opens about:zenith-tabs (or, with "Opens as" set to a
-// card, the small card over the page):
-//   - every space as a column of its tabs (pinned and folders first), to
-//     pick tabs and move them to a space, into a folder or group, put them
+// in the switcher, opens about:zenith-tabs:
+//   - all tabs: where the memory and CPU go, and every tab in a table to
+//     sort and filter;
+//   - every space as a column of its tabs (essentials, pinned and folders
+//     first), to pick tabs and move them to a space, into a folder, put them
 //     to sleep, wake them or close them (with Undo); drag to move;
 //   - tidying up: duplicates, tabs not used for days, awake tabs, busy
-//     sites; each picks its tabs for you to look over first;
+//     sites, by topic; each picks its tabs for you to look over first;
 //   - rules, which act on their own only once you set them:
 //       grouping   a site, address or title goes into a folder (an existing
-//                  one you link it to, or one it makes) or an unpinned group
+//                  one you link it to, or one it makes, pinned or not)
 //       sleep      tabs you haven't used for a while go to sleep
 //       close      loose tabs you haven't used for days close (listed on
 //                  the page to bring back)
 // The page lives in plus/pages; this script is what keeps running in the
 // window: the rules, the timers, and what the page asks it to do.
-// Settings: Zenith › Keys. Styles: plus/chrome.css (the card) and
-// plus/pages/tab-manager.css.
+// Settings: Zenith › Keys. Styles: plus/pages/tab-manager.css.
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 
@@ -97,7 +97,6 @@ function make(tag, attrs = {}, text = "") {
 }
 
 const PREF = "zenith.plus.tab-manager";
-const VIEW_PREF = "zenith.plus.tab-manager-view"; // "" the page · "card"
 const DAYS_PREF = "zenith.internal.tabs.days";
 const DAY = 24 * 60 * 60 * 1000;
 const BUSY = 4; // loose tabs from one site before it counts as busy
@@ -118,7 +117,7 @@ const Look = {
     const all = window.gZenWorkspaces?.allStoredTabs ?? gBrowser.tabs;
     return [...new Set(all)].filter(t => t.isConnected && !t.closing && !t.hasAttribute("zen-empty-tab") &&
                                          !t.hasAttribute("zen-glance-tab") &&
-                                         !["about:blank", "about:zenith-tabs"].includes(t.linkedBrowser?.currentURI?.spec));
+                                         t.linkedBrowser?.currentURI?.spec !== "about:blank");
   },
 
   site(tab) {
@@ -338,9 +337,35 @@ const Act = {
   sleep(tabs) {
     tabs = tabs.filter(t => t.isConnected && !t.selected && Look.awake(t));
     if (!tabs.length) return 0;
-    if (typeof gBrowser.explicitUnloadTabs === "function") gBrowser.explicitUnloadTabs(tabs);
-    else for (const t of tabs) gBrowser.discardBrowser(t, true);
+    // Zen's own pages (Settings, this manager) run in the browser itself,
+    // which Firefox won't unload: they're swapped for a sleeping copy.
+    const own = tabs.filter(t => !t.linkedBrowser?.isRemoteBrowser);
+    const web = tabs.filter(t => !own.includes(t));
+    if (web.length) {
+      if (typeof gBrowser.explicitUnloadTabs === "function") gBrowser.explicitUnloadTabs(web);
+      else for (const t of web) gBrowser.discardBrowser(t, true);
+    }
+    for (const t of own) this.sleepOwn(t);
     return tabs.length;
+  },
+
+  // A sleeping copy (its history kept) where the tab was: same space,
+  // pinned or not, same folder; then the tab itself goes.
+  sleepOwn(tab) {
+    try {
+      const copy = SessionStore.duplicateTab(window, tab, 0, false);
+      if (!copy) return false;
+      const group = Look.ownGroup(tab), space = Look.space(tab);
+      if (tab.pinned && !copy.pinned) gBrowser.pinTab(copy);
+      if (space && Look.space(copy) !== space) gZenWorkspaces?.moveTabsToWorkspace?.([copy], space);
+      if (group && Look.ownGroup(copy) !== group) group.addTabs([copy]);
+      gBrowser.moveTabAfter?.(copy, tab);
+      gBrowser.removeTab(tab, { animate: false, skipSessionStore: true });
+      return true;
+    } catch (e) {
+      console.error("[Zenith Tab manager] sleeping a page of Zen's", e);
+      return false;
+    }
   },
 
   wake(tabs) {
@@ -359,6 +384,7 @@ const Act = {
     if (!window.gZenFolders?.createFolder || !tabs.length) return null;
     const folder = gZenFolders.createFolder(tabs, { label: name, workspaceId: space || undefined, collapsed: false });
     if (unpinned && folder) window.ZenithGroups?.setUnpinned(folder, true);
+    this.made = folder;
     return folder;
   },
 
@@ -411,14 +437,21 @@ const Act = {
   },
 
   // Into a folder or group: an existing one (in its space), or a new one,
-  // "folder" (Zen's, pinned) or "group" (one that doesn't pin: a folder set
-  // to act unpinned, or Firefox's group, as "Groups that don't pin" says).
+  // "folder" (Zen's, pinned) or "group" (a folder whose tabs act unpinned).
+  // Undo puts the tabs back, and takes away a folder it made.
   into(tabs, target) {
     tabs = tabs.filter(t => t.isConnected && !t.hasAttribute("zen-essential"));
     if (!tabs.length) return 0;
     const before = this.snapshot(tabs);
+    this.made = null;
     const done = this.place(tabs, target);
-    if (done) this.remember(`Put ${tabs.length} in ${target.folder?.label || target.name || "a folder"}`, () => this.restore(before));
+    const made = target.folder ? null : this.made;
+    if (done) {
+      this.remember(`Put ${tabs.length} in ${target.folder?.label || target.name || "a folder"}`, () => {
+        this.restore(before);
+        if (made?.isConnected && ![...(made.tabs ?? [])].some(t => !t.hasAttribute("zen-empty-tab"))) made.delete?.();
+      });
+    }
     return done;
   },
 
@@ -426,24 +459,14 @@ const Act = {
     if (target.folder) {
       const folder = target.folder, space = folder.getAttribute("zen-workspace-id");
       if (space) for (const t of tabs) if (Look.space(t) !== space) gZenWorkspaces.moveTabsToWorkspace([t], space);
-      const firefoxGroup = !folder.isZenFolder;
-      for (const t of tabs) if (firefoxGroup && t.pinned) gBrowser.unpinTab(t);
       folder.addTabs(tabs.filter(t => Look.ownGroup(t) !== folder));
       return tabs.length;
     }
     const space = target.space || Look.space(tabs[0]);
     for (const t of tabs) if (space && Look.space(t) !== space) gZenWorkspaces.moveTabsToWorkspace([t], space);
-    const mode = window.ZenithGroups?.mode ?? "off";
-    if (target.kind === "group" && mode === "firefox" && gBrowser.addTabGroup) {
-      for (const t of tabs) {
-        if (Look.ownGroup(t)) this.outOf(t);
-        if (t.pinned) gBrowser.unpinTab(t);
-      }
-      gBrowser.addTabGroup(tabs, { label: target.name || "Group", insertBefore: tabs[0] });
-      return tabs.length;
-    }
     for (const t of tabs) if (Look.ownGroup(t)) this.outOf(t);
-    return this.folder(target.name || "Folder", space, tabs, { unpinned: target.kind === "group" && mode === "folders" }) ? tabs.length : 0;
+    const unpinned = target.kind === "group" && window.ZenithGroups?.mode === "folders";
+    return this.folder(target.name || "Folder", space, tabs, { unpinned }) ? tabs.length : 0;
   },
 
   go(tab) {
@@ -466,10 +489,11 @@ const Act = {
    Grouping rules (zenith.internal.tabs.rules, a list): when a tab arrives
    at a page whose site is, address contains or title contains what a rule
    says (in any space, or one space), it goes into the rule's folder: the
-   one it's linked to (wherever that is), or one with its name in the tab's
-   space (made if needed), or an unpinned group. A tab already in a folder
-   or group is left alone, and so is one you moved out after a rule put it
-   in, until it goes to another site. */
+   one it's linked to (wherever that is), or one with its name (or the
+   site's) in the tab's space, made if needed (again if you deleted it),
+   pinned or not as the rule says. A tab already in a folder is left alone,
+   and so is one you moved out after a rule put it in, until it goes to
+   another site. */
 const Rules = {
   PREF: "zenith.internal.tabs.rules",
 
@@ -506,10 +530,12 @@ const Rules = {
       if (linked) return linked;
     }
     // One with the rule's name in the tab's space, of the rule's kind: a
-    // folder (pinned) or a group (a folder that doesn't pin, or Firefox's).
+    // folder (pinned) or a group (a folder whose tabs act unpinned).
     const space = Look.space(tab);
-    const loose = f => !f.isZenFolder || f.hasAttribute("zenith-unpinned");
-    return folders.find(f => (f.label || "") === (rule.name || "") && f.getAttribute("zen-workspace-id") === space &&
+    const loose = f => f.hasAttribute("zenith-unpinned");
+    // (A rule without a name makes its folder with the site's.)
+    const name = rule.name || Look.site(tab);
+    return folders.find(f => (f.label || "") === name && f.getAttribute("zen-workspace-id") === space &&
                              (rule.kind === "group" ? loose(f) : !loose(f))) ?? null;
   },
 
@@ -637,32 +663,37 @@ const Page = {
   // (The page's text is read here, where the mod's folder is known: beside
   // the scripts in plus/pages with Sine, or in JS/zenith-pages with the
   // manual install.)
-  async register() {
-    try {
-      const here = new URL(import.meta.url);
-      let dir = null, text = null;
-      for (const d of ["../pages/", "zenith-pages/"]) {
-        const page = new URL(`${d}tab-manager.html`, here).href;
-        text = await fetch(page).then(r => (r.ok ? r.text() : null)).catch(() => null);
-        if (text) {
-          dir = d;
-          break;
-        }
+  // Registered at once (its text read there and then), so a tab restored
+  // at startup never meets an unknown page; one that did is reloaded.
+  register() {
+    const { NetUtil } = ChromeUtils.importESModule("resource://gre/modules/NetUtil.sys.mjs");
+    const read = url => {
+      const stream = NetUtil.newChannel({ uri: url, loadUsingSystemPrincipal: true }).open();
+      try {
+        return NetUtil.readInputStreamToString(stream, stream.available(), { charset: "UTF-8" });
+      } finally {
+        stream.close();
       }
-      if (!text) throw new Error("plus/pages isn't there");
-      const page = new URL(`${dir}tab-manager.html`, here).href;
-      const about = ChromeUtils.importESModule(new URL(`${dir}about.sys.mjs`, here).href);
-      about.register("zenith-tabs", page, text);
-      return true;
-    } catch (e) {
-      console.error("[Zenith Tab manager] about:zenith-tabs", e);
-      return false;
+    };
+    for (const d of ["../pages/", "zenith-pages/"]) {
+      try {
+        const page = new URL(`${d}tab-manager.html`, import.meta.url).href;
+        const text = read(page);
+        ChromeUtils.importESModule(new URL(`${d}about.sys.mjs`, import.meta.url).href).register("zenith-tabs", page, text);
+        for (const t of gBrowser.tabs) {
+          const b = t.linkedBrowser;
+          if (b?.currentURI?.spec?.startsWith(this.URL) && b.documentURI?.spec?.startsWith("about:neterror")) b.reload();
+        }
+        return true;
+      } catch {}
     }
+    console.error("[Zenith Tab manager] about:zenith-tabs: plus/pages isn't there");
+    return false;
   },
 
   // Go to the page if it's open in this space, else open it.
-  async open() {
-    if (!(await (this.ready ??= this.register()))) return;
+  open() {
+    if (!(this.ready ??= this.register())) return;
     const tab = gBrowser.visibleTabs.find(t => t.linkedBrowser?.currentURI?.spec === this.URL);
     if (tab) gBrowser.selectedTab = tab;
     else openTrustedLinkIn(this.URL, "tab");
@@ -670,50 +701,6 @@ const Page = {
 };
 
 
-
-/* --- The card ---------------------------------------------------------------------
-   "Opens as: a card over the page" shows the same page (about:zenith-tabs,
-   with ?compact) in a frosted card: one list by space, tidying folded away,
-   the same actions. Esc or a click outside closes it. */
-const Manager = {
-  build() {
-    this.host = make("div", { id: "zenith-tabs" });
-    this.host.hidden = true;
-    this.card = make("div", { id: "zenith-tabs-card" });
-    this.frame = make("iframe", { id: "zenith-tabs-frame" });
-    this.card.append(this.frame);
-    this.host.append(this.card);
-    (document.getElementById("zen-main-app-wrapper") ?? document.body).append(this.host);
-    this.host.addEventListener("mousedown", e => {
-      if (e.target === this.host) this.hide();
-    });
-  },
-
-  get open() {
-    return !!this.host && !this.host.hidden;
-  },
-
-  async show() {
-    if (!(await (Page.ready ??= Page.register()))) return;
-    if (!this.host) this.build();
-    this.host.hidden = false;
-    // A fresh look each time it opens.
-    this.frame.src = "about:zenith-tabs?compact";
-    this.frame.addEventListener("load", () => this.frame.contentWindow?.focus(), { once: true });
-  },
-
-  hide() {
-    if (!this.host || this.host.hidden) return;
-    this.host.hidden = true;
-    this.frame.src = "about:blank";
-    gBrowser.selectedBrowser.focus();
-  },
-
-  toggle() {
-    if (this.open) this.hide();
-    else this.show();
-  },
-};
 
 /* --- The key -------------------------------------------------------------------- */
 
@@ -736,24 +723,23 @@ function addKeys() {
   const watch = () => {
     const on = Services.prefs.getBoolPref(PREF, true);
     key.toggleAttribute("disabled", !on);
-    if (!on) Manager.hide();
   };
   Services.prefs.addObserver(PREF, watch);
   window.addEventListener("unload", () => Services.prefs.removeObserver(PREF, watch), { once: true });
   watch();
   // The switcher's :tabs, the page, and tools/checks.
-  window.ZenithTabs = { show, hide: () => Manager.hide(), Manager, Look, Act, Rules, Auto, Page };
+  window.ZenithTabs = { show, Look, Act, Rules, Auto, Page };
 }
 
-// The page (the default) or the card over the page.
+// The page. (0.11.2's card over the page was taken out in 0.12.1: the
+// manager outgrew it.)
 function show() {
   // Fast start: the rules and the rest start now if they haven't yet.
   window.zenithLater?.now();
-  if (Services.prefs.getStringPref(VIEW_PREF, "") === "card") Manager.toggle();
-  else Page.open();
+  Page.open();
 }
 
 start("hotkey", addKeys, true);
-start("about page", () => (Page.ready = Page.register()));
+start("about page", () => (Page.ready = Page.register()), true);
 start("rules", () => Rules.init());
 start("sleep and close on their own", () => Auto.init());

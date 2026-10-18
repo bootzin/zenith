@@ -45,7 +45,8 @@ with Scene() as z:
       document.getElementById('zenith-focus-command').doCommand(); await zth.sleep(400);
       out.off = [root.getAttribute('zenith-focus'), root.getAttribute('zen-compact-mode'), getComputedStyle(root).getPropertyValue('--zth-edge-opacity').trim()];
       Services.prefs.setBoolPref('zenith.plus.focus-key', false); await zth.sleep(50);
-      out['key off: disabled'] = document.getElementById('zenith-focus-key').hasAttribute('disabled');
+      // (Zen's shortcut list has the key since 0.12.1: its command is disabled.)
+      out['key off: disabled'] = document.getElementById('zenith-focus-command').hasAttribute('disabled');
       Services.prefs.clearUserPref('zenith.plus.focus-key');
       return out;""")
 

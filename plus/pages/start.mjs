@@ -1,8 +1,8 @@
 // about:zenith-start: a clock, a search box (Peek's engine) that also
 // filters your bookmarks as you type, and the bookmarks themselves: 1–9
 // open one while the box is empty, arrows and Enter pick one, Shift+Enter
-// opens in a new tab. With "with the weather", one line from wttr.in for
-// the last place you looked up in Peek (or where wttr.in thinks you are).
+// opens in a new tab. With the weather on, a line from wttr.in for where
+// you are, then the places you looked up in Peek lately.
 
 const win = window.browsingContext.topChromeWindow;
 const { Services } = win;
@@ -43,19 +43,18 @@ function clock() {
   setTimeout(clock, (60 - now.getSeconds()) * 1000 + 50);
 }
 
+// Where you are (wttr.in's guess from your connection, as Peek's "wt"),
+// then the places you looked up lately, as many as Peek's weather history
+// keeps. Peek does the asking (zenith-peek.uc.mjs).
 async function weather() {
-  if (Services.prefs.getStringPref("zenith.plus.startpage", "") !== "weather") return;
-  let place = "";
-  try {
-    place = JSON.parse(Services.prefs.getStringPref("zenith.internal.weather-places", "[]"))[0] ?? "";
-  } catch {}
-  try {
-    const text = await fetch(`https://wttr.in/${encodeURIComponent(place)}?format=3`).then(r => (r.ok ? r.text() : ""));
-    if (text && text.length < 120 && !/<|unknown location/i.test(text)) {
-      $("weather").textContent = text.trim();
-      $("weather").hidden = false;
-    }
-  } catch {}
+  const peek = win.ZenithPeek;
+  if (!Services.prefs.getBoolPref("zenith.plus.startpage-weather", false) || !peek?.weather) return;
+  const places = ["", ...(peek.weatherPlaces?.() ?? [])];
+  const lines = await Promise.all(places.map(p => peek.weather(p).catch(() => null)));
+  const shown = lines.filter(Boolean);
+  if (!shown.length) return;
+  $("weather").replaceChildren(...shown.map((l, i) => make("div", { class: i ? "other" : null }, l.text)));
+  $("weather").hidden = false;
 }
 
 // Bookmarks: the toolbar's first, then the menu's and the rest.

@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.12.0
+// @version        0.12.1
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -1218,6 +1218,10 @@ if (FIRST) {
     command: text => Commands.match(text),
     lookup: text => Peek.show(Lookup.resolve(text)),
     engine: () => Lookup.engine(), // [name, url with %s], for about:zenith-start
+    // The weather line ("" = near you) and your recent places, as many as
+    // Peek's weather history keeps (for about:zenith-start).
+    weather: place => WebCards.weather(place),
+    weatherPlaces: () => WebCards.recentPlaces().slice(0, WebCards.historyLength()),
   };
 }
 

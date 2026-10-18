@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.0
+// @version        0.12.1
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -1387,17 +1387,28 @@ function hint(text) {
   hint.timer = setTimeout(() => pill.removeAttribute("show"), 1600);
 }
 
-/* --- Focus mode: Alt+Z hides even the hairlines -----------------------------
+/* --- Focus mode: Alt+Z puts everything away ----------------------------------
    For reading or video: the sidebar hides (compact mode, if it wasn't
-   already), and so do the edges, the minimap, pills, the workspace dots and
-   the link address at the bottom. The sharing alarm still shows. Alt+Z
-   again brings everything back (and leaves compact mode if focus mode
-   turned it on). */
+   already), and so do the edges, the minimap, pills, the workspace dots,
+   the bookmarks bar and the link address at the bottom; whatever was open
+   closes (Firefox's sidebar, Zenith's bookmarks, Zen's Library, the
+   settings panel, the switcher, the find bar, menus). You can open any of
+   them again while focused. The sharing alarm still shows.
+   The page too (Focus mode › Pages): an article goes to Firefox's Reader
+   view, and any other page that's mostly reading is tidied (see
+   plus/pages/focus-page.sys.mjs), the tab you're on and any you switch to.
+   Alt+Z again brings everything back: compact mode as it was, pages out of
+   Reader view and untidied. */
 const FocusMode = {
   PREF: "zenith.plus.focus-key",
+  PAGES: "zenith.plus.focus-pages", // "" Reader view + tidy · reader · off
 
   get on() {
     return root.hasAttribute("zenith-focus");
+  },
+
+  get pages() {
+    return Services.prefs.getStringPref(this.PAGES, "") || "tidy";
   },
 
   toggle(want = !this.on) {
@@ -1407,12 +1418,94 @@ const FocusMode = {
       this.madeCompact = !!compact && !compact.preference;
       if (this.madeCompact) compact.preference = true;
       root.setAttribute("zenith-focus", "true");
+      this.putAway();
+      this.readers = new Set();
+      this.tidied = new Set();
+      this.follow(true);
+      this.page(gBrowser.selectedTab);
       hint(Services.prefs.getBoolPref(this.PREF, true) ? "Focus mode · Alt+Z to leave" : "Focus mode");
     } else {
       root.removeAttribute("zenith-focus");
       if (this.madeCompact && compact?.preference) compact.preference = false;
       this.madeCompact = false;
+      this.follow(false);
+      this.restorePages();
     }
+  },
+
+  // Whatever's open closes as focus mode starts.
+  putAway() {
+    const quietly = fn => {
+      try {
+        fn();
+      } catch {}
+    };
+    quietly(() => window.SidebarController?.isOpen && window.SidebarController.hide());
+    quietly(() => window.ZenithBookmarks?.Panel?.hide?.());
+    quietly(() => window.ZenithLive?.close?.());
+    quietly(() => window.ZenithSwitcher?.hide?.());
+    quietly(() => gBrowser.getCachedFindBar?.()?.close?.());
+    quietly(() => {
+      const lib = document.querySelector("zen-library");
+      if (lib && (lib.hasAttribute("open") || !lib.isHidden?.())) {
+        lib.onKeyDown?.({ key: "Escape", keyCode: 27, preventDefault() {}, stopPropagation() {}, target: lib });
+      }
+    });
+    for (const p of document.querySelectorAll("panel[panelopen='true'], menupopup[open]")) quietly(() => p.hidePopup());
+  },
+
+  // While focused: the tab you switch to, and pages loading in it.
+  follow(on) {
+    if (on) {
+      this.onSelect = () => this.page(gBrowser.selectedTab);
+      this.progress = {
+        onStateChange: (browser, webProgress, request, flags) => {
+          const done = flags & Ci.nsIWebProgressListener.STATE_STOP && flags & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
+          if (done && webProgress?.isTopLevel && browser === gBrowser.selectedBrowser) this.page(gBrowser.selectedTab);
+        },
+      };
+      gBrowser.tabContainer.addEventListener("TabSelect", this.onSelect);
+      gBrowser.addTabsProgressListener(this.progress);
+    } else if (this.onSelect) {
+      gBrowser.tabContainer.removeEventListener("TabSelect", this.onSelect);
+      gBrowser.removeTabsProgressListener(this.progress);
+      this.onSelect = this.progress = null;
+    }
+  },
+
+  // An article to Reader view, another page that's mostly reading tidied.
+  async page(tab) {
+    const mode = this.pages, browser = tab?.linkedBrowser;
+    if (mode === "off" || !browser || !this.on) return;
+    const spec = () => browser.currentURI?.spec ?? "";
+    if (!/^https?:/.test(spec())) return;
+    // Firefox works out whether it's an article a moment after it loads.
+    for (let i = 0; i < 12 && !browser.isArticle && browser.webProgress?.isLoadingDocument; i++) await new Promise(r => setTimeout(r, 250));
+    await new Promise(r => setTimeout(r, 300));
+    if (!this.on || tab !== gBrowser.selectedTab) return;
+    if (browser.isArticle) {
+      document.getElementById("View:ReaderView")?.doCommand();
+      this.readers.add(tab);
+      return;
+    }
+    if (mode !== "tidy") return;
+    const actor = await PageActors.in(browser, "ZenithFocus", "focus-page.sys.mjs");
+    if (actor && (await actor.sendQuery("tidy").catch(() => false))) this.tidied.add(tab);
+  },
+
+  async restorePages() {
+    for (const tab of this.readers ?? []) {
+      const b = tab.linkedBrowser;
+      if (!tab.isConnected || !b?.currentURI?.spec?.startsWith("about:reader")) continue;
+      if (tab.selected) document.getElementById("View:ReaderView")?.doCommand();
+      else if (b.canGoBack) b.goBack();
+    }
+    for (const tab of this.tidied ?? []) {
+      if (!tab.isConnected) continue;
+      const actor = await PageActors.in(tab.linkedBrowser, "ZenithFocus", "focus-page.sys.mjs");
+      actor?.sendAsyncMessage("untidy");
+    }
+    this.readers = this.tidied = null;
   },
 
   init() {
@@ -1814,13 +1907,93 @@ const ReadyPulse = {
    With Revealed sidebar on Push, the page moves aside by exactly as much as
    the sidebar covers when it slides out (its width plus its gap), wherever
    Zen puts it and however wide you've made it. */
+/* --- Zenith's keys in Zen's Keyboard shortcuts ---------------------------------
+   Every Zenith key is added to Zen's own shortcut list (Settings › Keyboard
+   shortcuts, under Other, labelled "Zenith: …"), so you can change or clear
+   it there like any of Zen's. Zen saves the list and turns it into keys in
+   every window, pointed at Zenith's commands; Zenith's own keys step aside
+   once Zen has them. A feature switched off disables its command, so its
+   key does nothing. Added once: a key you changed or cleared stays as you
+   left it. */
+const ZenithKeys = {
+  // id in Zen's list · key · modifiers · Zenith's command · label · the
+  // setting that switches it off · Zenith's own key element
+  LIST: [
+    ["zenith-key-switcher", "w", { alt: true }, "zenith-switcher-command", "Switcher", "zenith.plus.switcher", "zenith-switcher-key"],
+    ["zenith-key-peek", "q", { alt: true }, "zenith-peek-command", "Peek", "zenith.peek.enabled", "zenith-peek-key"],
+    ["zenith-key-focus", "z", { alt: true }, "zenith-focus-command", "Focus mode", "zenith.plus.focus-key", "zenith-focus-key"],
+    ["zenith-key-tabs", "t", { alt: true, shift: true }, "zenith-tabs-command", "Tab manager", "zenith.plus.tab-manager", "zenith-tabs-key"],
+    ["zenith-key-live", "z", { alt: true, shift: true }, "zenith-live-command", "Settings over the page", null, "zenith-live-key"],
+    ["zenith-key-hints", "j", { alt: true }, "zenith-hints-command", "Link hints", "zenith.plus.link-hints", "zenith-hints-key"],
+    ["zenith-key-hints-tab", "j", { alt: true, shift: true }, "zenith-hints-tab-command", "Link hints, new tab", "zenith.plus.link-hints", "zenith-hints-tab-key"],
+    ["zenith-key-float", " ", { alt: true, shift: true }, "zenith-float-command", "Float a tab", "zenith.plus.float-tab", "zenith-float-key"],
+  ],
+
+  init() {
+    window.ZenithKeys = this; // the settings page's labels, and tools/checks
+    const M = window.gZenKeyboardShortcutsManager;
+    if (!M) return;
+    const ready = () => this.adopt(M).catch(e => console.error("[Zenith] keys in Zen's shortcuts", e));
+    if (M._currentShortcutList) ready();
+    else window.addEventListener("ZenKeyboardShortcutsReady", ready, { once: true });
+    const enable = () => this.enable();
+    for (const pref of new Set(this.LIST.map(k => k[5]).filter(Boolean))) Services.prefs.addObserver(pref, enable);
+    onUnload(() => {
+      for (const pref of new Set(this.LIST.map(k => k[5]).filter(Boolean))) Services.prefs.removeObserver(pref, enable);
+    });
+    enable();
+  },
+
+  async adopt(M) {
+    const list = M._currentShortcutList;
+    const Shortcut = list?.[0]?.constructor;
+    if (!Shortcut?.parseFromSaved) return;
+    const have = new Set(list.map(s => s.getID()));
+    const missing = this.LIST.filter(([id]) => !have.has(id));
+    if (missing.length) {
+      const fresh = Shortcut.parseFromSaved(missing.map(([id, key, mods, command]) => ({
+        id, key, keycode: "", group: "zen-other", l10nId: null, action: command,
+        modifiers: { control: false, alt: !!mods.alt, shift: !!mods.shift, meta: false, accel: !!mods.accel },
+        disabled: false, reserved: true, internal: false,
+      })));
+      list.push(...fresh);
+      await M._saveShortcuts();
+      M.triggerShortcutRebuild();
+    }
+    // Zen has them now: Zenith's own keys step aside, now and as they
+    // turn up (Zenith's scripts start one by one, each adding its keys at
+    // the top of the window).
+    this.adopted = true;
+    this.stepAside();
+    this.watcher ??= new MutationObserver(() => this.stepAside());
+    this.watcher.observe(document.documentElement, { childList: true });
+    onUnload(() => this.watcher.disconnect());
+  },
+
+  stepAside() {
+    for (const [, , , , , , own] of this.LIST) document.getElementById(own)?.remove();
+  },
+
+  // A feature that's off: its command (and so its key) does nothing.
+  enable() {
+    for (const [, , , command, , pref] of this.LIST) {
+      if (!pref) continue;
+      const on = Services.prefs.getBoolPref(pref, true);
+      document.getElementById(command)?.toggleAttribute("disabled", !on);
+    }
+  },
+};
+
 /* --- Float a tab (Alt+Shift+Space) --------------------------------------------
    The tab you're on pops out into a small window of its own that stays on
    top of everything (a video call, notes, a stream), in the bottom right
    corner of the screen; the page keeps going as it was, nothing reloads.
-   Alt+Shift+Space in that window (or closing it... no: closing closes the
-   tab) puts the tab back where it came from. Its size follows the screen
-   (half the width on small screens, 40%, a third on big ones). */
+   Also in the tab's right-click menu. The window has no title bar: a slim
+   bar shows when the pointer is near its top, to drag it anywhere, put the
+   tab back or close it. Alt+Shift+Space in that window (or its ↩, or the
+   tab's menu) puts the tab back where it came from; closing the window
+   closes the tab. Its size follows the screen (half the width on small
+   screens, 40%, a third on big ones). */
 const FloatTab = {
   PREF: "zenith.plus.float-tab",
 
@@ -1839,21 +2012,87 @@ const FloatTab = {
     key.setAttribute("command", command.id);
     keyset.append(key);
     root.append(commandset, keyset);
-    const watch = () => key.toggleAttribute("disabled", !Services.prefs.getBoolPref(this.PREF, true));
+    this.menu();
+    const watch = () => {
+      const on = Services.prefs.getBoolPref(this.PREF, true);
+      key.toggleAttribute("disabled", !on);
+      if (this.item) this.item.hidden = !on;
+    };
     Services.prefs.addObserver(this.PREF, watch);
     onUnload(() => Services.prefs.removeObserver(this.PREF, watch));
     watch();
-    // A float window: mark it (the CSS keeps it to the page, with a strip
-    // along the top to move it by), and keep it on top of other windows.
+    // A float window: mark it (the CSS keeps it to the page), give it its
+    // bar, and keep it on top of other windows.
     if (window.zenithFloatFrom) {
       root.setAttribute("zenith-float", "true");
       try {
         window.docShell.treeOwner.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIAppWindow).zLevel = Ci.nsIAppWindow.highestZ;
       } catch {}
+      this.bar();
       // Its size and corner, now that it has its plain look.
       requestAnimationFrame(() => this.place());
     }
     window.ZenithFloat = this; // for tools/checks
+  },
+
+  // The tab's right-click menu: Float this tab (or, in a float window, Put
+  // back in the window).
+  menu() {
+    const menu = document.getElementById("tabContextMenu");
+    if (!menu) return;
+    const item = (this.item = document.createXULElement("menuitem"));
+    item.id = "zenith-float-tab";
+    item.setAttribute("key", "zenith-float-key");
+    const after = document.getElementById("context_moveTabOptions");
+    if (after) after.after(item);
+    else menu.append(item);
+    menu.addEventListener("popupshowing", e => {
+      if (e.target !== menu) return;
+      const tab = window.TabContextMenu?.contextTab;
+      item.setAttribute("label", window.zenithFloatFrom ? "Put back in the window" : "Float this tab");
+      item.disabled = !tab || tab.hasAttribute("zen-empty-tab");
+    });
+    item.addEventListener("command", () => {
+      const tab = window.TabContextMenu?.contextTab;
+      if (window.zenithFloatFrom) this.back(tab);
+      else this.out(tab);
+    });
+  },
+
+  // The float's bar: shows when the pointer is near the top. Drag it to move
+  // the window (Zenith moves it, so it goes anywhere, even part off screen);
+  // the buttons put the tab back or close it.
+  bar() {
+    const bar = el("div", { id: "zenith-float-bar" });
+    const grip = el("div", { class: "zenith-float-grip" });
+    const title = el("span", { class: "zenith-float-title" });
+    const back = el("button", { class: "zenith-float-button", title: "Put back in the window (Alt+Shift+Space)" });
+    const close = el("button", { class: "zenith-float-button", title: "Close the tab" });
+    back.textContent = "↩";
+    close.textContent = "✕";
+    bar.append(grip, title, back, close);
+    (document.getElementById("zen-appcontent-wrapper") ?? document.body).append(bar);
+    const name = () => (title.textContent = gBrowser.selectedTab?.label ?? "");
+    gBrowser.tabContainer.addEventListener("TabAttrModified", name);
+    name();
+    back.addEventListener("click", () => this.back());
+    close.addEventListener("click", () => window.close());
+    bar.addEventListener("pointerdown", e => {
+      if (e.button !== 0 || e.target.closest("button")) return;
+      e.preventDefault();
+      const [x0, y0, sx, sy] = [window.screenX, window.screenY, e.screenX, e.screenY];
+      bar.setPointerCapture(e.pointerId);
+      root.setAttribute("zenith-float-moving", "true");
+      const move = m => window.moveTo(Math.round(x0 + m.screenX - sx), Math.round(y0 + m.screenY - sy));
+      const up = () => {
+        bar.removeEventListener("pointermove", move);
+        root.removeAttribute("zenith-float-moving");
+      };
+      bar.addEventListener("pointermove", move);
+      bar.addEventListener("pointerup", up, { once: true });
+      bar.addEventListener("lostpointercapture", up, { once: true });
+    });
+    bar.addEventListener("dblclick", e => !e.target.closest("button") && this.place());
   },
 
   toggle() {
@@ -1879,7 +2118,12 @@ const FloatTab = {
   },
 
   out(tab) {
-    if (!tab || tab.hasAttribute("zen-empty-tab") || gBrowser.tabs.length < 2) return null;
+    if (!tab || tab.hasAttribute("zen-empty-tab")) return null;
+    // Your only tab: a new one keeps this window (Firefox closes a window
+    // whose last tab leaves, and Zen's empty tab doesn't count).
+    if (!gBrowser.tabs.some(t => t !== tab && !t.closing && !t.hasAttribute("zen-empty-tab"))) {
+      gBrowser.addTrustedTab(window.BROWSER_NEW_TAB_URL || "about:newtab", { inBackground: true });
+    }
     const { w, h, x, y } = this.box();
     const win = gBrowser.replaceTabWithWindow(tab, { popup: "yes", alwaysontop: "yes", outerWidth: w, outerHeight: h, left: x, top: y });
     if (!win) return null;
@@ -1891,8 +2135,7 @@ const FloatTab = {
   },
 
   // Back to the window it came from (or the last browser window), selected.
-  back() {
-    const tab = gBrowser.selectedTab;
+  back(tab = gBrowser.selectedTab) {
     let home = window.zenithFloatFrom;
     if (!home || home.closed) home = [...Services.wm.getEnumerator("navigator:browser")].reverse().find(w => w !== window && !w.zenithFloatFrom);
     if (!home) return null;
@@ -1910,7 +2153,8 @@ const FloatTab = {
        corner), a small gap away;
      - drop it more than halfway past the left or right edge and it tucks
        away: only a sliver with an arrow stays on screen, the video keeps
-       playing; click the sliver and it comes back.
+       playing; point at the sliver and it glides out while the pointer is
+       over it, click it and it comes back for good.
    The window has no "moved" event, so its place is checked a few times a
    second while it's open (and only then). The front browser window looks
    after each picture-in-picture window. */
@@ -1943,14 +2187,20 @@ const PiPWindows = {
     if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
     const state = (win.zenithPiP = { at: [win.screenX, win.screenY], still: 0, tucked: null });
     const wheel = e => this.on() && !state.tucked && this.resize(win, e);
+    // Tucked: the pointer on the sliver brings it out for a look and
+    // leaving tucks it away again; a click keeps it out.
     const press = e => {
       if (!state.tucked) return;
       e.preventDefault();
       e.stopPropagation();
       this.untuck(win);
     };
+    const enter = () => state.tucked && !state.peek && this.peek(win, true);
+    const leave = e => !e.relatedTarget && state.tucked && state.peek && this.peek(win, false);
     win.addEventListener("wheel", wheel, { passive: false });
     win.addEventListener("mousedown", press, true);
+    win.document.addEventListener("mouseover", enter);
+    win.document.addEventListener("mouseout", leave);
     const watch = win.setInterval(() => this.watch(win), 150);
     win.addEventListener("unload", () => win.clearInterval(watch), { once: true });
   },
@@ -2003,8 +2253,19 @@ const PiPWindows = {
     const state = win.zenithPiP, { side, y } = state.tucked;
     const { L, R } = this.screen(win);
     state.tucked = null;
+    state.peek = false;
     win.document.documentElement.removeAttribute("zenith-pip-tucked");
+    win.document.documentElement.removeAttribute("zenith-pip-peek");
     this.glide(win, side === "left" ? L + this.GAP : R - win.outerWidth - this.GAP, y);
+  },
+
+  // Out for a look (still tucked: leaving puts it back), or back in.
+  peek(win, out) {
+    const state = win.zenithPiP, { side, y } = state.tucked;
+    const { L, R } = this.screen(win), w = win.outerWidth;
+    state.peek = out;
+    win.document.documentElement.toggleAttribute("zenith-pip-peek", out);
+    this.glide(win, out ? (side === "left" ? L + this.GAP : R - w - this.GAP) : (side === "left" ? L - w + this.SLIVER : R - this.SLIVER), y);
   },
 
   // A short slide to a place (a few steps; the window can't be animated).
@@ -2061,9 +2322,25 @@ const StartPage = {
 
   init() {
     this.register();
+    // (0.12.0's "On, with the weather" is now On plus its own weather switch.)
+    if (Services.prefs.getStringPref(this.PREF, "") === "weather") {
+      Services.prefs.setStringPref(this.PREF, "on");
+      Services.prefs.setBoolPref("zenith.plus.startpage-weather", true);
+    }
+    // "on": the home page; "newtab": new tabs too (Zen's URL bar on Ctrl+T
+    // gives way to it, and comes back with the rest when it's off).
     const apply = () => {
-      const on = !["", "off"].includes(Services.prefs.getStringPref(this.PREF, ""));
+      const mode = Services.prefs.getStringPref(this.PREF, "");
+      const on = !["", "off"].includes(mode), newtab = mode === "newtab";
       Bridge.apply("start", { "browser.startup.homepage": on ? this.URL : null });
+      Bridge.apply("start-newtab", { "zen.urlbar.replace-newtab": newtab ? false : null });
+      try {
+        const { AboutNewTab } = ChromeUtils.importESModule("resource:///modules/AboutNewTab.sys.mjs");
+        if (newtab && AboutNewTab.newTabURL !== this.URL) AboutNewTab.newTabURL = this.URL;
+        else if (!newtab && AboutNewTab.newTabURL === this.URL) AboutNewTab.resetNewTabURL();
+      } catch (e) {
+        console.error("[Zenith] start page for new tabs", e);
+      }
     };
     Services.prefs.addObserver(this.PREF, apply);
     onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
@@ -2090,6 +2367,47 @@ const StartPage = {
     }
     console.error("[Zenith] about:zenith-start: plus/pages isn't there");
     return false;
+  },
+};
+
+/* --- Zenith's helpers inside web pages ----------------------------------------
+   Window actors from plus/pages, registered the first time they're needed
+   (once per run of Zen: every window shares them). Firefox lets an actor
+   into a web page's process only when it says it's safe there; Zenith's
+   only draw on or restyle the page, and take nothing from it. */
+const PageActors = {
+  ready: new Map(),
+
+  register(name, file) {
+    if (!this.ready.has(name)) {
+      this.ready.set(name, (async () => {
+        let url = null;
+        for (const d of ["../pages/", "zenith-pages/"]) {
+          const u = new URL(`${d}${file}`, import.meta.url).href;
+          if (await fetch(u).then(r => r.ok, () => false)) {
+            url = u;
+            break;
+          }
+        }
+        if (!url) throw new Error(`plus/pages/${file} isn't there`);
+        try {
+          ChromeUtils.registerWindowActor(name, { parent: { esModuleURI: url }, child: { esModuleURI: url }, safeForUntrustedWebProcess: true });
+        } catch (e) {
+          if (e.name !== "NotSupportedError") throw e; // (another window registered it)
+        }
+      })());
+    }
+    return this.ready.get(name);
+  },
+
+  // The actor in a tab's page, or null (not a web page, or gone).
+  async in(browser, name, file) {
+    await this.register(name, file);
+    try {
+      return browser?.browsingContext?.currentWindowGlobal?.getActor(name) ?? null;
+    } catch {
+      return null;
+    }
   },
 };
 
@@ -2130,30 +2448,10 @@ const LinkHints = {
     window.ZenithHints = this; // for tools/checks
   },
 
-  // Once per run of Zen (the actor is shared by every window).
+  // (Safe in a web page's process: it only draws labels and clicks what
+  // you pick; it takes nothing from the page to the browser.)
   register() {
-    return (this.ready ??= (async () => {
-      let url = null;
-      for (const d of ["../pages/", "zenith-pages/"]) {
-        const u = new URL(`${d}link-hints.sys.mjs`, import.meta.url).href;
-        if (await fetch(u).then(r => r.ok, () => false)) {
-          url = u;
-          break;
-        }
-      }
-      if (!url) throw new Error("plus/pages/link-hints.sys.mjs isn't there");
-      try {
-        // (Safe in a web page's process: it only draws labels and clicks
-        // what you pick; it takes nothing from the page to the browser.)
-        ChromeUtils.registerWindowActor("ZenithHints", {
-          parent: { esModuleURI: url },
-          child: { esModuleURI: url },
-          safeForUntrustedWebProcess: true,
-        });
-      } catch (e) {
-        if (e.name !== "NotSupportedError") throw e; // (another window registered it)
-      }
-    })());
+    return PageActors.register("ZenithHints", "link-hints.sys.mjs");
   },
 
   async show(newTab) {
@@ -2168,6 +2466,214 @@ const LinkHints = {
     const ink = 0.2126 * r + 0.7152 * g + 0.0722 * b > 150 ? "#111" : "#fff";
     browser.focus();
     page.getActor("ZenithHints").sendAsyncMessage("show", { newTab, accent, ink });
+  },
+};
+
+/* --- The first page, sooner ----------------------------------------------------
+   As Zen starts, the page you were on is loaded only once Firefox restores
+   the session (a second or two in). Zenith opens the connection to its site
+   straight away (the name looked up, connected, the secure handshake done),
+   as Firefox itself does for a link you're about to click, so the page
+   starts arriving the moment Firefox asks for it. Once per run of Zen,
+   nothing is loaded, and nothing happens if the page isn't on the web. */
+const WarmStart = {
+  async init() {
+    window.ZenithWarmStart = this; // for tools/checks
+    try {
+      const { SessionStartup } = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionStartup.sys.mjs");
+      if (SessionStartup.zenithWarmed) return;
+      SessionStartup.zenithWarmed = true;
+      await SessionStartup.onceInitialized;
+      const state = SessionStartup.state;
+      const win = state?.windows?.[Math.max(0, (state.selectedWindow ?? 1) - 1)] ?? state?.windows?.[0];
+      const tab = win?.tabs?.[Math.max(0, (win.selected ?? 1) - 1)];
+      const entry = tab?.entries?.[Math.max(0, (tab.index ?? tab.entries?.length ?? 1) - 1)];
+      const url = entry?.url;
+      if (!url || !/^https?:/.test(url)) return;
+      const uri = Services.io.newURI(url);
+      const principal = Services.scriptSecurityManager.createContentPrincipal(uri, { userContextId: tab.userContextId ?? 0 });
+      Services.io.QueryInterface(Ci.nsISpeculativeConnect).speculativeConnect(uri, principal, null, false);
+      this.warmed = uri.host;
+    } catch (e) {
+      console.error("[Zenith] warm start", e);
+    }
+  },
+};
+
+/* --- Delete a download from its list ---------------------------------------------
+   A bin button beside "Show in folder" on each finished download: in the
+   sidebar's downloads list (the Library button's list), in Zen's Library
+   (Downloads) and in Firefox's Library window. The first click asks (the
+   button turns red: click again), the second deletes the file and takes it
+   off the list. A file can't be brought back, hence the second click. */
+const DownloadDelete = {
+  init() {
+    this.watchSidebar();
+    this.watchLibrary();
+    this.listener = { onOpenWindow: x => {
+      const w = x.docShell.domWindow;
+      w.addEventListener("load", () => w.location.href.startsWith("chrome://browser/content/places/places.xhtml") && this.watchLibraryWindow(w), { once: true });
+    }, onCloseWindow() {} };
+    Services.wm.addListener(this.listener);
+    onUnload(() => Services.wm.removeListener(this.listener));
+    window.ZenithDownloadDelete = this; // for tools/checks
+  },
+
+  // The file goes and so does its line in the list; the page it came from
+  // leaves your history too only if Firefox's own Delete is set to do that.
+  async remove(download) {
+    const clear = Math.max(1, Services.prefs.getIntPref("browser.download.clearHistoryOnDelete", 0));
+    await window.DownloadsCommon.deleteDownloadFiles(download, clear);
+  },
+
+  // A bin button: click, then click again within three seconds.
+  button(doc, getDownload, xul = true) {
+    const b = xul ? doc.createXULElement("toolbarbutton") : doc.createElement("button");
+    b.className = xul ? "toolbarbutton-1 zenith-download-delete" : "zenith-download-delete";
+    b.setAttribute("tooltiptext", "Delete the file");
+    b.setAttribute("title", "Delete the file");
+    const img = xul ? doc.createXULElement("image") : doc.createElement("img");
+    img.className = "toolbarbutton-icon";
+    img.setAttribute("src", "chrome://browser/skin/zen-icons/trash.svg");
+    b.append(img);
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      e.preventDefault();
+      const d = getDownload();
+      if (!d) return;
+      if (!b.hasAttribute("confirm")) {
+        b.setAttribute("confirm", "true");
+        b.setAttribute("tooltiptext", "Click again to delete the file (it can't be brought back)");
+        b.setAttribute("title", "Click again to delete the file (it can't be brought back)");
+        clearTimeout(b.zenithTimer);
+        b.zenithTimer = setTimeout(() => {
+          b.removeAttribute("confirm");
+          b.setAttribute("tooltiptext", "Delete the file");
+          b.setAttribute("title", "Delete the file");
+        }, 3000);
+        return;
+      }
+      clearTimeout(b.zenithTimer);
+      this.remove(d).catch(err => console.error("[Zenith] deleting a download", err));
+    });
+    return b;
+  },
+
+  finished: d => d?.succeeded && !d.error && d.target?.exists !== false,
+
+  // The sidebar's list: each row knows its download.
+  watchSidebar() {
+    const add = () => {
+      for (const row of document.querySelectorAll("#zen-library-download-list .zen-library-download-list-download")) {
+        if (row.querySelector(".zenith-download-delete") || !this.finished(row.download)) continue;
+        const show = row.querySelector(".zen-library-download-action");
+        const b = this.button(document, () => row.download);
+        if (show) show.after(b);
+        else row.append(b);
+      }
+    };
+    const watcher = new MutationObserver(add);
+    const start = () => {
+      const list = document.getElementById("zen-library-download-list");
+      if (!list) return false;
+      watcher.observe(list, { childList: true, subtree: true });
+      add();
+      return true;
+    };
+    if (!start()) {
+      const foot = document.getElementById("zen-sidebar-foot-buttons");
+      const later = new MutationObserver(() => start() && later.disconnect());
+      if (foot) later.observe(foot, { childList: true, subtree: true });
+      onUnload(() => later.disconnect());
+    }
+    onUnload(() => watcher.disconnect());
+  },
+
+  // Zen's Library, Downloads: its rows don't carry their download, so each
+  // is found by its file name (and where it came from).
+  watchLibrary() {
+    const lib = document.querySelector("zen-library");
+    if (!lib) return;
+    const add = async () => {
+      if (lib.activeTab !== "downloads") return;
+      const rows = [...lib.querySelectorAll(".zen-library-row")].filter(r => !r.querySelector(".zenith-download-delete"));
+      if (!rows.length) return;
+      const { Downloads } = ChromeUtils.importESModule("resource://gre/modules/Downloads.sys.mjs");
+      const all = (await (await Downloads.getList(Downloads.ALL)).getAll()).filter(d => this.finished(d));
+      for (const row of rows) {
+        const name = row.querySelector(".zen-library-row-title")?.textContent.trim();
+        const from = row.querySelector(".zen-library-download-url")?.textContent.trim() ?? "";
+        const find = () => all.find(d => PathUtils.filename(d.target.path) === name && (!from || (d.source?.url ?? "").includes(from)));
+        if (!name || !find() || row.querySelector(".zenith-download-delete")) continue;
+        const actions = row.querySelector(".zen-library-row-actions");
+        const more = actions?.querySelector("[data-l10n-id='library-downloads-more-button']");
+        const b = this.button(document, find);
+        if (more) more.before(b);
+        else actions?.append(b);
+      }
+    };
+    const watcher = new MutationObserver(() => {
+      clearTimeout(this.libTimer);
+      this.libTimer = setTimeout(add, 60);
+    });
+    watcher.observe(lib, { childList: true, subtree: true });
+    onUnload(() => watcher.disconnect());
+  },
+
+  // Firefox's Library window (Manage downloads).
+  watchLibraryWindow(w) {
+    const doc = w.document;
+    const add = () => {
+      for (const item of doc.querySelectorAll("#downloadsListBox richlistitem")) {
+        const d = item._shell?.download;
+        if (item.querySelector(".zenith-download-delete") || !this.finished(d)) continue;
+        const b = this.button(doc, () => item._shell?.download);
+        (item.querySelector(".downloadButton") ?? item.lastElementChild)?.before(b);
+      }
+    };
+    const box = doc.getElementById("downloadsListBox");
+    if (!box) return;
+    new MutationObserver(add).observe(box, { childList: true, subtree: true, attributes: true, attributeFilter: ["state"] });
+    add();
+  },
+};
+
+/* --- Compact mode: the sidebar stays while a tooltip is under the pointer -------
+   Firefox's tooltips are little windows of their own. Moving quickly over
+   the sidebar (its downloads list, say), the pointer can land on one as it
+   appears: for the window, the pointer has left the sidebar (to nowhere),
+   and Zen starts tucking it away under your hand. Such a "leave" with the
+   pointer still inside the sidebar is held back; once the pointer is
+   really elsewhere (no tooltip open, the sidebar not hovered), Zen is told
+   after all. */
+const SidebarHover = {
+  init() {
+    const guard = e => {
+      if (e.target !== gNavToolbox || e.relatedTarget || !e.isTrusted) return;
+      const r = gNavToolbox.getBoundingClientRect();
+      if (e.clientX <= r.left + 1 || e.clientX >= r.right - 1 || e.clientY <= r.top + 1 || e.clientY >= r.bottom - 1) return;
+      e.stopImmediatePropagation();
+      this.watch();
+    };
+    window.addEventListener("mouseleave", guard, true);
+    onUnload(() => {
+      window.removeEventListener("mouseleave", guard, true);
+      clearInterval(this.timer);
+    });
+  },
+
+  // Until the pointer is back on the sidebar (nothing to do) or somewhere
+  // else with no tooltip open (Zen gets its leave).
+  watch() {
+    clearInterval(this.timer);
+    let checks = 0, away = 0;
+    this.timer = setInterval(() => {
+      const tooltip = [...document.querySelectorAll("tooltip")].some(t => t.state === "open" || t.state === "showing");
+      if (gNavToolbox.matches(":hover")) away = 0;
+      else if (!tooltip) away++;
+      if (away >= 2) gNavToolbox.dispatchEvent(new MouseEvent("mouseleave", { bubbles: false }));
+      if (away >= 2 || gNavToolbox.matches(":hover") && !tooltip || ++checks > 150) clearInterval(this.timer);
+    }, 120);
   },
 };
 
@@ -2334,9 +2840,16 @@ const CtrlTabOrder = {
       const tabs = gBrowser.visibleTabs;
       if (tabs.length > 2) {
         this.open();
-        // From the next one (open's choice), back past this one to the last.
-        this.advanceFocus(false);
-        this.advanceFocus(false);
+        // From the next one (open's choice), back past this one to the
+        // last; moved directly, so the pictures still wait Firefox's 200ms
+        // (stepping with advanceFocus would show them at once).
+        const back = i => {
+          do i = i > 0 ? i - 1 : this.previews.length - 1;
+          while (this.previews[i].hidden);
+          return i;
+        };
+        this._selectedIndex = back(back(this._selectedIndex));
+        if (this.selected?._tab) gBrowser.warmupTab(this.selected._tab);
       } else if (tabs.length === 2) {
         gBrowser.selectedTab = tabs[tabs[0].selected ? 1 : 0];
       }
@@ -2372,39 +2885,28 @@ const CtrlTabOrder = {
 /* --- Groups that don't pin --------------------------------------------------
    Zen's folders pin the tabs you put in them: they stay when closed (Ctrl+W
    puts them to sleep), and a tab that wandered off gets marked to go back to
-   its first page. "Groups that don't pin" picks how to keep tabs together
-   without that:
-     folders  (default) Zen's own folders, which split views, dragging and
-              nesting already work with. Right-click a folder › Tabs act
-              unpinned: Ctrl+W closes its tabs, and a tab keeps the page it's
-              on (no "back to its first page" mark). They still sit in the
-              folder area, and come back at startup with pinned tabs.
-     firefox  Firefox's own tab groups, under the pinned tabs (Zen turns them
-              off; turned on through the bridge). Zenith keeps split views
-              whole with them: splitting tabs in a group keeps the split in
-              the group, adding a split tab to a group brings its split view
-              along, "Remove from group" on a split tab takes the whole split
-              view out, and a tab that leaves its split view any other way
-              (dragged out) is taken out of the split properly.
-     off      neither
+   its first page. Right-click a folder › Tabs act unpinned: Ctrl+W closes
+   its tabs, a tab keeps the page it's on (no "back to its first page" mark),
+   and the folder sits below the pinned tabs' separator, with the tabs that
+   aren't pinned. Its tabs are still pinned for Firefox (Zen's folders only
+   hold pinned tabs), so they come back at startup.
+   "Groups that don't pin" off hides the choice. (0.11.2 also offered
+   Firefox's own tab groups; they fought Zen's split views and spaces, and
+   were taken out in 0.12.1: Firefox's setting comes back as it was.)
    Which folders act unpinned is kept in zenith.internal.unpinned-folders
    (folder ids, which Zen keeps across sessions). */
 const UnpinnedGroups = {
-  PREF: "zenith.plus.unpinned-groups", // "" folders · firefox · off
-  OLD: "zenith.plus.loose-groups", // (0.11.1: "on" was Firefox's groups)
+  PREF: "zenith.plus.unpinned-groups", // "" folders · off
+  OLD: "zenith.plus.loose-groups", // (0.11.1)
   FOLDERS: "zenith.internal.unpinned-folders",
 
   init() {
-    if (Services.prefs.getStringPref(this.OLD, "") === "on" && !Services.prefs.prefHasUserValue(this.PREF)) {
-      Services.prefs.setStringPref(this.PREF, "firefox");
-    }
     Services.prefs.clearUserPref(this.OLD);
-    const apply = () => this.apply();
+    if (Services.prefs.getStringPref(this.PREF, "") === "firefox") Services.prefs.clearUserPref(this.PREF);
+    Bridge.apply("groups", { "browser.tabs.groups.enabled": null });
+    const apply = () => this.mark();
     Services.prefs.addObserver(this.PREF, apply);
-    onUnload(() => {
-      Services.prefs.removeObserver(this.PREF, apply);
-      this.patch(false);
-    });
+    onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
     this.folderMenu();
     this.folderBehaviour();
     apply();
@@ -2412,103 +2914,12 @@ const UnpinnedGroups = {
   },
 
   get mode() {
-    return Services.prefs.getStringPref(this.PREF, "") || "folders";
+    return Services.prefs.getStringPref(this.PREF, "") === "off" ? "off" : "folders";
   },
 
-  apply() {
-    const firefox = this.mode === "firefox";
-    Bridge.apply("groups", { "browser.tabs.groups.enabled": firefox ? true : null });
-    this.patch(firefox);
-    this.mark();
-  },
-
-  // A group of Firefox's (not one of Zen's folders, not a split view).
+  // A folder whose tabs act unpinned.
   loose(g) {
-    return g?.localName === "tab-group" && !g.isZenFolder && !g.hasAttribute("split-view-group");
-  },
-
-  /* Firefox's groups, with split views kept whole. */
-
-  patch(on) {
-    const B = gBrowser, S = window.gZenViewSplitter;
-    if (on === !!this.saved) return;
-    if (!on) {
-      for (const [obj, name, fn] of this.saved) obj[name] = fn;
-      this.saved = null;
-      document.getElementById("tabContextMenu")?.removeEventListener("command", this.onUngroup, true);
-      gBrowser.tabContainer.removeEventListener("TabUngrouped", this.onLeft);
-      return;
-    }
-    const groups = this;
-    const wrap = (obj, name, make) => {
-      if (typeof obj?.[name] !== "function") return;
-      const orig = obj[name];
-      this.saved.push([obj, name, orig]);
-      obj[name] = make(orig);
-    };
-    this.saved = [];
-    // A split view made from tabs in a group stays in the group (Zen keeps
-    // it inside only for its own folders, and pulls it out of anything else).
-    wrap(B, "addTabGroup", orig => function (tabs, opts = {}) {
-      const parent = opts.forSplitView ? opts.insertBefore?.group : null;
-      if (!groups.loose(parent)) return orig.call(this, tabs, opts);
-      Object.defineProperty(parent, "isZenFolder", { value: true, configurable: true });
-      try {
-        return orig.call(this, tabs, opts);
-      } finally {
-        delete parent.isZenFolder;
-      }
-    });
-    // A split tab goes into a group with its whole split view.
-    wrap(B, "moveTabToExistingGroup", orig => function (tab, group, opts) {
-      const split = tab?.group?.hasAttribute?.("split-view-group") ? tab.group : null;
-      if (split && split !== group && groups.loose(group)) {
-        if (split.group === group) return undefined;
-        return orig.call(this, split, group, opts);
-      }
-      return orig.call(this, tab, group, opts);
-    });
-    // Zen's own unsplitting moves tabs out of split views: not a tab leaving.
-    for (const name of ["removeGroup", "removeTabFromGroup", "unsplitCurrentView"]) {
-      wrap(S, name, orig => function (...args) {
-        groups.unsplitting = (groups.unsplitting ?? 0) + 1;
-        try {
-          return orig.apply(this, args);
-        } finally {
-          groups.unsplitting--;
-        }
-      });
-    }
-    // "Remove from group" on a split tab: the whole split view leaves the
-    // group (Firefox would take the one tab out of its split view).
-    this.onUngroup = e => {
-      if (e.target?.id !== "context_ungroupTab") return;
-      const tabs = window.TabContextMenu?.contextTabs ?? [];
-      if (!tabs.some(t => t.group?.hasAttribute("split-view-group"))) return;
-      e.stopImmediatePropagation();
-      const done = new Set();
-      for (const t of tabs) {
-        const split = t.group?.hasAttribute("split-view-group") ? t.group : null;
-        if (split) {
-          if (done.has(split)) continue;
-          done.add(split);
-          if (this.loose(split.group)) gBrowser.moveTabAfter(t, split.group);
-        } else if (t.group) {
-          gBrowser.ungroupTab(t);
-        }
-      }
-    };
-    document.getElementById("tabContextMenu")?.addEventListener("command", this.onUngroup, true);
-    // A tab that left its split view another way (dragged out): out of the
-    // split for Zen too, so the rest re-lays out (or unsplits).
-    this.onLeft = e => {
-      const from = e.target, tab = e.detail;
-      if (this.unsplitting || !from?.hasAttribute?.("split-view-group") || !tab?.splitView || tab.group === from) return;
-      setTimeout(() => {
-        if (tab.isConnected && tab.splitView && tab.group !== from) window.gZenViewSplitter?.removeTabFromGroup?.(tab, undefined, { forUnsplit: true });
-      }, 0);
-    };
-    gBrowser.tabContainer.addEventListener("TabUngrouped", this.onLeft);
+    return !!g?.isZenFolder && g.hasAttribute("zenith-unpinned");
   },
 
   /* Zen's folders that don't pin. */
@@ -2544,6 +2955,39 @@ const UnpinnedGroups = {
   mark() {
     const ids = this.mode === "folders" ? this.unpinned : new Set();
     for (const f of document.querySelectorAll("zen-folder")) f.toggleAttribute("zenith-unpinned", ids.has(f.id));
+    this.place();
+  },
+
+  // Top-level folders that act unpinned go just below the separator, the
+  // rest above it (in their order). The separator is inside the pinned
+  // container, so their tabs still come first, as pinned tabs must.
+  place() {
+    let moved = false;
+    for (const box of document.querySelectorAll("zen-workspace")) {
+      const pinned = box.pinnedTabsContainer, sep = pinned?.querySelector(":scope > .pinned-tabs-container-separator");
+      if (!sep) continue;
+      const folders = [...pinned.children].filter(c => c.localName === "zen-folder");
+      let after = sep;
+      for (const f of folders) {
+        const below = !!(sep.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING);
+        if (f.hasAttribute("zenith-unpinned")) {
+          if (after.nextElementSibling !== f) {
+            after.after(f);
+            moved = true;
+          }
+          after = f;
+        } else if (below) {
+          sep.before(f);
+          moved = true;
+        }
+      }
+    }
+    if (moved) gBrowser.tabContainer._invalidateCachedTabs?.();
+  },
+
+  placeSoon() {
+    clearTimeout(this.placing);
+    this.placing = setTimeout(() => this.place(), 150);
   },
 
   keepPage(tab) {
@@ -2595,16 +3039,22 @@ const UnpinnedGroups = {
       gBrowser.removeTabs(tabs);
     };
     close?.addEventListener("command", this.onClose, true);
-    // Zen brings its folders back from the session after the window opens.
+    // Zen brings its folders back from the session after the window opens;
+    // a folder dragged above or below the separator goes back to its side.
     const mark = () => this.mark();
+    const soon = () => this.placeSoon();
     window.addEventListener("SSWindowRestored", mark);
     gBrowser.tabContainer.addEventListener("TabGroupCreate", mark);
+    gBrowser.tabContainer.addEventListener("TabGroupMoved", soon);
+    gBrowser.tabContainer.addEventListener("TabMove", soon);
     window.gZenWorkspaces?.promiseInitialized?.then(mark);
     onUnload(() => {
       gBrowser.removeTabsProgressListener(this.progress);
       close?.removeEventListener("command", this.onClose, true);
       window.removeEventListener("SSWindowRestored", mark);
       gBrowser.tabContainer.removeEventListener("TabGroupCreate", mark);
+      gBrowser.tabContainer.removeEventListener("TabGroupMoved", soon);
+      gBrowser.tabContainer.removeEventListener("TabMove", soon);
     });
   },
 };
@@ -2965,7 +3415,9 @@ const PaletteSync = {
     const [r, g, b] = colours[0].map(v => v / 255);
     const lightness = Math.round(((Math.max(r, g, b) + Math.min(r, g, b)) / 2) * 100);
     const dots = colours.map((c, i) => ({ c, isCustom: false, isPrimary: i === 0, algorithm: "floating", lightness, type: "explicit-lightness" }));
-    const spaces = W.getWorkspaces?.() ?? [];
+    // Every space, or only the one you're in (Palette sync colours).
+    const all = Services.prefs.getStringPref("zenith.plus.palette-spaces", "") !== "current";
+    const spaces = all ? (W.getWorkspaces?.() ?? []) : [W.getActiveWorkspace?.()].filter(Boolean);
     ImageColours.previous = spaces.map(s => ({ uuid: s.uuid, theme: structuredClone(s.theme) }));
     for (const space of spaces) {
       const opacity = space.theme?.opacity ?? 0.5, texture = space.theme?.texture ?? 0;
@@ -2974,71 +3426,97 @@ const PaletteSync = {
     }
     const active = W.getActiveWorkspace?.();
     if (active) picker.onWorkspaceChange(active);
-    hint(`Spaces follow your palette: ${colours.length === 1 ? "one colour" : `${colours.length} colours`}`);
+    hint(`${all ? "Spaces follow" : "This space follows"} your palette: ${colours.length === 1 ? "one colour" : `${colours.length} colours`}`);
     return true;
   },
 };
 
-/* --- Extension buttons per space ---------------------------------------------
-   Right-click an extension's button: "Pinned in spaces" lists every space
-   with a tick, so its button shows only in the spaces you tick ("Every
-   space" puts it back everywhere). The extension itself keeps running in
-   all of them (extensions are shared by the whole browser; one can't run
-   separately per space): this is only about where its button is pinned.
-   Kept in zenith.internal.extension-spaces as {button id: [space ids]}. */
+/* --- Extensions per space ----------------------------------------------------
+   Right-click an extension (its button, or its line in the extensions
+   panel) for two lists of spaces, each with a tick per space and "Every
+   space":
+     - Pinned in spaces: where its button is pinned. Unticking it from the
+       last space unpins it, as Firefox's "Pin to Toolbar" does (it's then
+       in the extensions panel, in every space); ticking a space for one in
+       the panel pins it there.
+     - Runs in spaces: where the extension runs at all. In the other spaces
+       Zenith turns it off, and on again as you come back (as if you
+       switched it off and on in Add-ons). For two of a kind, say a work
+       and a personal password manager, each in its own spaces. Firefox
+       runs extensions for the whole browser (no container or space of
+       their own, and Zen's profiles can't follow a space), so this is the
+       closest there is. An extension starts afresh each time it comes back
+       (a password manager asks to be unlocked again), its open pages in
+       other spaces lose it while it's off, and with windows on different
+       spaces the window you're in decides. Only what Zenith turned off is
+       turned back on: an extension you switched off yourself stays off.
+       While any extension has spaces, Firefox Sync is asked not to copy
+       this on and off to your other devices.
+   The extensions panel lists the buttons pinned only in other spaces (Pin
+   here) and the extensions resting in this space (Run here too).
+   Kept in zenith.internal.extension-spaces ({button id: [space ids]}),
+   zenith.internal.extension-runs ({extension id: [space ids]}) and
+   zenith.internal.extension-resting (the extensions Zenith turned off). */
 const SpaceExtensions = {
   PREF: "zenith.internal.extension-spaces",
+  RUNS: "zenith.internal.extension-runs",
+  RESTING: "zenith.internal.extension-resting",
+
+  read(pref, fallback) {
+    try {
+      return JSON.parse(Services.prefs.getStringPref(pref, "")) ?? fallback;
+    } catch {
+      return fallback;
+    }
+  },
 
   get map() {
-    try {
-      const map = JSON.parse(Services.prefs.getStringPref(this.PREF, "{}"));
-      // (0.11.0 kept one space as a string.)
-      for (const [id, v] of Object.entries(map)) if (typeof v === "string") map[id] = [v];
-      return map;
-    } catch {
-      return {};
-    }
+    const map = this.read(this.PREF, {});
+    // (0.11.0 kept one space as a string.)
+    for (const [id, v] of Object.entries(map)) if (typeof v === "string") map[id] = [v];
+    return map;
   },
 
   save(map) {
     Services.prefs.setStringPref(this.PREF, JSON.stringify(map));
   },
 
+  get runs() {
+    return this.read(this.RUNS, {});
+  },
+
+  get resting() {
+    return new Set(this.read(this.RESTING, []));
+  },
+
   init() {
-    const menu = document.getElementById("toolbar-context-menu");
-    if (menu) {
-      this.sep = document.createXULElement("menuseparator");
-      this.menu = document.createXULElement("menu");
-      this.menu.setAttribute("label", "Pinned in spaces");
-      this.popup = document.createXULElement("menupopup");
-      this.menu.append(this.popup);
-      this.sep.hidden = this.menu.hidden = true;
-      menu.append(this.sep, this.menu);
-      menu.addEventListener("popupshowing", e => {
-        if (e.target !== menu) return;
-        const item = menu.triggerNode?.closest?.(".unified-extensions-item, toolbaritem[data-extensionid], .webextension-browser-action");
-        this.target = item?.closest?.("toolbaritem") ?? item;
-        const show = !!this.target?.id && !!window.gZenWorkspaces?.workspaceEnabled && this.spaces().length > 1;
-        this.sep.hidden = this.menu.hidden = !show;
-        if (show) this.fill();
-      });
-    }
+    for (const id of ["toolbar-context-menu", "unified-extensions-context-menu"]) this.addMenus(document.getElementById(id));
     const update = () => this.update();
+    const runs = () => this.runSoon();
     Services.prefs.addObserver(this.PREF, update);
+    Services.prefs.addObserver(this.RUNS, runs);
+    const moved = { onWidgetAfterDOMChange: update };
+    window.CustomizableUI?.addListener(moved);
+    onUnload(() => window.CustomizableUI?.removeListener(moved));
     window.addEventListener("ZenWorkspacesUIUpdate", update);
-    const marks = new MutationObserver(update);
+    window.addEventListener("activate", runs);
+    const marks = new MutationObserver(() => {
+      update();
+      runs();
+    });
     window.gZenWorkspaces?.promiseInitialized?.then(() => {
       const strip = gZenWorkspaces.workspaceElement(gZenWorkspaces.activeWorkspace)?.parentElement;
       if (strip) marks.observe(strip, { subtree: true, attributeFilter: ["active"] });
       update();
+      runs();
     });
     onUnload(() => {
       Services.prefs.removeObserver(this.PREF, update);
+      Services.prefs.removeObserver(this.RUNS, runs);
       window.removeEventListener("ZenWorkspacesUIUpdate", update);
+      window.removeEventListener("activate", runs);
       marks.disconnect();
     });
-    // Zen's extensions panel lists only unpinned extensions; the ones pinned
-    // only in other spaces get a short list there, to pin here too.
     document.getElementById("unified-extensions-view")?.addEventListener("ViewShowing", () => this.fillPanel());
     window.ZenithSpaceExtensions = this; // for tools/checks
   },
@@ -3051,37 +3529,95 @@ const SpaceExtensions = {
     }
   },
 
-  // Ticks: "Every space", then each space (ticked where the button shows).
-  // The menu stays open while you tick, like Firefox's own lists of ticks.
-  fill() {
-    const id = this.target.id, pinned = this.map[id];
+  spaceLabel: s => `${s.icon && !/^[a-z]+:/i.test(s.icon) ? `${s.icon}  ` : ""}${s.name}`,
+
+  // The two lists, at the foot of a right-click menu.
+  addMenus(menu) {
+    if (!menu) return;
+    const sep = document.createXULElement("menuseparator");
+    const make = label => {
+      const m = document.createXULElement("menu");
+      m.setAttribute("label", label);
+      m.append(document.createXULElement("menupopup"));
+      return m;
+    };
+    const pinned = make("Pinned in spaces"), runs = make("Runs in spaces");
+    sep.hidden = pinned.hidden = runs.hidden = true;
+    menu.append(sep, pinned, runs);
+    menu.addEventListener("popupshowing", e => {
+      if (e.target !== menu) return;
+      const item = menu.triggerNode?.closest?.(".unified-extensions-item, toolbaritem[data-extensionid], .webextension-browser-action");
+      const node = item?.closest?.("toolbaritem") ?? item;
+      const ext = node?.getAttribute?.("data-extensionid") || item?.getAttribute?.("data-extensionid") || item?.addon?.id || item?.extension?.id || "";
+      const many = !!window.gZenWorkspaces?.workspaceEnabled && this.spaces().length > 1;
+      const widget = node?.id && window.CustomizableUI?.getPlacementOfWidget?.(node.id) ? node.id : null;
+      pinned.hidden = !(many && widget);
+      runs.hidden = !(many && ext);
+      sep.hidden = pinned.hidden && runs.hidden;
+      if (!pinned.hidden) this.fillPinned(pinned.menupopup, widget);
+      if (!runs.hidden) this.fillRuns(runs.menupopup, ext);
+    });
+  },
+
+  // A list of ticks: "Every space", then each space. It stays open while
+  // you tick, like Firefox's own lists of ticks.
+  ticks(popup, every, isOn, onEvery, onSpace, refill) {
     const row = (label, checked, fn) => {
       const item = document.createXULElement("menuitem");
       item.setAttribute("label", label);
       item.setAttribute("type", "checkbox");
       item.setAttribute("closemenu", "none");
       item.toggleAttribute("checked", checked);
-      item.addEventListener("command", () => {
-        fn();
-        this.fill();
-      });
+      item.addEventListener("command", () => Promise.resolve(fn()).then(refill));
       return item;
     };
-    const items = [row("Every space", !pinned, () => this.set(id, null)), document.createXULElement("menuseparator")];
-    for (const space of this.spaces()) {
-      const on = !pinned || pinned.includes(space.uuid);
-      items.push(row(`${space.icon && !/^[a-z]+:/i.test(space.icon) ? `${space.icon}  ` : ""}${space.name}`, on, () => this.flip(id, space.uuid)));
-    }
-    this.popup.replaceChildren(...items);
+    popup.replaceChildren(row("Every space", every, onEvery), document.createXULElement("menuseparator"),
+                          ...this.spaces().map(s => row(this.spaceLabel(s), isOn(s.uuid), () => onSpace(s.uuid))));
   },
 
-  // Untick a space: the button leaves it (never the last one); tick every
-  // space and it's back to "Every space".
-  flip(id, uuid) {
+  /* Pinned in spaces */
+
+  // Pinned to the toolbar (rather than in the extensions panel).
+  onToolbar(id) {
+    const area = window.CustomizableUI?.getPlacementOfWidget?.(id)?.area;
+    return !!area && area !== window.CustomizableUI.AREA_ADDONS;
+  },
+
+  // (Firefox's own pinning finishes a moment later.)
+  async pin(id, on) {
+    if (this.onToolbar(id) === on) return;
+    if (window.gUnifiedExtensions?.pinToToolbar) await gUnifiedExtensions.pinToToolbar(id, on);
+    else CustomizableUI.addWidgetToArea(id, on ? CustomizableUI.AREA_NAVBAR : CustomizableUI.AREA_ADDONS, on ? undefined : 0);
+  },
+
+  fillPinned(popup, id) {
+    const toolbar = this.onToolbar(id), list = this.map[id];
+    this.ticks(popup, toolbar && !list, uuid => toolbar && (!list || list.includes(uuid)),
+               () => {
+                 this.set(id, null);
+                 return this.pin(id, true);
+               },
+               uuid => this.flip(id, uuid),
+               () => this.fillPinned(popup, id));
+  },
+
+  // Untick a space: the button leaves it (from the last one, it's unpinned);
+  // tick one for a button in the panel and it's pinned there; every space
+  // ticked is "Every space" again.
+  async flip(id, uuid) {
     const all = this.spaces().map(s => s.uuid);
+    if (!this.onToolbar(id)) {
+      await this.pin(id, true);
+      this.set(id, all.length > 1 ? [uuid] : null);
+      return;
+    }
     let list = this.map[id] ?? all;
     list = list.includes(uuid) ? list.filter(u => u !== uuid) : [...list, uuid];
-    if (!list.length) return;
+    if (!list.length) {
+      this.set(id, null);
+      await this.pin(id, false);
+      return;
+    }
     this.set(id, all.every(u => list.includes(u)) ? null : list);
   },
 
@@ -3092,6 +3628,75 @@ const SpaceExtensions = {
     this.save(map);
   },
 
+  /* Runs in spaces */
+
+  fillRuns(popup, ext) {
+    const list = this.runs[ext];
+    this.ticks(popup, !list, uuid => !list || list.includes(uuid),
+               () => this.setRuns(ext, null),
+               uuid => {
+                 const all = this.spaces().map(s => s.uuid);
+                 let now = this.runs[ext] ?? all;
+                 now = now.includes(uuid) ? now.filter(u => u !== uuid) : [...now, uuid];
+                 // (Running nowhere is switching it off: that's in Add-ons.)
+                 if (now.length) this.setRuns(ext, all.every(u => now.includes(u)) ? null : now);
+               },
+               () => this.fillRuns(popup, ext));
+  },
+
+  setRuns(ext, list) {
+    const runs = this.runs;
+    if (list) runs[ext] = list;
+    else delete runs[ext];
+    Services.prefs.setStringPref(this.RUNS, JSON.stringify(runs));
+  },
+
+  // After a switch settles; one change at a time.
+  runSoon() {
+    clearTimeout(this.runTimer);
+    this.runTimer = setTimeout(() => {
+      this.running = (this.running ?? Promise.resolve()).then(() => this.applyRuns()).catch(e => console.error("[Zenith] extensions per space", e));
+    }, 250);
+  },
+
+  // Each extension with spaces: off where it doesn't run, on where it does.
+  // The window you're in decides (its space).
+  async applyRuns() {
+    if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
+    const here = window.gZenWorkspaces?.activeWorkspace;
+    const runs = this.runs, resting = this.resting;
+    if (!here && !resting.size) return;
+    // Sync leaves this on and off alone (before the first change).
+    const sync = on => Bridge.apply("extension-runs", { "services.sync.addons.ignoreUserEnabledChanges": on ? true : null });
+    if (Object.keys(runs).length) sync(true);
+    const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");
+    const on = [], off = [];
+    for (const id of new Set([...Object.keys(runs), ...resting])) {
+      const addon = await AddonManager.getAddonByID(id);
+      if (!addon) {
+        resting.delete(id);
+        continue;
+      }
+      const wanted = !runs[id] || runs[id].includes(here);
+      if (!wanted && !resting.has(id) && !addon.userDisabled) {
+        await addon.disable();
+        resting.add(id);
+        off.push(addon.name);
+      } else if (wanted && resting.has(id)) {
+        if (addon.userDisabled) await addon.enable();
+        resting.delete(id);
+        on.push(addon.name);
+      }
+    }
+    Services.prefs.setStringPref(this.RESTING, JSON.stringify([...resting]));
+    if (!Object.keys(runs).length && !resting.size) sync(false);
+    if (on.length || off.length) {
+      hint([on.length ? `${on.join(", ")} on` : "", off.length ? `${off.join(", ")} resting here` : ""].filter(Boolean).join(" · "));
+    }
+  },
+
+  /* The extensions panel */
+
   fillPanel() {
     const area = document.getElementById("unified-extensions-area");
     if (!area) return;
@@ -3101,45 +3706,77 @@ const SpaceExtensions = {
       box.id = "zenith-other-space-extensions";
       area.after(box);
     }
-    const hidden = [...document.querySelectorAll("[zenith-other-space]")].filter(n => n.id);
-    box.hidden = !hidden.length;
     const here = window.gZenWorkspaces?.activeWorkspace;
-    const head = document.createXULElement("label");
-    head.className = "zenith-ose-head";
-    head.setAttribute("value", "Pinned in other spaces");
-    const rows = hidden.map(node => {
+    const head = text => {
+      const label = document.createXULElement("label");
+      label.className = "zenith-ose-head";
+      label.setAttribute("value", text);
+      return label;
+    };
+    const row = (icon, text, action, run) => {
+      const r = document.createXULElement("hbox");
+      r.className = "zenith-ose-row";
+      r.setAttribute("align", "center");
+      const name = document.createXULElement("label");
+      name.className = "zenith-ose-name";
+      name.setAttribute("value", text);
+      name.setAttribute("flex", "1");
+      name.setAttribute("crop", "end");
+      const b = document.createXULElement("toolbarbutton");
+      b.className = "subviewbutton zenith-ose-pin";
+      b.setAttribute("label", action);
+      b.addEventListener("command", () => {
+        run();
+        setTimeout(() => this.fillPanel(), 400);
+      });
+      r.append(icon, name, b);
+      return r;
+    };
+    const pinnedAway = [...document.querySelectorAll("[zenith-other-space]")].filter(n => n.id).map(node => {
       const button = node.querySelector("toolbarbutton") ?? node;
-      const row = document.createXULElement("hbox");
-      row.className = "zenith-ose-row";
-      row.setAttribute("align", "center");
       const icon = document.createXULElement("image");
       icon.className = "zenith-ose-icon";
       for (const v of ["--webextension-toolbar-image", "--webextension-toolbar-image-2x", "--webextension-menupanel-image"]) {
         const value = button.style.getPropertyValue(v);
         if (value) icon.style.setProperty(v, value);
       }
-      const name = document.createXULElement("label");
-      name.className = "zenith-ose-name";
-      name.setAttribute("value", button.getAttribute("label") || button.getAttribute("tooltiptext") || node.id);
-      name.setAttribute("flex", "1");
-      name.setAttribute("crop", "end");
-      const pin = document.createXULElement("toolbarbutton");
-      pin.className = "subviewbutton zenith-ose-pin";
-      pin.setAttribute("label", "Pin here");
-      pin.addEventListener("command", () => {
-        if (here) this.flip(node.id, here);
-        this.fillPanel();
-      });
-      row.append(icon, name, pin);
-      return row;
+      return row(icon, button.getAttribute("label") || button.getAttribute("tooltiptext") || node.id, "Pin here", () => here && this.flip(node.id, here));
     });
-    box.replaceChildren(head, ...rows);
+    box.replaceChildren(...(pinnedAway.length ? [head("Pinned in other spaces"), ...pinnedAway] : []));
+    box.hidden = !pinnedAway.length;
+    // Resting here (their buttons are gone while they're off).
+    const resting = [...this.resting];
+    if (!resting.length) return;
+    const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");
+    Promise.all(resting.map(id => AddonManager.getAddonByID(id))).then(addons => {
+      const rows = addons.filter(Boolean).map(addon => {
+        const icon = document.createXULElement("image");
+        icon.className = "zenith-ose-icon";
+        if (addon.iconURL) icon.style.listStyleImage = `url("${addon.iconURL}")`;
+        return row(icon, addon.name, "Run here too", () => {
+          const list = this.runs[addon.id];
+          if (list && here && !list.includes(here)) this.setRuns(addon.id, [...list, here]);
+        });
+      });
+      if (!rows.length) return;
+      box.append(head("Resting in this space"), ...rows);
+      box.hidden = false;
+    });
   },
 
   // Hide the buttons that aren't pinned in this space (only what changed,
   // so nothing in the open sidebar is touched needlessly).
   update() {
     const map = this.map, here = window.gZenWorkspaces?.activeWorkspace;
+    // Unpinned since (Firefox's "Pin to Toolbar"): its spaces are forgotten,
+    // so pinning it again pins it everywhere.
+    const CUI = window.CustomizableUI;
+    const gone = Object.keys(map).filter(id => CUI && CUI.getPlacementOfWidget(id)?.area === CUI.AREA_ADDONS);
+    if (gone.length) {
+      for (const id of gone) delete map[id];
+      this.save(map);
+      return;
+    }
     const away = new Set(Object.entries(map).filter(([, list]) => here && !list.includes(here)).map(([id]) => id));
     for (const node of document.querySelectorAll("[zenith-other-space]")) if (!away.has(node.id)) node.removeAttribute("zenith-other-space");
     for (const id of away) {
@@ -3771,6 +4408,7 @@ function migrateCtrlNumbers() {
   Services.prefs.clearUserPref(OLD);
 }
 
+start("first page sooner", () => WarmStart.init(), true);
 start("settings", () => {
   migrateSettings();
   migrateCtrlNumbers();
@@ -3779,10 +4417,13 @@ start("settings", () => {
 }, true);
 start("motion bridge", () => MotionBridge.init(), true);
 start("window state", () => WindowState.init(), true);
+start("sidebar hover", () => SidebarHover.init());
+start("delete downloads", () => DownloadDelete.init());
 start("link hints", () => LinkHints.init(), true);
 start("start page", () => StartPage.init(), true);
 start("picture-in-picture", () => PiPWindows.init());
 start("float a tab", () => FloatTab.init(), true);
+start("keys in Zen's shortcuts", () => ZenithKeys.init());
 start("window paint", () => WindowPaint.init(), true);
 start("ctrl hold", () => CtrlHold.init());
 start("load edge", () => LoadEdge.init());

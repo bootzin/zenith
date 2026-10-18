@@ -41,9 +41,15 @@ main {
 }
 
 #weather {
-  margin-top: 4px;
+  margin-top: 6px;
   color: var(--dim);
   font-size: 13px;
+  text-align: center;
+
+  & .other {
+    font-size: 12px;
+    opacity: 0.8;
+  }
 }
 
 #q {

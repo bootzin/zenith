@@ -126,6 +126,18 @@ class Handler(BaseHTTPRequestHandler):
             self._html("<!doctype html><title>Camera page</title><h1>Camera</h1><video id=v autoplay muted></video>"
                        "<script>navigator.mediaDevices.getUserMedia({video:true,audio:true})"
                        ".then(s=>{v.srcObject=s;document.title='Camera on'}).catch(e=>document.title='ERR '+e)</script>")
+        elif path == "/reading":
+            # A page that's mostly reading, with the usual clutter: a header
+            # stuck to the top, a cookie banner, a side column, share bar,
+            # comments (focus mode's tidy).
+            paras = "".join(f"<p>Paragraph {i}. The quick brown fox jumps over the lazy dog, again and again, while the river runs on "
+                            "past the old mill and the bells ring out across the valley for the evening.</p>" for i in range(30))
+            self._html("<!doctype html><title>Reading page</title><body style='margin:0;font:17px Georgia'>"
+                       "<header id=bar style='position:fixed;top:0;left:0;right:0;height:56px;background:#333;color:#fff'>Site header</header>"
+                       "<div id=cookie-banner class=cookie-banner style='position:fixed;bottom:0;left:0;right:0;height:80px;background:#ffd'>We use cookies</div>"
+                       "<div style='display:flex;margin-top:70px'><main style='flex:1;padding:20px'><h1>A long read</h1>" + paras +
+                       "<div class=share-buttons>Share this</div><section id=comments>Comments</section></main>"
+                       "<aside id=side style='width:260px'>Related links</aside></div></body>")
         elif path == "/photos":
             # A page a vaguely named download comes from (local AI names).
             self._html("<!doctype html><title>Douro valley hike, day 2 - Photos</title><h1>Douro valley, day 2</h1>"

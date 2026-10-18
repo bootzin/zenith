@@ -1797,23 +1797,6 @@
     "usedBy": "zenith-plus"
   },
   {
-    "property": "zenith.plus.tab-manager-view",
-    "label": "Tab manager opens as",
-    "type": "dropdown",
-    "placeholder": "Default (A page in a tab)",
-    "options": [
-      {
-        "label": "A page in a tab",
-        "value": "page"
-      },
-      {
-        "label": "A card over the page",
-        "value": "card"
-      }
-    ],
-    "usedBy": "zenith-plus"
-  },
-  {
     "property": "zenith.plus.tabs-auto-sleep",
     "label": "Put tabs to sleep on their own",
     "type": "dropdown",
@@ -1881,7 +1864,7 @@
   },
   {
     "property": "zenith.plus.palette-sync",
-    "label": "Palette sync: every space takes your desktop palette's colours",
+    "label": "Palette sync: the spaces take your desktop palette's colours",
     "type": "dropdown",
     "placeholder": "Default (Off)",
     "options": [
@@ -1899,6 +1882,44 @@
       }
     ],
     "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.palette-spaces",
+    "label": "Palette sync colours",
+    "type": "dropdown",
+    "placeholder": "Default (Every space)",
+    "options": [
+      {
+        "label": "Every space",
+        "value": "all"
+      },
+      {
+        "label": "The space you're in",
+        "value": "current"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.palette-sync",
+              "value": "pywal"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.palette-sync",
+              "value": "wallust"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Palette sync is off"
   },
   {
     "property": "zenith.plus.space-colour",
@@ -1947,10 +1968,6 @@
       {
         "label": "Zen's folders, set per folder",
         "value": "folders"
-      },
-      {
-        "label": "Firefox's tab groups",
-        "value": "firefox"
       },
       {
         "label": "Off",
@@ -2076,7 +2093,7 @@
   },
   {
     "property": "zenith.plus.startpage",
-    "label": "Start page: a clock, search and your bookmarks, as the home page",
+    "label": "Start page: a clock, search and your bookmarks",
     "type": "dropdown",
     "placeholder": "Default (Off)",
     "options": [
@@ -2085,15 +2102,43 @@
         "value": "off"
       },
       {
-        "label": "On",
+        "label": "As the home page",
         "value": "on"
       },
       {
-        "label": "On, with the weather",
-        "value": "weather"
+        "label": "Home page and new tabs",
+        "value": "newtab"
       }
     ],
     "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.startpage-weather",
+    "label": "The weather on the start page",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "newtab"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The start page is off"
   },
   {
     "property": "zenith.plus.float-tab",
@@ -2110,8 +2155,29 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.plus.focus-pages",
+    "label": "Focus mode and the page",
+    "type": "dropdown",
+    "placeholder": "Default (Reader view for articles, tidy the rest)",
+    "options": [
+      {
+        "label": "Reader view for articles, tidy the rest",
+        "value": "tidy"
+      },
+      {
+        "label": "Reader view for articles",
+        "value": "reader"
+      },
+      {
+        "label": "Leave pages alone",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.plus.focus-key",
-    "label": "Focus mode on Alt+Z: hides the sidebar, edges and pills",
+    "label": "Focus mode on Alt+Z: puts everything away but the page",
     "type": "checkbox",
     "defaultValue": true,
     "usedBy": "zenith-plus"
@@ -2239,15 +2305,15 @@
     "property": "zenith.plus.ai-download-names",
     "label": "Download names that say nothing (IMG_0931.jpg)",
     "type": "dropdown",
-    "placeholder": "Default (Offer a clearer one)",
+    "placeholder": "Default (Rename at once, with Undo)",
     "options": [
-      {
-        "label": "Offer a clearer one",
-        "value": "suggest"
-      },
       {
         "label": "Rename at once, with Undo",
         "value": "rename"
+      },
+      {
+        "label": "Offer a clearer one",
+        "value": "suggest"
       },
       {
         "label": "Leave them",

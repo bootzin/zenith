@@ -108,15 +108,17 @@ select {
 
 #top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 10px 16px;
   padding: 18px 22px 10px;
 
   & .title {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: 12px;
-    flex: 1;
+    gap: 2px 12px;
+    flex: 1 1 280px;
     min-width: 0;
   }
 
@@ -130,8 +132,13 @@ select {
     color: var(--dim);
   }
 
+  & #summary {
+    white-space: nowrap;
+  }
+
   & #search {
-    width: 260px;
+    flex: 0 1 260px;
+    min-width: 150px;
   }
 }
 
@@ -140,13 +147,6 @@ select {
   flex: none;
 }
 
-#close {
-  display: none;
-
-  .compact & {
-    display: block;
-  }
-}
 
 .glyph {
   display: inline-block;
@@ -186,50 +186,30 @@ input.pick,
   }
 }
 
-#essentials {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 22px 10px;
+/* --- Spaces ------------------------------------------------------------------- */
 
+main.view {
+  flex: 1;
+  min-height: 0;
+  padding: 0 22px 90px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+
+  /* (Over a view's own display, like the board's flex.) */
   &[hidden] {
-    display: none;
-  }
-
-  & .label {
-    color: var(--dim);
-    font-size: 0.85em;
-    align-self: center;
-    margin-inline-end: 4px;
-  }
-
-  & .tab {
-    width: auto;
-    max-width: 220px;
-    border: 1px solid var(--line);
-    border-radius: var(--pill);
-    background: var(--card);
-    padding-inline-end: 12px;
+    display: none !important;
   }
 }
 
-/* --- Spaces ------------------------------------------------------------------- */
-
-#overview {
-  flex: 1;
-  min-height: 0;
+#spaces {
   display: flex;
-  gap: 14px;
-  padding: 0 22px 22px;
-
-  &[hidden] {
-    display: none;
-  }
+  padding-bottom: 22px;
 }
 
 #board {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   gap: 12px;
   overflow-x: auto;
@@ -512,16 +492,19 @@ input.pick,
 /* --- Tidying up ------------------------------------------------------------------ */
 
 #tidy {
-  flex: none;
-  width: 300px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  scrollbar-width: thin;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  align-items: start;
+
+  & .column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 
   & h2 {
-    margin: 0 0 2px;
+    margin: 6px 0 2px;
     font-size: 0.8em;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -899,115 +882,327 @@ input.pick,
   }
 }
 
-/* --- The card (about:zenith-tabs?compact) ------------------------------------------------ */
+/* --- All tabs: insights and the table ------------------------------------------------ */
 
-.compact {
-  background: transparent;
+#insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
 
-  & #top {
-    padding: 12px 14px 8px;
+.insight {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--card);
+  border: 1px solid var(--line);
+  min-width: 0;
+
+  & h3 {
+    margin: 0 0 2px;
+    font-size: 0.78em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  & .big {
+    font-size: 1.9em;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & .sub {
+    color: var(--dim);
+    font-size: 0.9em;
+  }
+
+  & .line {
+    display: flex;
+    align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    min-width: 0;
 
-    & h1 {
-      font-size: 1.2em;
+    & .what {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      & small {
+        color: var(--dim);
+      }
     }
 
-    & #summary {
+    & .value {
+      color: var(--dim);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    & button {
+      padding: 1px 9px;
       font-size: 0.85em;
     }
-
-    & .title {
-      flex-basis: 100%;
-    }
-
-    & #search {
-      flex: 1;
-      width: auto;
-      min-width: 0;
-    }
   }
 
-  & #essentials {
-    padding: 0 14px 8px;
-  }
-
-  & #overview {
-    flex-direction: column;
-    overflow-y: auto;
-    padding: 0 10px 70px;
-    gap: 10px;
-  }
-
-  & #board {
-    flex-direction: column;
-    overflow: visible;
-    flex: none;
-  }
-
-  & .space {
-    flex: none;
-    max-width: none;
-
-    & > header {
-      cursor: pointer;
-
-      & .chev {
-        width: 10px;
-        height: 10px;
-        background: currentColor;
-        opacity: 0.55;
-        mask: url("chrome://global/skin/icons/arrow-right.svg") center / 10px no-repeat;
-        rotate: 90deg;
-        transition: rotate 0.12s;
-      }
-    }
-
-    &[folded] {
-      & > header .chev {
-        rotate: 0deg;
-      }
-
-      & .list {
-        display: none;
-      }
-    }
-
-    & .list {
-      overflow: visible;
-    }
-  }
-
-  & #tidy {
-    width: auto;
-    overflow: visible;
-  }
-
-  & .card:not([open]) {
-    padding-block: 8px;
-
-    & .card-head {
-      cursor: pointer;
-    }
-  }
-
-  & #rules {
-    padding: 4px 14px 30px;
-  }
-
-  & .rule input[type="text"] {
-    width: 140px;
-  }
-
-  & #bar {
-    bottom: 10px;
-    max-width: calc(100vw - 20px);
+  & .buttons {
+    display: flex;
     flex-wrap: wrap;
-    border-radius: calc(var(--radius) + 6px);
+    gap: 6px;
+    margin-top: 2px;
+  }
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-inline-end: 6px;
+  border-radius: 50%;
+  background: var(--space, var(--dim));
+  vertical-align: 1px;
+}
+
+#filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+
+  & .chip {
+    padding: 3px 11px;
+
+    &[aria-pressed="true"] {
+      background: var(--soft);
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    }
+
+    & .n {
+      color: var(--dim);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+#table {
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--line);
+  background: var(--card);
+
+  & .tr {
+    display: grid;
+    grid-template-columns: 30px minmax(220px, 3fr) minmax(90px, 1.2fr) minmax(90px, 1.1fr) 84px 110px 54px 54px 92px;
+    align-items: center;
+    min-height: calc(var(--zth-row, 32px) + 4px);
+    border-bottom: 1px solid var(--line);
+    padding-inline: 6px;
+
+    &:last-child {
+      border-bottom: none;
+    }
   }
 
-  & #note {
-    right: 10px;
-    bottom: 64px;
+  & .thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: color-mix(in srgb, var(--zth-glass-color, Canvas) 92%, light-dark(white, black));
+    border-radius: calc(var(--radius) + 2px) calc(var(--radius) + 2px) 0 0;
+  }
+
+  & .th {
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    padding: 6px;
+    text-align: start;
+    color: var(--dim);
+    font-size: 0.8em;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+
+    &.num {
+      text-align: end;
+    }
+
+    &.plain {
+      cursor: default;
+    }
+
+    &[aria-sort]::after {
+      content: " ↓";
+    }
+
+    &[aria-sort="ascending"]::after {
+      content: " ↑";
+    }
+
+    &:hover:not(.plain) {
+      color: var(--ink);
+      background: transparent;
+    }
+  }
+
+  & .td {
+    min-width: 0;
+    padding: 4px 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &.num {
+      text-align: end;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &.wide {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      & .text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      & .title,
+      & .host {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      & .host {
+        color: var(--dim);
+        font-size: 0.85em;
+      }
+    }
+
+    &.space-cell {
+      display: flex;
+      align-items: center;
+
+      & .clip {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    &.state {
+      color: var(--dim);
+
+      &.awake,
+      &.open-now,
+      &.playing,
+      &.sharing {
+        color: var(--ink);
+      }
+
+      &.playing,
+      &.sharing {
+        color: var(--accent);
+      }
+    }
+
+    &.mem {
+      position: relative;
+
+      & .meter {
+        position: absolute;
+        inset: auto 6px 3px auto;
+        height: 2px;
+        width: calc((100% - 12px) * var(--share, 0));
+        border-radius: 2px;
+        background: var(--accent);
+        opacity: 0.6;
+      }
+    }
+
+    &.pickcell {
+      display: flex;
+      justify-content: center;
+    }
+  }
+
+  & .where {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    &.dim {
+      color: var(--dim);
+    }
+  }
+
+  & .tr.tab {
+    cursor: default;
+    height: auto;
+    gap: 0;
+    border-radius: 0;
+
+    &:hover {
+      background: var(--hover);
+    }
+
+    &[picked] {
+      background: var(--soft);
+    }
+
+    &[asleep] .wide .title {
+      color: var(--dim);
+    }
+
+    &[current] .wide .title {
+      font-weight: 600;
+    }
+
+    & .acts {
+      display: flex;
+      justify-content: flex-end;
+      gap: 2px;
+      opacity: 0;
+    }
+
+    &:hover .acts {
+      opacity: 1;
+    }
+  }
+
+  & .icon {
+    flex: none;
+  }
+
+  & .empty {
+    padding: 14px;
+    color: var(--dim);
+  }
+}
+
+.space > header {
+  & .name {
+    cursor: pointer;
+  }
+
+  & button.small {
+    padding: 1px 8px;
+    font-size: 0.82em;
+  }
+}
+
+@media (width < 1100px) {
+  #table .tr {
+    grid-template-columns: 30px minmax(180px, 3fr) minmax(80px, 1fr) 0 76px 96px 50px 50px 80px;
+
+    & > :nth-child(4) {
+      display: none;
+    }
   }
 }

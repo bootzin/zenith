@@ -3160,7 +3160,7 @@ inset-inline: auto 0;
 width: var(--zen-library-sprite-size, 28px) !important;
 height: var(--zen-library-sprite-size, 28px) !important;
 background: var(--zth-accent, currentColor) !important;
-mask: url("chrome://browser/skin/zen-icons/bookmark.svg") center / 20px no-repeat !important;
+mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 2.75h9a1.25 1.25 0 0 1 1.25 1.25v13.25l-5.75-3.6-5.75 3.6V4A1.25 1.25 0 0 1 5.5 2.75z' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E") center / 23px no-repeat !important;
 animation: none !important;
 transform: none !important;
 opacity: 0.9;
@@ -3203,37 +3203,6 @@ bottom: 0;
 right: 0;
 z-index: 6;
 box-shadow: var(--zth-shadow);
-}
-#zenith-tabs {
-position: fixed;
-inset: 0;
-z-index: 290 !important;
-display: flex;
-justify-content: center;
-align-items: flex-start;
-padding-top: 7vh;
-&[hidden] {
-display: none;
-}
-}
-#zenith-tabs-card {
-display: flex;
-width: min(560px, 92vw);
-height: min(640px, 84vh);
-box-sizing: border-box;
-border-radius: calc(var(--zth-radius) + 4px);
-outline: 1px solid var(--zth-hairline);
-background: var(--zth-panel-bg);
-backdrop-filter: var(--zth-panel-filter);
-box-shadow: var(--zth-shadow), var(--zth-glass-shine);
-overflow: hidden;
-animation: zth-enter var(--zth-dur) var(--zth-ease);
-}
-#zenith-tabs-frame {
-flex: 1;
-border: none;
-background: transparent;
-color-scheme: inherit;
 }
 [zenith-other-space] {
 display: none !important;
@@ -3318,7 +3287,7 @@ padding: 4px 6px 0;
 :root[zenith-blend="on"] {
 --zth-glass-color: color-mix(in srgb, var(--zth-page-tint, var(--zth-paint)) 30%, var(--zth-mica)) !important;
 }
-:root[zenith-pip-tucked] {
+:root[zenith-pip-tucked]:not([zenith-pip-peek]) {
 -moz-window-dragging: no-drag !important;
 cursor: pointer;
 & #controls {
@@ -3353,12 +3322,83 @@ display: none !important;
 & #zen-tabbox-wrapper {
 margin: 0 !important;
 }
-& #zen-appcontent-wrapper::before {
-content: "";
+& #zen-appcontent-wrapper {
+position: relative;
+}
+}
+#zenith-float-bar {
+display: none;
+}
+:root[zenith-float] #zenith-float-bar {
 position: absolute;
 inset: 0 0 auto 0;
-height: 10px;
-z-index: 20;
--moz-window-dragging: drag;
+z-index: 30 !important;
+display: flex;
+align-items: center;
+gap: 8px;
+height: 30px;
+padding: 0 6px 0 10px;
+background: var(--zth-panel-bg);
+backdrop-filter: var(--zth-panel-filter);
+border-bottom: 1px solid var(--zth-hairline);
+color: var(--zth-ink);
+font: var(--zth-font) / 1 system-ui, sans-serif;
+cursor: grab;
+-moz-window-dragging: no-drag;
+opacity: 0;
+translate: 0 -22px;
+transition: opacity 0.15s var(--zth-ease), translate 0.15s var(--zth-ease);
+&:hover {
+opacity: 1;
+translate: 0 0;
+}
+& .zenith-float-grip {
+width: 18px;
+height: 8px;
+border-block: 2px solid var(--zth-ink-dim);
+opacity: 0.7;
+}
+& .zenith-float-title {
+flex: 1;
+min-width: 0;
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+color: var(--zth-ink-dim);
+}
+& .zenith-float-button {
+appearance: none;
+min-width: 26px;
+height: 22px;
+padding: 0 6px;
+border: none;
+border-radius: var(--zth-pill-radius);
+background: transparent;
+color: inherit;
+font: inherit;
+cursor: pointer;
+&:hover {
+background: var(--zth-accent-soft);
+}
+}
+}
+:root[zenith-float-moving] #zenith-float-bar {
+opacity: 1;
+translate: 0 0;
+cursor: grabbing;
+}
+.zenith-download-delete {
+opacity: 0.75;
+&:hover {
+opacity: 1;
+}
+& .toolbarbutton-icon {
+-moz-context-properties: fill;
+fill: currentColor;
+}
+&[confirm] {
+opacity: 1;
+color: var(--zth-danger, #e5484d);
+background: color-mix(in srgb, var(--zth-danger, #e5484d) 18%, transparent) !important;
 }
 }

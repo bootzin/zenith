@@ -1314,9 +1314,12 @@ menuseparator[zenith-collapse] {
   width: var(--zen-library-sprite-size, 28px) !important;
   height: var(--zen-library-sprite-size, 28px) !important;
   /* (Zenith's accent, not Zen's --stroke, which some themes leave unset;
-     and not Zen's sprite animation, which would slide it out of view.) */
+     and not Zen's sprite animation, which would slide it out of view. The
+     ribbon is drawn here in solid strokes: Zen's bookmark.svg paints with
+     the theme's context colours, which a mask doesn't have, so it masked
+     everything away.) */
   background: var(--zth-accent, currentColor) !important;
-  mask: url("chrome://browser/skin/zen-icons/bookmark.svg") center / 20px no-repeat !important;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 2.75h9a1.25 1.25 0 0 1 1.25 1.25v13.25l-5.75-3.6-5.75 3.6V4A1.25 1.25 0 0 1 5.5 2.75z' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E") center / 23px no-repeat !important;
   animation: none !important;
   transform: none !important;
   opacity: 0.9;
@@ -1373,44 +1376,6 @@ zenith-bookmarks-host.zen-library-section {
   right: 0;
   z-index: 6;
   box-shadow: var(--zth-shadow);
-}
-
-/* === Tab manager (Alt+Shift+T, as a card) ========================================= */
-
-/* The page (about:zenith-tabs?compact) in a frosted card over the page. */
-#zenith-tabs {
-  position: fixed;
-  inset: 0;
-  z-index: 290 !important; /* (Zen sets 1 on its wrapper's children) */
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 7vh;
-
-  &[hidden] {
-    display: none;
-  }
-}
-
-#zenith-tabs-card {
-  display: flex;
-  width: min(560px, 92vw);
-  height: min(640px, 84vh);
-  box-sizing: border-box;
-  border-radius: calc(var(--zth-radius) + 4px);
-  outline: 1px solid var(--zth-hairline);
-  background: var(--zth-panel-bg);
-  backdrop-filter: var(--zth-panel-filter);
-  box-shadow: var(--zth-shadow), var(--zth-glass-shine);
-  overflow: hidden;
-  animation: zth-enter var(--zth-dur) var(--zth-ease);
-}
-
-#zenith-tabs-frame {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color-scheme: inherit;
 }
 
 /* === Extension buttons per space =================================================== */
@@ -1522,8 +1487,9 @@ zenith-bookmarks-host.zen-library-section {
 /* === Picture-in-picture, tucked away ===========================================
    Past a side edge only a sliver of the window stays on screen (Zenith Plus
    moves it): the controls go, the picture dims, and an arrow on the sliver
-   says a click brings it back. (The sliver isn't a drag handle then.) */
-:root[zenith-pip-tucked] {
+   says it comes back (on hover for a look, on a click to stay). (The sliver
+   isn't a drag handle then; while it's out for a look it's itself.) */
+:root[zenith-pip-tucked]:not([zenith-pip-peek]) {
   -moz-window-dragging: no-drag !important;
   cursor: pointer;
 
@@ -1559,8 +1525,9 @@ zenith-bookmarks-host.zen-library-section {
 
 /* === Float a tab: the small window on top =====================================
    Just the page: no sidebar or toolbars (it holds one tab; Alt+Shift+Space
-   puts it back), rounded like the page, with a thin strip along the top to
-   move it by. */
+   or the bar's ↩ puts it back). A bar slides down when the pointer is near
+   the top: drag it to move the window (Zenith moves it; double-click puts
+   it back in its corner), ↩ puts the tab back, ✕ closes it. */
 :root[zenith-float] {
   & #navigator-toolbox {
     display: none !important;
@@ -1570,12 +1537,98 @@ zenith-bookmarks-host.zen-library-section {
     margin: 0 !important;
   }
 
-  & #zen-appcontent-wrapper::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 10px;
-    z-index: 20;
-    -moz-window-dragging: drag;
+  & #zen-appcontent-wrapper {
+    position: relative;
+  }
+}
+
+#zenith-float-bar {
+  display: none;
+}
+
+:root[zenith-float] #zenith-float-bar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 30 !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px 0 10px;
+  background: var(--zth-panel-bg);
+  backdrop-filter: var(--zth-panel-filter);
+  border-bottom: 1px solid var(--zth-hairline);
+  color: var(--zth-ink);
+  font: var(--zth-font) / 1 system-ui, sans-serif;
+  cursor: grab;
+  -moz-window-dragging: no-drag;
+  opacity: 0;
+  translate: 0 -22px;
+  transition: opacity 0.15s var(--zth-ease), translate 0.15s var(--zth-ease);
+
+  &:hover {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  & .zenith-float-grip {
+    width: 18px;
+    height: 8px;
+    border-block: 2px solid var(--zth-ink-dim);
+    opacity: 0.7;
+  }
+
+  & .zenith-float-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--zth-ink-dim);
+  }
+
+  & .zenith-float-button {
+    appearance: none;
+    min-width: 26px;
+    height: 22px;
+    padding: 0 6px;
+    border: none;
+    border-radius: var(--zth-pill-radius);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--zth-accent-soft);
+    }
+  }
+}
+
+:root[zenith-float-moving] #zenith-float-bar {
+  opacity: 1;
+  translate: 0 0;
+  cursor: grabbing;
+}
+
+/* === Delete a download ============================================================
+   The bin beside "Show in folder" (Zenith Plus); red while it waits for the
+   second click. */
+.zenith-download-delete {
+  opacity: 0.75;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  & .toolbarbutton-icon {
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
+
+  &[confirm] {
+    opacity: 1;
+    color: var(--zth-danger, #e5484d);
+    background: color-mix(in srgb, var(--zth-danger, #e5484d) 18%, transparent) !important;
   }
 }

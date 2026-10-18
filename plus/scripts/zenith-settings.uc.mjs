@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.0
+// @version        0.12.1
 // ==/UserScript==
 
 // Zen's mod settings list every option flat, with no way to show that one
@@ -309,6 +309,50 @@ const RULES = {
           "property": "zenith.plus.switcher",
           "value": true
         }
+      }
+    ]
+  },
+  "zenith.plus.palette-spaces": {
+    "why": "Palette sync is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.palette-sync",
+              "value": "pywal"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.palette-sync",
+              "value": "wallust"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.plus.startpage-weather": {
+    "why": "The start page is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "newtab"
+            }
+          }
+        ],
+        "operator": "OR"
       }
     ]
   },

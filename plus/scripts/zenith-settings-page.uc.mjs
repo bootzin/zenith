@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.0
+// @version        0.12.1
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -208,7 +208,7 @@ const SCHEMA = [
       "label": "Palette sync",
       "type": "dropdown",
       "extra": false,
-      "desc": "pywal (winwal on Windows) and wallust pick colours from your wallpaper for your whole desktop. Every space takes that palette's most striking colours (one, two or three) the moment it changes. pywal writes ~/.cache/wal/colors.json itself; for wallust, add a template that writes the same file to ~/.cache/wallust/colors.json. Undo colours puts the spaces back.",
+      "desc": "For people who theme their whole desktop with pywal (winwal on Windows) or wallust: those tools pick colours from your wallpaper and write them to a file your terminal and other apps read. With this on, your spaces take that palette's most striking colours (one, two or three) the moment it changes. pywal writes ~/.cache/wal/colors.json itself; for wallust, add a template that writes the same file to ~/.cache/wallust/colors.json. Without those tools it does nothing (Colours from your wallpaper is the built-in way). Undo colours puts the spaces back.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -225,6 +225,47 @@ const SCHEMA = [
        }
       ],
       "default": "off"
+     },
+     {
+      "property": "zenith.plus.palette-spaces",
+      "label": "Palette colours",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Every space follows the palette, or only the space you're in when it changes.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Every space",
+        "value": "all"
+       },
+       {
+        "label": "The space you're in",
+        "value": "current"
+       }
+      ],
+      "default": "all",
+      "rule": {
+       "why": "Palette sync is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.plus.palette-sync",
+            "value": "pywal"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.palette-sync",
+            "value": "wallust"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
      },
      {
       "property": "zenith.action.colours-undo",
@@ -522,7 +563,7 @@ const SCHEMA = [
       "label": "Blend with the page",
       "type": "dropdown",
       "extra": true,
-      "desc": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the page you're on, so the window runs into the page.",
+      "desc": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the page you're on, so the window runs into the page. Note: while it's on, the glass shows the page's colour instead of your space's, so your theme's colours can look off; turn it off if colours aren't what you expect.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -1195,16 +1236,12 @@ const SCHEMA = [
       "label": "Groups that don't pin",
       "type": "dropdown",
       "extra": false,
-      "desc": "Zen's folders pin the tabs you put in them. Zen's folders, set per folder: right-click a folder › Tabs act unpinned, and Ctrl+W closes its tabs and they keep the page they're on. Firefox's tab groups: groups under the pinned tabs (right-click a tab › Add Tab to New Group), drawn like folders, with split views kept whole.",
+      "desc": "Zen's folders pin the tabs you put in them. Right-click a folder › Tabs act unpinned: Ctrl+W closes its tabs, they keep the page they're on, and the folder sits below the pinned tabs' line, with your other tabs. Off hides the choice.",
       "host": "Zenith Plus",
       "options": [
        {
         "label": "Zen's folders, set per folder",
         "value": "folders"
-       },
-       {
-        "label": "Firefox's tab groups",
-        "value": "firefox"
        },
        {
         "label": "Off",
@@ -2540,28 +2577,9 @@ const SCHEMA = [
       "label": "Tab manager (Alt+Shift+T)",
       "type": "checkbox",
       "extra": false,
-      "desc": "Alt+Shift+T (or :tabs in the switcher) opens about:zenith-tabs: every space's tabs in columns to move, sleep, wake, put in folders or close (with Undo), tidying up (duplicates, unused, awake tabs, busy sites) and rules for grouping. Nothing happens until you press a button or set a rule.",
+      "desc": "Alt+Shift+T (or :tabs in the switcher) opens about:zenith-tabs: every tab in a table to sort and filter, with where the memory and CPU go; each space's tabs in columns; tidying up (duplicates, unused, awake tabs, busy sites, by topic) and rules. Move, sleep, wake, put in folders or close, with Undo. Nothing happens until you press a button or set a rule.",
       "host": "Zenith Plus",
       "default": true
-     },
-     {
-      "property": "zenith.plus.tab-manager-view",
-      "label": "Opens as",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The tab manager as its own page in a tab, or the small card over the page.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "A page in a tab",
-        "value": "page"
-       },
-       {
-        "label": "A card over the page",
-        "value": "card"
-       }
-      ],
-      "default": "page"
      },
      {
       "property": "zenith.plus.tabs-auto-sleep",
@@ -2603,7 +2621,7 @@ const SCHEMA = [
       "label": "Close on their own",
       "type": "dropdown",
       "extra": false,
-      "desc": "Off unless you choose: loose tabs (not pinned, not essentials, not in a folder or group) you haven't been to for this long close. The tab manager's Rules list them to bring back.",
+      "desc": "Off unless you choose: loose tabs (not pinned, not essentials, not in a folder) you haven't been to for this long close. The tab manager's Rules list them to bring back.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -2643,9 +2661,32 @@ const SCHEMA = [
       "label": "Focus mode (Alt+Z)",
       "type": "checkbox",
       "extra": false,
-      "desc": "Alt+Z hides the sidebar, the edges, the minimap, pills and the link address, for reading or video. The sharing alarm still shows. Alt+Z again brings it all back.",
+      "desc": "Alt+Z puts everything away but the page, for reading or video: the sidebar, the edges, the minimap, pills, the bookmarks bar and the link address hide, and whatever's open closes (bookmarks, the Library, this panel, the find bar). You can open any of them again. The sharing alarm still shows. Alt+Z again brings it all back.",
       "host": "Zenith Plus",
       "default": true
+     },
+     {
+      "property": "zenith.plus.focus-pages",
+      "label": "Pages in focus mode",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Focus mode clears the browser around the page (and closes whatever was open); this is what it does to the page. Articles open in Firefox's Reader view; other pages that are mostly reading lose cookie banners, newsletter boxes, share bars, comments, sponsored blocks, ads, side columns and bars stuck to the window's edges. Leaving focus mode puts it all back.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Reader view for articles, tidy the rest",
+        "value": "tidy"
+       },
+       {
+        "label": "Reader view for articles",
+        "value": "reader"
+       },
+       {
+        "label": "Leave pages alone",
+        "value": "off"
+       }
+      ],
+      "default": "tidy"
      }
     ]
    },
@@ -3002,7 +3043,7 @@ const SCHEMA = [
       "label": "Start page",
       "type": "dropdown",
       "extra": false,
-      "desc": "about:zenith-start, on the window's glass: a clock, a search box (Peek's engine) that also finds your bookmarks as you type, and your bookmarks, 1–9 to open one. It becomes the home page (the Home button, and new windows if they open the home page); Off gives yours back. The weather is one line from wttr.in, for the last place you looked up in Peek.",
+      "desc": "about:zenith-start, on the window's glass: a clock, a search box (Peek's engine) that also finds your bookmarks as you type, and your bookmarks, 1–9 to open one. It becomes the home page (the Home button, and new windows if they open the home page); with new tabs too, Ctrl+T opens it instead of Zen's URL bar. Off gives yours back.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -3010,15 +3051,46 @@ const SCHEMA = [
         "value": "off"
        },
        {
-        "label": "On",
+        "label": "As the home page",
         "value": "on"
        },
        {
-        "label": "On, with the weather",
-        "value": "weather"
+        "label": "Home page and new tabs",
+        "value": "newtab"
        }
       ],
       "default": "off"
+     },
+     {
+      "property": "zenith.plus.startpage-weather",
+      "label": "Weather",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A line from wttr.in for where you are (worked out from your connection, as Peek's \"wt\"), then the places you looked up in Peek lately, as many as Peek's weather history keeps.",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "The start page is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.plus.startpage",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.startpage",
+            "value": "newtab"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
      }
     ]
    },
@@ -3079,19 +3151,19 @@ const SCHEMA = [
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Offer a clearer one",
-        "value": "suggest"
-       },
-       {
         "label": "Rename at once, with Undo",
         "value": "rename"
+       },
+       {
+        "label": "Offer a clearer one",
+        "value": "suggest"
        },
        {
         "label": "Leave them",
         "value": "off"
        }
       ],
-      "default": "suggest",
+      "default": "rename",
       "rule": {
        "why": "Local AI is off",
        "conditions": [
@@ -3275,7 +3347,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.0";
+const SCHEMA_VERSION = "0.12.1";
 
 class SettingsView {
   constructor(kind) {
@@ -3289,14 +3361,24 @@ class SettingsView {
     const search = el("input", { type: "search", class: "zp-search", placeholder: "Find a setting", spellcheck: "false" });
     search.addEventListener("input", () => this.filter(search.value));
     this.search = search;
-    root.append(head(search));
+    // The sections, in a bar that stays at the top (with the search) and
+    // marks the one you're in.
     const chips = el("nav", { class: "zp-chips" });
     for (const section of SCHEMA) {
-      const chip = el("button", { class: "zp-chip", type: "button" }, section.title);
-      chip.addEventListener("click", () => root.querySelector(`[data-section="${section.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      const chip = el("button", { class: "zp-chip", type: "button", "data-section": section.id }, section.title);
+      chip.addEventListener("click", () => this.go(section.id));
       chips.append(chip);
     }
-    root.append(chips);
+    const top = head(search);
+    if (this.kind === "panel") {
+      top.append(chips);
+      root.append(top);
+    } else {
+      const bar = el("div", { class: "zp-bar" });
+      bar.append(search, chips);
+      root.append(top, bar);
+    }
+    this.chips = chips;
     for (const section of SCHEMA) root.append(this.section(section));
     this.empty = el("p", { class: "zp-empty", hidden: true }, "No setting matches.");
     root.append(this.empty);
@@ -3308,6 +3390,74 @@ class SettingsView {
     });
     this.refresh();
     this.watch();
+    this.spy();
+  }
+
+  // What scrolls the settings (the panel itself, or the page), and the
+  // bottom of the bar that stays at its top.
+  scroller() {
+    let s = this.kind === "panel" ? this.root : this.root.parentElement;
+    while (s && s !== document.documentElement && !/(auto|scroll)/.test(getComputedStyle(s).overflowY)) s = s.parentElement;
+    return s && s !== document.documentElement ? s : document.scrollingElement;
+  }
+
+  stickyBottom() {
+    const bar = this.kind === "panel" ? this.root.querySelector(".zp-live-head") : this.root.querySelector(".zp-bar");
+    return bar?.getBoundingClientRect().bottom ?? 0;
+  }
+
+  // A section, scrolled to just below the bar. Where that is depends on
+  // where the bar ends up (on the page it starts lower, under the title,
+  // and sticks once scrolled), so the place is measured first, in between
+  // frames, then scrolled to smoothly.
+  go(id) {
+    const section = this.root.querySelector(`.zp-section[data-section="${id}"]`);
+    if (!section) return;
+    this.picked = id;
+    this.mark(id);
+    const scroller = this.scroller(), start = scroller.scrollTop;
+    const gap = () => section.getBoundingClientRect().top - this.stickyBottom() - 8;
+    scroller.scrollTo({ top: start + gap(), behavior: "instant" });
+    const target = scroller.scrollTop + gap();
+    scroller.scrollTo({ top: start, behavior: "instant" });
+    scroller.scrollTo({ top: target, behavior: "smooth" });
+  }
+
+  mark(id) {
+    for (const chip of this.chips.children) chip.toggleAttribute("aria-current", chip.dataset.section === id);
+  }
+
+  // The chip of the section you're looking at: the last one whose top has
+  // reached the bar. At the very end (where the last sections can't reach
+  // it), the one you picked, if it's in view.
+  spy() {
+    const scroller = this.scroller();
+    const target = scroller === document.scrollingElement ? window : scroller;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const sections = [...this.root.querySelectorAll(".zp-section")].filter(s => !s.hasAttribute("zp-hidden") && s.getBoundingClientRect().height);
+      if (!sections.length) return;
+      const edge = this.stickyBottom() + 12;
+      let current = sections[0].dataset.section;
+      for (const s of sections) if (s.getBoundingClientRect().top <= edge) current = s.dataset.section;
+      const end = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+      const picked = sections.find(s => s.dataset.section === this.picked);
+      if (end && picked && picked.getBoundingClientRect().top < innerHeight) current = this.picked;
+      else if (!end && current !== this.picked) this.picked = null;
+      this.mark(current);
+    };
+    const soon = () => (frame ||= requestAnimationFrame(update));
+    target.addEventListener("scroll", soon, { passive: true });
+    // Also once it's shown (Settings builds it while another pane is up),
+    // and as a search hides sections.
+    new ResizeObserver(soon).observe(this.root);
+    // In Zen's Settings the bar sits under Settings' own search, which also
+    // stays at the top.
+    const bar = this.root.querySelector(".zp-bar");
+    const below = document.querySelector(".sticky-container");
+    if (bar && below) new ResizeObserver(() => (bar.style.top = `${below.offsetHeight}px`)).observe(below);
+    update();
   }
 
   // Redraw shortly after a change; later changes in the meantime join the
@@ -3532,22 +3682,25 @@ const STYLE = `
     from, 40% { outline: 2px solid var(--zp-accent); outline-offset: 3px; }
     to { outline: 2px solid transparent; outline-offset: 3px; }
   }
-  .zp-hero { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: center; margin: 8px 0 18px; }
-  .zp-mark { grid-row: span 2; width: 44px; height: 44px; border-radius: 14px;
-    background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--zp-accent) 70%, white), var(--zp-accent) 70%);
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--zp-accent) 35%, transparent); }
-  .zp-title { display: flex; align-items: baseline; gap: 10px; }
-  .zp-title h1 { margin: 0; font-size: 1.9em; font-weight: 600; letter-spacing: -0.01em; }
-  .zp-version { color: var(--zp-dim); font-size: 0.9em; }
-  .zp-lede { margin: 0; color: var(--zp-dim); }
+  .zp-hero { margin: 4px 0 6px; }
+  .zp-title { display: flex; align-items: baseline; gap: 8px; }
+  .zp-title h1 { margin: 0; font-size: 1.45em; font-weight: 600; letter-spacing: -0.01em; }
+  .zp-version { color: var(--zp-dim); font-size: 0.85em; }
+  .zp-lede { margin: 2px 0 0; color: var(--zp-dim); font-size: 0.92em; }
   .zp-lede kbd { font: inherit; font-size: 0.9em; padding: 0 5px; border-radius: 5px; border: 1px solid var(--zp-border); }
-  .zp-search { grid-column: 1 / -1; margin-top: 12px; width: 100%; box-sizing: border-box; padding: 9px 12px;
+  /* Search and the sections, at the top while you scroll. */
+  .zp-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-direction: column; gap: 8px;
+    margin: 8px 0 0; padding: 10px 0 9px; border-bottom: 1px solid var(--zp-border);
+    background: var(--in-content-page-background, var(--background-color-canvas, Canvas)); }
+  .zp-search { width: 100%; box-sizing: border-box; padding: 8px 12px;
     border-radius: 10px; border: 1px solid var(--zp-border); background: var(--zp-box); color: inherit; font: inherit; }
-  .zp-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 6px; }
-  .zp-chip { appearance: none; border: 1px solid var(--zp-border); background: var(--zp-box); color: inherit;
-    border-radius: 999px; padding: 4px 12px; font: inherit; cursor: pointer; margin: 0; min-height: 0; }
-  .zp-chip:hover { border-color: var(--zp-accent); }
-  .zp-section { margin-top: 26px; scroll-margin-top: 12px; }
+  .zp-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .zp-chip { appearance: none; border: 1px solid transparent; background: none; color: var(--zp-dim);
+    border-radius: 999px; padding: 3px 11px; font: inherit; cursor: pointer; margin: 0; min-height: 0; }
+  .zp-chip:hover { color: inherit; background: var(--zp-box); }
+  .zp-chip[aria-current] { color: inherit; border-color: color-mix(in srgb, var(--zp-accent) 55%, transparent);
+    background: color-mix(in srgb, var(--zp-accent) 16%, transparent); }
+  .zp-section { margin-top: 26px; scroll-margin-top: 104px; }
   .zp-section-head h2 { margin: 0 0 2px; font-size: 1.35em; font-weight: 600; }
   .zp-section-head p { margin: 0 0 12px; color: var(--zp-dim); }
   .zp-group { border: 1px solid var(--zp-border); background: var(--zp-box); border-radius: var(--zp-radius);
@@ -3672,9 +3825,9 @@ const STYLE = `
       cursor: pointer; padding: 0 4px; margin: 0; min-height: 0; line-height: 1; }
     & .zp-close:hover { color: inherit; }
     & .zp-search { margin-top: 8px; padding: 7px 10px; background: var(--zp-control); }
-    & .zp-chips { gap: 4px; }
-    & .zp-chip { padding: 2px 9px; }
-    & .zp-section { margin-top: 16px; }
+    & .zp-chips { gap: 3px; margin-top: 8px; }
+    & .zp-chip { padding: 2px 8px; }
+    & .zp-section { margin-top: 16px; scroll-margin-top: 120px; }
     & .zp-section-head h2 { font-size: 1.12em; }
     & .zp-section-head p { margin-bottom: 8px; }
     & .zp-group { padding: 2px 10px; margin: 8px 0; }
@@ -3748,9 +3901,9 @@ function startPage() {
     const hero = el("div", { class: "zp-hero" });
     const title = el("div", { class: "zp-title" });
     title.append(el("h1", {}, "Zenith"), el("span", { class: "zp-version" }, `v${SCHEMA_VERSION}`));
-    const lede = el("p", { class: "zp-lede" }, "A quiet, minimal look for Zen. Every change applies as you make it; presets fill in the settings they cover. To try things while you browse, press ");
-    lede.append(el("kbd", {}, "Alt+Shift+Z"), " for the live panel.");
-    hero.append(el("div", { class: "zp-mark" }), title, lede, search);
+    const lede = el("p", { class: "zp-lede" }, "Changes apply as you make them; presets fill in the settings they cover. ");
+    lede.append(el("kbd", {}, "Alt+Shift+Z"), " opens these over the page while you browse.");
+    hero.append(title, lede);
     return hero;
   });
   window.zenithSettingsPage = view; // for tools/checks
@@ -3933,11 +4086,31 @@ function startPanel() {
   return true;
 }
 
+// Zen's Keyboard shortcuts list Zenith's keys (zenith-plus.uc.mjs adds them
+// to Zen's list) with no name of their own: they get "Zenith: …" here,
+// whenever Zen draws the list.
+function labelZenithKeys() {
+  const names = new Map((window.browsingContext?.topChromeWindow?.ZenithKeys?.LIST ?? []).map(k => [k[0], `Zenith: ${k[4]}`]));
+  if (!names.size) return;
+  const label = () => {
+    for (const input of document.querySelectorAll("input.zenCKSOption-input[data-id^='zenith-key-']")) {
+      const text = names.get(input.dataset.id);
+      const node = input.closest(".zenCKSOption")?.querySelector(".zenCKSOption-label");
+      if (!text || !node || node.textContent === text) continue;
+      node.removeAttribute("data-l10n-id");
+      node.textContent = text;
+    }
+  };
+  new MutationObserver(label).observe(document, { childList: true, subtree: true });
+  label();
+}
+
 // Once per window or page. In Zen's Settings, Sine adds its own category a
 // moment after load, so wait for the list to settle before joining it.
 if (!window.zenithSettingsPageStarted) {
   window.zenithSettingsPageStarted = true;
   const inBrowser = location.href.startsWith("chrome://browser/content/browser.xhtml");
+  if (!inBrowser) labelZenithKeys();
   let tries = 0;
   const attempt = () => {
     try {

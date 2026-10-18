@@ -1,12 +1,7 @@
-"""Groups that don't pin, on a real screen with your own settings:
-- Firefox's tab groups: a split view made in a group stays in it (two tabs,
-  then three), unsplitting leaves the tabs in the group, a split tab brings
-  its split view into a group, "Remove from group" on a split tab takes the
-  whole split view out, and a tab that leaves its split view another way is
-  taken out of the split for Zen too;
-- Zen's folders set to act unpinned: a tab keeps the page it goes to (no
-  "changed" mark), Ctrl+W closes it, and the folder shows no pin mark while
-  a normal folder does.
+"""Folders that don't pin, on a real screen with your own settings: a tab
+keeps the page it goes to (no "changed" mark), Ctrl+W closes it, and the
+folder shows no pin mark while a normal folder does. (0.11.2 also checked
+Firefox's tab groups with split views here; they were taken out in 0.12.1.)
 Captures in %TEMP%/claude/r49."""
 import json, sys
 from pathlib import Path
@@ -30,21 +25,7 @@ with Screen("r49", mine=True) as s:
     z = s.z
     z.js(STRIP)
     step = lambda body: z.js(body + "\n; await zth.sleep(700); return zthStrip();")
-    z.js("""Services.prefs.setStringPref('zenith.plus.unpinned-groups', 'firefox'); await zth.sleep(300);
-      const b = arguments[0]; for (const n of ['a', 'b', 'c', 'd', 'e']) { zth.open(b + '/page?n=' + n); await zth.sleep(350); } return 1""", z.base)
-    res["firefox groups"] = {
-        "split two in a group": step("gBrowser.addTabGroup([T('a'), T('b'), T('c')], { label: 'Reading', insertBefore: T('a') }); await zth.sleep(500); gZenViewSplitter.splitTabs([T('a'), T('b')]);"),
-        "add the third to the split": step("gZenViewSplitter.splitTabs([T('a'), T('c')]);"),
-    }
-    s.capture("split-three-in-group", 0, 0, 1366, 720)
-    res["firefox groups"].update({
-        "unsplit": step("gBrowser.selectedTab = T('a'); await zth.sleep(300); gZenViewSplitter.unsplitCurrentView();"),
-        "split d e, add d to the group": step("gZenViewSplitter.splitTabs([T('d'), T('e')]); await zth.sleep(600); gBrowser.moveTabToExistingGroup(T('d'), [...document.querySelectorAll('tab-group')].find(g => g.label === 'Reading'));"),
-        "remove split tab d from the group": step("TabContextMenu.contextTab = T('d'); TabContextMenu.contextTabs = [T('d')]; document.getElementById('context_ungroupTab').doCommand();"),
-        "e leaves its split another way": step("gBrowser.ungroupTab(T('e'));"),
-        "split views Zen knows": z.js("return gZenViewSplitter._data.map(d => d.tabs.map(t => t.label.replace('Test page ', '')))"),
-    })
-    s.capture("after", 0, 0, 420, 720)
+    z.js("""const b = arguments[0]; for (const n of ['a', 'b', 'c', 'd', 'e']) { zth.open(b + '/page?n=' + n); await zth.sleep(350); } return 1""", z.base)
 
     res["folders that don't pin"] = z.js("""
       Services.prefs.clearUserPref('zenith.plus.unpinned-groups'); await zth.sleep(300);

@@ -2,7 +2,7 @@
 // @name           Zenith local AI
 // @description    Zenith Plus: Firefox's own on-device AI for clearer download names and tab groups by topic. Nothing leaves your computer.
 // @include        main
-// @version        0.12.0
+// @version        0.12.1
 // ==/UserScript==
 
 // Zenith's local AI uses the AI built into Firefox (Zen turns it off; with
@@ -234,7 +234,7 @@ const DownloadNames = {
   ],
 
   init() {
-    this.mode = () => (on() ? Services.prefs.getStringPref(NAMES_PREF, "") || "suggest" : "off");
+    this.mode = () => (on() ? Services.prefs.getStringPref(NAMES_PREF, "") || "rename" : "off");
     this.started = Date.now();
     this.queue = Promise.resolve();
     const { Downloads } = ChromeUtils.importESModule("resource://gre/modules/Downloads.sys.mjs");
@@ -273,13 +273,25 @@ const DownloadNames = {
   },
 
   // A name that says nothing about the file.
+  // A name that says nothing: a camera's or a generic word ("images",
+  // "download (3)"), long numbers, codes, random-looking letters, or a
+  // string of short bits between dashes.
+  GENERIC: /^(img|image|images|pic|pics|picture|pictures|photo|photos|dsc|dscn|pxl|vid|video|videos|mvimg|clip|audio|media|scan|scans|screenshot|screen shot|capture|snapshot|recording|download|downloads|file|files|document|documents|doc|docs|attachment|attachments|untitled|unnamed|unknown|export|output|data|new|temp|tmp|default|blob)(?=[\s_.\-\d(]|$)/i,
+
   vague(base) {
-    const b = base.replace(/\s*\(\d+\)$/, "").trim();
-    if (b.length < 4) return true;
-    if (/^(img|dsc|dscn|pxl|vid|mvimg|scan|screenshot|screen shot|photo|image|picture|download|file|document|untitled|unnamed|attachment|export|output|data|new)(?=[\s_.\-\d]|$)/i.test(b)) return true;
+    const b = base.replace(/\s*\(\d+\)$/, "").replace(/\s*-?\s*copy$/i, "").trim();
+    if (b.length < 4 || this.GENERIC.test(b)) return true;
     if (/^[0-9a-f-]{8,}$/i.test(b) || /\d{6,}/.test(b)) return true;
     const letters = (b.match(/\p{L}/gu) ?? []).length;
-    return letters < b.length * 0.5;
+    if (letters < b.length * 0.5) return true;
+    const bits = b.split(/[\s_.\-]+/).filter(Boolean);
+    // Many short bits between dashes or underscores (a-b-c-d-e).
+    if ((b.match(/[-_]/g) ?? []).length >= 4 && bits.reduce((n, x) => n + x.length, 0) / bits.length <= 5) return true;
+    // Random-looking: letters and digits mixed, case flipping inside a
+    // word, or hardly any vowels in a long run of letters.
+    const random = x => x.length >= 6 && (/\d/.test(x) && /\p{L}/u.test(x) ||
+      /\p{Ll}\p{Lu}.*\p{Ll}\p{Lu}/u.test(x) || (x.match(/[aeiouy]/gi) ?? []).length < x.length * 0.2);
+    return bits.filter(random).length * 2 >= bits.length;
   },
 
   // What the download came from: the page's title if it's open in a tab.

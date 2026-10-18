@@ -1,8 +1,9 @@
-"""The tab manager (about:zenith-tabs), checked inside Zen:
+"""The tab manager (about:zenith-tabs), checked inside Zen (its Spaces
+view; r54 checks All tabs, its insights and table):
 - Alt+Shift+T's command opens the page in a tab (and goes back to it the
-  second time); "a card" opens the same page, compact, over the page;
-- a column per space with its tabs: folders (pinned) and groups (not),
-  tabs in Firefox's groups too, essentials on top; the page itself left out;
+  second time);
+- a column per space with its tabs: folders (pinned) and folders that don't
+  pin, essentials in their spaces;
 - picking with tick boxes (a click picks, Shift picks a range) and the bar:
   move to a space (a pinned tab stays pinned, a tab leaves its folder),
   into a new folder or group, take out, sleep, wake, close; Undo for each,
@@ -36,6 +37,7 @@ with Scene() as z:
       gBrowser.pinTab(gBrowser.visibleTabs.find(t => t.label === 'Test page c')); await zth.sleep(300);
       document.getElementById('zenith-tabs-command').doCommand(); await zth.sleep(1500);
       """ + PAGE + """
+      pw.ZenithTabsPage.state.view = 'spaces'; pw.ZenithTabsPage.render(); await zth.sleep(200);
       return { page: !!P, url: P?.linkedBrowser.currentURI.spec, system: P?.linkedBrowser.contentPrincipal?.isSystemPrincipal, title: doc?.title,
                'tick boxes': doc.querySelectorAll('.tab input.pick').length };""", z.base)
 
@@ -73,12 +75,12 @@ with Scene() as z:
       out['undo: back in the folder'] = [d.group?.label ?? null, d.pinned];
       return out;""")
 
-    res["a group (doesn't pin)"] = z.js(H + """
+    res["a folder that doesn't pin"] = z.js(H + """
       const a = gZenWorkspaces.allStoredTabs.find(t => t.label === 'Test page a' && !t.pinned);
       pw.ZenithTabsPage.state.picked = new Set([a]); pw.ZenithTabsPage.render(); await zth.sleep(100);
       bar('Into').click(); await zth.sleep(100);
       const items = [...doc.querySelectorAll('#menu .item')].map(i => i.textContent);
-      pickMenu('New group');
+      pickMenu('New unpinned folder');
       const input = doc.getElementById('bar').querySelector('input'); input.value = 'Loose';
       input.dispatchEvent(new pw.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await zth.sleep(900);
       return { menu: items, group: [a.group?.label, a.group?.hasAttribute('zenith-unpinned')], shown: [...doc.querySelectorAll('.folder .head .kind')].map(n => n.textContent) };""")
@@ -101,6 +103,7 @@ with Scene() as z:
       return { tabs: [n, after, gZenWorkspaces.allStoredTabs.length], 'in front': gBrowser.selectedTab.linkedBrowser.currentURI.spec };""")
 
     res["tidy: ticked lists"] = z.js(H + """
+      doc.querySelector('#views [data-view="tidy"]').click(); await zth.sleep(300);
       const card = [...doc.querySelectorAll('#tidy .card')].find(c => c.querySelector('h3').textContent === 'Awake');
       const ticks = card.querySelectorAll('.ticks input');
       const out = { awake: card.querySelector('.n').textContent, ticked: [...ticks].filter(i => i.checked).length };
@@ -110,7 +113,8 @@ with Scene() as z:
       return out;""")
 
     res["memory"] = z.js(H + """
-      await pw.ZenithTabsPage.measure(); await zth.sleep(400);
+      doc.querySelector('#views [data-view="spaces"]').click(); await zth.sleep(200);
+      pw.ZenithTabsPage.state.usage = new Map(); await pw.ZenithTabsPage.measure(); await zth.sleep(400);
       return { 'rows with memory': [...doc.querySelectorAll('.tab .use')].map(n => n.textContent).slice(0, 4), summary: doc.getElementById('summary').textContent };""")
 
     res["rules: folder and group"] = z.js(H + """
@@ -123,21 +127,6 @@ with Scene() as z:
       out['went to'] = [t?.group?.label, t?.group?.hasAttribute('zenith-unpinned')];
       window.ZenithTabs.Rules.save([]);
       return out;""", z.base)
-
-    res["card: the same page, compact"] = z.js("""
-      Services.prefs.setStringPref('zenith.plus.tab-manager-view', 'card');
-      document.getElementById('zenith-tabs-command').doCommand(); await zth.sleep(1500);
-      const frame = document.getElementById('zenith-tabs-frame'), doc = frame?.contentDocument;
-      const out = { open: !document.getElementById('zenith-tabs')?.hidden, url: frame?.contentWindow?.location.href, compact: doc?.body.classList.contains('compact'),
-                    spaces: [...(doc?.querySelectorAll('.space header .name') ?? [])].map(n => n.textContent) };
-      // A space's name folds it here, without switching.
-      const here = gZenWorkspaces.activeWorkspace;
-      doc.querySelectorAll('.space header')[1]?.dispatchEvent(new frame.contentWindow.MouseEvent('click', { bubbles: true })); await zth.sleep(300);
-      out['click a space: folded, same space'] = [doc.querySelectorAll('.space[folded]').length, gZenWorkspaces.activeWorkspace === here];
-      doc.dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await zth.sleep(300);
-      out['Esc closes'] = document.getElementById('zenith-tabs').hidden;
-      Services.prefs.clearUserPref('zenith.plus.tab-manager-view');
-      return out;""")
 
     res["on their own"] = z.js("""
       const A = window.ZenithTabs.Auto, L = window.ZenithTabs.Look;
