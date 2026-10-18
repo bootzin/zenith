@@ -126,6 +126,18 @@ class Handler(BaseHTTPRequestHandler):
             self._html("<!doctype html><title>Camera page</title><h1>Camera</h1><video id=v autoplay muted></video>"
                        "<script>navigator.mediaDevices.getUserMedia({video:true,audio:true})"
                        ".then(s=>{v.srcObject=s;document.title='Camera on'}).catch(e=>document.title='ERR '+e)</script>")
+        elif path == "/photos":
+            # A page a vaguely named download comes from (local AI names).
+            self._html("<!doctype html><title>Douro valley hike, day 2 - Photos</title><h1>Douro valley, day 2</h1>"
+                       "<a id=get href='/photo-file'>Download the photo</a>")
+        elif path == "/photo-file":
+            body = ART
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Disposition", 'attachment; filename="IMG_20240812_093112.png"')
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
         elif path == "/download":
             self.send_response(200)
             self.send_header("Content-Type", "application/octet-stream")
@@ -198,6 +210,9 @@ class Scene(Zen):
     def __enter__(self):
         super().__enter__()
         self.srv, self.base = serve()
+        # Long waits (a model download, a slow page) inside one script.
+        self.cmd("WebDriver:SetTimeouts", {"script": 1800000})
+        self.sock.settimeout(1900)
         self.chrome(HELPERS)
         # Sine imports Zenith's scripts one by one after the window opens:
         # wait (up to 10s) until the last ones are there.

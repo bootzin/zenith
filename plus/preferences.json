@@ -503,6 +503,27 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.plus.palette-sync",
+    "label": "Palette sync: every space takes your desktop palette's colours",
+    "type": "dropdown",
+    "placeholder": "Default (Off)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "pywal or winwal (~/.cache/wal/colors.json)",
+        "value": "pywal"
+      },
+      {
+        "label": "wallust (~/.cache/wallust/colors.json)",
+        "value": "wallust"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.plus.space-colour",
     "label": "Space colour in the glass",
     "type": "dropdown",
@@ -677,6 +698,41 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.plus.startpage",
+    "label": "Start page: a clock, search and your bookmarks, as the home page",
+    "type": "dropdown",
+    "placeholder": "Default (Off)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "On, with the weather",
+        "value": "weather"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.float-tab",
+    "label": "Float a tab on Alt+Shift+Space: it pops out into a small window that stays on top",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.link-hints",
+    "label": "Link hints on Alt+J: letters on every link, type them to follow it (Alt+Shift+J: in a new tab)",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.plus.focus-key",
     "label": "Focus mode on Alt+Z: hides the sidebar, edges and pills",
     "type": "checkbox",
@@ -747,6 +803,13 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.plus.pip-extras",
+    "label": "Picture-in-picture: the wheel resizes it, edges hold it, past a side edge it tucks away",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.plus.media-art",
     "label": "Cover art of what's playing behind the media card",
     "type": "checkbox",
@@ -780,5 +843,50 @@
     "type": "checkbox",
     "defaultValue": true,
     "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.fast-start",
+    "label": "Fast start: the page you were on first, the rest of Zenith Plus right after",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.local-ai",
+    "label": "Local AI: Firefox's own, on this computer (fetches its models once)",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.ai-download-names",
+    "label": "Download names that say nothing (IMG_0931.jpg)",
+    "type": "dropdown",
+    "placeholder": "Default (Offer a clearer one)",
+    "options": [
+      {
+        "label": "Offer a clearer one",
+        "value": "suggest"
+      },
+      {
+        "label": "Rename at once, with Undo",
+        "value": "rename"
+      },
+      {
+        "label": "Leave them",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.local-ai",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Local AI is off"
   }
 ]

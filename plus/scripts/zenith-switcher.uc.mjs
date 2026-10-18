@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.11.2
+// @version        0.12.0
 // ==/UserScript==
 
 // A rofi-style list over the page. Alt+W opens it; type a few letters of a
@@ -20,13 +20,64 @@ const HTML_NS = "http://www.w3.org/1999/xhtml";
 const FIRST = !window.zenithSwitcherStarted;
 window.zenithSwitcherStarted = true;
 
-function start(name, fn) {
+// Fast start (zenith.plus.fast-start): parts not needed for the first
+// picture wait until the page you're on has loaded (2.5 seconds at most),
+// then start one at a time while the browser is idle, so the page comes
+// first. Anything that needs one of them sooner calls zenithLater.now().
+const Later = (window.zenithLater ??= (() => {
+  const queue = [];
+  let open = false;
+  const fast = Services.prefs.getBoolPref("zenith.plus.fast-start", false);
+  const step = () => {
+    const job = queue.shift();
+    if (job) job();
+    if (queue.length) window.requestIdleCallback(step, { timeout: 300 });
+  };
+  const later = {
+    fast,
+    add(job) {
+      if (!fast || open) return job();
+      queue.push(job);
+    },
+    // Start what's waiting, a part per idle moment.
+    open() {
+      if (open) return;
+      open = true;
+      later.openedAt ??= performance.now();
+      window.requestIdleCallback(step, { timeout: 300 });
+    },
+    // Start everything now (a feature was asked for before its turn).
+    now() {
+      open = true;
+      later.openedAt ??= performance.now();
+      while (queue.length) queue.shift()();
+    },
+  };
+  if (fast) {
+    setTimeout(() => later.open(), 2500);
+    const waitForPage = async () => {
+      await window.delayedStartupPromise;
+      for (let i = 0; i < 25 && gBrowser.selectedBrowser?.webProgress?.isLoadingDocument; i++) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      later.open();
+    };
+    waitForPage();
+  }
+  return later;
+})());
+
+function start(name, fn, now = false) {
   if (!FIRST) return;
+  if (!now) return Later.add(() => start(name, fn, true));
+  const t0 = performance.now();
   try {
     fn();
   } catch (e) {
     console.error(`[Zenith Switcher] ${name} failed to start`, e);
   }
+  // How long each part took to start, for tools/bench_startup.py.
+  (window.zenithStartup ??= []).push({ script: "switcher", name, at: Math.round(t0), ms: +(performance.now() - t0).toFixed(1) });
 }
 
 function make(tag, attrs = {}, text = "") {
@@ -261,6 +312,8 @@ const Switcher = {
   },
 
   show(text = "") {
+    // Fast start: whatever hasn't started yet starts now (a command may need it).
+    window.zenithLater?.now();
     if (!this.host) this.build();
     this.host.hidden = false;
     this.input.value = text;
@@ -396,4 +449,4 @@ function addKeys() {
   Switcher.Items = Items;
 }
 
-start("hotkey", addKeys);
+start("hotkey", addKeys, true);

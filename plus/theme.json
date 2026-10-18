@@ -4,7 +4,7 @@
   "description": "Peek, real load and download progress, a sidebar minimap, zoom pills and more for Zenith.",
   "homepage": "https://github.com/bootzin/zenith/tree/master/plus",
   "author": "bootzin",
-  "version": "0.11.2",
+  "version": "0.12.0",
   "style": {
     "chrome": "chrome.css"
   },
@@ -41,6 +41,13 @@
     "scripts/zenith-bookmarks.uc.mjs": {
       "name": "Bookmarks",
       "description": "Your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    },
+    "scripts/zenith-ai.uc.mjs": {
+      "name": "Local AI",
+      "description": "Firefox's own on-device AI: clearer download names, tab groups by topic. Nothing leaves your computer.",
       "include": [
         "chrome://browser/content/browser.xhtml"
       ]
@@ -82,5 +89,5 @@
   ],
   "ai": "yes",
   "createdAt": "2026-10-16",
-  "updatedAt": "2026-10-18T06:42:51+00:00"
+  "updatedAt": "2026-10-18T14:26:17+00:00"
 }

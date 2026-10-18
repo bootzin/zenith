@@ -111,7 +111,7 @@
 :root:is(
     :has(#theme-Zenith-Edges[zenith-edges-insecure="on"]),
     :not(:has(#theme-Zenith-Edges:is([zenith-edges-insecure="off"], [zenith-edges-preset="off"])))
-  ):has(#urlbar[pageproxystate="valid"]):has(#identity-box.notSecure):not(:has(#urlbar[open], .tabbrowser-tab[selected][zen-empty-tab]))
+  )[zenith-insecure]
   #zenith-insecure-hint {
   display: block;
 }
@@ -197,7 +197,7 @@
 }
 
 @media -moz-pref("zenith.plus.minimap") {
-  :root[zen-compact-mode="true"]:not([inDOMFullscreen="true"]):has(#navigator-toolbox:not([zen-has-hover], [zen-user-show], [has-popup-menu], [zen-compact-mode-active], [flash-popup], [movingtab]))
+  :root[zen-compact-mode="true"]:not([inDOMFullscreen="true"], [zenith-sidebar-out], [zenith-sidebar-moving])
     #zenith-minimap {
     opacity: var(--zth-edge-opacity);
   }
@@ -558,7 +558,7 @@
     display: none;
   }
 
-  :root:has(.tabbrowser-tab[selected][usercontextid]:not([usercontextid="0"])):is(
+  :root[zenith-container]:is(
       :has(#theme-Zenith-Edges[zenith-edges-container="on"]),
       :not(:has(#theme-Zenith-Edges:is([zenith-edges-container="off"], [zenith-edges-preset="off"], [zenith-edges-preset="quiet"])))
     ) & {
@@ -686,6 +686,35 @@
 
 .zenith-toast-body {
   color: var(--zth-ink-dim, light-dark(rgb(0 0 0 / 0.55), rgb(255 255 255 / 0.6)));
+  overflow-wrap: anywhere;
+}
+
+/* Buttons on a notice (local AI: Rename, Keep, Undo). */
+.zenith-toast-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.zenith-toast-button {
+  appearance: none;
+  padding: 3px 12px;
+  border: none;
+  border-radius: var(--zth-pill-radius, 999px);
+  background: var(--zth-accent-soft, rgb(128 128 128 / 0.2));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--zth-accent, AccentColor) 40%, transparent);
+  }
+
+  &:first-child {
+    background: var(--zth-accent, AccentColor);
+    color: light-dark(white, black);
+  }
 }
 
 /* === Media art ==================================================================== */
@@ -753,7 +782,7 @@ browser[zenith-see-through] {
   }
 }
 
-:root[zenith-focus]:has(.tabbrowser-tab[sharing]) {
+:root[zenith-focus][zenith-sharing] {
   --zth-edge-opacity: 1 !important;
 }
 
@@ -1488,4 +1517,65 @@ zenith-bookmarks-host.zen-library-section {
 /* The glass takes the colour along the top of the page (Plus samples it). */
 :root[zenith-blend="on"] {
   --zth-glass-color: color-mix(in srgb, var(--zth-page-tint, var(--zth-paint)) 30%, var(--zth-mica)) !important;
+}
+
+/* === Picture-in-picture, tucked away ===========================================
+   Past a side edge only a sliver of the window stays on screen (Zenith Plus
+   moves it): the controls go, the picture dims, and an arrow on the sliver
+   says a click brings it back. (The sliver isn't a drag handle then.) */
+:root[zenith-pip-tucked] {
+  -moz-window-dragging: no-drag !important;
+  cursor: pointer;
+
+  & #controls {
+    display: none !important;
+  }
+
+  & .player-holder {
+    filter: brightness(0.55);
+  }
+
+  &::after {
+    content: "";
+    position: fixed;
+    inset-block: 0;
+    width: 26px;
+    background: rgb(0 0 0 / 0.45) center / 14px no-repeat;
+    background-image: url("chrome://global/skin/icons/arrow-right.svg");
+    -moz-context-properties: fill;
+    fill: white;
+    z-index: 10;
+  }
+
+  &[zenith-pip-tucked="left"]::after {
+    inset-inline-end: 0;
+  }
+
+  &[zenith-pip-tucked="right"]::after {
+    inset-inline-start: 0;
+    background-image: url("chrome://global/skin/icons/arrow-left.svg");
+  }
+}
+
+/* === Float a tab: the small window on top =====================================
+   Just the page: no sidebar or toolbars (it holds one tab; Alt+Shift+Space
+   puts it back), rounded like the page, with a thin strip along the top to
+   move it by. */
+:root[zenith-float] {
+  & #navigator-toolbox {
+    display: none !important;
+  }
+
+  & #zen-tabbox-wrapper {
+    margin: 0 !important;
+  }
+
+  & #zen-appcontent-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 10px;
+    z-index: 20;
+    -moz-window-dragging: drag;
+  }
 }

@@ -16,6 +16,10 @@ with Scene() as z:  # installs the current Zenith into the test profile
 
 mods_json = TEST_PROFILE / "chrome" / "sine-mods" / "mods.json"
 data = json.loads(mods_json.read_text(encoding="utf-8"))
+if MOD_IDS["core"][0] not in data:
+    # Since 0.7.2 Zenith is one Sine mod: Core can't be switched off alone.
+    print(json.dumps({**res, "core off": "skipped: Core is part of the one Sine mod"}, indent=1))
+    sys.exit(0)
 data[MOD_IDS["core"][0]]["enabled"] = False
 mods_json.write_text(json.dumps(data), encoding="utf-8")
 with Zen(sync=False) as z:

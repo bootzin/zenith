@@ -128,8 +128,8 @@ SECTIONS = [
         "groups": [
             ("Size", ["zenith.core.density", "zenith.core.scale"]),
             ("Colour and shape", ["zenith.core.accent", "zenith.plus.space-colour", "zenith.plus.colour-strength",
-                                  "zenith.action.colours-image", "zenith.action.colours-wallpaper", "zenith.action.colours-undo",
-                                  "zenith.core.corners", "zenith.core.pills"]),
+                                  "zenith.action.colours-image", "zenith.action.colours-wallpaper", "zenith.plus.palette-sync",
+                                  "zenith.action.colours-undo", "zenith.core.corners", "zenith.core.pills"]),
             ("Glass", ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
                        "zenith.core.floating-sidebar", "zenith.plus.material-windows", "zenith.plus.material-macos",
                        "zenith.plus.material-linux", "zenith.plus.see-through-pages", "zenith.plus.blend"]),
@@ -182,7 +182,7 @@ SECTIONS = [
             ("Find and history", ["zenith.panels.findbar", "zenith.panels.history"]),
             ("Split view", ["zenith.panels.split", "zenith.panels.gap"]),
             ("Notices and links", ["zenith.panels.notifications", "zenith.panels.status-delay"]),
-            ("Media", ["zenith.panels.pip"]),
+            ("Media", ["zenith.panels.pip", "zenith.plus.pip-extras"]),
             ("Menus", ["zenith.panels.compact-menus", "zenith.plus.more-menu", "zenith.panels.menu-icons"]),
             ("Tab previews", ["zenith.panels.tab-preview"]),
             ("Bookmarks", ["zenith.plus.bookmarks-look", "zenith.plus.bookmarks-place", "zenith.plus.bookmarks-space-first",
@@ -202,13 +202,15 @@ SECTIONS = [
     },
     {
         "id": "keys", "title": "Keys", "icon": "keys",
-        "blurb": "Jump anywhere with Alt+W, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
+        "blurb": "Jump anywhere with Alt+W, follow links with Alt+J, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
         "groups": [
             ("Switcher", ["zenith.plus.switcher", "zenith.plus.switcher-scope"]),
             ("Ctrl+Tab", ["zenith.plus.ctrl-tab"]),
             ("Tab manager", ["zenith.plus.tab-manager", "zenith.plus.tab-manager-view", "zenith.plus.tabs-auto-sleep",
                              "zenith.plus.tabs-auto-close"]),
             ("Focus mode", ["zenith.plus.focus-key"]),
+            ("Link hints", ["zenith.plus.link-hints"]),
+            ("Float a tab", ["zenith.plus.float-tab"]),
         ],
     },
     {
@@ -223,10 +225,19 @@ SECTIONS = [
     },
     {
         "id": "pages", "title": "Pages", "icon": "page",
-        "blurb": "Small touches inside web pages, and this settings page.",
+        "blurb": "Small touches inside web pages, a start page, and this settings page.",
         "groups": [
             ("In web pages", ["zenith.page.selection", "zenith.page.thin-scrollbars", "zenith.plus.zoom-pill"]),
+            ("Start page", ["zenith.plus.startpage"]),
             ("Settings", ["zenith.plus.sine-mods-first"]),
+        ],
+    },
+    {
+        "id": "speed", "title": "Speed and AI", "icon": "speed",
+        "blurb": "How quickly Zen starts, and Firefox's own AI working on this computer.",
+        "groups": [
+            ("Starting Zen", ["zenith.plus.fast-start"]),
+            ("Local AI", ["zenith.plus.local-ai", "zenith.plus.ai-download-names"]),
         ],
     },
 ]
@@ -384,6 +395,37 @@ DESCRIPTIONS = {
     "zenith.page.selection": "Selected text in web pages takes the accent colour.",
     "zenith.page.thin-scrollbars": "Thin scrollbars in the accent colour in web pages.",
     "zenith.plus.zoom-pill": "A small pill on zoomed pages; click it to reset.",
+    "zenith.plus.palette-sync": "pywal (winwal on Windows) and wallust pick colours from your wallpaper for your whole "
+                                "desktop. Every space takes that palette's most striking colours (one, two or three) the "
+                                "moment it changes. pywal writes ~/.cache/wal/colors.json itself; for wallust, add a "
+                                "template that writes the same file to ~/.cache/wallust/colors.json. Undo colours puts "
+                                "the spaces back.",
+    "zenith.plus.float-tab": "Alt+Shift+Space pops the tab you're on out into a small window that stays on top of "
+                             "everything, in the bottom right corner; the page carries on as it was. Alt+Shift+Space in "
+                             "that window puts it back.",
+    "zenith.plus.pip-extras": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near a "
+                              "screen edge and it settles against it; drop it more than halfway past the left or right "
+                              "edge and it tucks away, a sliver with an arrow staying on screen while it plays. Click "
+                              "the sliver to bring it back.",
+    "zenith.plus.startpage": "about:zenith-start, on the window's glass: a clock, a search box (Peek's engine) that also "
+                             "finds your bookmarks as you type, and your bookmarks, 1–9 to open one. It becomes the home "
+                             "page (the Home button, and new windows if they open the home page); Off gives yours back. "
+                             "The weather is one line from wttr.in, for the last place you looked up in Peek.",
+    "zenith.plus.link-hints": "Alt+J puts a few letters on every link, button and field you can see; type them to "
+                              "follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+J opens a link in a "
+                              "new tab in the background.",
+    "zenith.plus.local-ai": "Turns on the AI built into Firefox (Zen keeps it off) for the two things below. It runs "
+                            "on this computer, in a process of its own: nothing you download or open is sent anywhere. "
+                            "Each model is fetched from Mozilla once, the first time it's needed (about 380 MB for "
+                            "names, 60 MB for topics). Turning it off gives Firefox's setting back.",
+    "zenith.plus.ai-download-names": "When a download with a name like IMG_20241012_0931.jpg or 8f3a2c1e.pdf finishes, "
+                                     "the page it came from gives it a clearer one: offered on a notice, or given at once "
+                                     "with Undo. Names that already say something are left alone. The tab manager's "
+                                     "\"By topic\" sorts loose tabs into named groups with the same AI.",
+    "zenith.plus.fast-start": "When Zen starts, the look, the keys and the page you were on come first; the switcher, "
+                              "Peek, the tab manager, bookmarks and the other extras start a part at a time right after "
+                              "the page has loaded (within a few seconds). Use one early and it starts at once. Takes "
+                              "effect the next time Zen starts.",
     "zenith.plus.sine-mods-first": "In Sine's mods page, your mods come first and the marketplace folds away.",
 }
 
@@ -449,6 +491,7 @@ LABELS = {
     "zenith.tabs.badge-only": "Extension buttons only with a badge",
     "zenith.tabs.pin-mark": "Pin mark",
     "zenith.plus.space-colour": "Space colour",
+    "zenith.plus.palette-sync": "Palette sync",
     "zenith.plus.colour-strength": "Colour strength",
     "zenith.plus.unpinned-groups": "Groups that don't pin",
     "zenith.plus.ready-pulse": "Background tab ready",
@@ -498,4 +541,11 @@ LABELS = {
     "zenith.page.thin-scrollbars": "Thin accent scrollbars",
     "zenith.plus.zoom-pill": "Zoom pill",
     "zenith.plus.sine-mods-first": "Tidy Sine's mods page",
+    "zenith.plus.fast-start": "Fast start",
+    "zenith.plus.link-hints": "Link hints",
+    "zenith.plus.startpage": "Start page",
+    "zenith.plus.pip-extras": "Move and tuck",
+    "zenith.plus.float-tab": "Float a tab",
+    "zenith.plus.local-ai": "Local AI",
+    "zenith.plus.ai-download-names": "Download names",
 }

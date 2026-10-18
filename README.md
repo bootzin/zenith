@@ -26,11 +26,17 @@ Zenith comes in two parts.
 - **Ctrl+Tab with pictures** (optional): in the sidebar's order or recently used, like Alt+Tab; Ctrl+Shift+Tab goes back.
 - **Groups that don't pin:** a Zen folder can be set so its tabs act unpinned (Ctrl+W closes them, they keep the page they're on); or, instead, Firefox's tab groups under the pinned tabs, with split views kept whole.
 - **Focus mode:** **Alt+Z** hides the sidebar, edges and pills for reading or video.
+- **Link hints:** **Alt+J** puts a few letters on every link, button and field you can see; type them to follow it (**Alt+Shift+J** opens a link in a new tab in the background).
+- **Float a tab:** **Alt+Shift+Space** pops the tab you're on out into a small window that stays on top of everything (a call, a stream, notes), without reloading it; the same keys put it back.
+- **Start page:** `about:zenith-start` on the window's glass: a clock, a search box that also finds your bookmarks, and your bookmarks on number keys; optionally a line of weather. It becomes the home page.
+- **Picture-in-picture:** the mouse wheel resizes it, screen edges hold it, and past a side edge it tucks away with a sliver left to click it back.
+- **Local AI** (optional, Firefox's own, on your computer): clearer names for downloads called things like `IMG_20241012_0931.jpg` (offered, or given with Undo), and the tab manager sorts loose tabs into named groups by topic.
+- **Speed:** Zenith's settings are read straight from their preferences, so its styles cost the browser almost nothing at start and on every change; nothing in Zenith runs when its feature isn't on screen. Optional Fast start puts the page you were on first and the rest of Zenith Plus a moment later.
 - **Sidebar extras:** the page pushed aside by exactly the sidebar's width (Revealed sidebar › Push the page), workspace dots and a flash in the new space's colour, extension buttons that show only in their space, a minimap of the hidden sidebar, numbered tabs while you hold Ctrl, and the cover art of what's playing behind the media card.
 - **Menus:** rare right-click items (view source, send to device and so on) in a More submenu, nothing removed; optional icons on the items you use most; Firefox's tab previews in Zenith's look.
 - **Bookmarks bar:** where Zen puts it, or its own slim strip above the page, or over the page when you reach the top; Firefox's "Import bookmarks" button hidden.
 - **Links from other apps:** optionally ask which space (and container) each one opens in, and remember the answer as a Space routing rule; Zen's Space routing dialog gets "Ask me each time" for any rule and for the default.
-- **Colours:** the glass shows a space's whole gradient at a strength you choose; a space's colours from an image or your wallpaper (with Undo); optionally, the glass takes the colour of the page you're on.
+- **Colours:** the glass shows a space's whole gradient at a strength you choose; a space's colours from an image or your wallpaper (with Undo); palette sync with pywal or wallust (every space follows your desktop's palette); optionally, the glass takes the colour of the page you're on.
 - **Scrolling:** one setting for how the mouse wheel and keys scroll: Zen's own, instant, quick, smooth or macOS-like.
 - **Pages:** zoom pills, plus text selection in the workspace colour.
 - **Settings:** a Zenith page in Zen's Settings with every option explained, presets that fill in what they cover, and pictures for looks; the same settings as a live panel over the page (**Alt+Shift+Z**). Also greys out options that don't apply, and puts your mods ahead of the marketplace in Sine's page.
@@ -80,6 +86,8 @@ The network requests it causes:
 - **Peek:** the pages you choose to open in it.
 - **Peek's web answers** (switch off with "Peek answers from the web"): after you type a `$`, `d` or `wt` lookup, the currencies go to [Frankfurter](https://frankfurter.dev) (European Central Bank rates), the word to Wiktionary, and the place to [wttr.in](https://wttr.in). For `wt` alone, wttr.in works out roughly where you are from your connection, as any website can; no location permission is used. Your recent places (up to five) stay on your computer, and `wt` refreshes them from wttr.in.
 - **Cover art** behind the media card: fetched from the site that's playing, without cookies.
+- **Local AI** (off by default): the first time you use it, Firefox downloads its models from Mozilla's model hub (about 380 MB for download names, 60 MB for topic groups) and keeps them on your computer. The models then run on your computer, in a process of their own: nothing you download or open is sent anywhere.
+- **Start page weather** (only with "On, with the weather"): one request to [wttr.in](https://wttr.in) when the page opens, for the last place you looked up in Peek.
 
 Specific things it changes:
 
@@ -92,7 +100,11 @@ Specific things it changes:
 - Bookmarks: dropping a tab on the panel adds a bookmark; "this space" bookmarks go in a folder per space under Other Bookmarks › Spaces, made the first time you use it.
 - The tab manager's rules and its automatic sleeping and closing act only after you set them up; what auto-close closes is listed on its page to bring back.
 - `about:zenith-tabs` is a page from the mod's own folder, registered while Zen runs.
-- On Windows, Wallpaper reads your wallpaper's file and position through Windows' wallpaper service; it never changes it.
+- On Windows, Wallpaper reads your wallpaper's file and position through Windows' wallpaper service; it never changes it. The last drawing is kept in your profile (`zenith-wallpaper.jpg`) so it shows at once when Zen starts.
+- Local AI turns on Firefox's `browser.ml.enable` (Zen turns it off) while it's on, and gives your value back when you turn it off. A download it renames is renamed beside where it is (never over another file), and Firefox's downloads list and history are told the new name; Undo puts the old one back.
+- Start page sets Firefox's home page (`browser.startup.homepage`) to `about:zenith-start` while it's on; your own comes back with Off. `about:zenith-start` is a page from the mod's own folder, like `about:zenith-tabs`.
+- Palette sync reads `~/.cache/wal/colors.json` (or wallust's `~/.cache/wallust/colors.json`) and changes every space's colours when it changes; `:colours undo` puts them back.
+- Link hints add a small helper to web pages that draws the labels and clicks what you pick; it reads nothing from the page for Zenith.
 
 ## Development
 

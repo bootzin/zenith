@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.11.2
+// @version        0.12.0
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -37,13 +37,64 @@ function el(tag, attrs = {}) {
 const FIRST = !window.zenithPlusStarted;
 window.zenithPlusStarted = true;
 
-function start(name, fn) {
+// Fast start (zenith.plus.fast-start): parts not needed for the first
+// picture wait until the page you're on has loaded (2.5 seconds at most),
+// then start one at a time while the browser is idle, so the page comes
+// first. Anything that needs one of them sooner calls zenithLater.now().
+const Later = (window.zenithLater ??= (() => {
+  const queue = [];
+  let open = false;
+  const fast = Services.prefs.getBoolPref("zenith.plus.fast-start", false);
+  const step = () => {
+    const job = queue.shift();
+    if (job) job();
+    if (queue.length) window.requestIdleCallback(step, { timeout: 300 });
+  };
+  const later = {
+    fast,
+    add(job) {
+      if (!fast || open) return job();
+      queue.push(job);
+    },
+    // Start what's waiting, a part per idle moment.
+    open() {
+      if (open) return;
+      open = true;
+      later.openedAt ??= performance.now();
+      window.requestIdleCallback(step, { timeout: 300 });
+    },
+    // Start everything now (a feature was asked for before its turn).
+    now() {
+      open = true;
+      later.openedAt ??= performance.now();
+      while (queue.length) queue.shift()();
+    },
+  };
+  if (fast) {
+    setTimeout(() => later.open(), 2500);
+    const waitForPage = async () => {
+      await window.delayedStartupPromise;
+      for (let i = 0; i < 25 && gBrowser.selectedBrowser?.webProgress?.isLoadingDocument; i++) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      later.open();
+    };
+    waitForPage();
+  }
+  return later;
+})());
+
+function start(name, fn, now = false) {
   if (!FIRST) return;
+  if (!now) return Later.add(() => start(name, fn, true));
+  const t0 = performance.now();
   try {
     fn();
   } catch (e) {
     console.error(`[Zenith] ${name} failed to start`, e);
   }
+  // How long each part took to start, for tools/bench_startup.py.
+  (window.zenithStartup ??= []).push({ script: "plus", name, at: Math.round(t0), ms: +(performance.now() - t0).toFixed(1) });
 }
 
 function onUnload(fn) {
@@ -66,6 +117,7 @@ const LoadEdge = {
         }
         if (flags & Ci.nsIWebProgressListener.STATE_START) {
           this.state.set(browser, { value: 0.06, loading: true });
+          this.creeping(true);
         } else if (flags & Ci.nsIWebProgressListener.STATE_STOP) {
           this.state.set(browser, { value: 1, loading: false });
         }
@@ -79,22 +131,33 @@ const LoadEdge = {
       },
     };
     gBrowser.addTabsProgressListener(this.listener);
-    // Pages rarely report their total size, so progress also creeps towards
-    // 90% on its own while loading.
-    this.creep = setInterval(() => {
-      const s = this.state.get(gBrowser.selectedBrowser);
-      if (s?.loading) {
-        s.value += (0.9 - s.value) * 0.05;
-        this.render();
-      }
-    }, 250);
-    const onSelect = () => this.render(true);
+    const onSelect = () => {
+      this.render(true);
+      this.creeping(true);
+    };
     gBrowser.tabContainer.addEventListener("TabSelect", onSelect);
     onUnload(() => {
       gBrowser.removeTabsProgressListener(this.listener);
       clearInterval(this.creep);
       gBrowser.tabContainer.removeEventListener("TabSelect", onSelect);
     });
+  },
+
+  // Pages rarely report their total size, so progress also creeps towards
+  // 90% on its own while the tab you're on loads (the timer stops when it
+  // isn't loading).
+  creeping(on) {
+    if (!on || this.creep) return;
+    this.creep = setInterval(() => {
+      const s = this.state.get(gBrowser.selectedBrowser);
+      if (!s?.loading) {
+        clearInterval(this.creep);
+        this.creep = null;
+        return;
+      }
+      s.value += (0.9 - s.value) * 0.05;
+      this.render();
+    }, 250);
   },
 
   render(jump = false) {
@@ -316,20 +379,37 @@ const Minimap = {
         });
       }
     };
+    // The minimap shows only in compact mode while the sidebar is away
+    // (the CSS decides): otherwise nothing is measured, and only the tab
+    // changes it shows (sound, sharing, loading, attention) count.
+    const seen = () => Services.prefs.getBoolPref("zenith.plus.minimap", true) && !document.hidden &&
+      root.getAttribute("zen-compact-mode") === "true" && !root.hasAttribute("zenith-sidebar-out");
+    const maybe = () => seen() && schedule();
+    const SHOWN = new Set(["sharing", "attention", "titlechanged", "soundplaying", "muted", "busy"]);
+    const changed = e => (e.detail?.changed ?? []).some(a => SHOWN.has(a)) && maybe();
     const tabs = gBrowser.tabContainer;
-    const events = ["TabAttrModified", "TabSelect", "TabOpen", "TabClose", "TabMove", "TabPinned", "TabUnpinned"];
-    events.forEach(e => tabs.addEventListener(e, schedule));
-    tabs.addEventListener("scroll", schedule, true);
-    window.addEventListener("resize", schedule);
-    window.addEventListener("ZenWorkspacesUIUpdate", schedule);
-    this.interval = setInterval(schedule, 1500); // catches folder collapses and anything else that moves tabs
+    const events = ["TabSelect", "TabOpen", "TabClose", "TabMove", "TabPinned", "TabUnpinned"];
+    events.forEach(e => tabs.addEventListener(e, maybe));
+    tabs.addEventListener("TabAttrModified", changed);
+    tabs.addEventListener("scroll", maybe, true);
+    window.addEventListener("resize", maybe);
+    window.addEventListener("ZenWorkspacesUIUpdate", maybe);
+    // On screen again: draw.
+    const shown = new MutationObserver(maybe);
+    shown.observe(root, { attributeFilter: ["zen-compact-mode", "zenith-sidebar-out"] });
+    // Catches folder collapses and anything else that moves tabs, while
+    // it's on screen.
+    this.interval = setInterval(maybe, 1500);
     onUnload(() => {
-      events.forEach(e => tabs.removeEventListener(e, schedule));
-      tabs.removeEventListener("scroll", schedule, true);
-      window.removeEventListener("resize", schedule);
+      events.forEach(e => tabs.removeEventListener(e, maybe));
+      tabs.removeEventListener("TabAttrModified", changed);
+      tabs.removeEventListener("scroll", maybe, true);
+      window.removeEventListener("resize", maybe);
+      window.removeEventListener("ZenWorkspacesUIUpdate", maybe);
+      shown.disconnect();
       clearInterval(this.interval);
     });
-    schedule();
+    maybe();
   },
 
   kind(tab) {
@@ -342,6 +422,9 @@ const Minimap = {
 
   draw() {
     const box = this.strip.getBoundingClientRect();
+    // Not on screen (the sidebar is shown, or the minimap is off): nothing
+    // to measure.
+    if (!box.height || document.hidden) return;
     const list = document.querySelector("zen-workspace[active] .workspace-arrowscrollbox") ?? gBrowser.tabContainer;
     const view = list.getBoundingClientRect();
     const ticks = [];
@@ -397,7 +480,10 @@ const PageAccent = {
       this.prefs.forEach(p => Services.prefs.removeObserver(p, refresh));
       mo.disconnect();
     });
-    this.refresh();
+    // Reading the accent makes the window work out its styles, and a new
+    // sheet for every page restyles them all: wait until the browser is idle
+    // (pages keep their own selection colour until then).
+    window.requestIdleCallback(() => this.refresh(), { timeout: 2000 });
   },
 
   refreshSoon() {
@@ -779,26 +865,60 @@ const Wallpaper = {
   PREF: "zenith.plus.material-windows",
   DESKTOP: "Control Panel\\Desktop",
   MAX_PIXELS: 24e6, // a bigger desktop is drawn smaller (it's blurred anyway)
+  // The last drawing, kept in the profile: shown at once when Zen starts,
+  // and checked against the desktop a moment later (redrawn only if the
+  // wallpaper changed).
+  CACHE: "zenith.internal.wallpaper.cache",
+  get file() {
+    return PathUtils.join(PathUtils.profileDir, "zenith-wallpaper.jpg");
+  },
 
   init() {
     if (Services.appinfo.OS !== "WINNT") return;
     const refresh = () => this.refresh();
     Services.prefs.addObserver(this.PREF, refresh);
     window.addEventListener("focus", refresh);
-    // The window has no "moved" event: check its place a few times a second
-    // (cheap). A new wallpaper shows when Zen comes back to the front, or
-    // within 15 seconds (a slideshow).
-    const place = setInterval(() => this.place(), 250);
-    const check = setInterval(refresh, 15000);
     window.ZenithWallpaper = this; // for tools/checks
     onUnload(() => {
       Services.prefs.removeObserver(this.PREF, refresh);
       window.removeEventListener("focus", refresh);
-      clearInterval(place);
-      clearInterval(check);
       this.off();
     });
-    this.refresh();
+    this.fromCache().then(shown => {
+      if (!shown) return this.refresh();
+      // Shown from the cache: look at the desktop once Zen has settled.
+      return new Promise(r => setTimeout(r, 1500)).then(() => window.requestIdleCallback(() => this.refresh(), { timeout: 3000 }));
+    });
+  },
+
+  async fromCache() {
+    if (Services.prefs.getStringPref(this.PREF, "") !== "") return false;
+    try {
+      const cache = JSON.parse(Services.prefs.getStringPref(this.CACHE, "") || "null");
+      if (!cache?.sig) return false;
+      const bytes = await IOUtils.read(this.file);
+      const url = URL.createObjectURL(new Blob([bytes], { type: "image/jpeg" }));
+      this.url = url;
+      this.sig = cache.sig;
+      this.area = cache.area;
+      this.anchor = cache.anchor;
+      root.style.setProperty("--zth-wall", `url("${url}")`);
+      root.setAttribute("zenith-wallpaper", "true");
+      this.place(true);
+      this.watching(true);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  async keep(blob, sig, area, anchor) {
+    try {
+      await IOUtils.write(this.file, new Uint8Array(await blob.arrayBuffer()));
+      Services.prefs.setStringPref(this.CACHE, JSON.stringify({ sig, area, anchor }));
+    } catch (e) {
+      console.error("[Zenith] wallpaper cache", e);
+    }
   },
 
   read(path, name) {
@@ -868,14 +988,19 @@ const Wallpaper = {
     if (this.busy) return;
     this.busy = true;
     try {
+      const t0 = performance.now();
       const src = await this.source();
       const sig = JSON.stringify(src);
+      const t1 = performance.now();
+      let drawn = null;
       if (sig !== this.sig) {
-        const url = await this.render(src);
+        drawn = await this.render(src);
+        (window.zenithStartup ??= []).push({ script: "plus", name: "wallpaper: read, drew", at: Math.round(t0),
+                                             ms: +(t1 - t0).toFixed(1), drew: +(performance.now() - t1).toFixed(1) });
         if (this.url) URL.revokeObjectURL(this.url);
-        this.url = url;
+        this.url = URL.createObjectURL(drawn);
         this.sig = sig;
-        root.style.setProperty("--zth-wall", `url("${url}")`);
+        root.style.setProperty("--zth-wall", `url("${this.url}")`);
         root.setAttribute("zenith-wallpaper", "true");
       }
       this.area = src.area;
@@ -883,6 +1008,8 @@ const Wallpaper = {
       const cur = src.single ? null : this.current();
       this.anchor = (cur && src.screens.find(s => s.rect.join() === cur.join())?.rect) ?? src.screens[0].rect;
       this.place(true);
+      this.watching(true);
+      if (drawn) this.keep(drawn, sig, this.area, this.anchor);
     } catch (e) {
       console.error("[Zenith] wallpaper", e);
       this.off();
@@ -891,53 +1018,66 @@ const Wallpaper = {
     }
   },
 
-  // The whole desktop as one JPEG (smaller if it's very big).
+  // The whole desktop as one JPEG (smaller if it's very big), as a blob.
   async render(src) {
     const [L, T, R, B] = src.area;
-    const k = Math.min(1, Math.sqrt(this.MAX_PIXELS / ((R - L) * (B - T))));
-    const canvas = document.createElementNS(HTML_NS, "canvas");
-    canvas.width = Math.round((R - L) * k);
-    canvas.height = Math.round((B - T) * k);
-    const ctx = canvas.getContext("2d");
-    ctx.scale(k, k);
-    ctx.translate(-L, -T);
-    ctx.fillStyle = `rgb(${src.colour.trim().split(/\s+/).join(" ")})`;
-    ctx.fillRect(L, T, R - L, B - T);
-    ctx.imageSmoothingQuality = "high";
-    const pictures = new Map();
-    const picture = file => {
-      if (!pictures.has(file)) pictures.set(file, IOUtils.read(file).then(b => createImageBitmap(new Blob([b]))));
-      return pictures.get(file);
-    };
-    // One picture fitted into a box, as Windows fits it.
-    const draw = (img, [x0, y0, x1, y1], fit) => {
-      const W = x1 - x0, H = y1 - y0, { width: iw, height: ih } = img;
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(x0, y0, W, H);
-      ctx.clip();
-      if (fit === "tile") {
-        ctx.translate(x0, y0);
-        ctx.fillStyle = ctx.createPattern(img, "repeat");
-        ctx.fillRect(0, 0, W, H);
-      } else {
-        const s = fit === "fit" ? Math.min(W / iw, H / ih) : fit === "center" ? 1 : Math.max(W / iw, H / ih);
-        const [w, h] = fit === "stretch" ? [W, H] : [iw * s, ih * s];
-        ctx.drawImage(img, x0 + (W - w) / 2, y0 + (H - h) / 2, w, h);
-      }
-      ctx.restore();
-    };
-    if (src.fit === "span") {
-      // One picture across every screen.
-      const first = src.screens.find(s => s.file);
-      if (first) draw(await picture(first.file), src.area, "fill");
-    } else {
-      for (const s of src.screens) if (s.file) draw(await picture(s.file), s.rect, src.fit);
+    // Each picture file read once (IOUtils reads away from the window).
+    const files = new Map();
+    for (const s of src.screens) {
+      if (s.file && !files.has(s.file)) files.set(s.file, await IOUtils.read(s.file));
     }
-    for (const p of pictures.values()) (await p).close();
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.9));
-    return URL.createObjectURL(blob);
+    const job = {
+      area: src.area,
+      k: Math.min(1, Math.sqrt(this.MAX_PIXELS / ((R - L) * (B - T)))),
+      colour: `rgb(${src.colour.trim().split(/\s+/).join(" ")})`,
+      fit: src.fit,
+      screens: src.screens.map(s => ({ rect: s.rect, bytes: s.file ? files.get(s.file) : null })),
+    };
+    try {
+      return await this.paintAway(job, [...files.values()].map(b => b.buffer));
+    } catch (e) {
+      console.warn("[Zenith] wallpaper: drawing in the window instead of a worker", e);
+      return (await import(await this.painter())).paint(job);
+    }
   },
+
+  // plus/pages/wallpaper.mjs (JS/zenith-pages with the manual install).
+  async painter() {
+    if (this.painterUrl) return this.painterUrl;
+    for (const d of ["../pages/", "zenith-pages/"]) {
+      const url = new URL(`${d}wallpaper.mjs`, import.meta.url).href;
+      if (await fetch(url).then(r => r.ok, () => false)) return (this.painterUrl = url);
+    }
+    throw new Error("plus/pages/wallpaper.mjs isn't there");
+  },
+
+  // The drawing, done by a worker on its own thread.
+  async paintAway(job, transfer) {
+    if (!this.worker) {
+      this.worker = new Worker(await this.painter(), { type: "module" });
+      this.waiting = new Map();
+      this.worker.onmessage = ({ data }) => {
+        const done = this.waiting.get(data.id);
+        this.waiting.delete(data.id);
+        if (data.error) done?.reject(new Error(data.error));
+        else done?.resolve(data.blob);
+      };
+      this.worker.onerror = e => {
+        e.preventDefault?.();
+        for (const done of this.waiting.values()) done.reject(new Error(e.message || "the worker failed"));
+        this.waiting.clear();
+        this.worker.terminate();
+        this.worker = null;
+      };
+      onUnload(() => this.worker?.terminate());
+    }
+    const id = (this.jobs = (this.jobs ?? 0) + 1);
+    return new Promise((resolve, reject) => {
+      this.waiting.set(id, { resolve, reject });
+      this.worker.postMessage({ ...job, id }, transfer);
+    });
+  },
+
 
   // Where the desktop's top-left corner is, from the window's, in CSS
   // pixels: the window's screen is where screen.left/top say, and the rest
@@ -962,7 +1102,23 @@ const Wallpaper = {
     ["x", "y", "w", "h"].forEach((n, i) => root.style.setProperty(`--zth-wall-${n}`, `${at[i]}px`));
   },
 
+  // The window has no "moved" event: while a wallpaper is shown, its place
+  // is checked a few times a second (cheap; not while it's minimised). A
+  // new wallpaper shows when Zen comes back to the front, or within 15
+  // seconds (a slideshow).
+  watching(on) {
+    if (on === !!this.timers) return;
+    if (on) {
+      this.timers = [setInterval(() => document.hidden || this.place(), 250),
+                     setInterval(() => document.hidden || this.refresh(), 15000)];
+    } else {
+      this.timers.forEach(clearInterval);
+      this.timers = null;
+    }
+  },
+
   off() {
+    this.watching(false);
     root.removeAttribute("zenith-wallpaper");
     for (const n of ["", "-x", "-y", "-w", "-h"]) root.style.removeProperty(`--zth-wall${n}`);
     if (this.url) URL.revokeObjectURL(this.url);
@@ -1035,9 +1191,10 @@ const SeeThroughPages = {
   wanted(browser) {
     const uri = browser.currentURI;
     // (Not Zenith's own tab manager page, which reads better on its own
-    // background.)
-    return this.on && !browser.isRemoteBrowser && !!uri?.schemeIs("about") && uri.spec !== "about:blank" &&
-           !uri.spec.startsWith("about:zenith-tabs");
+    // background; Zenith's start page always, it's made for the glass.)
+    if (browser.isRemoteBrowser || !uri?.schemeIs("about")) return false;
+    if (uri.spec.startsWith("about:zenith-start")) return true;
+    return this.on && uri.spec !== "about:blank" && !uri.spec.startsWith("about:zenith-tabs");
   },
 
   update(browser) {
@@ -1152,6 +1309,7 @@ const Bridge = {
     else P.setStringPref(pref, value);
   },
 };
+window.ZenithBridge = Bridge; // Zenith's local AI turns Firefox's AI on through it
 
 /* --- Scroll feel: one setting for how pages scroll ------------------------
    For the mouse wheel and the keyboard (arrows, Page Up/Down, Space); a
@@ -1656,27 +1814,468 @@ const ReadyPulse = {
    With Revealed sidebar on Push, the page moves aside by exactly as much as
    the sidebar covers when it slides out (its width plus its gap), wherever
    Zen puts it and however wide you've made it. */
+/* --- Float a tab (Alt+Shift+Space) --------------------------------------------
+   The tab you're on pops out into a small window of its own that stays on
+   top of everything (a video call, notes, a stream), in the bottom right
+   corner of the screen; the page keeps going as it was, nothing reloads.
+   Alt+Shift+Space in that window (or closing it... no: closing closes the
+   tab) puts the tab back where it came from. Its size follows the screen
+   (half the width on small screens, 40%, a third on big ones). */
+const FloatTab = {
+  PREF: "zenith.plus.float-tab",
+
+  init() {
+    const commandset = document.createXULElement("commandset");
+    const command = document.createXULElement("command");
+    command.id = "zenith-float-command";
+    command.addEventListener("command", () => this.toggle());
+    commandset.append(command);
+    const keyset = document.createXULElement("keyset");
+    const key = document.createXULElement("key");
+    key.id = "zenith-float-key";
+    key.setAttribute("modifiers", "alt,shift");
+    key.setAttribute("key", " ");
+    key.setAttribute("reserved", "true");
+    key.setAttribute("command", command.id);
+    keyset.append(key);
+    root.append(commandset, keyset);
+    const watch = () => key.toggleAttribute("disabled", !Services.prefs.getBoolPref(this.PREF, true));
+    Services.prefs.addObserver(this.PREF, watch);
+    onUnload(() => Services.prefs.removeObserver(this.PREF, watch));
+    watch();
+    // A float window: mark it (the CSS keeps it to the page, with a strip
+    // along the top to move it by), and keep it on top of other windows.
+    if (window.zenithFloatFrom) {
+      root.setAttribute("zenith-float", "true");
+      try {
+        window.docShell.treeOwner.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIAppWindow).zLevel = Ci.nsIAppWindow.highestZ;
+      } catch {}
+      // Its size and corner, now that it has its plain look.
+      requestAnimationFrame(() => this.place());
+    }
+    window.ZenithFloat = this; // for tools/checks
+  },
+
+  toggle() {
+    if (window.zenithFloatFrom) return this.back();
+    return this.out(gBrowser.selectedTab);
+  },
+
+  // The float's size on this screen (half the width on small screens, 40%,
+  // a third on big ones; 16:10) and its place in the bottom right corner.
+  box() {
+    const s = screen, wide = s.availWidth, gap = 16;
+    const w = Math.round(wide * (wide <= 1400 ? 0.5 : wide < 2200 ? 0.4 : 1 / 3));
+    const h = Math.round(w * 0.625);
+    return { w, h, x: s.availLeft + s.availWidth - w - gap, y: s.availTop + s.availHeight - h - gap };
+  },
+
+  // (Zen keeps windows at least about 500px tall: placed by the size it got.)
+  place() {
+    const { w, h } = this.box(), s = screen, gap = 16;
+    window.resizeTo(w, h);
+    requestAnimationFrame(() => window.moveTo(s.availLeft + s.availWidth - window.outerWidth - gap,
+                                              Math.max(s.availTop, s.availTop + s.availHeight - window.outerHeight - gap)));
+  },
+
+  out(tab) {
+    if (!tab || tab.hasAttribute("zen-empty-tab") || gBrowser.tabs.length < 2) return null;
+    const { w, h, x, y } = this.box();
+    const win = gBrowser.replaceTabWithWindow(tab, { popup: "yes", alwaysontop: "yes", outerWidth: w, outerHeight: h, left: x, top: y });
+    if (!win) return null;
+    // Only this tab: with Zen's window sync a new window would otherwise
+    // take every tab (and leave this window empty).
+    win._zenStartupSyncFlag = "unsynced";
+    win.zenithFloatFrom = window;
+    return win;
+  },
+
+  // Back to the window it came from (or the last browser window), selected.
+  back() {
+    const tab = gBrowser.selectedTab;
+    let home = window.zenithFloatFrom;
+    if (!home || home.closed) home = [...Services.wm.getEnumerator("navigator:browser")].reverse().find(w => w !== window && !w.zenithFloatFrom);
+    if (!home) return null;
+    const moved = home.gBrowser.adoptTab(tab, { selectTab: true });
+    home.focus();
+    return moved;
+  },
+};
+
+/* --- Picture-in-picture: resize, edges, tucking ---------------------------------
+   For Firefox's picture-in-picture window:
+     - the mouse wheel over it makes it bigger or smaller (the same shape,
+       growing away from the screen edge it's nearest);
+     - let go of it near a screen edge and it settles against that edge (or
+       corner), a small gap away;
+     - drop it more than halfway past the left or right edge and it tucks
+       away: only a sliver with an arrow stays on screen, the video keeps
+       playing; click the sliver and it comes back.
+   The window has no "moved" event, so its place is checked a few times a
+   second while it's open (and only then). The front browser window looks
+   after each picture-in-picture window. */
+const PiPWindows = {
+  PREF: "zenith.plus.pip-extras",
+  GAP: 12,
+  NEAR: 56,
+  SLIVER: 26,
+
+  init() {
+    this.listener = {
+      onOpenWindow: xulWin => {
+        const win = xulWin.docShell.domWindow;
+        win.addEventListener("load", () => this.attach(win), { once: true });
+      },
+      onCloseWindow() {},
+    };
+    Services.wm.addListener(this.listener);
+    for (const win of Services.wm.getEnumerator("Toolkit:PictureInPicture")) this.attach(win);
+    onUnload(() => Services.wm.removeListener(this.listener));
+    window.ZenithPiP = this; // for tools/checks
+  },
+
+  on() {
+    return Services.prefs.getBoolPref(this.PREF, true);
+  },
+
+  attach(win) {
+    if (win.document.documentElement.getAttribute("windowtype") !== "Toolkit:PictureInPicture" || win.zenithPiP) return;
+    if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
+    const state = (win.zenithPiP = { at: [win.screenX, win.screenY], still: 0, tucked: null });
+    const wheel = e => this.on() && !state.tucked && this.resize(win, e);
+    const press = e => {
+      if (!state.tucked) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.untuck(win);
+    };
+    win.addEventListener("wheel", wheel, { passive: false });
+    win.addEventListener("mousedown", press, true);
+    const watch = win.setInterval(() => this.watch(win), 150);
+    win.addEventListener("unload", () => win.clearInterval(watch), { once: true });
+  },
+
+  screen(win) {
+    const s = win.screen;
+    return { L: s.availLeft, T: s.availTop, R: s.availLeft + s.availWidth, B: s.availTop + s.availHeight };
+  },
+
+  // The window moved and then stayed put for a moment: it was let go.
+  watch(win) {
+    const state = win.zenithPiP;
+    const at = [win.screenX, win.screenY];
+    if (at[0] !== state.at[0] || at[1] !== state.at[1]) {
+      state.at = at;
+      state.still = 0;
+      state.moved = !state.animating;
+      return;
+    }
+    if (!state.moved || ++state.still < 2) return;
+    state.moved = false;
+    if (this.on() && !state.tucked) this.settle(win);
+  },
+
+  // Near an edge: against it. Mostly past a side edge: tucked.
+  settle(win) {
+    const { L, T, R, B } = this.screen(win);
+    const x = win.screenX, y = win.screenY, w = win.outerWidth, h = win.outerHeight;
+    if (x + w / 2 < L) return this.tuck(win, "left");
+    if (x + w / 2 > R) return this.tuck(win, "right");
+    let nx = x, ny = y;
+    if (x - L < this.NEAR) nx = L + this.GAP;
+    else if (R - (x + w) < this.NEAR) nx = R - w - this.GAP;
+    if (y - T < this.NEAR) ny = T + this.GAP;
+    else if (B - (y + h) < this.NEAR) ny = B - h - this.GAP;
+    ny = Math.min(Math.max(ny, T), B - h);
+    if (nx !== x || ny !== y) this.glide(win, nx, ny);
+  },
+
+  tuck(win, side) {
+    const { L, T, R, B } = this.screen(win);
+    const w = win.outerWidth, h = win.outerHeight;
+    const y = Math.min(Math.max(win.screenY, T + this.GAP), B - h - this.GAP);
+    win.zenithPiP.tucked = { side, y };
+    win.document.documentElement.setAttribute("zenith-pip-tucked", side);
+    this.glide(win, side === "left" ? L - w + this.SLIVER : R - this.SLIVER, y);
+  },
+
+  untuck(win) {
+    const state = win.zenithPiP, { side, y } = state.tucked;
+    const { L, R } = this.screen(win);
+    state.tucked = null;
+    win.document.documentElement.removeAttribute("zenith-pip-tucked");
+    this.glide(win, side === "left" ? L + this.GAP : R - win.outerWidth - this.GAP, y);
+  },
+
+  // A short slide to a place (a few steps; the window can't be animated).
+  glide(win, x, y) {
+    const state = win.zenithPiP;
+    const [x0, y0] = [win.screenX, win.screenY], steps = 6;
+    state.animating = true;
+    let i = 0;
+    const step = () => {
+      i++;
+      const k = 1 - (1 - i / steps) ** 3;
+      win.moveTo(Math.round(x0 + (x - x0) * k), Math.round(y0 + (y - y0) * k));
+      if (i < steps) win.setTimeout(step, 16);
+      else win.setTimeout(() => {
+        state.at = [win.screenX, win.screenY];
+        state.animating = false;
+        state.moved = false;
+      }, 200);
+    };
+    step();
+  },
+
+  // A wheel notch: 8% bigger or smaller, the same shape, growing away from
+  // the nearest screen edges.
+  resize(win, e) {
+    e.preventDefault();
+    const { L, T, R, B } = this.screen(win);
+    const w = win.outerWidth, h = win.outerHeight, x = win.screenX, y = win.screenY;
+    const k = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+    const nw = Math.round(Math.min(Math.max(w * k, 180), (R - L) * 0.9));
+    const nh = Math.round((nw * h) / w);
+    const right = x + w / 2 > (L + R) / 2, bottom = y + h / 2 > (T + B) / 2;
+    const nx = right ? x + w - nw : x, ny = bottom ? y + h - nh : y;
+    win.zenithPiP.animating = true;
+    win.resizeTo(nw, nh);
+    win.moveTo(Math.min(Math.max(nx, L), R - nw), Math.min(Math.max(ny, T), B - nh));
+    win.setTimeout(() => {
+      win.zenithPiP.at = [win.screenX, win.screenY];
+      win.zenithPiP.animating = false;
+    }, 120);
+  },
+};
+
+/* --- Start page (about:zenith-start) -----------------------------------------
+   A clock, a search box (Peek's engine) that also finds your bookmarks, and
+   the bookmarks with number keys; see-through, on the window's glass. As
+   the home page (Firefox's, through the bridge: yours comes back with Off),
+   so the Home button and new windows that open the home page show it. The
+   page lives in plus/pages; it's registered at once (its text read there
+   and then), so a home page restored at start never misses it. */
+const StartPage = {
+  PREF: "zenith.plus.startpage",
+  URL: "about:zenith-start",
+
+  init() {
+    this.register();
+    const apply = () => {
+      const on = !["", "off"].includes(Services.prefs.getStringPref(this.PREF, ""));
+      Bridge.apply("start", { "browser.startup.homepage": on ? this.URL : null });
+    };
+    Services.prefs.addObserver(this.PREF, apply);
+    onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
+    apply();
+  },
+
+  register() {
+    const { NetUtil } = ChromeUtils.importESModule("resource://gre/modules/NetUtil.sys.mjs");
+    const read = url => {
+      const stream = NetUtil.newChannel({ uri: url, loadUsingSystemPrincipal: true }).open();
+      try {
+        return NetUtil.readInputStreamToString(stream, stream.available(), { charset: "UTF-8" });
+      } finally {
+        stream.close();
+      }
+    };
+    for (const d of ["../pages/", "zenith-pages/"]) {
+      try {
+        const url = new URL(`${d}start.html`, import.meta.url).href;
+        const text = read(url);
+        ChromeUtils.importESModule(new URL(`${d}about.sys.mjs`, import.meta.url).href).register("zenith-start", url, text);
+        return true;
+      } catch {}
+    }
+    console.error("[Zenith] about:zenith-start: plus/pages isn't there");
+    return false;
+  },
+};
+
+/* --- Link hints (Alt+J) -------------------------------------------------------
+   Vim-style: a few letters on every link, button and field you can see in
+   the page; type them to follow it. Alt+Shift+J opens the link in a new tab
+   in the background. The labels are drawn by plus/pages/link-hints.sys.mjs,
+   a window actor that runs where the page runs; this registers it the first
+   time it's used and sends it the accent colour. */
+const LinkHints = {
+  PREF: "zenith.plus.link-hints",
+
+  init() {
+    const commandset = document.createXULElement("commandset");
+    const keyset = document.createXULElement("keyset");
+    keyset.id = "zenith-hint-keys";
+    for (const [id, modifiers, newTab] of [["zenith-hints", "alt", false], ["zenith-hints-tab", "alt,shift", true]]) {
+      const command = document.createXULElement("command");
+      command.id = `${id}-command`;
+      command.addEventListener("command", () => this.show(newTab).catch(e => console.error("[Zenith] link hints", e)));
+      const key = document.createXULElement("key");
+      key.id = `${id}-key`;
+      key.setAttribute("modifiers", modifiers);
+      key.setAttribute("key", "J");
+      key.setAttribute("reserved", "true");
+      key.setAttribute("command", command.id);
+      commandset.append(command);
+      keyset.append(key);
+    }
+    root.append(commandset, keyset);
+    const watch = () => {
+      const on = Services.prefs.getBoolPref(this.PREF, true);
+      for (const key of keyset.children) key.toggleAttribute("disabled", !on);
+    };
+    Services.prefs.addObserver(this.PREF, watch);
+    onUnload(() => Services.prefs.removeObserver(this.PREF, watch));
+    watch();
+    window.ZenithHints = this; // for tools/checks
+  },
+
+  // Once per run of Zen (the actor is shared by every window).
+  register() {
+    return (this.ready ??= (async () => {
+      let url = null;
+      for (const d of ["../pages/", "zenith-pages/"]) {
+        const u = new URL(`${d}link-hints.sys.mjs`, import.meta.url).href;
+        if (await fetch(u).then(r => r.ok, () => false)) {
+          url = u;
+          break;
+        }
+      }
+      if (!url) throw new Error("plus/pages/link-hints.sys.mjs isn't there");
+      try {
+        // (Safe in a web page's process: it only draws labels and clicks
+        // what you pick; it takes nothing from the page to the browser.)
+        ChromeUtils.registerWindowActor("ZenithHints", {
+          parent: { esModuleURI: url },
+          child: { esModuleURI: url },
+          safeForUntrustedWebProcess: true,
+        });
+      } catch (e) {
+        if (e.name !== "NotSupportedError") throw e; // (another window registered it)
+      }
+    })());
+  },
+
+  async show(newTab) {
+    if (!Services.prefs.getBoolPref(this.PREF, true)) return;
+    const browser = gBrowser.selectedBrowser;
+    await this.register();
+    const page = browser.browsingContext?.currentWindowGlobal;
+    if (!page) return;
+    this.probe ??= root.appendChild(el("div", { hidden: "true", style: "color: var(--zth-accent, AccentColor)" }));
+    const accent = getComputedStyle(this.probe).color;
+    const [r, g, b] = (accent.match(/[\d.]+/g) ?? [0, 0, 0]).map(Number);
+    const ink = 0.2126 * r + 0.7152 * g + 0.0722 * b > 150 ? "#111" : "#fff";
+    browser.focus();
+    page.getActor("ZenithHints").sendAsyncMessage("show", { newTab, accent, ink });
+  },
+};
+
+/* --- Window state for the CSS ------------------------------------------------
+   A few things Zenith's CSS reacts to live deep in the window: the selected
+   tab's container, a muted selected tab, a tab using your camera, a page
+   that isn't secure, the sidebar sliding out in compact mode. CSS can find
+   them itself with :has(), but then the browser searches the whole window
+   for them whenever anything changes (a third of every tab switch). This
+   copies them onto the window's root the moment they change instead:
+     zenith-container="<colour>"  the selected tab's container colour
+     zenith-tab-muted             the selected tab is muted
+     zenith-sharing               a tab is using the camera, mic or screen
+     zenith-insecure              the page is plain HTTP (not a blank page,
+                                  not while the URL bar is open)
+     zenith-sidebar-out           compact mode's sidebar is out (hovered,
+                                  shown, or holding a menu)
+     zenith-sidebar-moving        it's flashing a popup or dragging a tab */
+const WindowState = {
+  TAB_ATTRS: new Set(["muted", "sharing", "usercontextid"]),
+  OUT: ["zen-has-hover", "zen-user-show", "has-popup-menu", "zen-compact-mode-active"],
+  MOVING: ["flash-popup", "movingtab"],
+
+  init() {
+    const tabs = gBrowser.tabContainer;
+    const update = () => this.update();
+    const changed = e => (e.detail?.changed ?? []).some(a => this.TAB_ATTRS.has(a)) && this.soon();
+    const closed = () => this.soon();
+    tabs.addEventListener("TabSelect", update);
+    tabs.addEventListener("TabAttrModified", changed);
+    tabs.addEventListener("TabClose", closed);
+    const watcher = new MutationObserver(update);
+    const watch = (node, attributeFilter) => node && watcher.observe(node, { attributes: true, attributeFilter });
+    watch(document.getElementById("urlbar"), ["open", "pageproxystate"]);
+    watch(document.getElementById("identity-box"), ["class"]);
+    watch(gNavToolbox, [...this.OUT, ...this.MOVING]);
+    onUnload(() => {
+      tabs.removeEventListener("TabSelect", update);
+      tabs.removeEventListener("TabAttrModified", changed);
+      tabs.removeEventListener("TabClose", closed);
+      watcher.disconnect();
+      cancelAnimationFrame(this.frame);
+    });
+    this.update();
+  },
+
+  soon() {
+    this.frame ||= requestAnimationFrame(() => {
+      this.frame = 0;
+      this.update();
+    });
+  },
+
+  // Attributes are only touched when they change: every change restyles.
+  flag(name, on, value = "") {
+    if (!on) {
+      if (root.hasAttribute(name)) root.removeAttribute(name);
+    } else if (root.getAttribute(name) !== value) {
+      root.setAttribute(name, value);
+    }
+  },
+
+  update() {
+    const tab = gBrowser.selectedTab;
+    const box = tab?.getAttribute("usercontextid");
+    const colour = box && box !== "0" ? ([...tab.classList].find(c => c.startsWith("identity-color-"))?.slice(15) ?? "") : null;
+    this.flag("zenith-container", colour !== null, colour ?? "");
+    this.flag("zenith-tab-muted", !!tab?.hasAttribute("muted"));
+    this.flag("zenith-sharing", gBrowser.tabs.some(t => t.hasAttribute("sharing")));
+    const bar = document.getElementById("urlbar");
+    const insecure = bar?.getAttribute("pageproxystate") === "valid" && !bar.hasAttribute("open") &&
+      !!document.getElementById("identity-box")?.classList.contains("notSecure") && !tab?.hasAttribute("zen-empty-tab");
+    this.flag("zenith-insecure", insecure);
+    this.flag("zenith-sidebar-out", this.OUT.some(a => gNavToolbox.hasAttribute(a)));
+    this.flag("zenith-sidebar-moving", this.MOVING.some(a => gNavToolbox.hasAttribute(a)));
+  },
+};
+
 const SidebarWidth = {
   init() {
     const tb = gNavToolbox;
     // Zen tucks the hidden sidebar away with a translate, which the offsets
     // ignore: they give where it sits when shown.
+    // Measured when the browser lays out anyway (the resize observer's
+    // first call comes with the first layout, a frame for the rest): asking
+    // for sizes straight away would make the window lay itself out early,
+    // before its first picture.
     const measure = () => {
       const right = root.getAttribute("zen-right-side") === "true";
       const push = right ? window.innerWidth - tb.offsetLeft : tb.offsetLeft + tb.offsetWidth;
       root.style.setProperty("--zth-sidebar-push", `${Math.max(0, Math.round(push))}px`);
     };
+    let frame = 0;
+    const soon = () => (frame ||= requestAnimationFrame(() => {
+      frame = 0;
+      measure();
+    }));
     const resize = new ResizeObserver(measure);
     resize.observe(tb);
-    const attrs = new MutationObserver(measure);
+    const attrs = new MutationObserver(soon);
     attrs.observe(root, { attributeFilter: ["zen-compact-mode", "zen-right-side", "zen-sidebar-expanded"] });
-    window.addEventListener("resize", measure);
+    window.addEventListener("resize", soon);
     onUnload(() => {
       resize.disconnect();
       attrs.disconnect();
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", soon);
+      cancelAnimationFrame(frame);
     });
-    measure();
   },
 };
 
@@ -2260,15 +2859,123 @@ const ImageColours = {
     return colours;
   },
 
+  // (previous: one space, or every space after a palette sync.)
   undo() {
-    const W = window.gZenWorkspaces, prev = this.previous;
-    const space = prev && W?.getWorkspaceFromId(prev.uuid);
-    if (!space) return hint("Nothing to undo");
-    space.theme = prev.theme;
-    W.saveWorkspace(space);
-    if (W.activeWorkspace === space.uuid) gZenThemePicker.onWorkspaceChange(space);
+    const W = window.gZenWorkspaces;
+    const prev = [this.previous ?? []].flat().map(p => [W?.getWorkspaceFromId(p.uuid), p.theme]).filter(([s]) => s);
+    if (!prev.length) return hint("Nothing to undo");
+    for (const [space, theme] of prev) {
+      space.theme = theme;
+      W.saveWorkspace(space);
+      if (W.activeWorkspace === space.uuid) gZenThemePicker.onWorkspaceChange(space);
+    }
     this.previous = null;
-    hint("Space colours put back");
+    hint(prev.length > 1 ? "Every space's colours put back" : "Space colours put back");
+  },
+};
+
+/* --- Palette sync: the spaces follow pywal or wallust ------------------------
+   pywal (and winwal on Windows) writes the colours it takes from your
+   wallpaper to ~/.cache/wal/colors.json; wallust can write the same file
+   (a template, to ~/.cache/wallust/colors.json). With Palette sync on, every
+   space takes that palette's most striking colours (one, two or three, as
+   with colours from an image) the moment the file changes, and once at
+   start if it changed while Zen was closed. :colours undo puts the spaces
+   back as they were. */
+const PaletteSync = {
+  PREF: "zenith.plus.palette-sync",
+  DONE: "zenith.internal.palette.applied",
+  FILES: { pywal: [".cache/wal/colors.json"], wallust: [".cache/wallust/colors.json", ".config/wallust/colors.json"] },
+
+  init() {
+    let timer = null;
+    const check = () => {
+      const on = !["", "off"].includes(Services.prefs.getStringPref(this.PREF, ""));
+      if (on && !timer) timer = setInterval(() => document.hidden || this.check(), 5000);
+      if (!on && timer) timer = clearInterval(timer);
+      if (on) this.check();
+    };
+    Services.prefs.addObserver(this.PREF, check);
+    window.addEventListener("focus", check);
+    onUnload(() => {
+      Services.prefs.removeObserver(this.PREF, check);
+      window.removeEventListener("focus", check);
+      clearInterval(timer);
+    });
+    window.ZenithPalette = this; // for tools/checks
+    check();
+  },
+
+  async file(kind) {
+    // (zenith.internal.palette.home: another home folder, for tools/checks.)
+    const home = Services.prefs.getStringPref("zenith.internal.palette.home", "") || Services.dirsvc.get("Home", Ci.nsIFile).path;
+    for (const rel of this.FILES[kind] ?? []) {
+      const path = PathUtils.join(home, ...rel.split("/"));
+      if (await IOUtils.exists(path)) return path;
+    }
+    return null;
+  },
+
+  async check() {
+    const kind = Services.prefs.getStringPref(this.PREF, "");
+    if (!kind || kind === "off" || this.busy) return;
+    // Only the window in front changes the spaces (they're shared).
+    if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
+    this.busy = true;
+    try {
+      const path = await this.file(kind);
+      if (!path) return;
+      const text = await IOUtils.readUTF8(path);
+      if (text === this.last) return;
+      this.last = text;
+      const sig = `${kind}:${text.length}:${[...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7)}`;
+      if (sig === Services.prefs.getStringPref(this.DONE, "")) return;
+      if (this.apply(JSON.parse(text))) Services.prefs.setStringPref(this.DONE, sig);
+    } catch (e) {
+      console.error("[Zenith] palette sync", e);
+    } finally {
+      this.busy = false;
+    }
+  },
+
+  // pywal's colors.json: colours 1–6 are the palette's accents (0 and 7
+  // are its background and text, 8–15 brighter copies).
+  hues(json) {
+    const C = ImageColours;
+    const gap = (x, y) => Math.min(Math.abs(x - y), 360 - Math.abs(x - y));
+    const all = [1, 2, 3, 4, 5, 6].map(i => json.colors?.[`color${i}`]).filter(v => /^#[0-9a-f]{6}$/i.test(v ?? "")).map(hex => {
+      const [L, a, b] = C.lab([1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)));
+      return { L, C: Math.hypot(a, b), h: ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360 };
+    });
+    const hues = all.filter(f => f.C >= 0.03).sort((x, y) => y.C - x.C);
+    if (!hues.length) return all.length ? [{ ...all[0], C: 0 }] : [];
+    const chosen = [hues[0]];
+    for (const h of hues.slice(1)) {
+      if (chosen.length === 3) break;
+      if (h.C >= 0.4 * chosen[0].C && chosen.every(c => gap(c.h, h.h) >= 30)) chosen.push(h);
+    }
+    return chosen;
+  },
+
+  apply(json) {
+    const W = window.gZenWorkspaces, picker = window.gZenThemePicker;
+    const hues = this.hues(json);
+    if (!hues.length || !W || !picker) return false;
+    const colours = ImageColours.colours(hues);
+    const [r, g, b] = colours[0].map(v => v / 255);
+    const lightness = Math.round(((Math.max(r, g, b) + Math.min(r, g, b)) / 2) * 100);
+    const dots = colours.map((c, i) => ({ c, isCustom: false, isPrimary: i === 0, algorithm: "floating", lightness, type: "explicit-lightness" }));
+    const spaces = W.getWorkspaces?.() ?? [];
+    ImageColours.previous = spaces.map(s => ({ uuid: s.uuid, theme: structuredClone(s.theme) }));
+    for (const space of spaces) {
+      const opacity = space.theme?.opacity ?? 0.5, texture = space.theme?.texture ?? 0;
+      space.theme = picker.constructor.getTheme?.(structuredClone(dots), opacity, texture) ?? { type: "gradient", gradientColors: structuredClone(dots), opacity, texture };
+      W.saveWorkspace(space);
+    }
+    const active = W.getActiveWorkspace?.();
+    if (active) picker.onWorkspaceChange(active);
+    hint(`Spaces follow your palette: ${colours.length === 1 ? "one colour" : `${colours.length} colours`}`);
+    return true;
   },
 };
 
@@ -3069,9 +3776,14 @@ start("settings", () => {
   migrateCtrlNumbers();
   migrateGlassEdge();
   watchRealProgress();
-});
-start("motion bridge", () => MotionBridge.init());
-start("window paint", () => WindowPaint.init());
+}, true);
+start("motion bridge", () => MotionBridge.init(), true);
+start("window state", () => WindowState.init(), true);
+start("link hints", () => LinkHints.init(), true);
+start("start page", () => StartPage.init(), true);
+start("picture-in-picture", () => PiPWindows.init());
+start("float a tab", () => FloatTab.init(), true);
+start("window paint", () => WindowPaint.init(), true);
 start("ctrl hold", () => CtrlHold.init());
 start("load edge", () => LoadEdge.init());
 start("not-secure hint", () => InsecureHint.init());
@@ -3080,24 +3792,25 @@ start("minimap", () => Minimap.init());
 start("page accent", () => PageAccent.init());
 start("zoom pills", () => ZoomPills.init());
 start("media art", () => MediaArt.init());
-start("window material", () => WindowMaterial.init());
+start("window material", () => WindowMaterial.init(), true);
 start("live settings", () => LiveSettings.init());
 start("glass light", () => GlassLight.init());
-start("wallpaper", () => Wallpaper.init());
-start("see-through pages", () => SeeThroughPages.init());
-start("scroll feel", () => ScrollFeel.init());
-start("focus mode", () => FocusMode.init());
+start("wallpaper", () => Wallpaper.init(), true);
+start("see-through pages", () => SeeThroughPages.init(), true);
+start("scroll feel", () => ScrollFeel.init(), true);
+start("focus mode", () => FocusMode.init(), true);
 start("workspace dots", () => Spaces.init());
 start("more menus", () => MoreMenus.init());
 start("key switch flash", () => KeySwitchFlash.init());
 start("ready pulse", () => ReadyPulse.init());
-start("sidebar width", () => SidebarWidth.init());
-start("ctrl+tab order", () => CtrlTabOrder.init());
-start("groups that don't pin", () => UnpinnedGroups.init());
-start("bookmarks bar", () => BookmarksBar.init());
+start("sidebar width", () => SidebarWidth.init(), true);
+start("ctrl+tab order", () => CtrlTabOrder.init(), true);
+start("groups that don't pin", () => UnpinnedGroups.init(), true);
+start("bookmarks bar", () => BookmarksBar.init(), true);
 start("colours from an image", () => ImageColours.init());
-start("extensions per space", () => SpaceExtensions.init());
-start("links from other apps", () => ExternalLinks.init());
+start("palette sync", () => PaletteSync.init());
+start("extensions per space", () => SpaceExtensions.init(), true);
+start("links from other apps", () => ExternalLinks.init(), true);
 start("blend with the page", () => PageBlend.init());
-start("notices on top", noticesOnTop);
+start("notices on top", noticesOnTop, true);
 start("core check", checkCore);

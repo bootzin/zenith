@@ -473,7 +473,47 @@ function renderTidy() {
              [["Sleep", list => (Z.Act.sleep(list), false), true]]),
     busy.length ? make("h2", {}, "Busy sites") : null,
     ...busy,
+    ...topicCards(),
   ].filter(Boolean));
+}
+
+// By topic (with Zenith's local AI on): this space's loose tabs, sorted
+// into groups by what they're about and named for it, to put into folders
+// or groups. Nothing moves until you press a button.
+function topicCards() {
+  const AI = win.ZenithAI;
+  if (!AI?.on) return [];
+  const space = W()?.activeWorkspace;
+  const loose = Look.tabs().filter(t => Look.space(t) === space && !Look.kept(t) && !t.group && !t.hasAttribute("zen-empty-tab") &&
+                                       !t.linkedBrowser?.currentURI?.spec?.startsWith(PAGE));
+  const run = async () => {
+    state.topics = { space, status: "Sorting…" };
+    render();
+    try {
+      const groups = await AI.topics(loose, p => {
+        state.topics.status = `Getting the models: ${p}% (once, about 60 MB)`;
+        render();
+      });
+      state.topics = { space, groups };
+    } catch (e) {
+      console.error("[Zenith Tab manager] topics", e);
+      state.topics = { space, status: "Couldn't sort them: " + (e.message || e) };
+    }
+    render();
+  };
+  const t = state.topics?.space === space ? state.topics : null;
+  const groups = (t?.groups ?? []).map(g => ({ ...g, tabs: g.tabs.filter(x => x.isConnected && !x.group && !Look.kept(x)) }))
+    .filter(g => g.tabs.length > 1);
+  const head = make("div", { class: "card", open: true },
+    make("div", { class: "card-head" }, make("h3", {}, "Loose tabs in this space"), make("span", { class: "n" }, String(loose.length))),
+    make("p", {}, t?.status ?? (t?.groups ? (groups.length ? "Untick what to leave out, then put each group away." : "Nothing that belongs together.")
+                                            : "Sorted by what they're about, on this computer.")),
+    make("div", { class: "row" }, make("button", { type: "button", class: t?.groups ? null : "primary", disabled: loose.length < 3 || t?.status === "Sorting…", onclick: run },
+                                       t?.groups ? "Sort again" : "Sort by topic")));
+  const into = (g, kind) => list => Z.Act.into(list, { name: g.label || "Topic", kind, space });
+  return [make("h2", {}, "By topic"), head,
+    ...groups.map((g, i) => tidyCard(`topic-${i}-${g.label}`, g.label || "Together", `${g.tabs.length} tabs about the same thing.`, g.tabs,
+      [["Into a folder", into(g, "folder"), true], ...((G()?.mode ?? "off") !== "off" ? [["Into a group", into(g, "group")]] : [])]))];
 }
 
 /* --- Rules ---------------------------------------------------------------------------------- */

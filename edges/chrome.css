@@ -133,18 +133,21 @@
 /* --- Container colour on the left edge (Full) ----------------------------
    Container colours live on each tab, so the selected tab's colour is mapped
    to the page here (Firefox's standard container colours). This includes
-   tabs that get their container from the space they live in. */
+   tabs that get their container from the space they live in. Zenith Plus
+   copies the selected tab's container colour onto the window
+   (zenith-container) as you switch, so the browser never has to look for
+   the selected tab itself (that made every tab switch slower). */
 
-:root:has(.tabbrowser-tab[selected][usercontextid]:not([usercontextid="0"])) {
-  &:has(.tabbrowser-tab[selected].identity-color-blue) { --zth-container: #37adff; }
-  &:has(.tabbrowser-tab[selected].identity-color-turquoise) { --zth-container: #00c79a; }
-  &:has(.tabbrowser-tab[selected].identity-color-green) { --zth-container: #51cd00; }
-  &:has(.tabbrowser-tab[selected].identity-color-yellow) { --zth-container: #ffcb00; }
-  &:has(.tabbrowser-tab[selected].identity-color-orange) { --zth-container: #ff9f00; }
-  &:has(.tabbrowser-tab[selected].identity-color-red) { --zth-container: #ff613d; }
-  &:has(.tabbrowser-tab[selected].identity-color-pink) { --zth-container: #ff4bda; }
-  &:has(.tabbrowser-tab[selected].identity-color-purple) { --zth-container: #af51f5; }
-  &:has(.tabbrowser-tab[selected].identity-color-toolbar) { --zth-container: var(--zth-ink-dim); }
+:root[zenith-container] {
+  &[zenith-container="blue"] { --zth-container: #37adff; }
+  &[zenith-container="turquoise"] { --zth-container: #00c79a; }
+  &[zenith-container="green"] { --zth-container: #51cd00; }
+  &[zenith-container="yellow"] { --zth-container: #ffcb00; }
+  &[zenith-container="orange"] { --zth-container: #ff9f00; }
+  &[zenith-container="red"] { --zth-container: #ff613d; }
+  &[zenith-container="pink"] { --zth-container: #ff4bda; }
+  &[zenith-container="purple"] { --zth-container: #af51f5; }
+  &[zenith-container="toolbar"] { --zth-container: var(--zth-ink-dim); }
 }
 
 /* Three looks (Edges > Container line style):
@@ -223,11 +226,13 @@
 }
 
 /* Sharing alarm (Quiet): any tab using camera, mic or screen. Shown even in
-   fullscreen, because that's when you'd most want to know. */
+   fullscreen, because that's when you'd most want to know. (zenith-sharing
+   comes from Zenith Plus; written twice so this rule outweighs the private
+   and focus frames, which test more things.) */
 :root:is(
     :has(#theme-Zenith-Edges[zenith-edges-sharing="on"]),
     :not(:has(#theme-Zenith-Edges:is([zenith-edges-sharing="off"], [zenith-edges-preset="off"])))
-  ):has(.tabbrowser-tab[sharing]) {
+  )[zenith-sharing][zenith-sharing] {
   --zth-frame:
     inset 0 0 0 calc(var(--zth-edge) + 1px) var(--zth-danger),
     inset 0 0 34px -6px color-mix(in srgb, var(--zth-danger) 75%, transparent);
@@ -243,7 +248,7 @@
 
 /* --- Extra: muted marker (short segment, top-left) ----------------------- */
 
-:root:has(#theme-Zenith-Edges[zenith-edges-muted="on"]):has(.tabbrowser-tab[selected][muted]) #zen-tabbox-wrapper::before {
+:root:has(#theme-Zenith-Edges[zenith-edges-muted="on"])[zenith-tab-muted] #zen-tabbox-wrapper::before {
   content: "";
   position: absolute;
   inset: 0 auto auto 0;
@@ -261,13 +266,14 @@
    over it while a page loads. Only real pages count: blank pages and empty
    spaces also call themselves "not secure", but the URL bar marks their
    address invalid. Hidden while the URL bar is open, because Zen resets the
-   page's security state while you type. (Zenith Plus adds a label that
-   explains it when you hover the edge.) */
+   page's security state while you type. (Zenith Plus works this out as
+   zenith-insecure on the window, and adds a label that explains it when you
+   hover the edge.) */
 
 :root:is(
     :has(#theme-Zenith-Edges[zenith-edges-insecure="on"]),
     :not(:has(#theme-Zenith-Edges:is([zenith-edges-insecure="off"], [zenith-edges-preset="off"])))
-  ):has(#urlbar[pageproxystate="valid"]):has(#identity-box.notSecure):not(:has(#urlbar[open], .tabbrowser-tab[selected][zen-empty-tab])) {
+  )[zenith-insecure] {
   & .browserSidebarContainer.deck-selected:not(.zen-glance-overlay)::before {
     content: "";
     position: absolute;

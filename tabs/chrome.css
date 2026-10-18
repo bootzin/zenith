@@ -29,7 +29,7 @@
   transition: filter var(--zth-dur) var(--zth-ease);
 }
 
-:root[zen-compact-mode="true"]:has(#theme-Zenith-Tabs[zenith-tabs-reveal="dim"]):has(#navigator-toolbox:is([zen-has-hover], [zen-user-show], [has-popup-menu], [zen-compact-mode-active]))
+:root[zen-compact-mode="true"]:has(#theme-Zenith-Tabs[zenith-tabs-reveal="dim"])[zenith-sidebar-out]
   #tabbrowser-tabpanels {
   filter: brightness(0.65);
 }
@@ -42,12 +42,12 @@
   transition: translate 0.22s var(--zth-ease);
 }
 
-:root[zen-compact-mode="true"]:has(#theme-Zenith-Tabs[zenith-tabs-reveal="push"]):has(#navigator-toolbox:is([zen-has-hover], [zen-user-show], [has-popup-menu], [zen-compact-mode-active]))
+:root[zen-compact-mode="true"]:has(#theme-Zenith-Tabs[zenith-tabs-reveal="push"])[zenith-sidebar-out]
   #zen-tabbox-wrapper {
   translate: var(--zth-sidebar-push, var(--zth-sidebar-w)) 0;
 }
 
-:root[zen-compact-mode="true"][zen-right-side="true"]:has(#theme-Zenith-Tabs[zenith-tabs-reveal="push"]):has(#navigator-toolbox:is([zen-has-hover], [zen-user-show], [has-popup-menu], [zen-compact-mode-active]))
+:root[zen-compact-mode="true"][zen-right-side="true"]:has(#theme-Zenith-Tabs[zenith-tabs-reveal="push"])[zenith-sidebar-out]
   #zen-tabbox-wrapper {
   translate: calc(-1 * var(--zth-sidebar-push, var(--zth-sidebar-w))) 0;
 }

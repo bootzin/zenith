@@ -24,6 +24,7 @@ and install links. Nothing is uploaded.
 """
 import argparse
 import json
+import os
 import re
 import shutil
 import zipfile
@@ -56,10 +57,18 @@ def sine_bundle(root):
            "   ========================================================================== */\n"]
     prefs = []
     for key in PARTS:
-        css.append(f"\n/* ===== {NAMES[key]} ({key}/chrome.css) ===== */\n\n")
-        css.append(HOSTS.sub("#theme-Zenith", (root / key / "chrome.css").read_text(encoding="utf-8")))
         prefs.append({"type": "separator", "label": NAMES[key].removeprefix("Zenith ")})
         prefs.extend(json.loads((root / key / "preferences.json").read_text(encoding="utf-8")))
+    # Settings are read from their prefs (@media -moz-pref), not searched
+    # for as attributes: see tools/css_prefs.py.
+    # (ZENITH_CSS_ATTRS=1 keeps the attribute tests, for comparing.)
+    from css_prefs import convert, setting_prefs
+    names = setting_prefs(prefs)
+    attrs = os.environ.get("ZENITH_CSS_ATTRS") == "1"
+    for key in PARTS:
+        css.append(f"\n/* ===== {NAMES[key]} ({key}/chrome.css) ===== */\n\n")
+        part = HOSTS.sub("#theme-Zenith", (root / key / "chrome.css").read_text(encoding="utf-8"))
+        css.append(part if attrs else convert(part, names)[0])
     return "".join(css), prefs
 
 # Where each Plus script runs (Sine reads this from theme.json; fx-autoconfig
@@ -75,6 +84,8 @@ PLUS_SCRIPTS = {
                                ["chrome://browser/content/browser.xhtml"]),
     "zenith-bookmarks.uc.mjs": ("Bookmarks", "Your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.",
                                 ["chrome://browser/content/browser.xhtml"]),
+    "zenith-ai.uc.mjs": ("Local AI", "Firefox's own on-device AI: clearer download names, tab groups by topic. Nothing leaves your computer.",
+                         ["chrome://browser/content/browser.xhtml"]),
     "zenith-tabs.uc.mjs": ("Tab manager", "Every tab at a glance, and tidying up: duplicates, unused and awake tabs, busy sites (Alt+Shift+T).",
                            ["chrome://browser/content/browser.xhtml"]),
     "zenith-settings.uc.mjs": ("Settings helper", "Greys out Zenith settings that don't apply, and says why.",
@@ -207,11 +218,19 @@ def main():
 
     # --- Manual install (the fallback) ---------------------------------------
     zip_path = dist / f"zenith-{version}-manual.zip"
+    # Each area's styles with settings read from prefs, as in the Sine mod.
+    from css_prefs import convert, setting_prefs
+    names = setting_prefs(prefs)
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
         for folder in (*MODS, "plus", "vendor"):
             for f in sorted((root / folder).rglob("*")):
-                if f.is_file():
-                    z.write(f, f"zenith/{f.relative_to(root).as_posix()}")
+                if not f.is_file():
+                    continue
+                name = f"zenith/{f.relative_to(root).as_posix()}"
+                if f.name == "chrome.css" and f.parent.name in PARTS:
+                    z.writestr(name, convert(HOSTS.sub("#theme-Zenith", f.read_text(encoding="utf-8")), names)[0])
+                else:
+                    z.write(f, name)
         for f in ("VERSION", "tools/install.ps1"):
             z.write(root / f, f"zenith/{f}")
         z.writestr("zenith/INSTALL.txt", MANUAL_STEPS.format(version=version))

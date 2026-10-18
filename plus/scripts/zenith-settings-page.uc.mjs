@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.11.2
+// @version        0.12.0
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -202,6 +202,29 @@ const SCHEMA = [
       "button": "Use the wallpaper",
       "command": "zenith-colours-wallpaper",
       "host": "Zen"
+     },
+     {
+      "property": "zenith.plus.palette-sync",
+      "label": "Palette sync",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "pywal (winwal on Windows) and wallust pick colours from your wallpaper for your whole desktop. Every space takes that palette's most striking colours (one, two or three) the moment it changes. pywal writes ~/.cache/wal/colors.json itself; for wallust, add a template that writes the same file to ~/.cache/wallust/colors.json. Undo colours puts the spaces back.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Off",
+        "value": "off"
+       },
+       {
+        "label": "pywal or winwal (~/.cache/wal/colors.json)",
+        "value": "pywal"
+       },
+       {
+        "label": "wallust (~/.cache/wallust/colors.json)",
+        "value": "wallust"
+       }
+      ],
+      "default": "off"
      },
      {
       "property": "zenith.action.colours-undo",
@@ -1981,6 +2004,15 @@ const SCHEMA = [
        }
       ],
       "default": "zenith"
+     },
+     {
+      "property": "zenith.plus.pip-extras",
+      "label": "Move and tuck",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near a screen edge and it settles against it; drop it more than halfway past the left or right edge and it tucks away, a sliver with an arrow staying on screen while it plays. Click the sliver to bring it back.",
+      "host": "Zenith Plus",
+      "default": true
      }
     ]
    },
@@ -2425,7 +2457,7 @@ const SCHEMA = [
   "id": "keys",
   "title": "Keys",
   "icon": "keys",
-  "blurb": "Jump anywhere with Alt+W, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
+  "blurb": "Jump anywhere with Alt+W, follow links with Alt+J, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
   "groups": [
    {
     "title": "Switcher",
@@ -2612,6 +2644,34 @@ const SCHEMA = [
       "type": "checkbox",
       "extra": false,
       "desc": "Alt+Z hides the sidebar, the edges, the minimap, pills and the link address, for reading or video. The sharing alarm still shows. Alt+Z again brings it all back.",
+      "host": "Zenith Plus",
+      "default": true
+     }
+    ]
+   },
+   {
+    "title": "Link hints",
+    "settings": [
+     {
+      "property": "zenith.plus.link-hints",
+      "label": "Link hints",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt+J puts a few letters on every link, button and field you can see; type them to follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+J opens a link in a new tab in the background.",
+      "host": "Zenith Plus",
+      "default": true
+     }
+    ]
+   },
+   {
+    "title": "Float a tab",
+    "settings": [
+     {
+      "property": "zenith.plus.float-tab",
+      "label": "Float a tab",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt+Shift+Space pops the tab you're on out into a small window that stays on top of everything, in the bottom right corner; the page carries on as it was. Alt+Shift+Space in that window puts it back.",
       "host": "Zenith Plus",
       "default": true
      }
@@ -2900,7 +2960,7 @@ const SCHEMA = [
   "id": "pages",
   "title": "Pages",
   "icon": "page",
-  "blurb": "Small touches inside web pages, and this settings page.",
+  "blurb": "Small touches inside web pages, a start page, and this settings page.",
   "groups": [
    {
     "title": "In web pages",
@@ -2935,6 +2995,34 @@ const SCHEMA = [
     ]
    },
    {
+    "title": "Start page",
+    "settings": [
+     {
+      "property": "zenith.plus.startpage",
+      "label": "Start page",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "about:zenith-start, on the window's glass: a clock, a search box (Peek's engine) that also finds your bookmarks as you type, and your bookmarks, 1–9 to open one. It becomes the home page (the Home button, and new windows if they open the home page); Off gives yours back. The weather is one line from wttr.in, for the last place you looked up in Peek.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Off",
+        "value": "off"
+       },
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "On, with the weather",
+        "value": "weather"
+       }
+      ],
+      "default": "off"
+     }
+    ]
+   },
+   {
     "title": "Settings",
     "settings": [
      {
@@ -2945,6 +3033,76 @@ const SCHEMA = [
       "desc": "In Sine's mods page, your mods come first and the marketplace folds away.",
       "host": "Zenith Plus",
       "default": true
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "speed",
+  "title": "Speed and AI",
+  "icon": "speed",
+  "blurb": "How quickly Zen starts, and Firefox's own AI working on this computer.",
+  "groups": [
+   {
+    "title": "Starting Zen",
+    "settings": [
+     {
+      "property": "zenith.plus.fast-start",
+      "label": "Fast start",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "When Zen starts, the look, the keys and the page you were on come first; the switcher, Peek, the tab manager, bookmarks and the other extras start a part at a time right after the page has loaded (within a few seconds). Use one early and it starts at once. Takes effect the next time Zen starts.",
+      "host": "Zenith Plus",
+      "default": false
+     }
+    ]
+   },
+   {
+    "title": "Local AI",
+    "settings": [
+     {
+      "property": "zenith.plus.local-ai",
+      "label": "Local AI",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Turns on the AI built into Firefox (Zen keeps it off) for the two things below. It runs on this computer, in a process of its own: nothing you download or open is sent anywhere. Each model is fetched from Mozilla once, the first time it's needed (about 380 MB for names, 60 MB for topics). Turning it off gives Firefox's setting back.",
+      "host": "Zenith Plus",
+      "default": false
+     },
+     {
+      "property": "zenith.plus.ai-download-names",
+      "label": "Download names",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "When a download with a name like IMG_20241012_0931.jpg or 8f3a2c1e.pdf finishes, the page it came from gives it a clearer one: offered on a notice, or given at once with Undo. Names that already say something are left alone. The tab manager's \"By topic\" sorts loose tabs into named groups with the same AI.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Offer a clearer one",
+        "value": "suggest"
+       },
+       {
+        "label": "Rename at once, with Undo",
+        "value": "rename"
+       },
+       {
+        "label": "Leave them",
+        "value": "off"
+       }
+      ],
+      "default": "suggest",
+      "rule": {
+       "why": "Local AI is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.local-ai",
+          "value": true
+         }
+        }
+       ]
+      }
      }
     ]
    }
@@ -2983,6 +3141,9 @@ function effective(s, section) {
 // in the browser window, wherever the page is.
 function runAction(s) {
   const win = window.gBrowser ? window : Services.wm.getMostRecentWindow("navigator:browser");
+  // With Fast start, the part behind the button may still be waiting its
+  // turn: start everything now.
+  if (!win?.document.getElementById(s.command)) win?.zenithLater?.now();
   win?.document.getElementById(s.command)?.doCommand();
 }
 
@@ -3114,7 +3275,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.11.2";
+const SCHEMA_VERSION = "0.12.0";
 
 class SettingsView {
   constructor(kind) {
@@ -3605,6 +3766,8 @@ const Live = {
   // cleared, the setting scrolled into view, outlined for a moment, and its
   // control focused.
   open(found) {
+    // Fast start: whatever hasn't started yet starts now (a setting's action may need it).
+    window.zenithLater?.now();
     if (!this.host) this.build();
     this.host.hidden = false;
     if (!found) {

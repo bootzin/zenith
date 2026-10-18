@@ -2,7 +2,7 @@
 // @name           Zenith Bookmarks
 // @description    Zenith Plus: your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.
 // @include        main
-// @version        0.11.2
+// @version        0.12.0
 // ==/UserScript==
 
 // Ctrl+B opens Zenith's bookmarks instead of Firefox's sidebar (unless the
@@ -31,14 +31,65 @@ const HTML_NS = "http://www.w3.org/1999/xhtml";
 const FIRST = !window.zenithBookmarksStarted;
 window.zenithBookmarksStarted = true;
 
-function start(name, fn) {
+// Fast start (zenith.plus.fast-start): parts not needed for the first
+// picture wait until the page you're on has loaded (2.5 seconds at most),
+// then start one at a time while the browser is idle, so the page comes
+// first. Anything that needs one of them sooner calls zenithLater.now().
+const Later = (window.zenithLater ??= (() => {
+  const queue = [];
+  let open = false;
+  const fast = Services.prefs.getBoolPref("zenith.plus.fast-start", false);
+  const step = () => {
+    const job = queue.shift();
+    if (job) job();
+    if (queue.length) window.requestIdleCallback(step, { timeout: 300 });
+  };
+  const later = {
+    fast,
+    add(job) {
+      if (!fast || open) return job();
+      queue.push(job);
+    },
+    // Start what's waiting, a part per idle moment.
+    open() {
+      if (open) return;
+      open = true;
+      later.openedAt ??= performance.now();
+      window.requestIdleCallback(step, { timeout: 300 });
+    },
+    // Start everything now (a feature was asked for before its turn).
+    now() {
+      open = true;
+      later.openedAt ??= performance.now();
+      while (queue.length) queue.shift()();
+    },
+  };
+  if (fast) {
+    setTimeout(() => later.open(), 2500);
+    const waitForPage = async () => {
+      await window.delayedStartupPromise;
+      for (let i = 0; i < 25 && gBrowser.selectedBrowser?.webProgress?.isLoadingDocument; i++) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      later.open();
+    };
+    waitForPage();
+  }
+  return later;
+})());
+
+function start(name, fn, now = false) {
   if (!FIRST) return;
+  if (!now) return Later.add(() => start(name, fn, true));
+  const t0 = performance.now();
   try {
     const r = fn();
     r?.catch?.(e => console.error(`[Zenith Bookmarks] ${name} failed to start`, e));
   } catch (e) {
     console.error(`[Zenith Bookmarks] ${name} failed to start`, e);
   }
+  // How long each part took to start, for tools/bench_startup.py.
+  (window.zenithStartup ??= []).push({ script: "bookmarks", name, at: Math.round(t0), ms: +(performance.now() - t0).toFixed(1) });
 }
 
 function make(tag, attrs = {}, text = "") {
@@ -988,4 +1039,4 @@ function init() {
   return addToLibrary();
 }
 
-start("bookmarks", init);
+start("bookmarks", init, true);

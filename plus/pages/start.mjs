@@ -1,0 +1,152 @@
+// about:zenith-start: a clock, a search box (Peek's engine) that also
+// filters your bookmarks as you type, and the bookmarks themselves: 1–9
+// open one while the box is empty, arrows and Enter pick one, Shift+Enter
+// opens in a new tab. With "with the weather", one line from wttr.in for
+// the last place you looked up in Peek (or where wttr.in thinks you are).
+
+const win = window.browsingContext.topChromeWindow;
+const { Services } = win;
+const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs");
+const $ = id => document.getElementById(id);
+const MAX = 9;
+
+function make(tag, attrs = {}, ...kids) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v === true ? "" : v);
+  }
+  node.append(...kids.filter(k => k != null));
+  return node;
+}
+
+// The window's accent and ink, worked out there (its colours are in its
+// own variables).
+function colours() {
+  const probe = win.document.createElement("div");
+  probe.hidden = true;
+  probe.style.color = "var(--zth-accent, AccentColor)";
+  win.document.documentElement.append(probe);
+  document.documentElement.style.setProperty("--accent", win.getComputedStyle(probe).color);
+  probe.style.color = "var(--zth-ink, CanvasText)";
+  document.documentElement.style.setProperty("--ink", win.getComputedStyle(probe).color);
+  probe.remove();
+}
+
+function clock() {
+  const now = new Date();
+  $("clock").textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const h = now.getHours();
+  const part = h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  $("greeting").textContent = `${part} · ${now.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" })}`;
+  setTimeout(clock, (60 - now.getSeconds()) * 1000 + 50);
+}
+
+async function weather() {
+  if (Services.prefs.getStringPref("zenith.plus.startpage", "") !== "weather") return;
+  let place = "";
+  try {
+    place = JSON.parse(Services.prefs.getStringPref("zenith.internal.weather-places", "[]"))[0] ?? "";
+  } catch {}
+  try {
+    const text = await fetch(`https://wttr.in/${encodeURIComponent(place)}?format=3`).then(r => (r.ok ? r.text() : ""));
+    if (text && text.length < 120 && !/<|unknown location/i.test(text)) {
+      $("weather").textContent = text.trim();
+      $("weather").hidden = false;
+    }
+  } catch {}
+}
+
+// Bookmarks: the toolbar's first, then the menu's and the rest.
+let all = [];
+async function bookmarks() {
+  const order = [PlacesUtils.bookmarks.toolbarGuid, PlacesUtils.bookmarks.menuGuid, PlacesUtils.bookmarks.unfiledGuid];
+  const out = [];
+  const walk = node => {
+    if (node.uri && /^(https?|file|about|moz-extension):/.test(node.uri)) out.push({ title: node.title || node.uri, url: node.uri });
+    for (const c of node.children ?? []) walk(c);
+  };
+  for (const guid of order) {
+    try {
+      walk(await PlacesUtils.promiseBookmarksTree(guid));
+    } catch {}
+  }
+  all = out;
+  show();
+}
+
+let shown = [], picked = -1;
+function host(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function show() {
+  const words = $("q").value.toLowerCase().split(/\s+/).filter(Boolean);
+  shown = (words.length ? all.filter(b => words.every(w => b.title.toLowerCase().includes(w) || b.url.toLowerCase().includes(w))) : all).slice(0, MAX);
+  picked = words.length && shown.length ? 0 : -1;
+  $("marks").replaceChildren(...shown.map((b, i) => make("li", { selected: i === picked, onclick: e => open(b.url, e.shiftKey || e.button === 1) },
+    make("span", { class: "n" }, words.length ? "" : String(i + 1)),
+    make("img", { src: `page-icon:${b.url}`, alt: "", onerror: e => (e.target.style.visibility = "hidden") }),
+    make("span", { class: "title" }, b.title),
+    make("span", { class: "host" }, host(b.url)))));
+  $("hint").textContent = words.length
+    ? (shown.length ? "Enter opens the highlighted bookmark · Alt+Enter searches instead" : "Enter searches")
+    : (shown.length ? "1–9 open a bookmark · type to find one, or to search" : "Type to search");
+}
+
+function pick(i) {
+  picked = shown.length ? (i + shown.length) % shown.length : -1;
+  [...$("marks").children].forEach((li, k) => li.toggleAttribute("selected", k === picked));
+}
+
+function open(url, newTab = false) {
+  win.openTrustedLinkIn(url, newTab ? "tab" : "current");
+}
+
+// What the box holds: an address to go to, or something to search for.
+function go(text, newTab) {
+  const t = text.trim();
+  if (!t) return;
+  if (/^[a-z][\w+.-]*:\/\//i.test(t) || /^about:/.test(t) || (!/\s/.test(t) && /\.[a-z]{2,}(\/|:|$)/i.test(t)) || /^localhost(:\d+)?(\/|$)/.test(t)) {
+    try {
+      const { preferredURI } = Services.uriFixup.getFixupURIInfo(t, Services.uriFixup.FIXUP_FLAG_FIX_SCHEME_TYPOS);
+      return open(preferredURI.spec, newTab);
+    } catch {}
+  }
+  const engine = win.ZenithPeek?.engine?.()?.[1];
+  if (engine) return open(engine.replace("%s", encodeURIComponent(t)), newTab);
+  Services.search.getDefault().then(e => open(e.getSubmission(t).uri.spec, newTab));
+}
+
+$("q").addEventListener("input", show);
+$("q").addEventListener("keydown", e => {
+  const empty = !$("q").value;
+  if (empty && /^[1-9]$/.test(e.key) && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    const b = shown[+e.key - 1];
+    if (b) {
+      e.preventDefault();
+      open(b.url, e.shiftKey);
+    }
+  } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    pick(picked + (e.key === "ArrowDown" ? 1 : -1));
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (picked >= 0 && !e.altKey) open(shown[picked].url, e.shiftKey);
+    else go($("q").value, e.shiftKey);
+  } else if (e.key === "Escape") {
+    $("q").value = "";
+    show();
+  }
+});
+
+colours();
+clock();
+bookmarks();
+weather();
+$("q").focus();

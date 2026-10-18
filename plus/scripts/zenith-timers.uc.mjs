@@ -2,7 +2,7 @@
 // @name           Zenith Timers
 // @description    Zenith Plus: countdown timers and pomodoros, started from Peek.
 // @include        main
-// @version        0.11.2
+// @version        0.12.0
 // ==/UserScript==
 
 // Timers are started from the Peek prompt (Alt+Q):
@@ -148,14 +148,18 @@ const Timers = {
       this.toasts = make("div", { id: "zenith-toasts" });
       (document.getElementById("zen-main-app-wrapper") ?? document.body).append(this.toasts);
     }
-    const observer = () => this.render();
+    // The clock runs only while there are timers.
+    const observer = () => {
+      this.render();
+      this.ticking();
+    };
     Services.prefs.addObserver(PREF, observer);
-    this.clock = setInterval(() => this.tick(), 1000);
     window.addEventListener("unload", () => {
       Services.prefs.removeObserver(PREF, observer);
       clearInterval(this.clock);
     }, { once: true });
     this.render();
+    this.ticking();
     this.tick();
   },
 
@@ -173,9 +177,15 @@ const Timers = {
     this.edge.title = `${this.describe(next)}: ${format(left)} left`;
   },
 
+  ticking() {
+    const any = this.list().length > 0;
+    if (any && !this.clock) this.clock = setInterval(() => this.tick(), 1000);
+    if (!any && this.clock) this.clock = clearInterval(this.clock);
+  },
+
   tick() {
     const list = this.list();
-    if (!list.length) return;
+    if (!list.length) return this.ticking();
     this.render();
     // Only the frontmost window moves timers on, so each ending is
     // announced once.
