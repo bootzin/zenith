@@ -315,9 +315,11 @@
 /* Around the page, and behind the docked sidebar: the window background is
    the glass colour. Zen's own workspace paint (two layers that cross-fade
    between workspaces) is part of that colour, so it steps aside; the grain
-   stays. "Zen's own" sidebar leaves all of this to Zen. */
+   stays. "Zen's own" sidebar leaves all of this to Zen. With Zenith Plus
+   and Space colour "Its gradient", Zen's gradient shows through the glass
+   (--zth-desk-paint, built by Plus from what Zen paints). */
 :root:not(:has(#theme-Zenith-Core[zenith-core-floating-sidebar="zen"])) #zen-browser-background {
-  background: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent) !important;
+  background: var(--zth-desk-paint, color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent)) !important;
   transition: background-color 0.3s ease !important;
 
   &::before,
@@ -348,7 +350,7 @@
 
   &::after {
     opacity: 1 !important;
-    background: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent) !important;
+    background: var(--zth-desk-paint, color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent)) !important;
     transition: background-color 0.3s ease !important;
   }
 }

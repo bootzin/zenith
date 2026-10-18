@@ -4,7 +4,7 @@
   "description": "Peek, real load and download progress, a sidebar minimap, zoom pills and more for Zenith.",
   "homepage": "https://github.com/bootzin/zenith/tree/master/plus",
   "author": "bootzin",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "style": {
     "chrome": "chrome.css"
   },
@@ -82,5 +82,5 @@
   ],
   "ai": "yes",
   "createdAt": "2026-10-16",
-  "updatedAt": "2026-10-17T20:33:42+00:00"
+  "updatedAt": "2026-10-18T06:42:51+00:00"
 }

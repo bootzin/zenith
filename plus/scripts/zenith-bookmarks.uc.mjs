@@ -2,7 +2,7 @@
 // @name           Zenith Bookmarks
 // @description    Zenith Plus: your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.
 // @include        main
-// @version        0.11.1
+// @version        0.11.2
 // ==/UserScript==
 
 // Ctrl+B opens Zenith's bookmarks instead of Firefox's sidebar (unless the
@@ -859,6 +859,22 @@ function hookSidebar() {
   }, true);
 }
 
+// Changing the look while bookmarks are open opens them in the new look
+// (Firefox's sidebar for "Firefox's tree", Zenith's panel otherwise).
+function swapLook() {
+  const S = window.SidebarController;
+  const firefoxOpen = !!S?.isOpen && S.currentID === "viewBookmarksSidebar";
+  if (look() === "firefox") {
+    if (Panel.open) {
+      Panel.hide();
+      S?.show("viewBookmarksSidebar");
+    }
+  } else if (firefoxOpen) {
+    S.hide();
+    Panel.show();
+  }
+}
+
 /* --- Zen's Library ----------------------------------------------------------------- */
 
 // A "Bookmarks" section in Zen's Library (before History), showing the same
@@ -947,7 +963,7 @@ function init() {
   window.PlacesUtils.observers.addListener(places, onPlaces);
   const onPref = (_, __, name) => {
     if (name === PREFS.place && Panel.node) Panel.placeIt();
-    if (name === PREFS.look && look() === "firefox") Panel.hide();
+    if (name === PREFS.look) swapLook();
     document.documentElement.setAttribute("zenith-bm-place", place());
     document.documentElement.setAttribute("zenith-bm-look", look());
     refreshAll();

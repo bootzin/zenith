@@ -199,6 +199,10 @@ class Scene(Zen):
         super().__enter__()
         self.srv, self.base = serve()
         self.chrome(HELPERS)
+        # Sine imports Zenith's scripts one by one after the window opens:
+        # wait (up to 10s) until the last ones are there.
+        self.js("""for (let i = 0; i < 100 && !(window.ZenithTabs && window.ZenithBookmarks && window.ZenithSwitcher); i++)
+                     await zth.sleep(100); return 1""")
         return self
 
     def __exit__(self, *exc):

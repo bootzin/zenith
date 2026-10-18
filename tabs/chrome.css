@@ -190,15 +190,20 @@
 
 /* --- Pin mark (Informative) ----------------------------------------------
    A small pin, without a circle, where the sleeping moon goes: pinned tabs
-   read as pinned at a glance. Not on essentials or tabs in a folder (Zen
-   pins those too, but they read as the folder's), and a sleeping pinned tab
-   shows the moon instead. */
+   read as pinned at a glance, and so do folders and the tabs in them (Zen
+   pins those), except folders set not to pin. Not on essentials; a sleeping
+   pinned tab shows the moon instead. */
 :root:is(
     :has(#theme-Zenith-Tabs[zenith-tabs-pin-mark="on"]),
     :not(:has(#theme-Zenith-Tabs:is([zenith-tabs-pin-mark="off"], [zenith-tabs-preset="plain"])))
   )
-  .tabbrowser-tab[pinned]:not([zen-essential], [zen-glance-tab], [pending]:not([selected]), zen-folder *)
-  > .tab-stack > .tab-content > .tab-icon-stack {
+  .tabbrowser-tab[pinned]:not([zen-essential], [zen-glance-tab], [pending]:not([selected]), zen-folder[zenith-unpinned] *)
+  > .tab-stack > .tab-content > .tab-icon-stack,
+:root:is(
+    :has(#theme-Zenith-Tabs[zenith-tabs-pin-mark="on"]),
+    :not(:has(#theme-Zenith-Tabs:is([zenith-tabs-pin-mark="off"], [zenith-tabs-preset="plain"])))
+  )
+  zen-folder:not([zenith-unpinned], [split-view-group]) > .tab-group-label-container > .tab-group-folder-icon {
   &:not([zen-pinned-changed="true"] *) {
     position: relative;
   }

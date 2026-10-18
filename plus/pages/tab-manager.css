@@ -3,17 +3,18 @@
    before that, or without Zenith's Core. */
 
 :root {
-  --ink: var(--zth-ink, CanvasText);
-  --dim: var(--zth-ink-dim, GrayText);
-  --line: var(--zth-hairline, color-mix(in srgb, currentColor 14%, transparent));
+  /* (Firmer than the glass elsewhere: a page of small text needs it.) */
+  --ink: light-dark(rgb(20 20 24), rgb(244 244 248));
+  --dim: light-dark(rgb(20 20 24 / 0.66), rgb(244 244 248 / 0.7));
+  --line: light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.13));
   --accent: var(--zth-accent, AccentColor);
-  --soft: var(--zth-accent-soft, color-mix(in srgb, AccentColor 25%, transparent));
+  --soft: color-mix(in srgb, var(--accent) 26%, transparent);
   --radius: var(--zth-radius, 10px);
   --pill: var(--zth-pill-radius, 999px);
-  --card: color-mix(in srgb, currentColor 4%, transparent);
-  --hover: color-mix(in srgb, currentColor 8%, transparent);
+  --card: light-dark(rgb(255 255 255 / 0.62), rgb(255 255 255 / 0.06));
+  --hover: color-mix(in srgb, currentColor 9%, transparent);
   color-scheme: light dark;
-  background: color-mix(in srgb, var(--zth-glass-color, Canvas) 92%, light-dark(white, black));
+  background: color-mix(in srgb, var(--zth-glass-color, Canvas) 70%, light-dark(rgb(246 246 248), rgb(18 18 22)));
   color: var(--ink);
   font: menu;
   font-size: var(--zth-font, 13px);
@@ -132,6 +133,38 @@ select {
   & #search {
     width: 260px;
   }
+}
+
+#undo,
+#close {
+  flex: none;
+}
+
+#close {
+  display: none;
+
+  .compact & {
+    display: block;
+  }
+}
+
+.glyph {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  flex: none;
+  background: currentColor;
+  mask: var(--icon) center / 13px no-repeat;
+  opacity: 0.75;
+}
+
+input.pick,
+.ticks input {
+  accent-color: var(--accent);
+  margin: 0;
+  flex: none;
+  width: 15px;
+  height: 15px;
 }
 
 #views {
@@ -327,9 +360,16 @@ select {
       white-space: nowrap;
     }
 
-    & .count {
+    & .count,
+    & .kind {
       color: var(--dim);
       font-size: 0.85em;
+    }
+
+    & .kind {
+      border: 1px solid var(--line);
+      border-radius: var(--pill);
+      padding: 0 6px;
     }
   }
 
@@ -415,9 +455,20 @@ select {
     opacity: 0.55;
   }
 
-  & .badge {
+  & .badge,
+  & .use {
     color: var(--dim);
     font-size: 0.8em;
+    white-space: nowrap;
+  }
+
+  & input.pick {
+    opacity: 0.45;
+  }
+
+  &:hover input.pick,
+  &[picked] input.pick {
+    opacity: 1;
   }
 
   & .acts {
@@ -427,6 +478,10 @@ select {
 
   &:hover .acts {
     display: flex;
+  }
+
+  &:hover .use {
+    display: none;
   }
 
   & .acts button {
@@ -527,6 +582,49 @@ select {
         background: var(--soft);
       }
     }
+  }
+
+  & .card-head {
+    cursor: default;
+  }
+
+  & .ticks {
+    display: flex;
+    flex-direction: column;
+    max-height: 260px;
+    overflow-y: auto;
+    margin: 0 -4px;
+    scrollbar-width: thin;
+  }
+
+  & .tick {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border-radius: 6px;
+    min-width: 0;
+
+    &:hover {
+      background: var(--hover);
+    }
+
+    & .title {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    & small {
+      color: var(--dim);
+      white-space: nowrap;
+    }
+  }
+
+  &[empty] .row {
+    display: none;
   }
 
   & .site {
@@ -798,5 +896,118 @@ select {
 
   #board {
     min-height: 420px;
+  }
+}
+
+/* --- The card (about:zenith-tabs?compact) ------------------------------------------------ */
+
+.compact {
+  background: transparent;
+
+  & #top {
+    padding: 12px 14px 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    & h1 {
+      font-size: 1.2em;
+    }
+
+    & #summary {
+      font-size: 0.85em;
+    }
+
+    & .title {
+      flex-basis: 100%;
+    }
+
+    & #search {
+      flex: 1;
+      width: auto;
+      min-width: 0;
+    }
+  }
+
+  & #essentials {
+    padding: 0 14px 8px;
+  }
+
+  & #overview {
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 0 10px 70px;
+    gap: 10px;
+  }
+
+  & #board {
+    flex-direction: column;
+    overflow: visible;
+    flex: none;
+  }
+
+  & .space {
+    flex: none;
+    max-width: none;
+
+    & > header {
+      cursor: pointer;
+
+      & .chev {
+        width: 10px;
+        height: 10px;
+        background: currentColor;
+        opacity: 0.55;
+        mask: url("chrome://global/skin/icons/arrow-right.svg") center / 10px no-repeat;
+        rotate: 90deg;
+        transition: rotate 0.12s;
+      }
+    }
+
+    &[folded] {
+      & > header .chev {
+        rotate: 0deg;
+      }
+
+      & .list {
+        display: none;
+      }
+    }
+
+    & .list {
+      overflow: visible;
+    }
+  }
+
+  & #tidy {
+    width: auto;
+    overflow: visible;
+  }
+
+  & .card:not([open]) {
+    padding-block: 8px;
+
+    & .card-head {
+      cursor: pointer;
+    }
+  }
+
+  & #rules {
+    padding: 4px 14px 30px;
+  }
+
+  & .rule input[type="text"] {
+    width: 140px;
+  }
+
+  & #bar {
+    bottom: 10px;
+    max-width: calc(100vw - 20px);
+    flex-wrap: wrap;
+    border-radius: calc(var(--radius) + 6px);
+  }
+
+  & #note {
+    right: 10px;
+    bottom: 64px;
   }
 }

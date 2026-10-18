@@ -1880,18 +1880,60 @@
     "usedBy": "zenith-plus"
   },
   {
-    "property": "zenith.plus.loose-groups",
-    "label": "Groups for unpinned tabs (Firefox's tab groups, drawn like folders)",
+    "property": "zenith.plus.space-colour",
+    "label": "Space colour in the glass",
     "type": "dropdown",
-    "placeholder": "Default (Off)",
+    "placeholder": "Default (Its gradient)",
     "options": [
+      {
+        "label": "Its gradient",
+        "value": "gradient"
+      },
+      {
+        "label": "One tint",
+        "value": "tint"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.colour-strength",
+    "label": "Space colour strength",
+    "type": "dropdown",
+    "placeholder": "Default (Medium)",
+    "options": [
+      {
+        "label": "Zen's own (the space's opacity)",
+        "value": "zen"
+      },
+      {
+        "label": "Medium",
+        "value": "medium"
+      },
+      {
+        "label": "Strong",
+        "value": "strong"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.unpinned-groups",
+    "label": "Groups that don't pin",
+    "type": "dropdown",
+    "placeholder": "Default (Zen's folders, set per folder)",
+    "options": [
+      {
+        "label": "Zen's folders, set per folder",
+        "value": "folders"
+      },
+      {
+        "label": "Firefox's tab groups",
+        "value": "firefox"
+      },
       {
         "label": "Off",
         "value": "off"
-      },
-      {
-        "label": "On",
-        "value": "on"
       }
     ],
     "usedBy": "zenith-plus"

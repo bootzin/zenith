@@ -2,7 +2,7 @@
 // @name           Zenith Tab manager
 // @description    Zenith Plus: every tab of every space on one page (about:zenith-tabs), tidying up, and rules for grouping, sleeping and closing.
 // @include        main
-// @version        0.11.1
+// @version        0.11.2
 // ==/UserScript==
 
 // The tab manager (the "tab report" in DESIGN.md). Alt+Shift+T, or ":tabs"
@@ -101,6 +101,56 @@ const Look = {
     return this.spaces().find(s => s.uuid === id)?.name ?? "";
   },
 
+  // The folder or group a tab is in (through a split view it's in).
+  ownGroup(tab) {
+    let g = tab?.group;
+    if (g?.hasAttribute("split-view-group")) g = g.group;
+    return g ?? null;
+  },
+
+  splitOf(tab) {
+    return tab?.group?.hasAttribute("split-view-group") ? tab.group : null;
+  },
+
+  // Where an essential shows: every space, or (with Zen's essentials per
+  // container) the spaces using its container.
+  essentialSpaces(tab) {
+    const all = this.spaces();
+    if (!Services.prefs.getBoolPref("zen.workspaces.container-specific-essentials-enabled", false)) return all;
+    const c = parseInt(tab.getAttribute("usercontextid") || "0", 10);
+    return all.filter(s => (s.containerTabId || 0) === c);
+  },
+
+  // Memory and CPU per awake tab, from Firefox's process list: a process
+  // shared by several tabs (the same site) is shared out between them; CPU
+  // is the share of one core since the last call.
+  lastCpu: new Map(),
+  async usage() {
+    const info = await ChromeUtils.requestProcInfo();
+    const now = performance.now();
+    const byWindow = new Map(), tabsIn = new Map();
+    for (const child of info.children ?? []) for (const w of child.windows ?? []) byWindow.set(w.outerWindowId, child);
+    const awake = this.tabs().filter(t => this.awake(t));
+    for (const t of awake) {
+      const proc = byWindow.get(t.linkedBrowser?.outerWindowID);
+      if (proc) tabsIn.set(proc.pid, (tabsIn.get(proc.pid) ?? 0) + 1);
+    }
+    const out = new Map();
+    const cpuOf = new Map();
+    for (const child of info.children ?? []) {
+      const last = this.lastCpu.get(child.pid);
+      if (last) cpuOf.set(child.pid, Math.max(0, (child.cpuTime - last.cpu) / 1e6 / Math.max(1, now - last.at)));
+      this.lastCpu.set(child.pid, { cpu: child.cpuTime, at: now });
+    }
+    for (const t of awake) {
+      const proc = byWindow.get(t.linkedBrowser?.outerWindowID);
+      if (!proc) continue;
+      const n = tabsIn.get(proc.pid) || 1;
+      out.set(t, { memory: (proc.memory ?? 0) / n, cpu: cpuOf.has(proc.pid) ? cpuOf.get(proc.pid) / n : null, shared: n > 1 });
+    }
+    return out;
+  },
+
   report(days) {
     const tabs = this.tabs();
     const now = Date.now();
@@ -146,42 +196,59 @@ const Look = {
 /* --- Acting on them ------------------------------------------------------------ */
 
 const Act = {
-  closed: 0, // how many tabs the last close took, for Undo
+  closed: 0, // how many tabs the last close took, for the card's Undo
+  history: [], // what Undo puts back, newest last: { label, undo }
+
+  remember(label, undo) {
+    this.history.push({ label, undo });
+    if (this.history.length > 20) this.history.shift();
+  },
+
+  // Undo the last thing done here (close, move, folder…).
+  undoLast() {
+    const last = this.history.pop();
+    if (!last) return null;
+    try {
+      last.undo();
+    } catch (e) {
+      console.error("[Zenith Tab manager] undo", e);
+    }
+    return last.label;
+  },
+
+  // Where tabs are, to put them back: space, pinned, folder or group.
+  snapshot(tabs) {
+    return tabs.map(tab => ({ tab, space: Look.space(tab), pinned: tab.pinned, group: Look.ownGroup(tab) }));
+  },
+
+  restore(states) {
+    for (const s of states) {
+      const tab = s.tab;
+      if (!tab.isConnected || tab.hasAttribute("zen-essential")) continue;
+      const now = Look.ownGroup(tab);
+      if (now && now !== s.group) this.outOf(tab);
+      if (s.space && Look.space(tab) !== s.space) gZenWorkspaces?.moveTabsToWorkspace?.([Look.splitOf(tab)?.tabs ?? tab].flat(), s.space);
+      if (!s.group && tab.pinned !== s.pinned) (s.pinned ? gBrowser.pinTab(tab) : gBrowser.unpinTab(tab));
+      if (s.group?.isConnected && Look.ownGroup(tab) !== s.group) {
+        const space = s.group.getAttribute("zen-workspace-id");
+        if (space && Look.space(tab) !== space) gZenWorkspaces.moveTabsToWorkspace([tab], space);
+        s.group.addTabs([tab]);
+      }
+    }
+  },
+
+  // Out of its folder or group (a split view comes out whole).
+  outOf(tab) {
+    const g = Look.ownGroup(tab);
+    if (!g) return;
+    const split = Look.splitOf(tab);
+    if (split) gBrowser.moveTabAfter(tab, g);
+    else gBrowser.ungroupTab(tab);
+  },
 
   close(tabs) {
     tabs = tabs.filter(t => t.isConnected && !Look.kept(t));
-    if (!tabs.length) return 0;
-    gBrowser.removeTabs(tabs, { animate: false, suppressWarnAboutClosingWindow: true });
-    this.closed = tabs.length;
-    return tabs.length;
-  },
-
-  undo() {
-    const n = this.closed;
-    this.closed = 0;
-    for (let i = 0; i < n; i++) {
-      try {
-        SessionStore.undoCloseTab(window, 0);
-      } catch (e) {
-        console.error("[Zenith Tab manager] undo", e);
-        break;
-      }
-    }
-    return n;
-  },
-
-  sleep(tabs) {
-    tabs = tabs.filter(t => t.isConnected && !t.selected && Look.awake(t));
-    if (!tabs.length) return 0;
-    if (typeof gBrowser.explicitUnloadTabs === "function") gBrowser.explicitUnloadTabs(tabs);
-    else for (const t of tabs) gBrowser.discardBrowser(t, true);
-    return tabs.length;
-  },
-
-  folder(site, space, tabs) {
-    if (!window.gZenFolders?.createFolder || !tabs.length) return 0;
-    gZenFolders.createFolder(tabs, { label: site, workspaceId: space || undefined, collapsed: true });
-    return tabs.length;
+    return this.closePicked(tabs);
   },
 
   // Closing what you picked on the page: anything but essentials.
@@ -189,7 +256,39 @@ const Act = {
     tabs = tabs.filter(t => t.isConnected && !t.hasAttribute("zen-essential"));
     if (!tabs.length) return 0;
     gBrowser.removeTabs(tabs, { animate: false, suppressWarnAboutClosingWindow: true });
-    this.closed = tabs.length;
+    const n = tabs.length;
+    this.closed = n;
+    this.remember(`Closed ${n} tab${n === 1 ? "" : "s"}`, () => this.reopen(n));
+    return n;
+  },
+
+  // Reopen the last n closed tabs, staying on the tab you're on (the
+  // manager's page, say).
+  reopen(n) {
+    const stay = gBrowser.selectedTab;
+    for (let i = 0; i < n; i++) {
+      try {
+        SessionStore.undoCloseTab(window, 0);
+      } catch (e) {
+        console.error("[Zenith Tab manager] reopen", e);
+        break;
+      }
+    }
+    if (stay?.isConnected) gBrowser.selectedTab = stay;
+    return n;
+  },
+
+  undo() {
+    const n = this.closed;
+    this.closed = 0;
+    return this.reopen(n);
+  },
+
+  sleep(tabs) {
+    tabs = tabs.filter(t => t.isConnected && !t.selected && Look.awake(t));
+    if (!tabs.length) return 0;
+    if (typeof gBrowser.explicitUnloadTabs === "function") gBrowser.explicitUnloadTabs(tabs);
+    else for (const t of tabs) gBrowser.discardBrowser(t, true);
     return tabs.length;
   },
 
@@ -204,31 +303,96 @@ const Act = {
     return tabs.length;
   },
 
-  move(tabs, space) {
-    tabs = tabs.filter(t => t.isConnected && !t.hasAttribute("zen-essential") && Look.space(t) !== space);
-    if (!tabs.length || !window.gZenWorkspaces?.moveTabsToWorkspace) return 0;
-    gZenWorkspaces.moveTabsToWorkspace(tabs, space);
+  // A new folder: Zen's (its tabs pinned), or one that doesn't pin.
+  folder(name, space, tabs, { unpinned = false } = {}) {
+    if (!window.gZenFolders?.createFolder || !tabs.length) return null;
+    const folder = gZenFolders.createFolder(tabs, { label: name, workspaceId: space || undefined, collapsed: false });
+    if (unpinned && folder) window.ZenithGroups?.setUnpinned(folder, true);
+    return folder;
+  },
+
+  // Take tabs out of their folders or groups, as ordinary tabs again.
+  takeOut(tabs) {
+    tabs = tabs.filter(t => t.isConnected && Look.ownGroup(t) && !t.hasAttribute("zen-essential"));
+    if (!tabs.length) return 0;
+    const before = this.snapshot(tabs);
+    for (const t of tabs) {
+      const fromFolder = Look.ownGroup(t)?.isZenFolder;
+      this.outOf(t);
+      if (fromFolder && t.pinned) gBrowser.unpinTab(t);
+    }
+    this.remember(`Took ${tabs.length} out`, () => this.restore(before));
     return tabs.length;
   },
 
-  // Into a folder: an existing one (Zen's or a group), in its space, or a
-  // new one in the first tab's space.
+  // To another space, keeping what they are: pinned stays pinned, a tab
+  // leaves its folder or group (which stays where it is), and a split view
+  // moves whole.
+  move(tabs, space) {
+    tabs = tabs.filter(t => t.isConnected && !t.hasAttribute("zen-essential") && Look.space(t) !== space);
+    if (!tabs.length || !window.gZenWorkspaces?.moveTabsToWorkspace) return 0;
+    const all = [...new Set(tabs.flatMap(t => Look.splitOf(t)?.tabs ?? [t]))];
+    const before = this.snapshot(all);
+    for (const t of all) {
+      const g = Look.ownGroup(t);
+      if (g && g.getAttribute("zen-workspace-id") !== space) {
+        const pinned = t.pinned;
+        this.outOf(t);
+        if (pinned && !t.pinned) gBrowser.pinTab(t);
+      }
+    }
+    gZenWorkspaces.moveTabsToWorkspace(all, space);
+    this.remember(`Moved ${all.length} to ${Look.spaceName(space)}`, () => this.restore(before));
+    return all.length;
+  },
+
+  // A whole folder (or group) to another space.
+  moveFolder(folder, space) {
+    const from = folder.getAttribute("zen-workspace-id");
+    if (!folder?.isConnected || from === space) return false;
+    if (folder.isZenFolder && window.gZenFolders?.changeFolderToSpace) {
+      gZenFolders.changeFolderToSpace(folder, space);
+    } else {
+      gZenWorkspaces.moveTabsToWorkspace(folder.tabs, space);
+    }
+    this.remember(`Moved ${folder.label || "a folder"}`, () => this.moveFolder(folder, from));
+    return true;
+  },
+
+  // Into a folder or group: an existing one (in its space), or a new one,
+  // "folder" (Zen's, pinned) or "group" (one that doesn't pin: a folder set
+  // to act unpinned, or Firefox's group, as "Groups that don't pin" says).
   into(tabs, target) {
     tabs = tabs.filter(t => t.isConnected && !t.hasAttribute("zen-essential"));
     if (!tabs.length) return 0;
+    const before = this.snapshot(tabs);
+    const done = this.place(tabs, target);
+    if (done) this.remember(`Put ${tabs.length} in ${target.folder?.label || target.name || "a folder"}`, () => this.restore(before));
+    return done;
+  },
+
+  place(tabs, target) {
     if (target.folder) {
       const folder = target.folder, space = folder.getAttribute("zen-workspace-id");
-      if (space) this.move(tabs, space);
-      folder.addTabs(tabs.filter(t => t.group !== folder));
+      if (space) for (const t of tabs) if (Look.space(t) !== space) gZenWorkspaces.moveTabsToWorkspace([t], space);
+      const firefoxGroup = !folder.isZenFolder;
+      for (const t of tabs) if (firefoxGroup && t.pinned) gBrowser.unpinTab(t);
+      folder.addTabs(tabs.filter(t => Look.ownGroup(t) !== folder));
       return tabs.length;
     }
     const space = target.space || Look.space(tabs[0]);
-    if (space) this.move(tabs, space);
-    if (target.group && gBrowser.addTabGroup && Services.prefs.getBoolPref("browser.tabs.groups.enabled", false)) {
+    for (const t of tabs) if (space && Look.space(t) !== space) gZenWorkspaces.moveTabsToWorkspace([t], space);
+    const mode = window.ZenithGroups?.mode ?? "off";
+    if (target.kind === "group" && mode === "firefox" && gBrowser.addTabGroup) {
+      for (const t of tabs) {
+        if (Look.ownGroup(t)) this.outOf(t);
+        if (t.pinned) gBrowser.unpinTab(t);
+      }
       gBrowser.addTabGroup(tabs, { label: target.name || "Group", insertBefore: tabs[0] });
       return tabs.length;
     }
-    return this.folder(target.name || "Folder", space, tabs);
+    for (const t of tabs) if (Look.ownGroup(t)) this.outOf(t);
+    return this.folder(target.name || "Folder", space, tabs, { unpinned: target.kind === "group" && mode === "folders" }) ? tabs.length : 0;
   },
 
   go(tab) {
@@ -238,10 +402,10 @@ const Act = {
     Promise.resolve(switched).then(() => (gBrowser.selectedTab = tab));
   },
 
-  // Every folder and group, for "into a folder" lists: Zen's folders (and
-  // groups, when they're on), with the space they're in.
+  // Every folder and group in every space (Zen's folders, Firefox's groups;
+  // not split views or live folders).
   folders() {
-    const all = window.gZenWorkspaces?.allTabGroups ?? gBrowser.tabGroups ?? [];
+    const all = [...(window.gZenWorkspaces?.allTabGroups ?? []), ...document.querySelectorAll("zen-folder, tab-group")];
     return [...new Set(all)].filter(g => g.isConnected && !g.isLiveFolder && !g.hasAttribute("split-view-group"));
   },
 };
@@ -290,15 +454,18 @@ const Rules = {
       const linked = folders.find(f => f.id === rule.folder);
       if (linked) return linked;
     }
+    // One with the rule's name in the tab's space, of the rule's kind: a
+    // folder (pinned) or a group (a folder that doesn't pin, or Firefox's).
     const space = Look.space(tab);
+    const loose = f => !f.isZenFolder || f.hasAttribute("zenith-unpinned");
     return folders.find(f => (f.label || "") === (rule.name || "") && f.getAttribute("zen-workspace-id") === space &&
-                             (rule.kind === "group" ? !f.isZenFolder : f.isZenFolder)) ?? null;
+                             (rule.kind === "group" ? loose(f) : !loose(f))) ?? null;
   },
 
   done: new WeakMap(), // tab → the site a rule last acted on
 
   apply(tab, rules = this.list) {
-    if (!tab?.isConnected || tab.closing || tab.group || tab.hasAttribute("zen-essential") || tab.hasAttribute("zen-glance-tab") ||
+    if (!tab?.isConnected || tab.closing || Look.ownGroup(tab) || tab.hasAttribute("zen-essential") || tab.hasAttribute("zen-glance-tab") ||
         tab.hasAttribute("zen-empty-tab")) return false;
     const site = Look.site(tab);
     if (this.done.get(tab) === site) return false;
@@ -307,7 +474,7 @@ const Rules = {
     this.done.set(tab, site);
     const folder = this.folderOf(rule, tab);
     const wasSelected = tab.selected;
-    Act.into([tab], folder ? { folder } : { name: rule.name || site, group: rule.kind === "group", space: Look.space(tab) });
+    Act.place([tab], folder ? { folder } : { name: rule.name || site, kind: rule.kind === "group" ? "group" : "folder", space: Look.space(tab) });
     // A tab you were looking at goes with you to its new space.
     const space = Look.space(tab);
     if (wasSelected && space && space !== window.gZenWorkspaces?.activeWorkspace) Act.go(tab);
@@ -453,23 +620,21 @@ const Page = {
 
 
 
-/* --- The card ---------------------------------------------------------------------- */
-
+/* --- The card ---------------------------------------------------------------------
+   "Opens as: a card over the page" shows the same page (about:zenith-tabs,
+   with ?compact) in a frosted card: one list by space, tidying folded away,
+   the same actions. Esc or a click outside closes it. */
 const Manager = {
   build() {
     this.host = make("div", { id: "zenith-tabs" });
     this.host.hidden = true;
-    this.card = make("div", { id: "zenith-tabs-card", tabindex: "-1" });
+    this.card = make("div", { id: "zenith-tabs-card" });
+    this.frame = make("iframe", { id: "zenith-tabs-frame" });
+    this.card.append(this.frame);
     this.host.append(this.card);
     (document.getElementById("zen-main-app-wrapper") ?? document.body).append(this.host);
     this.host.addEventListener("mousedown", e => {
       if (e.target === this.host) this.hide();
-    });
-    this.card.addEventListener("keydown", e => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        this.hide();
-      }
     });
   },
 
@@ -477,161 +642,25 @@ const Manager = {
     return !!this.host && !this.host.hidden;
   },
 
-  show() {
+  async show() {
+    if (!(await (Page.ready ??= Page.register()))) return;
     if (!this.host) this.build();
     this.host.hidden = false;
-    this.render();
-    this.card.focus();
+    // A fresh look each time it opens.
+    this.frame.src = "about:zenith-tabs?compact";
+    this.frame.addEventListener("load", () => this.frame.contentWindow?.focus(), { once: true });
   },
 
   hide() {
-    if (this.host) this.host.hidden = true;
+    if (!this.host || this.host.hidden) return;
+    this.host.hidden = true;
+    this.frame.src = "about:blank";
+    gBrowser.selectedBrowser.focus();
   },
 
   toggle() {
     if (this.open) this.hide();
     else this.show();
-  },
-
-  get days() {
-    return Services.prefs.getIntPref(DAYS_PREF, 7);
-  },
-
-  // A short note at the foot ("Closed 3 tabs"), with Undo after closing.
-  say(text, undo = false) {
-    this.note = { text, undo };
-    this.render();
-  },
-
-  render() {
-    const r = Look.report(this.days);
-    this.report = r;
-    const awakeCount = r.tabs.filter(t => Look.awake(t)).length;
-    const head = make("div", { class: "zth-tm-head" });
-    head.append(make("h2", {}, "Tabs"),
-                make("span", { class: "zth-tm-sum" },
-                     `${r.tabs.length} tab${r.tabs.length === 1 ? "" : "s"} · ${awakeCount} awake · ${r.spaces.length || 1} space${r.spaces.length === 1 ? "" : "s"}`));
-    const close = make("button", { class: "zth-tm-x", type: "button", title: "Close (Esc)" }, "×");
-    close.addEventListener("click", () => this.hide());
-    head.append(close);
-    const body = make("div", { class: "zth-tm-body" });
-
-    // Spaces
-    if (r.spaces.length) {
-      const list = make("div", { class: "zth-tm-spaces" });
-      for (const s of r.spaces) {
-        const chip = make("button", { class: "zth-tm-space", type: "button" });
-        chip.append(make("span", { class: "zth-tm-space-name" }, s.space.name || "Space"),
-                    make("span", { class: "zth-tm-space-n" }, `${s.count} · ${s.awake} awake`));
-        if (s.space.uuid === gZenWorkspaces.activeWorkspace) chip.setAttribute("here", "true");
-        chip.addEventListener("click", () => {
-          this.hide();
-          gZenWorkspaces.changeWorkspaceWithID(s.space.uuid);
-        });
-        list.append(chip);
-      }
-      if (r.essentials) list.append(make("span", { class: "zth-tm-ess" }, `${r.essentials} essential${r.essentials === 1 ? "" : "s"}`));
-      body.append(list);
-    }
-
-    body.append(this.section("dupes", "Duplicates", "The same page open more than once. The one you used last stays.",
-                             r.duplicates, [["Close them", tabs => this.say(`Closed ${Act.close(tabs)} duplicate${tabs.length === 1 ? "" : "s"}`, true)]]));
-    const stale = this.section("stale", `Not used in ${this.days} days`, "Tabs you haven't been to for a while.",
-                               r.stale, [["Put to sleep", tabs => this.say(`Put ${Act.sleep(tabs)} to sleep`)],
-                                         ["Close them", tabs => this.say(`Closed ${Act.close(tabs)} tab${tabs.length === 1 ? "" : "s"}`, true)]]);
-    const choose = make("span", { class: "zth-tm-days" });
-    for (const d of [3, 7, 14, 30]) {
-      const b = make("button", { type: "button" }, `${d}d`);
-      if (d === this.days) b.setAttribute("selected", "true");
-      b.addEventListener("click", () => {
-        Services.prefs.setIntPref(DAYS_PREF, d);
-        this.render();
-      });
-      choose.append(b);
-    }
-    stale.querySelector(".zth-tm-section-head").append(choose);
-    body.append(stale);
-    body.append(this.section("awake", "Awake", "Loaded and using memory, besides the tab you're on (playing tabs stay awake).",
-                             r.awake, [["Put to sleep", tabs => this.say(`Put ${Act.sleep(tabs)} to sleep`)]]));
-
-    // Busy sites
-    const busy = make("section", { class: "zth-tm-section", "data-kind": "busy" });
-    const bhead = make("div", { class: "zth-tm-section-head" });
-    bhead.append(make("h3", {}, "Busy sites"), make("span", { class: "zth-tm-count" }, String(r.busy.length)));
-    busy.append(bhead, make("p", { class: "zth-tm-why" }, `One site with ${BUSY} or more loose tabs in a space: a folder keeps them together.`));
-    if (!r.busy.length) busy.append(make("p", { class: "zth-tm-none" }, "None"));
-    for (const b of r.busy) {
-      const row = make("div", { class: "zth-tm-busy" });
-      row.append(make("span", { class: "zth-tm-title" }, b.site),
-                 make("span", { class: "zth-tm-site" }, `${b.tabs.length} tabs${Look.spaceName(b.space) ? ` · ${Look.spaceName(b.space)}` : ""}`));
-      const go = make("button", { type: "button", class: "zth-tm-act" }, "Make a folder");
-      go.addEventListener("click", () => this.say(`Put ${Act.folder(b.site, b.space, b.tabs)} tabs in a folder “${b.site}”`));
-      if (!window.gZenFolders?.createFolder) go.disabled = true;
-      row.append(go);
-      busy.append(row);
-    }
-    body.append(busy);
-
-    const foot = make("div", { class: "zth-tm-foot" });
-    if (this.note) {
-      foot.append(make("span", {}, this.note.text));
-      if (this.note.undo && Act.closed) {
-        const undo = make("button", { type: "button", class: "zth-tm-act" }, "Undo");
-        undo.addEventListener("click", () => {
-          const n = Act.undo();
-          this.say(`Reopened ${n} tab${n === 1 ? "" : "s"}`);
-        });
-        foot.append(undo);
-      }
-      this.note = null;
-    } else {
-      foot.append(make("span", {}, "Untick what you want to keep, then press a button. Esc closes."));
-    }
-    this.card.replaceChildren(head, body, foot);
-  },
-
-  // A suggestion: its tabs, ticked, and its buttons (each acts on the
-  // ticked ones).
-  section(kind, title, why, tabs, actions) {
-    const box = make("section", { class: "zth-tm-section", "data-kind": kind });
-    const head = make("div", { class: "zth-tm-section-head" });
-    head.append(make("h3", {}, title), make("span", { class: "zth-tm-count" }, String(tabs.length)));
-    box.append(head, make("p", { class: "zth-tm-why" }, why));
-    if (!tabs.length) {
-      box.append(make("p", { class: "zth-tm-none" }, "None"));
-      return box;
-    }
-    const list = make("div", { class: "zth-tm-list" });
-    const ticks = [];
-    const now = Date.now();
-    for (const t of tabs.slice(0, 50)) {
-      const row = make("label", { class: "zth-tm-row" });
-      const tick = make("input", { type: "checkbox", checked: "checked" });
-      ticks.push([tick, t]);
-      const icon = make("span", { class: "zth-tm-icon" });
-      const img = t.getAttribute("image");
-      if (img) icon.append(make("img", { src: img, alt: "" }));
-      const text = make("span", { class: "zth-tm-text" });
-      text.append(make("span", { class: "zth-tm-title" }, t.label || Look.site(t)));
-      const where = [Look.site(t), Look.space(t) !== gZenWorkspaces?.activeWorkspace ? Look.spaceName(Look.space(t)) : "",
-                     kind === "stale" ? `${Math.floor((now - t.lastAccessed) / DAY)} days ago` : ""].filter(Boolean).join(" · ");
-      text.append(make("span", { class: "zth-tm-site" }, where));
-      row.append(tick, icon, text);
-      list.append(row);
-    }
-    if (tabs.length > 50) list.append(make("p", { class: "zth-tm-none" }, `and ${tabs.length - 50} more (they're included)`));
-    box.append(list);
-    const buttons = make("div", { class: "zth-tm-actions" });
-    for (const [label, fn] of actions) {
-      const b = make("button", { type: "button", class: "zth-tm-act" }, label);
-      b.addEventListener("click", () => {
-        const chosen = ticks.filter(([tick]) => tick.checked).map(([, t]) => t).concat(tabs.slice(50));
-        if (chosen.length) fn(chosen);
-      });
-      buttons.append(b);
-    }
-    box.append(buttons);
-    return box;
   },
 };
 

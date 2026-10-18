@@ -1,34 +1,45 @@
-"""The tab manager as a page (about:zenith-tabs), checked inside Zen:
+"""The tab manager (about:zenith-tabs), checked inside Zen:
 - Alt+Shift+T's command opens the page in a tab (and goes back to it the
-  second time); "a card" opens the card instead;
-- a column per space with its tabs (pinned and folders first), essentials
-  on top, the page itself left out; search narrows them;
-- picking (click, Ctrl, Shift) and the bar: move to a space, into a new
-  folder, sleep, wake, close with Undo;
-- tidying up picks duplicates for you;
-- rules: a grouping rule puts a matching tab into a folder when it loads;
-  auto-sleep and auto-close act only once set, and auto-close lists what
-  it closed to bring back."""
+  second time); "a card" opens the same page, compact, over the page;
+- a column per space with its tabs: folders (pinned) and groups (not),
+  tabs in Firefox's groups too, essentials on top; the page itself left out;
+- picking with tick boxes (a click picks, Shift picks a range) and the bar:
+  move to a space (a pinned tab stays pinned, a tab leaves its folder),
+  into a new folder or group, take out, sleep, wake, close; Undo for each,
+  and reopening keeps the page in front;
+- a whole folder dragged to another space;
+- tidying up lists its tabs ticked; unticking one leaves it out;
+- memory per awake tab;
+- rules: a grouping rule puts a matching tab into a folder or a group;
+  auto-sleep and auto-close act only once set."""
 import json, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from scenarios import Scene
 
-PAGE = "const P = gBrowser.visibleTabs.find(t => t.linkedBrowser.currentURI.spec === 'about:zenith-tabs'); const doc = P?.linkedBrowser.contentDocument, pw = P?.linkedBrowser.contentWindow;"
+PAGE = "const P = gBrowser.tabs.find(t => t.linkedBrowser.currentURI.spec === 'about:zenith-tabs'); const doc = P?.linkedBrowser.contentDocument, pw = P?.linkedBrowser.contentWindow;"
+ROW = "const row = title => [...doc.querySelectorAll('.space .tab')].find(r => r.querySelector('.title').textContent === title);"
+CLICK = "const click = (n, opts = {}) => n.dispatchEvent(new pw.MouseEvent('click', { bubbles: true, ...opts }));"
+BAR = "const bar = b => [...doc.getElementById('bar').querySelectorAll('button')].find(x => x.textContent.startsWith(b));"
+MENU = "const pickMenu = l => [...doc.querySelectorAll('#menu .item')].find(i => i.textContent.startsWith(l)).click();"
+H = PAGE + ROW + CLICK + BAR + MENU
 
 res = {}
+import atexit
+atexit.register(lambda: print(json.dumps(res, indent=1, ensure_ascii=False)))
 with Scene() as z:
     res["setup"] = z.js("""const b = arguments[0], W = gZenWorkspaces;
-      for (const n of ['a', 'b', 'a', 'c']) { zth.open(b + '/page?n=' + n); await zth.sleep(400); }
+      Services.prefs.clearUserPref('zenith.plus.unpinned-groups');
+      for (const n of ['a', 'b', 'a', 'c', 'd']) { zth.open(b + '/page?n=' + n); await zth.sleep(350); }
       if (W.getWorkspaces().length < 2) { await W.createAndSaveWorkspace('Work', undefined, true); await zth.sleep(500); }
       window.zthHome = W.activeWorkspace; window.zthWork = W.getWorkspaces().find(w => w.uuid !== zthHome).uuid;
       gBrowser.pinTab(gBrowser.visibleTabs.find(t => t.label === 'Test page c')); await zth.sleep(300);
       document.getElementById('zenith-tabs-command').doCommand(); await zth.sleep(1500);
       """ + PAGE + """
-      return { page: !!P, url: P?.linkedBrowser.currentURI.spec, remote: P?.linkedBrowser.isRemoteBrowser, title: doc?.title,
-               system: P?.linkedBrowser.contentPrincipal?.isSystemPrincipal, errors: doc ? null : 'no document' };""", z.base)
+      return { page: !!P, url: P?.linkedBrowser.currentURI.spec, system: P?.linkedBrowser.contentPrincipal?.isSystemPrincipal, title: doc?.title,
+               'tick boxes': doc.querySelectorAll('.tab input.pick').length };""", z.base)
 
-    res["columns"] = z.js(PAGE + """
+    res["columns"] = z.js(H + """
       return [...doc.querySelectorAll('.space')].map(s => [s.querySelector('header .name').textContent,
         [...s.querySelectorAll('.part, .tab .title, .folder .head .name')].map(n => n.textContent)]);""")
     res["again: goes back to it"] = z.js("""const n = gBrowser.tabs.length;
@@ -36,101 +47,107 @@ with Scene() as z:
       document.getElementById('zenith-tabs-command').doCommand(); await zth.sleep(600);
       return [gBrowser.tabs.length === n, gBrowser.selectedTab.linkedBrowser.currentURI.spec];""")
 
-    res["search"] = z.js(PAGE + """
-      const s = doc.getElementById('search'); s.value = 'page a'; s.dispatchEvent(new pw.Event('input')); await zth.sleep(300);
-      const out = [...doc.querySelectorAll('.tab .title')].map(n => n.textContent);
-      s.value = ''; s.dispatchEvent(new pw.Event('input')); await zth.sleep(300); return out;""")
-
-    res["pick and move"] = z.js(PAGE + """
-      const row = title => [...doc.querySelectorAll('.space .tab')].find(r => r.querySelector('.title').textContent === title);
-      row('Test page b').dispatchEvent(new pw.MouseEvent('click', { bubbles: true }));
-      row('Test page a').dispatchEvent(new pw.MouseEvent('click', { bubbles: true, ctrlKey: true })); await zth.sleep(200);
-      const bar = doc.getElementById('bar');
-      const out = { picked: doc.querySelectorAll('.tab[picked]').length, bar: bar.hidden ? 'hidden' : bar.querySelector('.count').textContent };
-      // Move to… › Work
-      [...bar.querySelectorAll('button')].find(b => b.textContent === 'Move to…').click(); await zth.sleep(100);
-      const items = [...doc.querySelectorAll('#menu .item')].map(i => i.textContent);
-      [...doc.querySelectorAll('#menu .item')].find(i => i.textContent.startsWith('Work')).click(); await zth.sleep(700);
-      out['menu'] = items;
-      out['now in Work'] = gZenWorkspaces.allStoredTabs.filter(t => t.getAttribute('zen-workspace-id') === zthWork).map(t => t.label);
-      out['Work column'] = [...doc.querySelectorAll('.space')][1]?.querySelectorAll('.tab').length;
+    res["pick and move (pinned stays pinned)"] = z.js(H + """
+      click(row('Test page b')); click(row('Test page c')); await zth.sleep(200);
+      const out = { picked: doc.querySelectorAll('.tab[picked]').length, ticked: doc.querySelectorAll('.tab input.pick:checked').length };
+      bar('Move to').click(); await zth.sleep(100); pickMenu('Work'); await zth.sleep(800);
+      const c = gZenWorkspaces.allStoredTabs.find(t => t.label === 'Test page c');
+      out['in Work'] = gZenWorkspaces.allStoredTabs.filter(t => t.getAttribute('zen-workspace-id') === zthWork).map(t => t.label + (t.pinned ? '^' : ''));
+      out['undo offered'] = doc.getElementById('note').textContent;
+      doc.getElementById('note').querySelector('button').click(); await zth.sleep(800);
+      out['after Undo, in Work'] = gZenWorkspaces.allStoredTabs.filter(t => t.getAttribute('zen-workspace-id') === zthWork).map(t => t.label);
+      out['c pinned again at home'] = [c.pinned, c.getAttribute('zen-workspace-id') === zthHome];
       return out;""")
 
-    res["into a new folder"] = z.js(PAGE + """
-      const row = [...doc.querySelectorAll('.space .tab')].find(r => r.querySelector('.title').textContent === 'Test page b');
-      row.dispatchEvent(new pw.MouseEvent('click', { bubbles: true })); await zth.sleep(150);
-      const bar = doc.getElementById('bar');
-      [...bar.querySelectorAll('button')].find(b => b.textContent === 'Into a folder…').click(); await zth.sleep(100);
-      [...doc.querySelectorAll('#menu .item')].find(i => i.textContent.startsWith('New folder')).click(); await zth.sleep(100);
-      const input = bar.querySelector('input'); input.value = 'Later';
+    res["folder, take out, undo"] = z.js(H + """
+      pw.ZenithTabsPage.state.picked.clear(); click(row('Test page d')); await zth.sleep(100);
+      bar('Into').click(); await zth.sleep(100); pickMenu('New folder');
+      const input = doc.getElementById('bar').querySelector('input'); input.value = 'Later';
       input.dispatchEvent(new pw.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await zth.sleep(900);
-      const tab = gZenWorkspaces.allStoredTabs.find(t => t.label === 'Test page b');
-      return { 'in folder': tab?.group?.label, pinned: tab?.pinned, 'shown as folder': [...doc.querySelectorAll('.folder .head .name')].map(n => n.textContent) };""")
+      const d = gZenWorkspaces.allStoredTabs.find(t => t.label === 'Test page d');
+      const out = { 'in folder': [d.group?.label, d.pinned], 'folder shown': [...doc.querySelectorAll('.folder .head .name')].map(n => n.textContent) };
+      pw.ZenithTabsPage.state.picked = new Set([d]); pw.ZenithTabsPage.render(); await zth.sleep(100);
+      bar('Take out').click(); await zth.sleep(700);
+      out['taken out'] = [d.group?.label ?? null, d.pinned];
+      doc.getElementById('undo').click(); await zth.sleep(800);
+      out['undo: back in the folder'] = [d.group?.label ?? null, d.pinned];
+      return out;""")
 
-    res["sleep, wake"] = z.js(PAGE + """
-      const tab = gZenWorkspaces.allStoredTabs.find(t => t.label === 'Test page a' && t.getAttribute('zen-workspace-id') === zthHome) ??
-                  gBrowser.visibleTabs.find(t => t.label === 'Test page c');
-      window.ZenithTabs.Act.sleep([tab]); await zth.sleep(500);
-      const asleep = tab.hasAttribute('pending') || !window.ZenithTabs.Look.awake(tab);
-      window.ZenithTabs.Act.wake([tab]); await zth.sleep(1500);
-      return { tab: tab.label, asleep, 'awake again': window.ZenithTabs.Look.awake(tab) && !tab.hasAttribute('pending') };""")
+    res["a group (doesn't pin)"] = z.js(H + """
+      const a = gZenWorkspaces.allStoredTabs.find(t => t.label === 'Test page a' && !t.pinned);
+      pw.ZenithTabsPage.state.picked = new Set([a]); pw.ZenithTabsPage.render(); await zth.sleep(100);
+      bar('Into').click(); await zth.sleep(100);
+      const items = [...doc.querySelectorAll('#menu .item')].map(i => i.textContent);
+      pickMenu('New group');
+      const input = doc.getElementById('bar').querySelector('input'); input.value = 'Loose';
+      input.dispatchEvent(new pw.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await zth.sleep(900);
+      return { menu: items, group: [a.group?.label, a.group?.hasAttribute('zenith-unpinned')], shown: [...doc.querySelectorAll('.folder .head .kind')].map(n => n.textContent) };""")
 
-    res["close and undo"] = z.js(PAGE + """
+    res["move a whole folder"] = z.js(H + """
+      const folder = [...document.querySelectorAll('zen-folder')].find(f => f.label === 'Later');
+      const ok = window.ZenithTabs.Act.moveFolder(folder, zthWork); await zth.sleep(900);
+      const out = { moved: ok, 'its space': folder.getAttribute('zen-workspace-id') === zthWork, tabs: folder.tabs.map(t => t.getAttribute('zen-workspace-id') === zthWork) };
+      window.ZenithTabs.Act.undoLast(); await zth.sleep(900);
+      out['undo: home'] = folder.getAttribute('zen-workspace-id') === zthHome;
+      return out;""")
+
+    res["close keeps the page in front"] = z.js(H + """
+      const b = gZenWorkspaces.allStoredTabs.find(t => t.label === 'Test page b');
+      pw.ZenithTabsPage.state.picked = new Set([b]); pw.ZenithTabsPage.render(); await zth.sleep(100);
       const n = gZenWorkspaces.allStoredTabs.length;
-      const row = [...doc.querySelectorAll('.space .tab')].find(r => !r.hasAttribute('current') && r.querySelector('.title').textContent.startsWith('Test page'));
-      const title = row.querySelector('.title').textContent;
-      row.dispatchEvent(new pw.MouseEvent('click', { bubbles: true })); await zth.sleep(150);
-      [...doc.getElementById('bar').querySelectorAll('button')].find(b => b.textContent === 'Close').click(); await zth.sleep(600);
+      bar('Close').click(); await zth.sleep(600);
       const after = gZenWorkspaces.allStoredTabs.length;
-      const note = doc.getElementById('note');
-      note.querySelector('button')?.click(); await zth.sleep(1200);
-      return { closed: title, 'tabs': [n, after, gZenWorkspaces.allStoredTabs.length], note: note.textContent };""")
+      doc.getElementById('note').querySelector('button').click(); await zth.sleep(1200);
+      return { tabs: [n, after, gZenWorkspaces.allStoredTabs.length], 'in front': gBrowser.selectedTab.linkedBrowser.currentURI.spec };""")
 
-    res["tidy: duplicates"] = z.js(PAGE + """
-      zth.open(arguments[0] + '/page?n=c'); await zth.sleep(600);
-      gBrowser.selectedTab = gBrowser.visibleTabs.find(t => t.linkedBrowser.currentURI.spec === 'about:zenith-tabs'); await zth.sleep(500);
-      const card = [...doc.querySelectorAll('#tidy .card')].find(c => c.querySelector('h3').textContent === 'Duplicates');
-      const n = card.querySelector('.n').textContent;
-      [...card.querySelectorAll('button')].find(b => b.textContent === 'Pick them').click(); await zth.sleep(200);
-      return { duplicates: n, picked: [...doc.querySelectorAll('.tab[picked] .title')].map(t => t.textContent) };""", z.base)
+    res["tidy: ticked lists"] = z.js(H + """
+      const card = [...doc.querySelectorAll('#tidy .card')].find(c => c.querySelector('h3').textContent === 'Awake');
+      const ticks = card.querySelectorAll('.ticks input');
+      const out = { awake: card.querySelector('.n').textContent, ticked: [...ticks].filter(i => i.checked).length };
+      ticks[0].click(); await zth.sleep(300);
+      const again = [...doc.querySelectorAll('#tidy .card')].find(c => c.querySelector('h3').textContent === 'Awake');
+      out['after unticking one'] = [...again.querySelectorAll('.row button')].map(b => b.textContent);
+      return out;""")
 
-    res["rules page"] = z.js(PAGE + """
+    res["memory"] = z.js(H + """
+      await pw.ZenithTabsPage.measure(); await zth.sleep(400);
+      return { 'rows with memory': [...doc.querySelectorAll('.tab .use')].map(n => n.textContent).slice(0, 4), summary: doc.getElementById('summary').textContent };""")
+
+    res["rules: folder and group"] = z.js(H + """
       doc.querySelector('#views [data-view="rules"]').click(); await zth.sleep(200);
-      doc.querySelector('#rules button.primary').click(); await zth.sleep(200);
-      const out = { rules: window.ZenithTabs.Rules.list.length, editor: [...doc.querySelectorAll('.rule select')].map(s => s.value) };
-      const rule = window.ZenithTabs.Rules.list[0];
-      rule.value = '127.0.0.1'; rule.name = 'Local'; rule.match = 'site';
-      window.ZenithTabs.Rules.save([rule]); await zth.sleep(200);
+      const kinds = () => [...doc.querySelectorAll('.rule select')].map(s => [...s.options].map(o => o.value).join('/')).slice(0, 4);
+      window.ZenithTabs.Rules.save([{ id: 'r1', on: true, match: 'site', value: '127.0.0.1', space: '', kind: 'group', folder: '', name: 'Local' }]); await zth.sleep(300);
+      const out = { editor: kinds() };
       zth.open(arguments[0] + '/page?n=grouped'); await zth.sleep(1800);
-      const tab = gZenWorkspaces.allStoredTabs.find(t => t.label === 'Test page grouped');
-      out['opened tab went to'] = [tab?.group?.label, tab?.pinned];
+      const t = gZenWorkspaces.allStoredTabs.find(x => x.label === 'Test page grouped');
+      out['went to'] = [t?.group?.label, t?.group?.hasAttribute('zenith-unpinned')];
       window.ZenithTabs.Rules.save([]);
       return out;""", z.base)
+
+    res["card: the same page, compact"] = z.js("""
+      Services.prefs.setStringPref('zenith.plus.tab-manager-view', 'card');
+      document.getElementById('zenith-tabs-command').doCommand(); await zth.sleep(1500);
+      const frame = document.getElementById('zenith-tabs-frame'), doc = frame?.contentDocument;
+      const out = { open: !document.getElementById('zenith-tabs')?.hidden, url: frame?.contentWindow?.location.href, compact: doc?.body.classList.contains('compact'),
+                    spaces: [...(doc?.querySelectorAll('.space header .name') ?? [])].map(n => n.textContent) };
+      // A space's name folds it here, without switching.
+      const here = gZenWorkspaces.activeWorkspace;
+      doc.querySelectorAll('.space header')[1]?.dispatchEvent(new frame.contentWindow.MouseEvent('click', { bubbles: true })); await zth.sleep(300);
+      out['click a space: folded, same space'] = [doc.querySelectorAll('.space[folded]').length, gZenWorkspaces.activeWorkspace === here];
+      doc.dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await zth.sleep(300);
+      out['Esc closes'] = document.getElementById('zenith-tabs').hidden;
+      Services.prefs.clearUserPref('zenith.plus.tab-manager-view');
+      return out;""")
 
     res["on their own"] = z.js("""
       const A = window.ZenithTabs.Auto, L = window.ZenithTabs.Look;
       const out = { 'never: sleeps': A.sleep(), 'never: closes': A.close() };
-      // Make two loose tabs look unused for a week.
-      const loose = L.tabs().filter(t => !t.pinned && !t.group && !t.selected && !t.hasAttribute('zen-essential')).slice(0, 2);
+      const loose = L.tabs().filter(t => !t.pinned && !L.ownGroup(t) && !t.selected && !t.hasAttribute('zen-essential')).slice(0, 2);
       for (const t of loose) t.updateLastAccessed(Date.now() - 8 * 86400000);
-      Services.prefs.setStringPref('zenith.plus.tabs-auto-sleep', '30');
-      out['30 min: slept'] = A.sleep(); await zth.sleep(300);
       Services.prefs.setStringPref('zenith.plus.tabs-auto-close', '7');
-      const titles = loose.map(t => t.label);
       out['7 days: closed'] = A.close(); await zth.sleep(300);
-      out['listed'] = A.closedList.map(i => i.title).filter(t => titles.includes(t));
-      const back = A.reopen(A.closedList[0]); await zth.sleep(800);
-      out['reopened'] = !!back?.isConnected;
       for (const p of ['zenith.plus.tabs-auto-sleep', 'zenith.plus.tabs-auto-close', 'zenith.internal.tabs.auto-closed']) Services.prefs.clearUserPref(p);
       return out;""")
-
-    res["card instead"] = z.js("""
-      Services.prefs.setStringPref('zenith.plus.tab-manager-view', 'card');
-      document.getElementById('zenith-tabs-command').doCommand(); await zth.sleep(400);
-      const out = !document.getElementById('zenith-tabs')?.hidden;
-      window.ZenithTabs.hide(); Services.prefs.clearUserPref('zenith.plus.tab-manager-view');
-      return out;""")
-    res["page errors"] = z.js("""return Services.console.getMessageArray().filter(m => /tab-manager|zenith-tabs/.test(m.message ?? m.errorMessage ?? '') && /rror/.test(m.message ?? m.errorMessage ?? ''))
-      .map(m => (m.message ?? m.errorMessage).slice(0, 200)).slice(-5);""")
+    res["page errors"] = z.js("""return Services.console.getMessageArray().filter(m => { try { m.QueryInterface(Ci.nsIScriptError); return /tab-manager|zenith-tabs/.test(m.sourceName + m.errorMessage) && !(m.flags & 1); } catch { return false; } })
+      .map(m => `${m.sourceName.split('/').pop()}:${m.lineNumber} ${m.errorMessage}`.slice(0, 200)).slice(-5);""")
     res["css errors"] = z.console_errors()
-print(json.dumps(res, indent=1, ensure_ascii=False))

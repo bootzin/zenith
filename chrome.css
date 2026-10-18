@@ -322,9 +322,11 @@
 /* Around the page, and behind the docked sidebar: the window background is
    the glass colour. Zen's own workspace paint (two layers that cross-fade
    between workspaces) is part of that colour, so it steps aside; the grain
-   stays. "Zen's own" sidebar leaves all of this to Zen. */
+   stays. "Zen's own" sidebar leaves all of this to Zen. With Zenith Plus
+   and Space colour "Its gradient", Zen's gradient shows through the glass
+   (--zth-desk-paint, built by Plus from what Zen paints). */
 :root:not(:has(#theme-Zenith[zenith-core-floating-sidebar="zen"])) #zen-browser-background {
-  background: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent) !important;
+  background: var(--zth-desk-paint, color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent)) !important;
   transition: background-color 0.3s ease !important;
 
   &::before,
@@ -355,7 +357,7 @@
 
   &::after {
     opacity: 1 !important;
-    background: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent) !important;
+    background: var(--zth-desk-paint, color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent)) !important;
     transition: background-color 0.3s ease !important;
   }
 }
@@ -943,15 +945,20 @@
 
 /* --- Pin mark (Informative) ----------------------------------------------
    A small pin, without a circle, where the sleeping moon goes: pinned tabs
-   read as pinned at a glance. Not on essentials or tabs in a folder (Zen
-   pins those too, but they read as the folder's), and a sleeping pinned tab
-   shows the moon instead. */
+   read as pinned at a glance, and so do folders and the tabs in them (Zen
+   pins those), except folders set not to pin. Not on essentials; a sleeping
+   pinned tab shows the moon instead. */
 :root:is(
     :has(#theme-Zenith[zenith-tabs-pin-mark="on"]),
     :not(:has(#theme-Zenith:is([zenith-tabs-pin-mark="off"], [zenith-tabs-preset="plain"])))
   )
-  .tabbrowser-tab[pinned]:not([zen-essential], [zen-glance-tab], [pending]:not([selected]), zen-folder *)
-  > .tab-stack > .tab-content > .tab-icon-stack {
+  .tabbrowser-tab[pinned]:not([zen-essential], [zen-glance-tab], [pending]:not([selected]), zen-folder[zenith-unpinned] *)
+  > .tab-stack > .tab-content > .tab-icon-stack,
+:root:is(
+    :has(#theme-Zenith[zenith-tabs-pin-mark="on"]),
+    :not(:has(#theme-Zenith:is([zenith-tabs-pin-mark="off"], [zenith-tabs-preset="plain"])))
+  )
+  zen-folder:not([zenith-unpinned], [split-view-group]) > .tab-group-label-container > .tab-group-folder-icon {
   &:not([zen-pinned-changed="true"] *) {
     position: relative;
   }
@@ -3036,7 +3043,7 @@
 #zenith-toasts {
   position: fixed;
   inset: 12px 12px auto auto;
-  z-index: 300;
+  z-index: 410 !important; /* (Zen sets 1 on its wrapper's children) */
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -3213,7 +3220,7 @@ browser[zenith-see-through] {
   --zth-edge-opacity: 0 !important;
 
   & :is(#zenith-load-edge, #zenith-download-edge, #zenith-insecure-hint, #zenith-minimap, .zenith-zoom-pill,
-        #zenith-dots, #zenith-ready, #statuspanel) {
+        #zenith-dots, #zenith-ready, #statuspanel, #PersonalToolbar) {
     display: none !important;
   }
 }
@@ -3222,13 +3229,19 @@ browser[zenith-see-through] {
   --zth-edge-opacity: 1 !important;
 }
 
+/* Notices go over everything Zenith shows (the settings panel included), and
+   so do Zen's own toasts ("Copied"), which Plus moves up beside them. */
+#zen-toast-container {
+  z-index: 415 !important;
+}
+
 /* A short note at the foot of the page ("Focus mode · Alt+Z to leave"). */
 #zenith-hint {
   position: fixed;
   inset: auto 0 28px 0;
   width: fit-content;
   margin-inline: auto;
-  z-index: 310;
+  z-index: 420 !important; /* (Zen sets 1 on its wrapper's children) */
   padding: 6px 14px;
   border-radius: var(--zth-pill-radius, 999px);
   corner-shape: var(--zth-pill-shape, round);
@@ -3381,7 +3394,7 @@ menuseparator[zenith-collapse] {
 #zenith-switcher {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 300 !important; /* (Zen sets 1 on its wrapper's children) */
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -3625,6 +3638,48 @@ menuseparator[zenith-collapse] {
   display: none !important;
 }
 
+/* Zen's extensions panel: the buttons pinned only in other spaces, listed
+   under the unpinned ones with "Pin here". */
+#zenith-other-space-extensions {
+  padding: 4px 0;
+  border-top: 1px solid var(--zth-hairline);
+  margin-top: 4px;
+
+  &[hidden] {
+    display: none;
+  }
+
+  & .zenith-ose-head {
+    margin: 4px 10px 2px;
+    color: var(--zth-ink-dim);
+    font-size: 0.85em;
+  }
+
+  & .zenith-ose-row {
+    gap: 8px;
+    padding: 2px 6px 2px 10px;
+    min-height: var(--zth-row);
+  }
+
+  & .zenith-ose-icon {
+    width: 16px;
+    height: 16px;
+    list-style-image: var(--webextension-toolbar-image, var(--webextension-menupanel-image));
+  }
+
+  & .zenith-ose-name {
+    margin: 0;
+  }
+
+  & .zenith-ose-pin {
+    margin: 0 !important;
+    min-height: 0 !important;
+    padding: 2px 10px !important;
+    border-radius: var(--zth-pill-radius) !important;
+    background: color-mix(in srgb, currentColor 8%, transparent) !important;
+  }
+}
+
 /* === Bookmarks (Ctrl+B) ============================================================ */
 
 /* The panel: glass like the other panels, over the right of the page
@@ -3700,9 +3755,14 @@ menuseparator[zenith-collapse] {
    animated pictures); hidden with "Bookmarks in Zen's Library" off. */
 .zen-library-tab[data-section="zenith-bookmarks"] .zen-library-tab-icon-image {
   width: var(--zen-library-sprite-size, 28px) !important;
-  background: var(--stroke, currentColor) !important;
-  mask: url("chrome://browser/skin/zen-icons/bookmark.svg") center / 20px no-repeat;
-  opacity: 0.85;
+  height: var(--zen-library-sprite-size, 28px) !important;
+  /* (Zenith's accent, not Zen's --stroke, which some themes leave unset;
+     and not Zen's sprite animation, which would slide it out of view.) */
+  background: var(--zth-accent, currentColor) !important;
+  mask: url("chrome://browser/skin/zen-icons/bookmark.svg") center / 20px no-repeat !important;
+  animation: none !important;
+  transform: none !important;
+  opacity: 0.9;
 }
 
 :root[zenith-bm-library-off] .zen-library-tab[data-section="zenith-bookmarks"] {
@@ -3733,17 +3793,19 @@ zenith-bookmarks-host.zen-library-section {
   }
 }
 
+/* (!important: Zen orders these itself, and Zenith's sheet is a user sheet,
+   which loses to Zen's otherwise.) */
 :root[zenith-bm-look="firefox"]:is([zenith-bm-place="float"], [zenith-bm-place="right"]) {
   & #tabbrowser-tabpanels {
-    order: 1;
+    order: 1 !important;
   }
 
   & #sidebar-splitter {
-    order: 2;
+    order: 2 !important;
   }
 
   & #sidebar-box {
-    order: 3;
+    order: 3 !important;
   }
 }
 
@@ -3756,16 +3818,17 @@ zenith-bookmarks-host.zen-library-section {
   box-shadow: var(--zth-shadow);
 }
 
-/* === Tab manager (Alt+Shift+T) ================================================== */
+/* === Tab manager (Alt+Shift+T, as a card) ========================================= */
 
+/* The page (about:zenith-tabs?compact) in a frosted card over the page. */
 #zenith-tabs {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 290 !important; /* (Zen sets 1 on its wrapper's children) */
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 8vh;
+  padding-top: 7vh;
 
   &[hidden] {
     display: none;
@@ -3774,267 +3837,23 @@ zenith-bookmarks-host.zen-library-section {
 
 #zenith-tabs-card {
   display: flex;
-  flex-direction: column;
-  width: min(720px, 90vw);
-  max-height: 84vh;
+  width: min(560px, 92vw);
+  height: min(640px, 84vh);
   box-sizing: border-box;
   border-radius: calc(var(--zth-radius) + 4px);
   outline: 1px solid var(--zth-hairline);
   background: var(--zth-panel-bg);
   backdrop-filter: var(--zth-panel-filter);
   box-shadow: var(--zth-shadow), var(--zth-glass-shine);
-  color: var(--zth-ink);
-  font: var(--zth-font) / 1.35 system-ui, sans-serif;
-  animation: zth-enter var(--zth-dur) var(--zth-ease);
-
-  &:focus-visible {
-    outline: 1px solid var(--zth-hairline);
-  }
-
-  & h2 {
-    margin: 0;
-    font-size: 1.25em;
-    font-weight: 600;
-  }
-
-  & h3 {
-    margin: 0;
-    font-size: 1em;
-    font-weight: 600;
-  }
-
-  & button {
-    appearance: none;
-    margin: 0;
-    min-height: 0;
-    font: inherit;
-    color: inherit;
-    cursor: pointer;
-  }
-}
-
-.zth-tm-head {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 14px 18px 10px;
-  border-bottom: 1px solid var(--zth-hairline);
-}
-
-.zth-tm-sum {
-  color: var(--zth-ink-dim);
-}
-
-.zth-tm-x {
-  margin-inline-start: auto !important;
-  border: none;
-  background: none;
-  color: var(--zth-ink-dim) !important;
-  font-size: 1.4em !important;
-  line-height: 1;
-}
-
-.zth-tm-body {
-  overflow-y: auto;
-  padding: 6px 18px 12px;
-  scrollbar-width: thin;
-}
-
-.zth-tm-spaces {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 0 10px;
-}
-
-.zth-tm-space {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  padding: 4px 12px;
-  border: 1px solid var(--zth-hairline);
-  border-radius: var(--zth-pill-radius);
-  corner-shape: var(--zth-pill-shape);
-  background: color-mix(in srgb, var(--zth-ink) 5%, transparent);
-
-  &[here] {
-    border-color: var(--zth-accent);
-    background: var(--zth-accent-soft);
-  }
-
-  &:hover {
-    border-color: var(--zth-accent);
-  }
-}
-
-.zth-tm-space-name {
-  font-weight: 600;
-}
-
-:is(.zth-tm-space-n, .zth-tm-ess, .zth-tm-why, .zth-tm-site, .zth-tm-none) {
-  color: var(--zth-ink-dim);
-}
-
-.zth-tm-section {
-  padding: 10px 0;
-  border-top: 1px solid var(--zth-hairline);
-}
-
-.zth-tm-section-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.zth-tm-count {
-  padding: 0 8px;
-  border-radius: var(--zth-pill-radius);
-  corner-shape: var(--zth-pill-shape);
-  background: color-mix(in srgb, var(--zth-ink) 9%, transparent);
-  font-size: 0.88em;
-}
-
-.zth-tm-days {
-  display: flex;
-  gap: 2px;
-  margin-inline-start: auto;
-  padding: 2px;
-  border-radius: var(--zth-pill-radius);
-  background: color-mix(in srgb, var(--zth-ink) 7%, transparent);
-
-  & button {
-    border: none;
-    background: none;
-    padding: 1px 8px;
-    border-radius: var(--zth-pill-radius);
-    font-size: 0.88em;
-  }
-
-  & button[selected] {
-    background: var(--zth-accent-soft);
-  }
-}
-
-.zth-tm-why,
-.zth-tm-none {
-  margin: 2px 0 6px;
-  font-size: 0.92em;
-}
-
-.zth-tm-list {
-  display: flex;
-  flex-direction: column;
-  max-height: 220px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-
-.zth-tm-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 3px 6px;
-  border-radius: calc(var(--zth-radius) - 4px);
-
-  &:hover {
-    background: color-mix(in srgb, var(--zth-ink) 6%, transparent);
-  }
-
-  & input {
-    flex: none;
-    margin: 0;
-    accent-color: var(--zth-accent);
-  }
-
-  &:has(input:not(:checked)) .zth-tm-text {
-    opacity: 0.5;
-  }
-}
-
-.zth-tm-icon {
-  flex: none;
-  width: 16px;
-  height: 16px;
-
-  & img {
-    width: 16px;
-    height: 16px;
-  }
-}
-
-.zth-tm-text {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
-:is(.zth-tm-title, .zth-tm-site) {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  animation: zth-enter var(--zth-dur) var(--zth-ease);
 }
 
-.zth-tm-site {
-  font-size: 0.86em;
-}
-
-.zth-tm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  padding-top: 8px;
-}
-
-.zth-tm-act {
-  padding: 4px 12px;
-  border: 1px solid var(--zth-hairline);
-  border-radius: var(--zth-pill-radius);
-  corner-shape: var(--zth-pill-shape);
-  background: color-mix(in srgb, var(--zth-ink) 6%, transparent);
-
-  &:hover {
-    border-color: var(--zth-accent);
-    background: var(--zth-accent-soft);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-}
-
-.zth-tm-busy {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
-  align-items: center;
-  column-gap: 10px;
-  padding: 4px 6px;
-
-  & .zth-tm-site {
-    grid-row: 2;
-  }
-
-  & .zth-tm-act {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-}
-
-.zth-tm-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 18px 12px;
-  border-top: 1px solid var(--zth-hairline);
-  color: var(--zth-ink-dim);
-  font-size: 0.92em;
-
-  & .zth-tm-act {
-    color: var(--zth-ink);
-  }
+#zenith-tabs-frame {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color-scheme: inherit;
 }
 
 /* === Extension buttons per space =================================================== */
@@ -4049,7 +3868,7 @@ zenith-bookmarks-host.zen-library-section {
 #zenith-linkask {
   position: fixed;
   inset: 0;
-  z-index: 210;
+  z-index: 300 !important; /* (Zen sets 1 on its wrapper's children) */
   display: flex;
   justify-content: center;
   align-items: flex-start;

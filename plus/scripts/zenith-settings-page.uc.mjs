@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.11.1
+// @version        0.11.2
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -142,11 +142,53 @@ const SCHEMA = [
       "default": "workspace"
      },
      {
+      "property": "zenith.plus.space-colour",
+      "label": "Space colour",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How a space's colours show in the glass: its whole gradient (each colour where Zen puts it), or one tint, all its colours averaged (0.11.0's look).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Its gradient",
+        "value": "gradient"
+       },
+       {
+        "label": "One tint",
+        "value": "tint"
+       }
+      ],
+      "default": "gradient"
+     },
+     {
+      "property": "zenith.plus.colour-strength",
+      "label": "Colour strength",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How much of the space's colours the glass takes: the space's own opacity (Zen's theme picker), or at least a medium or strong share, so colours read even at a low opacity.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Zen's own (the space's opacity)",
+        "value": "zen"
+       },
+       {
+        "label": "Medium",
+        "value": "medium"
+       },
+       {
+        "label": "Strong",
+        "value": "strong"
+       }
+      ],
+      "default": "medium"
+     },
+     {
       "property": "zenith.action.colours-image",
       "label": "Colours from an image",
       "type": "action",
       "extra": false,
-      "desc": "Pick a picture: its main colours become this space's colours, as in Zen's theme picker (:colours undo in the switcher puts the old ones back).",
+      "desc": "Pick a picture: its colours (one, two or three) become this space's colours, as in Zen's theme picker.",
       "button": "Choose an image",
       "command": "zenith-colours-image",
       "host": "Zen"
@@ -159,6 +201,16 @@ const SCHEMA = [
       "desc": "The same, from the wallpaper Zenith draws behind the window (Window material: Wallpaper).",
       "button": "Use the wallpaper",
       "command": "zenith-colours-wallpaper",
+      "host": "Zen"
+     },
+     {
+      "property": "zenith.action.colours-undo",
+      "label": "Put the colours back",
+      "type": "action",
+      "extra": false,
+      "desc": "The space's colours from before the last picture or wallpaper (:colours undo in the switcher).",
+      "button": "Undo colours",
+      "command": "zenith-colours-undo",
       "host": "Zen"
      },
      {
@@ -1116,23 +1168,27 @@ const SCHEMA = [
       "default": null
      },
      {
-      "property": "zenith.plus.loose-groups",
-      "label": "Groups for unpinned tabs",
+      "property": "zenith.plus.unpinned-groups",
+      "label": "Groups that don't pin",
       "type": "dropdown",
       "extra": false,
-      "desc": "Zen's folders pin the tabs you put in them. This brings back Firefox's tab groups for the tabs under the pinned ones (right-click a tab › Add Tab to New Group): they stay ordinary tabs, and Zenith draws the groups like folders.",
+      "desc": "Zen's folders pin the tabs you put in them. Zen's folders, set per folder: right-click a folder › Tabs act unpinned, and Ctrl+W closes its tabs and they keep the page they're on. Firefox's tab groups: groups under the pinned tabs (right-click a tab › Add Tab to New Group), drawn like folders, with split views kept whole.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Off",
-        "value": "off"
+        "label": "Zen's folders, set per folder",
+        "value": "folders"
        },
        {
-        "label": "On",
-        "value": "on"
+        "label": "Firefox's tab groups",
+        "value": "firefox"
+       },
+       {
+        "label": "Off",
+        "value": "off"
        }
       ],
-      "default": "off"
+      "default": "folders"
      },
      {
       "property": "zenith.plus.minimap",
@@ -3058,7 +3114,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.11.1";
+const SCHEMA_VERSION = "0.11.2";
 
 class SettingsView {
   constructor(kind) {

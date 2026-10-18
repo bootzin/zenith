@@ -127,7 +127,8 @@ SECTIONS = [
         "blurb": "Size, colour, glass and the window around the page.",
         "groups": [
             ("Size", ["zenith.core.density", "zenith.core.scale"]),
-            ("Colour and shape", ["zenith.core.accent", "zenith.action.colours-image", "zenith.action.colours-wallpaper",
+            ("Colour and shape", ["zenith.core.accent", "zenith.plus.space-colour", "zenith.plus.colour-strength",
+                                  "zenith.action.colours-image", "zenith.action.colours-wallpaper", "zenith.action.colours-undo",
                                   "zenith.core.corners", "zenith.core.pills"]),
             ("Glass", ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
                        "zenith.core.floating-sidebar", "zenith.plus.material-windows", "zenith.plus.material-macos",
@@ -153,7 +154,7 @@ SECTIONS = [
         "preset": "zenith.tabs.preset",
         "groups": [
             ("The sidebar", ["zenith.tabs.reveal", "zenith.tabs.reveal-delay", "zenith.tabs.close-hover",
-                             "zen.tabs.open-pinned-in-new-tab", "zenith.plus.loose-groups", "zenith.plus.minimap",
+                             "zen.tabs.open-pinned-in-new-tab", "zenith.plus.unpinned-groups", "zenith.plus.minimap",
                              "zenith.plus.key-switch-flash"]),
             ("Spaces", ["zenith.plus.workspace-dots", "zenith.plus.workspace-flash"]),
             ("Links", ["zenith.plus.external-links", "zenith.action.space-routing"]),
@@ -332,9 +333,14 @@ DESCRIPTIONS = {
     "zenith.plus.minimap": "Small ticks at the edge for tabs that are loading, playing or want attention.",
     "zenith.tabs.unloaded": "How sleeping tabs look.",
     "zenith.tabs.attention": "A dot on tabs that want attention.",
-    "zenith.plus.loose-groups": "Zen's folders pin the tabs you put in them. This brings back Firefox's tab groups for "
-                                "the tabs under the pinned ones (right-click a tab › Add Tab to New Group): they stay "
-                                "ordinary tabs, and Zenith draws the groups like folders.",
+    "zenith.plus.space-colour": "How a space's colours show in the glass: its whole gradient (each colour where Zen puts it), "
+                                "or one tint, all its colours averaged (0.11.0's look).",
+    "zenith.plus.colour-strength": "How much of the space's colours the glass takes: the space's own opacity (Zen's theme "
+                                   "picker), or at least a medium or strong share, so colours read even at a low opacity.",
+    "zenith.plus.unpinned-groups": "Zen's folders pin the tabs you put in them. Zen's folders, set per folder: right-click a "
+                                   "folder › Tabs act unpinned, and Ctrl+W closes its tabs and they keep the page they're on. "
+                                   "Firefox's tab groups: groups under the pinned tabs (right-click a tab › Add Tab to New "
+                                   "Group), drawn like folders, with split views kept whole.",
     "zenith.tabs.pin-mark": "A small pin on pinned tabs, where the sleeping moon goes (not on essentials or tabs in a folder).",
     "zenith.tabs.folder-activity": "A dot on closed folders when a tab inside is playing or wants attention.",
     "zenith.tabs.container": "A coloured stripe on tabs in a container.",
@@ -386,8 +392,7 @@ DESCRIPTIONS = {
 ACTIONS = {
     "zenith.action.colours-image": {
         "label": "Colours from an image",
-        "desc": "Pick a picture: its main colours become this space's colours, as in Zen's theme picker "
-                "(:colours undo in the switcher puts the old ones back).",
+        "desc": "Pick a picture: its colours (one, two or three) become this space's colours, as in Zen's theme picker.",
         "button": "Choose an image",
         "command": "zenith-colours-image",
     },
@@ -396,6 +401,12 @@ ACTIONS = {
         "desc": "The same, from the wallpaper Zenith draws behind the window (Window material: Wallpaper).",
         "button": "Use the wallpaper",
         "command": "zenith-colours-wallpaper",
+    },
+    "zenith.action.colours-undo": {
+        "label": "Put the colours back",
+        "desc": "The space's colours from before the last picture or wallpaper (:colours undo in the switcher).",
+        "button": "Undo colours",
+        "command": "zenith-colours-undo",
     },
     "zenith.action.space-routing": {
         "label": "Space routing",
@@ -437,7 +448,9 @@ LABELS = {
     "zenith.plus.workspace-flash": "Workspace flash",
     "zenith.tabs.badge-only": "Extension buttons only with a badge",
     "zenith.tabs.pin-mark": "Pin mark",
-    "zenith.plus.loose-groups": "Groups for unpinned tabs",
+    "zenith.plus.space-colour": "Space colour",
+    "zenith.plus.colour-strength": "Colour strength",
+    "zenith.plus.unpinned-groups": "Groups that don't pin",
     "zenith.plus.ready-pulse": "Background tab ready",
     "zenith.plus.more-menu": "More submenu",
     "zenith.plus.scroll": "Scroll feel",

@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.11.1
+// @version        0.11.2
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -139,16 +139,25 @@ const InsecureHint = {
   },
 };
 
-/* --- Window paint: the workspace colour, for Zenith's glass ----------------
-   Zen keeps the window's workspace colour only on #zen-browser-background
-   (one colour, or a gradient of up to three, each with Zen's opacity), so
-   nothing else can read it. Every Zenith glass surface uses one colour made
-   from it: this averages Zen's colours and hands Core the result and its
-   strength (--zth-paint, --zth-paint-share) whenever Zen changes them. */
-
+/* --- Window paint: the space's colours, for Zenith's glass ----------------
+   Zen paints a space's colours as a gradient, at the space's opacity. Core's
+   glass is one colour (--zth-paint) mixed into a neutral base at a share
+   (--zth-paint-share). Plus copies them from what Zen paints:
+     Space colour  "Its gradient" (default): the window around the page shows
+                   Zen's own gradient, each colour mixed into the base
+                   (--zth-desk-paint), and panels take its most vivid colour;
+                   "One tint": all of them averaged into one (0.11.0's look)
+     Strength      "Zen's own": the space's opacity; "Medium" (default) and
+                   "Strong": at least 45% or 70%, so a space's colours read
+                   even at a low opacity. Zen's default (no colours) is left
+                   as Zen sets it. */
 const WindowPaint = {
+  MODE: "zenith.plus.space-colour", // "" gradient · tint
+  STRENGTH: "zenith.plus.colour-strength", // "" medium · zen · strong
+  RGBA: /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)/g,
+
   colours(value) {
-    const found = [...value.matchAll(/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)/g)];
+    const found = [...value.matchAll(this.RGBA)];
     return found.map(m => {
       let a = m[4] === undefined ? 1 : parseFloat(m[4]);
       if (m[4]?.endsWith("%")) a /= 100;
@@ -159,21 +168,48 @@ const WindowPaint = {
   init() {
     const bg = document.getElementById("zen-browser-background");
     if (!bg) return;
-    const copy = () => {
-      const colours = this.colours(bg.style.getPropertyValue("--zen-main-browser-background"));
-      if (!colours.length) {
-        root.style.removeProperty("--zth-paint");
-        root.style.removeProperty("--zth-paint-share");
-        return;
-      }
-      const avg = i => colours.reduce((n, c) => n + c[i], 0) / colours.length;
-      root.style.setProperty("--zth-paint", `rgb(${[0, 1, 2].map(i => Math.round(avg(i))).join(" ")})`);
-      root.style.setProperty("--zth-paint-share", `${Math.round(avg(3) * 100)}%`);
-    };
+    this.bg = bg;
+    const copy = () => this.copy();
     const mo = new MutationObserver(copy);
     mo.observe(bg, { attributes: true, attributeFilter: ["style"] });
-    onUnload(() => mo.disconnect());
+    for (const p of [this.MODE, this.STRENGTH]) Services.prefs.addObserver(p, copy);
+    onUnload(() => {
+      mo.disconnect();
+      for (const p of [this.MODE, this.STRENGTH]) Services.prefs.removeObserver(p, copy);
+    });
     copy();
+  },
+
+  share(alpha) {
+    if (root.hasAttribute("zen-default-theme")) return alpha;
+    const floor = { zen: 0, strong: 0.7 }[Services.prefs.getStringPref(this.STRENGTH, "")] ?? 0.45;
+    return Math.min(1, Math.max(alpha, floor));
+  },
+
+  copy() {
+    const value = this.bg.style.getPropertyValue("--zen-main-browser-background");
+    const colours = this.colours(value);
+    if (!colours.length) {
+      for (const v of ["--zth-paint", "--zth-paint-share", "--zth-desk-paint"]) root.style.removeProperty(v);
+      return;
+    }
+    const gradient = Services.prefs.getStringPref(this.MODE, "") !== "tint";
+    const avg = i => colours.reduce((n, c) => n + c[i], 0) / colours.length;
+    const chroma = ([r, g, b]) => Math.max(r, g, b) - Math.min(r, g, b);
+    const paint = gradient ? colours.reduce((a, c) => (chroma(c) > chroma(a) ? c : a)) : [0, 1, 2].map(i => Math.round(avg(i)));
+    const share = Math.round(this.share(avg(3)) * 100);
+    root.style.setProperty("--zth-paint", `rgb(${paint.slice(0, 3).map(Math.round).join(" ")})`);
+    root.style.setProperty("--zth-paint-share", `${share}%`);
+    if (gradient && colours.length > 1) {
+      // Zen's own gradient, each colour in the glass's recipe, over the
+      // glass colour (for its transparent parts).
+      const mixed = value.replace(this.RGBA, (m, r, g, b) =>
+        `color-mix(in srgb, color-mix(in srgb, rgb(${r} ${g} ${b}) ${share}%, var(--zth-mica)) calc(var(--zth-desk-alpha) * 100%), transparent)`);
+      root.style.setProperty("--zth-desk-paint",
+        `${mixed}, color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent)`);
+    } else {
+      root.style.removeProperty("--zth-desk-paint");
+    }
   },
 };
 
@@ -998,7 +1034,10 @@ const SeeThroughPages = {
 
   wanted(browser) {
     const uri = browser.currentURI;
-    return this.on && !browser.isRemoteBrowser && !!uri?.schemeIs("about") && uri.spec !== "about:blank";
+    // (Not Zenith's own tab manager page, which reads better on its own
+    // background.)
+    return this.on && !browser.isRemoteBrowser && !!uri?.schemeIs("about") && uri.spec !== "about:blank" &&
+           !uri.spec.startsWith("about:zenith-tabs");
   },
 
   update(browser) {
@@ -1163,6 +1202,16 @@ const ScrollFeel = {
     apply();
   },
 };
+
+/* --- Notices on top ------------------------------------------------------------
+   Zen's toasts ("Copied link") live inside the page's column, under anything
+   over the page (Zenith's settings panel); moved beside Zenith's own notices,
+   they show over it. */
+function noticesOnTop() {
+  const toasts = document.getElementById("zen-toast-container");
+  const wrapper = document.getElementById("zen-main-app-wrapper");
+  if (toasts && wrapper && toasts.parentNode !== wrapper) wrapper.append(toasts);
+}
 
 /* --- A short note at the foot of the page (focus mode) -------------------- */
 
@@ -1647,6 +1696,7 @@ const CtrlTabOrder = {
     onUnload(() => {
       Services.prefs.removeObserver(this.PREF, apply);
       this.ownOrder(false);
+      this.backwards(false);
     });
     apply();
   },
@@ -1655,13 +1705,43 @@ const CtrlTabOrder = {
   // "recent" (recently used, with pictures). Both picture kinds are
   // Firefox's recently-used Ctrl+Tab; "pictures" hands it the tabs in their
   // order instead, starting from this one, so Ctrl+Tab steps down the list.
+  // With either, Ctrl+Shift+Tab starts the row going back (Firefox would
+  // open its list of all tabs instead).
   apply() {
     const mode = Services.prefs.getStringPref(this.PREF, "") || "order";
     Bridge.apply("ctrltab", { "browser.ctrlTab.sortByRecentlyUsed": mode === "order" ? null : true });
     this.ownOrder(mode === "pictures");
+    this.backwards(mode !== "order");
     try {
       window.ctrlTab?.readPref?.();
     } catch {}
+  },
+
+  backwards(on) {
+    const C = window.ctrlTab;
+    if (!C) return;
+    this.keyDown ??= C.onKeyDown;
+    if (!on) {
+      C.onKeyDown = this.keyDown;
+      return;
+    }
+    const orig = this.keyDown;
+    C.onKeyDown = function (event) {
+      const cycle = window.ShortcutUtils?.getSystemActionForEvent?.(event) === window.ShortcutUtils?.CYCLE_TABS;
+      if (!cycle || !event.shiftKey || this.isOpen || event.defaultPrevented) return orig.call(this, event);
+      event.preventDefault();
+      event.stopPropagation();
+      document.addEventListener("keyup", this, { mozSystemGroup: true });
+      const tabs = gBrowser.visibleTabs;
+      if (tabs.length > 2) {
+        this.open();
+        // From the next one (open's choice), back past this one to the last.
+        this.advanceFocus(false);
+        this.advanceFocus(false);
+      } else if (tabs.length === 2) {
+        gBrowser.selectedTab = tabs[tabs[0].selected ? 1 : 0];
+      }
+    };
   },
 
   ownOrder(on) {
@@ -1677,32 +1757,256 @@ const CtrlTabOrder = {
 
   // This space's tabs (essentials and pinned first, as in the sidebar),
   // from the one you're on round to the one before it; asleep ones too.
+  // With more tabs than the row holds, the ones just before this one take
+  // its end, so going back (Ctrl+Shift+Tab) lands on the previous tab.
   inOrder() {
     const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
     const i = Math.max(0, tabs.indexOf(gBrowser.selectedTab));
-    return [...tabs.slice(i), ...tabs.slice(0, i)];
+    const round = [...tabs.slice(i), ...tabs.slice(0, i)];
+    const max = window.ctrlTab?.maxTabPreviews ?? 7;
+    if (round.length <= max) return round;
+    const back = Math.floor((max - 1) / 2), ahead = max - 1 - back;
+    return [round[0], ...round.slice(1, 1 + ahead), ...round.slice(round.length - back)];
   },
 };
 
-/* --- Groups for unpinned tabs ------------------------------------------------
-   Zen's folders pin the tabs you put in them (they stay when closed, and
-   come back to their first page). With "Groups for unpinned tabs" on,
-   Firefox's own tab groups come back for the tabs under the pinned ones:
-   right-click a tab › Add Tab to New Group. Those tabs stay ordinary tabs,
-   and Zenith draws the groups like folders (Zenith Tabs). Zen turns
-   Firefox's groups off; this turns them on through the bridge
-   (browser.tabs.groups.enabled), so Zen's value comes back when it's off. */
-const LooseGroups = {
-  PREF: "zenith.plus.loose-groups",
+/* --- Groups that don't pin --------------------------------------------------
+   Zen's folders pin the tabs you put in them: they stay when closed (Ctrl+W
+   puts them to sleep), and a tab that wandered off gets marked to go back to
+   its first page. "Groups that don't pin" picks how to keep tabs together
+   without that:
+     folders  (default) Zen's own folders, which split views, dragging and
+              nesting already work with. Right-click a folder › Tabs act
+              unpinned: Ctrl+W closes its tabs, and a tab keeps the page it's
+              on (no "back to its first page" mark). They still sit in the
+              folder area, and come back at startup with pinned tabs.
+     firefox  Firefox's own tab groups, under the pinned tabs (Zen turns them
+              off; turned on through the bridge). Zenith keeps split views
+              whole with them: splitting tabs in a group keeps the split in
+              the group, adding a split tab to a group brings its split view
+              along, "Remove from group" on a split tab takes the whole split
+              view out, and a tab that leaves its split view any other way
+              (dragged out) is taken out of the split properly.
+     off      neither
+   Which folders act unpinned is kept in zenith.internal.unpinned-folders
+   (folder ids, which Zen keeps across sessions). */
+const UnpinnedGroups = {
+  PREF: "zenith.plus.unpinned-groups", // "" folders · firefox · off
+  OLD: "zenith.plus.loose-groups", // (0.11.1: "on" was Firefox's groups)
+  FOLDERS: "zenith.internal.unpinned-folders",
 
   init() {
-    const apply = () => {
-      const on = Services.prefs.getStringPref(this.PREF, "") === "on";
-      Bridge.apply("groups", { "browser.tabs.groups.enabled": on ? true : null });
-    };
+    if (Services.prefs.getStringPref(this.OLD, "") === "on" && !Services.prefs.prefHasUserValue(this.PREF)) {
+      Services.prefs.setStringPref(this.PREF, "firefox");
+    }
+    Services.prefs.clearUserPref(this.OLD);
+    const apply = () => this.apply();
     Services.prefs.addObserver(this.PREF, apply);
-    onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
+    onUnload(() => {
+      Services.prefs.removeObserver(this.PREF, apply);
+      this.patch(false);
+    });
+    this.folderMenu();
+    this.folderBehaviour();
     apply();
+    window.ZenithGroups = this; // the tab manager, and tools/checks
+  },
+
+  get mode() {
+    return Services.prefs.getStringPref(this.PREF, "") || "folders";
+  },
+
+  apply() {
+    const firefox = this.mode === "firefox";
+    Bridge.apply("groups", { "browser.tabs.groups.enabled": firefox ? true : null });
+    this.patch(firefox);
+    this.mark();
+  },
+
+  // A group of Firefox's (not one of Zen's folders, not a split view).
+  loose(g) {
+    return g?.localName === "tab-group" && !g.isZenFolder && !g.hasAttribute("split-view-group");
+  },
+
+  /* Firefox's groups, with split views kept whole. */
+
+  patch(on) {
+    const B = gBrowser, S = window.gZenViewSplitter;
+    if (on === !!this.saved) return;
+    if (!on) {
+      for (const [obj, name, fn] of this.saved) obj[name] = fn;
+      this.saved = null;
+      document.getElementById("tabContextMenu")?.removeEventListener("command", this.onUngroup, true);
+      gBrowser.tabContainer.removeEventListener("TabUngrouped", this.onLeft);
+      return;
+    }
+    const groups = this;
+    const wrap = (obj, name, make) => {
+      if (typeof obj?.[name] !== "function") return;
+      const orig = obj[name];
+      this.saved.push([obj, name, orig]);
+      obj[name] = make(orig);
+    };
+    this.saved = [];
+    // A split view made from tabs in a group stays in the group (Zen keeps
+    // it inside only for its own folders, and pulls it out of anything else).
+    wrap(B, "addTabGroup", orig => function (tabs, opts = {}) {
+      const parent = opts.forSplitView ? opts.insertBefore?.group : null;
+      if (!groups.loose(parent)) return orig.call(this, tabs, opts);
+      Object.defineProperty(parent, "isZenFolder", { value: true, configurable: true });
+      try {
+        return orig.call(this, tabs, opts);
+      } finally {
+        delete parent.isZenFolder;
+      }
+    });
+    // A split tab goes into a group with its whole split view.
+    wrap(B, "moveTabToExistingGroup", orig => function (tab, group, opts) {
+      const split = tab?.group?.hasAttribute?.("split-view-group") ? tab.group : null;
+      if (split && split !== group && groups.loose(group)) {
+        if (split.group === group) return undefined;
+        return orig.call(this, split, group, opts);
+      }
+      return orig.call(this, tab, group, opts);
+    });
+    // Zen's own unsplitting moves tabs out of split views: not a tab leaving.
+    for (const name of ["removeGroup", "removeTabFromGroup", "unsplitCurrentView"]) {
+      wrap(S, name, orig => function (...args) {
+        groups.unsplitting = (groups.unsplitting ?? 0) + 1;
+        try {
+          return orig.apply(this, args);
+        } finally {
+          groups.unsplitting--;
+        }
+      });
+    }
+    // "Remove from group" on a split tab: the whole split view leaves the
+    // group (Firefox would take the one tab out of its split view).
+    this.onUngroup = e => {
+      if (e.target?.id !== "context_ungroupTab") return;
+      const tabs = window.TabContextMenu?.contextTabs ?? [];
+      if (!tabs.some(t => t.group?.hasAttribute("split-view-group"))) return;
+      e.stopImmediatePropagation();
+      const done = new Set();
+      for (const t of tabs) {
+        const split = t.group?.hasAttribute("split-view-group") ? t.group : null;
+        if (split) {
+          if (done.has(split)) continue;
+          done.add(split);
+          if (this.loose(split.group)) gBrowser.moveTabAfter(t, split.group);
+        } else if (t.group) {
+          gBrowser.ungroupTab(t);
+        }
+      }
+    };
+    document.getElementById("tabContextMenu")?.addEventListener("command", this.onUngroup, true);
+    // A tab that left its split view another way (dragged out): out of the
+    // split for Zen too, so the rest re-lays out (or unsplits).
+    this.onLeft = e => {
+      const from = e.target, tab = e.detail;
+      if (this.unsplitting || !from?.hasAttribute?.("split-view-group") || !tab?.splitView || tab.group === from) return;
+      setTimeout(() => {
+        if (tab.isConnected && tab.splitView && tab.group !== from) window.gZenViewSplitter?.removeTabFromGroup?.(tab, undefined, { forUnsplit: true });
+      }, 0);
+    };
+    gBrowser.tabContainer.addEventListener("TabUngrouped", this.onLeft);
+  },
+
+  /* Zen's folders that don't pin. */
+
+  get unpinned() {
+    try {
+      return new Set(JSON.parse(Services.prefs.getStringPref(this.FOLDERS, "[]")));
+    } catch {
+      return new Set();
+    }
+  },
+
+  isUnpinned(folder) {
+    return this.mode === "folders" && !!folder?.id && this.unpinned.has(folder.id);
+  },
+
+  setUnpinned(folder, on) {
+    const ids = this.unpinned;
+    if (on) ids.add(folder.id);
+    else ids.delete(folder.id);
+    Services.prefs.setStringPref(this.FOLDERS, JSON.stringify([...ids]));
+    this.mark();
+    // Its tabs keep the page they're on from now.
+    if (on) for (const tab of folder.tabs ?? []) this.keepPage(tab);
+  },
+
+  // The folder a tab is in that acts unpinned (folders can nest).
+  folderOf(tab) {
+    for (let g = tab?.group; g; g = g.group) if (g.isZenFolder && this.isUnpinned(g)) return g;
+    return null;
+  },
+
+  mark() {
+    const ids = this.mode === "folders" ? this.unpinned : new Set();
+    for (const f of document.querySelectorAll("zen-folder")) f.toggleAttribute("zenith-unpinned", ids.has(f.id));
+  },
+
+  keepPage(tab) {
+    if (!tab?.pinned || tab.hasAttribute("zen-essential")) return;
+    try {
+      window.gZenWindowSync?.setPinnedTabState?.(tab);
+      window.gZenPinnedTabManager?.resetPinChangedUrl?.(tab);
+    } catch {}
+  },
+
+  folderMenu() {
+    const menu = document.getElementById("zenFolderActions");
+    if (!menu) return;
+    const item = document.createXULElement("menuitem");
+    item.id = "zenith-folder-unpinned";
+    item.setAttribute("type", "checkbox");
+    item.setAttribute("label", "Tabs act unpinned");
+    item.setAttribute("tooltiptext", "Ctrl+W closes them, and they keep the page they're on");
+    menu.append(item);
+    menu.addEventListener("popupshowing", e => {
+      if (e.target !== menu) return;
+      const node = menu.triggerNode ?? e.explicitOriginalTarget;
+      this.menuFolder = node?.closest?.("zen-folder") ?? null;
+      item.hidden = this.mode !== "folders" || !this.menuFolder || this.menuFolder.isLiveFolder;
+      item.toggleAttribute("checked", this.isUnpinned(this.menuFolder));
+    });
+    item.addEventListener("command", () => {
+      if (this.menuFolder) this.setUnpinned(this.menuFolder, !this.isUnpinned(this.menuFolder));
+    });
+  },
+
+  folderBehaviour() {
+    // A tab in such a folder that goes somewhere keeps going: its page
+    // becomes the one it's on (after Zen has marked it changed).
+    this.progress = {
+      onLocationChange: (browser, progress) => {
+        if (!progress?.isTopLevel) return;
+        const tab = gBrowser.getTabForBrowser(browser);
+        if (this.folderOf(tab)) setTimeout(() => this.keepPage(tab), 0);
+      },
+    };
+    gBrowser.addTabsProgressListener(this.progress);
+    // Ctrl+W closes it, before Zen's pinned-tab handling puts it to sleep.
+    const close = document.getElementById("cmd_close");
+    this.onClose = e => {
+      const tabs = gBrowser.selectedTab?.multiselected ? gBrowser.selectedTabs : [gBrowser.selectedTab];
+      if (!tabs.length || !tabs.every(t => this.folderOf(t))) return;
+      e.stopImmediatePropagation();
+      gBrowser.removeTabs(tabs);
+    };
+    close?.addEventListener("command", this.onClose, true);
+    // Zen brings its folders back from the session after the window opens.
+    const mark = () => this.mark();
+    window.addEventListener("SSWindowRestored", mark);
+    gBrowser.tabContainer.addEventListener("TabGroupCreate", mark);
+    window.gZenWorkspaces?.promiseInitialized?.then(mark);
+    onUnload(() => {
+      gBrowser.removeTabsProgressListener(this.progress);
+      close?.removeEventListener("command", this.onClose, true);
+      window.removeEventListener("SSWindowRestored", mark);
+      gBrowser.tabContainer.removeEventListener("TabGroupCreate", mark);
+    });
   },
 };
 
@@ -1773,7 +2077,8 @@ const ImageColours = {
   init() {
     const commandset = document.createXULElement("commandset");
     for (const [id, fn] of [["zenith-colours-image", () => this.pickFile()],
-                            ["zenith-colours-wallpaper", () => this.fromWallpaper()]]) {
+                            ["zenith-colours-wallpaper", () => this.fromWallpaper()],
+                            ["zenith-colours-undo", () => this.undo()]]) {
       const command = document.createXULElement("command");
       command.id = id;
       command.addEventListener("command", fn);
@@ -2025,6 +2330,9 @@ const SpaceExtensions = {
       window.removeEventListener("ZenWorkspacesUIUpdate", update);
       marks.disconnect();
     });
+    // Zen's extensions panel lists only unpinned extensions; the ones pinned
+    // only in other spaces get a short list there, to pin here too.
+    document.getElementById("unified-extensions-view")?.addEventListener("ViewShowing", () => this.fillPanel());
     window.ZenithSpaceExtensions = this; // for tools/checks
   },
 
@@ -2075,6 +2383,50 @@ const SpaceExtensions = {
     if (list) map[id] = list;
     else delete map[id];
     this.save(map);
+  },
+
+  fillPanel() {
+    const area = document.getElementById("unified-extensions-area");
+    if (!area) return;
+    let box = document.getElementById("zenith-other-space-extensions");
+    if (!box) {
+      box = document.createXULElement("vbox");
+      box.id = "zenith-other-space-extensions";
+      area.after(box);
+    }
+    const hidden = [...document.querySelectorAll("[zenith-other-space]")].filter(n => n.id);
+    box.hidden = !hidden.length;
+    const here = window.gZenWorkspaces?.activeWorkspace;
+    const head = document.createXULElement("label");
+    head.className = "zenith-ose-head";
+    head.setAttribute("value", "Pinned in other spaces");
+    const rows = hidden.map(node => {
+      const button = node.querySelector("toolbarbutton") ?? node;
+      const row = document.createXULElement("hbox");
+      row.className = "zenith-ose-row";
+      row.setAttribute("align", "center");
+      const icon = document.createXULElement("image");
+      icon.className = "zenith-ose-icon";
+      for (const v of ["--webextension-toolbar-image", "--webextension-toolbar-image-2x", "--webextension-menupanel-image"]) {
+        const value = button.style.getPropertyValue(v);
+        if (value) icon.style.setProperty(v, value);
+      }
+      const name = document.createXULElement("label");
+      name.className = "zenith-ose-name";
+      name.setAttribute("value", button.getAttribute("label") || button.getAttribute("tooltiptext") || node.id);
+      name.setAttribute("flex", "1");
+      name.setAttribute("crop", "end");
+      const pin = document.createXULElement("toolbarbutton");
+      pin.className = "subviewbutton zenith-ose-pin";
+      pin.setAttribute("label", "Pin here");
+      pin.addEventListener("command", () => {
+        if (here) this.flip(node.id, here);
+        this.fillPanel();
+      });
+      row.append(icon, name, pin);
+      return row;
+    });
+    box.replaceChildren(head, ...rows);
   },
 
   // Hide the buttons that aren't pinned in this space (only what changed,
@@ -2741,10 +3093,11 @@ start("key switch flash", () => KeySwitchFlash.init());
 start("ready pulse", () => ReadyPulse.init());
 start("sidebar width", () => SidebarWidth.init());
 start("ctrl+tab order", () => CtrlTabOrder.init());
-start("groups for unpinned tabs", () => LooseGroups.init());
+start("groups that don't pin", () => UnpinnedGroups.init());
 start("bookmarks bar", () => BookmarksBar.init());
 start("colours from an image", () => ImageColours.init());
 start("extensions per space", () => SpaceExtensions.init());
 start("links from other apps", () => ExternalLinks.init());
 start("blend with the page", () => PageBlend.init());
+start("notices on top", noticesOnTop);
 start("core check", checkCore);

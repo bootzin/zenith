@@ -24,24 +24,11 @@ with Scene() as z:
       const r = M.Look.report(7);
       out.report = { tabs: r.tabs.length, duplicates: r.duplicates.map(t => t.label), stale: r.stale.map(t => t.label),
                      awake: r.awake.length, busy: r.busy.map(x => [x.site, x.tabs.length]) };
-      M.Manager.show(); await zth.sleep(300); // (the card; Alt+Shift+T opens the page now)
-      const card = document.getElementById('zenith-tabs-card');
-      out.sections = [...card.querySelectorAll('.zth-tm-section')].map(s => s.dataset.kind + ' ' + s.querySelector('.zth-tm-count').textContent);
-      const before = gBrowser.tabs.length;
-      card.querySelector('[data-kind="dupes"] .zth-tm-act').click(); await zth.sleep(500);
-      out['closed the duplicate'] = [before - gBrowser.tabs.length, card.querySelector('.zth-tm-foot').textContent];
-      card.querySelector('.zth-tm-foot .zth-tm-act').click(); await zth.sleep(1200);
-      out['undo'] = [gBrowser.tabs.length - before, card.querySelector('.zth-tm-foot').textContent];
-      // Untick one of the two unused tabs, then put the other to sleep.
-      const stale = card.querySelector('[data-kind="stale"]');
-      stale.querySelector('input').click();
-      [...stale.querySelectorAll('.zth-tm-act')].find(x => x.textContent === 'Put to sleep').click(); await zth.sleep(800);
-      out['slept (oldest unticked)'] = [old2.hasAttribute('pending') || !old2.linkedPanel, old1.hasAttribute('pending') || !old1.linkedPanel];
-      const busy = card.querySelector('[data-kind="busy"] .zth-tm-act');
-      busy?.click(); await zth.sleep(1200);
+      // (The page's own actions are checked in r47.)
+      const busyTabs = r.busy[0]?.tabs ?? [];
+      M.Act.folder(r.busy[0]?.site ?? 'x', r.busy[0]?.space, busyTabs); await zth.sleep(1200);
       const folder = [...document.querySelectorAll('zen-folder')].find(f => f.label === '127.0.0.1');
       out['busy site became a folder'] = folder ? [folder.label, folder.tabs.filter(t => !t.hasAttribute('zen-empty-tab')).length] : 'no folder';
-      M.hide();
       out[':tabs in the switcher'] = (() => { const S = window.ZenithSwitcher; S.show(':tabs '); const it = S.items[0]; S.hide(); return it && it.title; })();
       return out;""", z.base)
 
