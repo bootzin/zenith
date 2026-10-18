@@ -184,6 +184,10 @@ function Install-Scripts([string]$ChromeDir) {
     Get-ChildItem (Join-Path $Root 'plus\scripts') -Filter '*.uc.*' | ForEach-Object {
         Copy-Item $_.FullName (Join-Path $ChromeDir "JS\$($_.Name)") -Force
     }
+    # The pages the scripts open (about:zenith-tabs), next to them.
+    $pages = Join-Path $ChromeDir 'JS\zenith-pages'
+    if (Test-Path $pages) { Remove-Item $pages -Recurse }
+    Copy-Item (Join-Path $Root 'plus\pages') $pages -Recurse
     if (-not (Test-Path 'C:\Program Files\Zen Browser\config.js')) {
         Write-Warning "fx-autoconfig's config.js is missing from Zen's program folder (a Zen update can remove it); Zenith's script won't run until it's copied back."
     }
@@ -260,6 +264,7 @@ function Install-ToSine {
     Get-ChildItem (Join-Path $Root 'plus\scripts') -Filter '*.uc.mjs' | ForEach-Object {
         Copy-Item $_.FullName (Join-Path $dst "plus\scripts\$($_.Name)") -Force
     }
+    Copy-Item (Join-Path $Root 'plus\pages') (Join-Path $dst 'plus\pages') -Recurse
     $entry = New-Object 'System.Collections.Generic.Dictionary[string,object]'
     foreach ($k in 'id', 'name', 'description', 'author', 'version', 'style', 'preferences', 'scripts', 'tags', 'createdAt', 'updatedAt') {
         if ($manifest.ContainsKey($k)) { $entry[$k] = $manifest[$k] }
@@ -283,6 +288,7 @@ function Install-ToSine {
         $f = Join-Path $Chrome "JS\$name"
         if (Test-Path $f) { Remove-Item $f }
     }
+    if (Test-Path (Join-Path $Chrome 'JS\zenith-pages')) { Remove-Item (Join-Path $Chrome 'JS\zenith-pages') -Recurse }
 }
 
 function Build-ZenThemesCss([string]$ProfileDir, $ModsJson) {
@@ -372,6 +378,7 @@ if ($Restore) {
         $f = Join-Path $Chrome "JS\$name"
         if (Test-Path $f) { Remove-Item $f }
     }
+    if (Test-Path (Join-Path $Chrome 'JS\zenith-pages')) { Remove-Item (Join-Path $Chrome 'JS\zenith-pages') -Recurse }
     if (Test-Path (Join-Path $Chrome 'utils\.installed-by-zenith')) { Remove-Item (Join-Path $Chrome 'utils') -Recurse }
     Write-Host "fx-autoconfig's two files in Zen's program folder are left in place (removing them needs admin): config.js and defaults\pref\config-prefs.js."
     # Bring back folders that -Finalize parked.

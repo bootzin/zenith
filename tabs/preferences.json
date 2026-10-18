@@ -96,6 +96,22 @@
     ]
   },
   {
+    "property": "zenith.tabs.pin-mark",
+    "label": "Pin mark on pinned tabs",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
     "property": "zenith.tabs.folder-activity",
     "label": "Folder activity dot",
     "type": "dropdown",

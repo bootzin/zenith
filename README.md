@@ -20,14 +20,16 @@ Zenith comes in two parts.
 - **Peek:** quick lookups in a floating page that leaves nothing behind, with Alt+Q and instant answers.
 - **Live edges:** real load and download progress.
 - **Peek extras:** currency, definitions and weather in the prompt, timers and pomodoros, and `set` to find a setting, change it, or open it in the live panel.
-- **Switcher:** **Alt+W** jumps to any tab (in any space), folder or space by typing a few letters; `:` runs commands (`:focus`, `:tabs`, `:timer 10m tea`, `:set frost`, `:colours`).
-- **Tab manager:** **Alt+Shift+T** shows every space's tabs and helps tidy up: duplicates, tabs you haven't used for days, awake tabs, busy sites into folders. Nothing happens until you press a button, and closing has Undo.
-- **Ctrl+Tab like Alt+Tab** (optional): recently used order with a row of page pictures.
+- **Switcher:** **Alt+W** jumps to any tab (in any space), folder or space by typing a few letters; `:` runs commands (`:focus`, `:tabs`, `:bookmarks`, `:timer 10m tea`, `:set frost`, `:colours`).
+- **Tab manager:** **Alt+Shift+T** opens `about:zenith-tabs`: every space's tabs in columns, to move between spaces, put into folders, sleep, wake or close (with Undo); tidying up (duplicates, tabs you haven't used for days, awake tabs, busy sites); and rules that group tabs into folders, or put them to sleep or close them after a while, only once you set them. Or, if you prefer, a small card over the page.
+- **Bookmarks:** **Ctrl+B** opens your bookmarks in Zenith's look, floating over the right of the page (or docked on either side): rows like the tab list or tiles, this space's bookmarks first, drop a tab on it to bookmark it. Also a section in Zen's Library; Firefox's Library window in Zenith's colours.
+- **Ctrl+Tab with pictures** (optional): in the sidebar's order or recently used, like Alt+Tab.
+- **Groups for unpinned tabs** (optional): Firefox's tab groups for the tabs under the pinned ones, drawn like folders, so grouping doesn't pin them.
 - **Focus mode:** **Alt+Z** hides the sidebar, edges and pills for reading or video.
 - **Sidebar extras:** the page pushed aside by exactly the sidebar's width (Revealed sidebar › Push the page), workspace dots and a flash in the new space's colour, extension buttons that show only in their space, a minimap of the hidden sidebar, numbered tabs while you hold Ctrl, and the cover art of what's playing behind the media card.
 - **Menus:** rare right-click items (view source, send to device and so on) in a More submenu, nothing removed; optional icons on the items you use most; Firefox's tab previews in Zenith's look.
-- **Bookmarks bar:** its own slim strip above the page, or over the page when you reach the top.
-- **Links from other apps:** optionally ask which space (and container) each one opens in, and remember the answer as a Space routing rule.
+- **Bookmarks bar:** where Zen puts it, or its own slim strip above the page, or over the page when you reach the top; Firefox's "Import bookmarks" button hidden.
+- **Links from other apps:** optionally ask which space (and container) each one opens in, and remember the answer as a Space routing rule; Zen's Space routing dialog gets "Ask me each time" for any rule and for the default.
 - **Colours:** a space's colours from an image or your wallpaper; optionally, the glass takes the colour of the page you're on.
 - **Scrolling:** one setting for how the mouse wheel and keys scroll: Zen's own, instant, quick, smooth or macOS-like.
 - **Pages:** zoom pills, plus text selection in the workspace colour.
@@ -84,7 +86,11 @@ Specific things it changes:
 - `ui.prefersReducedMotion`: set to 0, so Zen animates, while "Let Zen and Zenith animate" is on. It's cleared when you switch that off.
 - Window material, Scroll feel and Ctrl+Tab write Zen's and Firefox's own settings for them (`widget.windows.mica…`, `general.smoothScroll…`, `browser.ctrlTab.sortByRecentlyUsed`). Your earlier values are kept and put back when you choose "Zen's own" (or "In order") again.
 - Colours from an image changes the current space's colours, as Zen's theme picker would; `:colours undo` in the switcher puts them back.
-- "Always open … there" on the link card adds a rule to Zen's Space routing, which you can edit or remove there.
+- "Always open … there" on the link card adds a rule to Zen's Space routing, which you can edit or remove there. "Ask me each time" in Zen's Space routing dialog is saved in Zen's own rules (Zen without Zenith reads it as "where you are").
+- Groups for unpinned tabs turns on Firefox's `browser.tabs.groups.enabled` (Zen turns it off); your earlier value comes back when you turn it off.
+- Bookmarks: dropping a tab on the panel adds a bookmark; "this space" bookmarks go in a folder per space under Other Bookmarks › Spaces, made the first time you use it.
+- The tab manager's rules and its automatic sleeping and closing act only after you set them up; what auto-close closes is listed on its page to bring back.
+- `about:zenith-tabs` is a page from the mod's own folder, registered while Zen runs.
 - On Windows, Wallpaper reads your wallpaper's file and position through Windows' wallpaper service; it never changes it.
 
 ## Development

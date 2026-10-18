@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.11.0
+// @version        0.11.1
 // ==/UserScript==
 
 // A rofi-style list over the page. Alt+W opens it; type a few letters of a
@@ -198,6 +198,8 @@ const COMMANDS = [
   { name: "peek", arg: "what to look up", text: "Look it up in a Peek", ok: () => !!peek(), run: a => (a ? peek().lookup(a) : peek().prompt("")) },
   { name: "tabs", text: "The tab manager: duplicates, unused and awake tabs (Alt+Shift+T)", ok: () => !!window.ZenithTabs,
     run: () => window.ZenithTabs.show() },
+  { name: "bookmarks", text: "Your bookmarks (Ctrl+B)", ok: () => !!document.getElementById("zenith-bookmarks-toggle"),
+    run: () => document.getElementById("zenith-bookmarks-toggle").doCommand() },
   { name: "colours", arg: "", text: "This space's colours from an image (:colours wallpaper, :colours undo)", ok: () => !!window.ZenithColours,
     run: a => (/^wall/i.test(a) ? window.ZenithColours.fromWallpaper() : /^undo/i.test(a) ? window.ZenithColours.undo() : window.ZenithColours.pickFile()) },
   { name: "routing", text: "Links from other apps: Zen's space routing", ok: () => !!document.getElementById("cmd_zenOpenSpaceRoutingSettings"),
@@ -292,8 +294,13 @@ const Switcher = {
       const row = make("div", { class: "zenith-switch-row", kind: item.kind, role: "option" });
       if (i === this.selected) row.setAttribute("selected", "true");
       const icon = make("span", { class: "zenith-switch-icon" });
-      if (item.icon && /^(https?|data|chrome|moz-|page-icon|cached-favicon|blob):/.test(item.icon)) {
-        icon.append(make("img", { src: item.icon, alt: "" }));
+      // Any address is a picture (moz-remote-image://, page-icon:, data:…);
+      // only a space's emoji is text. A picture that won't load leaves the
+      // plain globe.
+      if (item.icon && /^[a-z][a-z0-9+.-]*:/i.test(item.icon)) {
+        const img = make("img", { src: item.icon, alt: "" });
+        img.addEventListener("error", () => img.remove(), { once: true });
+        icon.append(img);
       } else if (item.icon) {
         icon.textContent = item.icon; // a space's emoji
       }

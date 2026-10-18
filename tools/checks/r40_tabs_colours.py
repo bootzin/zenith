@@ -24,7 +24,7 @@ with Scene() as z:
       const r = M.Look.report(7);
       out.report = { tabs: r.tabs.length, duplicates: r.duplicates.map(t => t.label), stale: r.stale.map(t => t.label),
                      awake: r.awake.length, busy: r.busy.map(x => [x.site, x.tabs.length]) };
-      M.show(); await zth.sleep(300);
+      M.Manager.show(); await zth.sleep(300); // (the card; Alt+Shift+T opens the page now)
       const card = document.getElementById('zenith-tabs-card');
       out.sections = [...card.querySelectorAll('.zth-tm-section')].map(s => s.dataset.kind + ' ' + s.querySelector('.zth-tm-count').textContent);
       const before = gBrowser.tabs.length;
@@ -69,7 +69,7 @@ with Scene() as z:
       const bar = document.getElementById('nav-bar-customization-target') ?? document.getElementById('nav-bar');
       const item = document.createXULElement('toolbaritem'); item.id = 'zth_fake-browser-action'; item.className = 'unified-extensions-item';
       item.append(document.createXULElement('toolbarbutton')); bar.append(item);
-      E.save({ [item.id]: other }); await zth.sleep(200);
+      E.save({ [item.id]: [other] }); await zth.sleep(200);
       out['belongs to the other space, seen here'] = getComputedStyle(item).display;
       await W.changeWorkspaceWithID(other); await zth.sleep(900);
       out['in its own space'] = getComputedStyle(item).display;
@@ -78,9 +78,16 @@ with Scene() as z:
       // The right-click item, on the toolbar menu.
       const menu = document.getElementById('toolbar-context-menu');
       const shown = new Promise(r => menu.addEventListener('popupshown', r, { once: true }));
+      // (As a right-click on the button would: the menu knows what was clicked.)
+      Object.defineProperty(menu, 'triggerNode', { value: item.firstChild, configurable: true });
       menu.openPopup(item.firstChild, 'after_start', 0, 0, true, false); await shown; await zth.sleep(150);
-      const only = [...menu.children].find(n => n.getAttribute('label') === 'Only in this space');
-      out['menu item'] = only ? [only.hidden, only.getAttribute('checked')] : 'missing';
+      delete menu.triggerNode;
+      const sub = [...menu.children].find(n => n.getAttribute('label') === 'Pinned in spaces');
+      const ticks = () => [...sub.menupopup.children].filter(n => n.localName === 'menuitem').map(n => [n.getAttribute('label'), n.hasAttribute('checked')]);
+      out['Pinned in spaces'] = sub ? [sub.hidden, ticks()] : 'missing';
+      // Tick this space too: pinned in both, so back to every space.
+      [...sub.menupopup.children].find(n => n.getAttribute('label')?.endsWith(W.getWorkspaceFromId(here).name)).doCommand(); await zth.sleep(100);
+      out['ticked here as well'] = [JSON.stringify(E.map), ticks()];
       menu.hidePopup(); E.save({}); item.remove();
       return out;""")
     res["css errors"] = z.console_errors()

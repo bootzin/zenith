@@ -676,6 +676,22 @@
     ]
   },
   {
+    "property": "zenith.tabs.pin-mark",
+    "label": "Pin mark on pinned tabs",
+    "type": "dropdown",
+    "placeholder": "Follow preset",
+    "options": [
+      {
+        "label": "On",
+        "value": "on"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ]
+  },
+  {
     "property": "zenith.tabs.folder-activity",
     "label": "Folder activity dot",
     "type": "dropdown",
@@ -1750,7 +1766,7 @@
         "value": "zen"
       },
       {
-        "label": "Ask each time",
+        "label": "Ask when no Space routing rule matches",
         "value": "ask"
       }
     ],
@@ -1775,9 +1791,109 @@
   },
   {
     "property": "zenith.plus.tab-manager",
-    "label": "Tab manager on Alt+Shift+T: duplicates, unused and awake tabs, busy sites",
+    "label": "Tab manager on Alt+Shift+T: every space's tabs, tidying up, rules",
     "type": "checkbox",
     "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.tab-manager-view",
+    "label": "Tab manager opens as",
+    "type": "dropdown",
+    "placeholder": "Default (A page in a tab)",
+    "options": [
+      {
+        "label": "A page in a tab",
+        "value": "page"
+      },
+      {
+        "label": "A card over the page",
+        "value": "card"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.tabs-auto-sleep",
+    "label": "Put tabs to sleep on their own",
+    "type": "dropdown",
+    "placeholder": "Default (Never)",
+    "options": [
+      {
+        "label": "Never",
+        "value": "off"
+      },
+      {
+        "label": "After 15 minutes",
+        "value": "15"
+      },
+      {
+        "label": "After 30 minutes",
+        "value": "30"
+      },
+      {
+        "label": "After an hour",
+        "value": "60"
+      },
+      {
+        "label": "After 2 hours",
+        "value": "120"
+      },
+      {
+        "label": "After 4 hours",
+        "value": "240"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.tabs-auto-close",
+    "label": "Close loose tabs on their own",
+    "type": "dropdown",
+    "placeholder": "Default (Never)",
+    "options": [
+      {
+        "label": "Never",
+        "value": "off"
+      },
+      {
+        "label": "After a day",
+        "value": "1"
+      },
+      {
+        "label": "After 3 days",
+        "value": "3"
+      },
+      {
+        "label": "After a week",
+        "value": "7"
+      },
+      {
+        "label": "After 2 weeks",
+        "value": "14"
+      },
+      {
+        "label": "After a month",
+        "value": "30"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.loose-groups",
+    "label": "Groups for unpinned tabs (Firefox's tab groups, drawn like folders)",
+    "type": "dropdown",
+    "placeholder": "Default (Off)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "On",
+        "value": "on"
+      }
+    ],
     "usedBy": "zenith-plus"
   },
   {
@@ -1791,6 +1907,10 @@
         "value": "order"
       },
       {
+        "label": "In order, with pictures",
+        "value": "pictures"
+      },
+      {
         "label": "Recently used, with pictures (like Alt+Tab)",
         "value": "recent"
       }
@@ -1801,8 +1921,12 @@
     "property": "zenith.plus.bookmarks-bar",
     "label": "Bookmarks bar (when it's on)",
     "type": "dropdown",
-    "placeholder": "Default (Above the page)",
+    "placeholder": "Default (Zen's own, with the window buttons)",
     "options": [
+      {
+        "label": "Zen's own, with the window buttons",
+        "value": "zen"
+      },
       {
         "label": "Above the page",
         "value": "above"
@@ -1810,12 +1934,81 @@
       {
         "label": "Over the page, on hover",
         "value": "hover"
-      },
-      {
-        "label": "Zen's own, with the window buttons",
-        "value": "zen"
       }
     ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.bookmarks-import",
+    "label": "Import bookmarks button on the bar",
+    "type": "dropdown",
+    "placeholder": "Default (Hidden)",
+    "options": [
+      {
+        "label": "Hidden",
+        "value": "hidden"
+      },
+      {
+        "label": "Shown",
+        "value": "shown"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.bookmarks-look",
+    "label": "Bookmarks (Ctrl+B)",
+    "type": "dropdown",
+    "placeholder": "Default (Like the tab list)",
+    "options": [
+      {
+        "label": "Like the tab list",
+        "value": "list"
+      },
+      {
+        "label": "Tiles",
+        "value": "tiles"
+      },
+      {
+        "label": "Firefox's tree, restyled",
+        "value": "firefox"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.bookmarks-place",
+    "label": "Where Ctrl+B opens them",
+    "type": "dropdown",
+    "placeholder": "Default (Right, over the page)",
+    "options": [
+      {
+        "label": "Right, over the page",
+        "value": "float"
+      },
+      {
+        "label": "Right, the page makes room",
+        "value": "right"
+      },
+      {
+        "label": "Left, beside the tabs",
+        "value": "left"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.bookmarks-space-first",
+    "label": "This space's bookmarks first",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.bookmarks-library",
+    "label": "Bookmarks in Zen's Library",
+    "type": "checkbox",
+    "defaultValue": true,
     "usedBy": "zenith-plus"
   },
   {

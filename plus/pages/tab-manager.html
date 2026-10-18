@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!-- about:zenith-tabs: Zenith's tab manager (zenith-tabs.uc.mjs opens it). -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Tabs</title>
+    <link rel="icon" href="chrome://browser/skin/zen-icons/tab.svg" />
+    <link rel="stylesheet" href="tab-manager.css" />
+    <script type="module" src="tab-manager.mjs"></script>
+  </head>
+  <body>
+    <header id="top">
+      <div class="title">
+        <h1>Tabs</h1>
+        <span id="summary"></span>
+      </div>
+      <input id="search" type="search" placeholder="Find a tab" spellcheck="false" />
+      <nav id="views" role="tablist">
+        <button type="button" data-view="overview" role="tab">Spaces</button>
+        <button type="button" data-view="rules" role="tab">Rules</button>
+      </nav>
+    </header>
+    <section id="essentials" hidden></section>
+    <main id="overview">
+      <div id="board"></div>
+      <aside id="tidy"></aside>
+    </main>
+    <main id="rules" hidden></main>
+    <div id="bar" hidden></div>
+    <div id="menu" hidden></div>
+    <div id="note" hidden></div>
+  </body>
+</html>

@@ -73,6 +73,8 @@ PLUS_SCRIPTS = {
                              ["chrome://browser/content/browser.xhtml"]),
     "zenith-switcher.uc.mjs": ("Switcher", "Jump to any tab, folder or space by typing (Alt+W); : runs commands.",
                                ["chrome://browser/content/browser.xhtml"]),
+    "zenith-bookmarks.uc.mjs": ("Bookmarks", "Your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.",
+                                ["chrome://browser/content/browser.xhtml"]),
     "zenith-tabs.uc.mjs": ("Tab manager", "Every tab at a glance, and tidying up: duplicates, unused and awake tabs, busy sites (Alt+Shift+T).",
                            ["chrome://browser/content/browser.xhtml"]),
     "zenith-settings.uc.mjs": ("Settings helper", "Greys out Zenith settings that don't apply, and says why.",

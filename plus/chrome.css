@@ -1022,6 +1022,19 @@ menuseparator[zenith-collapse] {
     font-weight: 700;
     color: var(--zth-accent);
   }
+
+  /* A tab without a picture (or whose picture won't load): the globe. */
+  .zenith-switch-row[kind="tab"] &:empty::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    background: currentColor;
+    mask: url("chrome://global/skin/icons/defaultFavicon.svg") center / 16px no-repeat;
+  }
+}
+
+.zenith-switch-icon {
+  overflow: hidden;
 }
 
 /* Two lines: the name, and under it where it is, each cut short with an
@@ -1140,6 +1153,142 @@ menuseparator[zenith-collapse] {
       transition-delay: 0s;
     }
   }
+}
+
+/* Firefox's "Import bookmarks…" button on the bar: hidden unless asked for. */
+:root:not([zenith-import-button]) #import-button {
+  display: none !important;
+}
+
+/* === Bookmarks (Ctrl+B) ============================================================ */
+
+/* The panel: glass like the other panels, over the right of the page
+   ("float"), or beside it in the page's row ("right", "left") so the page
+   gets narrower. The view inside styles itself (zenith-bookmarks.uc.mjs). */
+#zenith-bm-panel {
+  display: flex;
+  flex-direction: column;
+  width: var(--zth-bm-width, 300px);
+  flex: none;
+  min-height: 0;
+  position: relative;
+  background: var(--zth-panel-bg);
+  backdrop-filter: var(--zth-panel-filter);
+  border: 1px solid var(--zth-hairline);
+  border-radius: calc(var(--zth-radius) + 2px);
+  color: var(--zth-ink);
+  overflow: hidden;
+  z-index: 6;
+  animation: zth-bm-in 0.18s var(--zth-ease);
+
+  &[hidden] {
+    display: none;
+  }
+
+  &[place="float"] {
+    position: absolute;
+    top: var(--zen-element-separation, 8px);
+    bottom: var(--zen-element-separation, 8px);
+    right: var(--zen-element-separation, 8px);
+    box-shadow: var(--zth-shadow);
+  }
+
+  &[place="right"] {
+    margin: var(--zen-element-separation, 8px) var(--zen-element-separation, 8px) var(--zen-element-separation, 8px) 0;
+  }
+
+  &[place="left"] {
+    margin: var(--zen-element-separation, 8px) 0 var(--zen-element-separation, 8px) var(--zen-element-separation, 8px);
+    --zth-bm-from: -12px;
+  }
+
+  & > zenith-bookmarks-host {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+/* The inner edge, to drag wider or narrower. */
+.zth-bm-grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-start: 0;
+  width: 6px;
+  cursor: ew-resize;
+
+  [place="left"] > & {
+    inset-inline: auto 0;
+  }
+}
+
+@keyframes zth-bm-in {
+  from {
+    opacity: 0;
+    translate: var(--zth-bm-from, 12px) 0;
+  }
+}
+
+/* In Zen's Library: Firefox's bookmark icon on its tab (Zen's own tabs use
+   animated pictures); hidden with "Bookmarks in Zen's Library" off. */
+.zen-library-tab[data-section="zenith-bookmarks"] .zen-library-tab-icon-image {
+  width: var(--zen-library-sprite-size, 28px) !important;
+  background: var(--stroke, currentColor) !important;
+  mask: url("chrome://browser/skin/zen-icons/bookmark.svg") center / 20px no-repeat;
+  opacity: 0.85;
+}
+
+:root[zenith-bm-library-off] .zen-library-tab[data-section="zenith-bookmarks"] {
+  display: none !important;
+}
+
+zenith-bookmarks-host.zen-library-section {
+  display: flex;
+  flex-direction: column;
+}
+
+/* "Firefox's tree, restyled": Firefox's own sidebar as a panel of glass, on
+   the side Zenith's would be (or floating over the page). Inside it, a sheet
+   from zenith-bookmarks.uc.mjs. */
+:root[zenith-bm-look="firefox"] #sidebar-box:not([hidden]) {
+  background: var(--zth-panel-bg) !important;
+  backdrop-filter: var(--zth-panel-filter);
+  border: 1px solid var(--zth-hairline) !important;
+  border-radius: calc(var(--zth-radius) + 2px) !important;
+  color: var(--zth-ink) !important;
+  margin: var(--zen-element-separation, 8px) !important;
+  overflow: hidden;
+
+  & #sidebar-header,
+  & #sidebar-search-container {
+    background: transparent !important;
+    border: none !important;
+  }
+}
+
+:root[zenith-bm-look="firefox"]:is([zenith-bm-place="float"], [zenith-bm-place="right"]) {
+  & #tabbrowser-tabpanels {
+    order: 1;
+  }
+
+  & #sidebar-splitter {
+    order: 2;
+  }
+
+  & #sidebar-box {
+    order: 3;
+  }
+}
+
+:root[zenith-bm-look="firefox"][zenith-bm-place="float"] #sidebar-box:not([hidden]) {
+  position: absolute !important;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 6;
+  box-shadow: var(--zth-shadow);
 }
 
 /* === Tab manager (Alt+Shift+T) ================================================== */

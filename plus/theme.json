@@ -4,7 +4,7 @@
   "description": "Peek, real load and download progress, a sidebar minimap, zoom pills and more for Zenith.",
   "homepage": "https://github.com/bootzin/zenith/tree/master/plus",
   "author": "bootzin",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "style": {
     "chrome": "chrome.css"
   },
@@ -34,6 +34,13 @@
     "scripts/zenith-switcher.uc.mjs": {
       "name": "Switcher",
       "description": "Jump to any tab, folder or space by typing (Alt+W); : runs commands.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    },
+    "scripts/zenith-bookmarks.uc.mjs": {
+      "name": "Bookmarks",
+      "description": "Your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.",
       "include": [
         "chrome://browser/content/browser.xhtml"
       ]
@@ -75,5 +82,5 @@
   ],
   "ai": "yes",
   "createdAt": "2026-10-16",
-  "updatedAt": "2026-10-17T05:35:15+00:00"
+  "updatedAt": "2026-10-17T20:33:42+00:00"
 }

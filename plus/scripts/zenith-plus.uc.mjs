@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.11.0
+// @version        0.11.1
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -1289,8 +1289,28 @@ const Spaces = {
     window.ZenithSpaces = this; // for tools/checks
   },
 
-  // A space's own colour (its primary gradient colour), if it has one.
+  // A space's colour: its container's, when it opens tabs in one (what
+  // its tabs are marked with), else its own primary gradient colour.
   colour(space) {
+    return this.containerColour(space) ?? this.themeColour(space);
+  },
+
+  containerColour(space) {
+    const id = space?.containerTabId;
+    if (!id) return null;
+    try {
+      const name = ContextualIdentityService.getPublicIdentityFromId(id)?.color;
+      if (!name || name === "toolbar") return null;
+      // Firefox's own value for that colour, from its identity-color class.
+      this.probe ??= document.documentElement.appendChild(el("span", { id: "zenith-identity-probe", hidden: "true" }));
+      this.probe.className = `identity-color-${name}`;
+      return getComputedStyle(this.probe).getPropertyValue("--identity-tab-color").trim() || null;
+    } catch {
+      return null;
+    }
+  },
+
+  themeColour(space) {
     const colours = space?.theme?.gradientColors ?? [];
     const c = (colours.find(x => x?.isPrimary) ?? colours[0])?.c;
     if (!c) return null;
@@ -1333,7 +1353,11 @@ const Spaces = {
       clearTimeout(this.timer);
       this.timer = setTimeout(() => this.dots.removeAttribute("show"), 1600);
     }
-    this.whenPainted(colour => {
+    // A space in a container lights up in the container's colour straight
+    // away; otherwise in the colour Zen paints it.
+    const container = this.containerColour(space);
+    const paint = container ? fn => fn(container) : fn => this.whenPainted(fn, space);
+    paint(colour => {
       const active = this.dots.querySelector(".zenith-dot[active]");
       if (colour) active?.style.setProperty("--zth-dot", colour);
       if (!Services.prefs.getBoolPref(this.FLASH, true)) return;
@@ -1342,7 +1366,7 @@ const Spaces = {
       this.flash.removeAttribute("go");
       void this.flash.offsetWidth; // play it again
       this.flash.setAttribute("go", "true");
-    }, space);
+    });
   },
 
   // The new space's colour once Zen has painted it (it does so a frame or
@@ -1611,18 +1635,70 @@ const SidebarWidth = {
    "Recently used" turns on Firefox's own recently-used order for Ctrl+Tab:
    hold Ctrl and press Tab to step back through the tabs you used last, with
    a row of page pictures (Zenith styles it), and let go of Ctrl to land,
-   as Alt+Tab does with windows. Zen keeps it within the space. Through the
-   bridge, so your own setting comes back with "In order". */
+   as Alt+Tab does with windows. Zen keeps it within the space. "In order,
+   with pictures" shows the same row in the sidebar's order instead. Through
+   the bridge, so your own setting comes back with "In order". */
 const CtrlTabOrder = {
   PREF: "zenith.plus.ctrl-tab",
 
   init() {
+    const apply = () => this.apply();
+    Services.prefs.addObserver(this.PREF, apply);
+    onUnload(() => {
+      Services.prefs.removeObserver(this.PREF, apply);
+      this.ownOrder(false);
+    });
+    apply();
+  },
+
+  // "order" (Zen's: no pictures), "pictures" (in order, with pictures) or
+  // "recent" (recently used, with pictures). Both picture kinds are
+  // Firefox's recently-used Ctrl+Tab; "pictures" hands it the tabs in their
+  // order instead, starting from this one, so Ctrl+Tab steps down the list.
+  apply() {
+    const mode = Services.prefs.getStringPref(this.PREF, "") || "order";
+    Bridge.apply("ctrltab", { "browser.ctrlTab.sortByRecentlyUsed": mode === "order" ? null : true });
+    this.ownOrder(mode === "pictures");
+    try {
+      window.ctrlTab?.readPref?.();
+    } catch {}
+  },
+
+  ownOrder(on) {
+    const C = window.ctrlTab;
+    if (!C) return;
+    this.firefox ??= Object.getOwnPropertyDescriptor(C, "tabList");
+    if (on) {
+      Object.defineProperty(C, "tabList", { get: () => this.inOrder(), configurable: true, enumerable: true });
+    } else if (this.firefox) {
+      Object.defineProperty(C, "tabList", this.firefox);
+    }
+  },
+
+  // This space's tabs (essentials and pinned first, as in the sidebar),
+  // from the one you're on round to the one before it; asleep ones too.
+  inOrder() {
+    const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
+    const i = Math.max(0, tabs.indexOf(gBrowser.selectedTab));
+    return [...tabs.slice(i), ...tabs.slice(0, i)];
+  },
+};
+
+/* --- Groups for unpinned tabs ------------------------------------------------
+   Zen's folders pin the tabs you put in them (they stay when closed, and
+   come back to their first page). With "Groups for unpinned tabs" on,
+   Firefox's own tab groups come back for the tabs under the pinned ones:
+   right-click a tab › Add Tab to New Group. Those tabs stay ordinary tabs,
+   and Zenith draws the groups like folders (Zenith Tabs). Zen turns
+   Firefox's groups off; this turns them on through the bridge
+   (browser.tabs.groups.enabled), so Zen's value comes back when it's off. */
+const LooseGroups = {
+  PREF: "zenith.plus.loose-groups",
+
+  init() {
     const apply = () => {
-      const recent = Services.prefs.getStringPref(this.PREF, "") === "recent";
-      Bridge.apply("ctrltab", { "browser.ctrlTab.sortByRecentlyUsed": recent ? true : null });
-      try {
-        window.ctrlTab?.readPref?.();
-      } catch {}
+      const on = Services.prefs.getStringPref(this.PREF, "") === "on";
+      Bridge.apply("groups", { "browser.tabs.groups.enabled": on ? true : null });
     };
     Services.prefs.addObserver(this.PREF, apply);
     onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
@@ -1634,15 +1710,17 @@ const CtrlTabOrder = {
    Zen puts the bookmarks bar in the strip above the page that also holds
    the window buttons, and Zenith floats that strip in the top-right corner:
    so the bookmarks only showed beside the window buttons, on a corner hover.
-   With the bar on (Ctrl+Shift+B), Zenith gives it its own place:
-     above   a slim strip across the top of the page, always there (default)
+   With the bar on (Ctrl+Shift+B), Zenith can give it its own place:
+     zen     where Zen puts it, beside the window buttons (default)
+     above   a slim strip across the top of the page, always there
      hover   the same strip over the top of the page, shown when the pointer
              reaches the page's top edge (or a bookmark folder is open)
-     zen     where Zen puts it
    The bar itself is moved (it's the same toolbar, so customising it still
-   works) and put back for "Zen's own". */
+   works) and put back for "Zen's own". Firefox's "Import bookmarks…"
+   button on it is hidden unless "Import bookmarks button" says Shown. */
 const BookmarksBar = {
   PREF: "zenith.plus.bookmarks-bar",
+  IMPORT: "zenith.plus.bookmarks-import",
 
   init() {
     this.bar = document.getElementById("PersonalToolbar");
@@ -1650,13 +1728,16 @@ const BookmarksBar = {
     this.home = this.bar.parentNode;
     this.homeNext = this.bar.nextSibling;
     const apply = () => this.apply();
-    Services.prefs.addObserver(this.PREF, apply);
-    onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
+    for (const p of [this.PREF, this.IMPORT]) Services.prefs.addObserver(p, apply);
+    onUnload(() => {
+      for (const p of [this.PREF, this.IMPORT]) Services.prefs.removeObserver(p, apply);
+    });
     apply();
   },
 
   apply() {
-    const mode = Services.prefs.getStringPref(this.PREF, "") || "above";
+    root.toggleAttribute("zenith-import-button", Services.prefs.getStringPref(this.IMPORT, "") === "shown");
+    const mode = Services.prefs.getStringPref(this.PREF, "") || "zen";
     const content = document.getElementById("zen-appcontent-wrapper");
     const page = document.getElementById("zen-tabbox-wrapper");
     if (mode === "zen" || !content || !page || page.parentNode !== content) {
@@ -1675,16 +1756,19 @@ const BookmarksBar = {
 };
 
 /* --- Colours from an image ---------------------------------------------------
-   Pick a picture (or use your wallpaper): Zenith finds its main colours and
-   gives them to the current space, as Zen's own theme picker would (up to
-   three colours: the most striking first, then others of a clearly
-   different hue). Zenith's accent follows the space's colour, so it changes
-   too. The space's earlier colours are kept for "undo" (":colours undo" in
-   the switcher), and Zen's theme picker can change them as usual.
-   How the colours are found: the picture is shrunk to 48×48, its pixels
-   grouped into six by k-means (started from the pixels farthest apart),
-   and each group scored by how much of the picture it covers and how
-   colourful it is. */
+   Pick a picture (or use your wallpaper): Zenith finds its colours and gives
+   them to the current space, as Zen's own theme picker would. The space's
+   earlier colours are kept for "undo" (":colours undo" in the switcher), and
+   Zen's theme picker can change them as usual.
+   How the colours are found, much as wallust and pywal find a terminal's:
+   the picture is shrunk to 64×64 and its pixels grouped by k-means in OKLab
+   (where distances match what the eye sees); shades of one hue are gathered
+   together, and each hue is scored by how much of the picture it covers and
+   how vivid its most colourful pixels are. One, two or three hues come out:
+   another only when it's clearly a different hue and covers enough of the
+   picture to matter (a grey picture gives one grey). Then each is made into
+   a colour Zen shows well: vivid enough to read as that hue, all at one
+   lightness, chosen so Zen keeps your light or dark text. */
 const ImageColours = {
   init() {
     const commandset = document.createXULElement("commandset");
@@ -1728,86 +1812,147 @@ const ImageColours = {
     return this.apply(bitmap, "your wallpaper");
   },
 
-  // The picture's main colours, most striking first.
+  // sRGB (0–255) to OKLab and back (Björn Ottosson's matrices).
+  lab([r, g, b]) {
+    const lin = v => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    const [R, G, B] = [lin(r), lin(g), lin(b)];
+    const l = Math.cbrt(0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B);
+    const m = Math.cbrt(0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B);
+    const s = Math.cbrt(0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B);
+    return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+            1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+            0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+  },
+
+  // OKLCH to sRGB, with the chroma eased down until it fits.
+  rgb(L, C, h) {
+    const toRgb = C => {
+      const a = C * Math.cos((h * Math.PI) / 180), b = C * Math.sin((h * Math.PI) / 180);
+      const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+      const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+      const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+      return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+              -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+              -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+    };
+    let lin = toRgb(C);
+    while (C > 0 && lin.some(v => v < -0.0005 || v > 1.0005)) lin = toRgb((C = Math.max(0, C - 0.004)));
+    const enc = v => Math.round(255 * Math.min(1, Math.max(0, v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055)));
+    return lin.map(enc);
+  },
+
+  // The picture's hues, most striking first: [{L, C, h, share, score}].
   palette(bitmap) {
-    const N = 48;
+    const N = 64;
     const canvas = document.createElementNS(HTML_NS, "canvas");
     canvas.width = canvas.height = N;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     ctx.drawImage(bitmap, 0, 0, N, N);
     const data = ctx.getImageData(0, 0, N, N).data;
     const px = [];
-    for (let i = 0; i < data.length; i += 4) if (data[i + 3] > 128) px.push([data[i], data[i + 1], data[i + 2]]);
+    for (let i = 0; i < data.length; i += 4) if (data[i + 3] > 128) px.push(this.lab([data[i], data[i + 1], data[i + 2]]));
     if (!px.length) return [];
     // k-means, started from the pixels farthest apart (so a small patch of
     // a clearly different colour gets its own group).
-    const K = 6;
+    const K = 8;
     const d2 = (p, c) => (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2;
+    const near = px.map(() => Infinity);
     let centres = [[...px[Math.floor(px.length / 2)]]];
     while (centres.length < K) {
-      let far = px[0], most = -1;
-      for (const p of px) {
-        const near = Math.min(...centres.map(c => d2(p, c)));
-        if (near > most) [far, most] = [p, near];
-      }
-      centres.push([...far]);
+      const c = centres.at(-1);
+      let far = 0;
+      px.forEach((p, i) => {
+        near[i] = Math.min(near[i], d2(p, c));
+        if (near[i] > near[far]) far = i;
+      });
+      if (!near[far]) break; // fewer colours than groups
+      centres.push([...px[far]]);
     }
+    const owner = new Int32Array(px.length);
     let groups;
-    for (let round = 0; round < 10; round++) {
+    for (let round = 0; round < 12; round++) {
       groups = centres.map(() => []);
-      for (const p of px) {
+      px.forEach((p, i) => {
         let best = 0, dist = Infinity;
         centres.forEach((c, k) => {
           const d = d2(p, c);
           if (d < dist) [best, dist] = [k, d];
         });
+        owner[i] = best;
         groups[best].push(p);
-      }
-      centres = groups.map((g, k) => (g.length ? [0, 1, 2].map(i => g.reduce((n, p) => n + p[i], 0) / g.length) : centres[k]));
+      });
+      centres = groups.map((g, k) => (g.length ? [0, 1, 2].map(j => g.reduce((n, p) => n + p[j], 0) / g.length) : centres[k]));
     }
-    const hsl = ([r, g, b]) => {
-      const [R, G, B] = [r / 255, g / 255, b / 255];
-      const max = Math.max(R, G, B), min = Math.min(R, G, B), d = max - min, l = (max + min) / 2;
-      const s = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
-      const h = !d ? 0 : max === R ? (((G - B) / d) % 6) * 60 : max === G ? ((B - R) / d + 2) * 60 : ((R - G) / d + 4) * 60;
-      return [(h + 360) % 360, s, l];
-    };
-    const found = centres.map((c, k) => {
-      const [h, s, l] = hsl(c);
-      const share = groups[k].length / px.length;
-      const colourful = s * (1 - Math.abs(2 * l - 1)); // chroma
-      return { c: c.map(Math.round), h, s, l, share, score: share * (0.25 + colourful * 2) };
-    }).filter(f => f.share > 0.02).sort((a, b) => b.score - a.score);
-    const chosen = [];
-    for (const f of found) {
-      if (chosen.length >= 3) break;
-      const apart = chosen.every(c => Math.min(Math.abs(c.h - f.h), 360 - Math.abs(c.h - f.h)) > 35 ||
-                                     Math.abs(c.l - f.l) > 0.3);
-      if (apart) chosen.push(f);
+    // Each group by its vivid side (the more colourful 40% of its pixels):
+    // an average of a whole group is always duller than what you see.
+    const found = groups.filter(g => g.length).map(g => {
+      const top = g.map(p => [Math.hypot(p[1], p[2]), p]).sort((x, y) => y[0] - x[0])
+        .slice(0, Math.max(1, Math.ceil(g.length * 0.4))).map(([, p]) => p);
+      const [L, a, b] = [0, 1, 2].map(j => top.reduce((n, p) => n + p[j], 0) / top.length);
+      return { L, C: Math.hypot(a, b), h: ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360, share: g.length / px.length };
+    });
+    const gap = (x, y) => Math.min(Math.abs(x - y), 360 - Math.abs(x - y));
+    // Shades of one hue count together; the most vivid speaks for them.
+    const hues = [];
+    for (const f of found.filter(f => f.C >= 0.03).sort((x, y) => y.share * y.C - x.share * x.C)) {
+      const same = hues.find(h => gap(h.h, f.h) < 24);
+      if (!same) hues.push({ ...f });
+      else {
+        same.share += f.share;
+        if (f.C > same.C) Object.assign(same, { L: f.L, C: f.C, h: f.h });
+      }
+    }
+    if (!hues.length) {
+      // A grey picture: one grey, as light as most of it.
+      const most = found.sort((x, y) => y.share - x.share)[0];
+      this.lastHues = [];
+      return [{ L: most.L, C: 0, h: 0, share: 1, score: 1 }];
+    }
+    for (const h of hues) h.score = Math.sqrt(h.share) * (0.2 + h.C / 0.1);
+    hues.sort((x, y) => y.score - x.score);
+    this.lastHues = hues; // for tools/checks
+    const chosen = [hues[0]];
+    for (const h of hues.slice(1)) {
+      if (chosen.length === 3) break;
+      const enough = 0.2 * chosen[0].score;
+      if (h.score >= enough && chosen.every(c => gap(c.h, h.h) >= 30)) chosen.push(h);
     }
     return chosen;
   },
 
+  // The hues as colours for Zen: chroma lifted a quarter (0.07–0.2, so even
+  // a muted picture gives a clear tint), all at one lightness, as Zen's own
+  // picker does. Zen chooses light or dark text from the main colour, so the
+  // lightness moves until it keeps yours.
+  colours(hues) {
+    const picker = window.gZenThemePicker;
+    const dark = picker?.isDarkMode ?? true;
+    const make = L => hues.map(f => this.rgb(L, f.C ? Math.min(0.2, Math.max(0.07, f.C * 1.25)) : 0, f.h));
+    let L = dark ? 0.56 : 0.78, rgb = make(L);
+    for (let i = 0; i < 12 && picker?.shouldBeDarkMode && picker.shouldBeDarkMode(rgb[0]) !== dark; i++) rgb = make((L += dark ? -0.03 : 0.03));
+    return rgb;
+  },
+
   apply(bitmap, from) {
-    const colours = this.palette(bitmap);
+    const hues = this.palette(bitmap);
     bitmap.close?.();
     const W = window.gZenWorkspaces, picker = window.gZenThemePicker;
     const space = W?.getActiveWorkspace?.();
-    if (!colours.length || !space || !picker) {
+    if (!hues.length || !space || !picker) {
       hint("Couldn't find colours there");
       return null;
     }
+    const colours = this.colours(hues);
     this.previous = { uuid: space.uuid, theme: structuredClone(space.theme) };
-    const dots = colours.map((f, i) => ({
-      c: f.c, isCustom: false, isPrimary: i === 0, algorithm: picker.useAlgo ?? "floating",
-      lightness: Math.round(f.l * 100), type: "explicit-lightness",
-    }));
+    const [r, g, b] = colours[0].map(v => v / 255);
+    const lightness = Math.round(((Math.max(r, g, b) + Math.min(r, g, b)) / 2) * 100);
+    const dots = colours.map((c, i) => ({ c, isCustom: false, isPrimary: i === 0, algorithm: "floating", lightness, type: "explicit-lightness" }));
     const opacity = space.theme?.opacity ?? 0.5, texture = space.theme?.texture ?? 0;
     space.theme = picker.constructor.getTheme?.(dots, opacity, texture) ?? { type: "gradient", gradientColors: dots, opacity, texture };
     W.saveWorkspace(space);
     picker.onWorkspaceChange(space);
-    hint(`Space colours from ${from}`);
-    return colours.map(f => f.c);
+    hint(`Space colours from ${from}: ${colours.length === 1 ? "one colour" : `${colours.length} colours`}`);
+    return colours;
   },
 
   undo() {
@@ -1823,17 +1968,21 @@ const ImageColours = {
 };
 
 /* --- Extension buttons per space ---------------------------------------------
-   Right-click an extension's button on the toolbar: "Only in this space"
-   keeps it there and hides it in the other spaces; "In every space" brings
-   it back everywhere. (Extensions themselves are shared by the whole
-   browser: one can't run separately per space. This is about which
-   buttons you see.) Kept in zenith.internal.extension-spaces. */
+   Right-click an extension's button: "Pinned in spaces" lists every space
+   with a tick, so its button shows only in the spaces you tick ("Every
+   space" puts it back everywhere). The extension itself keeps running in
+   all of them (extensions are shared by the whole browser; one can't run
+   separately per space): this is only about where its button is pinned.
+   Kept in zenith.internal.extension-spaces as {button id: [space ids]}. */
 const SpaceExtensions = {
   PREF: "zenith.internal.extension-spaces",
 
   get map() {
     try {
-      return JSON.parse(Services.prefs.getStringPref(this.PREF, "{}"));
+      const map = JSON.parse(Services.prefs.getStringPref(this.PREF, "{}"));
+      // (0.11.0 kept one space as a string.)
+      for (const [id, v] of Object.entries(map)) if (typeof v === "string") map[id] = [v];
+      return map;
     } catch {
       return {};
     }
@@ -1847,19 +1996,19 @@ const SpaceExtensions = {
     const menu = document.getElementById("toolbar-context-menu");
     if (menu) {
       this.sep = document.createXULElement("menuseparator");
-      this.only = document.createXULElement("menuitem");
-      this.only.setAttribute("label", "Only in this space");
-      this.only.setAttribute("type", "checkbox");
-      this.only.addEventListener("command", () => this.toggle(this.target));
-      this.sep.hidden = this.only.hidden = true;
-      menu.append(this.sep, this.only);
+      this.menu = document.createXULElement("menu");
+      this.menu.setAttribute("label", "Pinned in spaces");
+      this.popup = document.createXULElement("menupopup");
+      this.menu.append(this.popup);
+      this.sep.hidden = this.menu.hidden = true;
+      menu.append(this.sep, this.menu);
       menu.addEventListener("popupshowing", e => {
         if (e.target !== menu) return;
         const item = menu.triggerNode?.closest?.(".unified-extensions-item, toolbaritem[data-extensionid], .webextension-browser-action");
         this.target = item?.closest?.("toolbaritem") ?? item;
-        const show = !!this.target?.id && !!window.gZenWorkspaces?.workspaceEnabled;
-        this.sep.hidden = this.only.hidden = !show;
-        if (show) this.only.setAttribute("checked", String(!!this.map[this.target.id]));
+        const show = !!this.target?.id && !!window.gZenWorkspaces?.workspaceEnabled && this.spaces().length > 1;
+        this.sep.hidden = this.menu.hidden = !show;
+        if (show) this.fill();
       });
     }
     const update = () => this.update();
@@ -1879,21 +2028,64 @@ const SpaceExtensions = {
     window.ZenithSpaceExtensions = this; // for tools/checks
   },
 
-  toggle(item) {
-    if (!item?.id) return;
-    const map = this.map, here = gZenWorkspaces.activeWorkspace;
-    if (map[item.id]) delete map[item.id];
-    else map[item.id] = here;
+  spaces() {
+    try {
+      return gZenWorkspaces.getWorkspaces() ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Ticks: "Every space", then each space (ticked where the button shows).
+  // The menu stays open while you tick, like Firefox's own lists of ticks.
+  fill() {
+    const id = this.target.id, pinned = this.map[id];
+    const row = (label, checked, fn) => {
+      const item = document.createXULElement("menuitem");
+      item.setAttribute("label", label);
+      item.setAttribute("type", "checkbox");
+      item.setAttribute("closemenu", "none");
+      item.toggleAttribute("checked", checked);
+      item.addEventListener("command", () => {
+        fn();
+        this.fill();
+      });
+      return item;
+    };
+    const items = [row("Every space", !pinned, () => this.set(id, null)), document.createXULElement("menuseparator")];
+    for (const space of this.spaces()) {
+      const on = !pinned || pinned.includes(space.uuid);
+      items.push(row(`${space.icon && !/^[a-z]+:/i.test(space.icon) ? `${space.icon}  ` : ""}${space.name}`, on, () => this.flip(id, space.uuid)));
+    }
+    this.popup.replaceChildren(...items);
+  },
+
+  // Untick a space: the button leaves it (never the last one); tick every
+  // space and it's back to "Every space".
+  flip(id, uuid) {
+    const all = this.spaces().map(s => s.uuid);
+    let list = this.map[id] ?? all;
+    list = list.includes(uuid) ? list.filter(u => u !== uuid) : [...list, uuid];
+    if (!list.length) return;
+    this.set(id, all.every(u => list.includes(u)) ? null : list);
+  },
+
+  set(id, list) {
+    const map = this.map;
+    if (list) map[id] = list;
+    else delete map[id];
     this.save(map);
   },
 
-  // Hide the buttons that belong to another space.
+  // Hide the buttons that aren't pinned in this space (only what changed,
+  // so nothing in the open sidebar is touched needlessly).
   update() {
     const map = this.map, here = window.gZenWorkspaces?.activeWorkspace;
-    for (const node of document.querySelectorAll("[zenith-other-space]")) node.removeAttribute("zenith-other-space");
-    for (const [id, space] of Object.entries(map)) {
+    const away = new Set(Object.entries(map).filter(([, list]) => here && !list.includes(here)).map(([id]) => id));
+    for (const node of document.querySelectorAll("[zenith-other-space]")) if (!away.has(node.id)) node.removeAttribute("zenith-other-space");
+    for (const id of away) {
       const node = document.getElementById(id);
-      if (node && space !== here) node.setAttribute("zenith-other-space", "true");
+      if (node && !node.hasAttribute("zenith-other-space")) node.setAttribute("zenith-other-space", "true");
     }
   },
 };
@@ -1905,9 +2097,15 @@ const SpaceExtensions = {
    "always open <site> there" to turn the choice into a Space routing rule.
    Escape opens it as Zen would have. Rules you already have still apply
    without asking. Firefox hands such links to the window's browserDOMWindow
-   (OPEN_EXTERNAL); Zenith waits there for your answer. */
+   (OPEN_EXTERNAL); Zenith waits there for your answer.
+   Zen's Space routing dialog gains "Ask me each time" in each rule's list of
+   spaces (that rule then asks) and in the default for other links (the same
+   as this setting; the two follow each other). Zen reads "Ask me each time"
+   as no space, so without Zenith such links simply open where you are. */
 const ExternalLinks = {
   PREF: "zenith.plus.external-links",
+  ASK: "zenith-ask",
+  SAVED: "zenith.internal.links.default",
 
   init() {
     const hook = () => {
@@ -1932,7 +2130,91 @@ const ExternalLinks = {
     };
     if (window.browserDOMWindow) hook();
     else window.delayedStartupPromise?.then(hook);
+    this.patchDialog();
+    const follow = () => this.followSetting();
+    Services.prefs.addObserver(this.PREF, follow);
+    onUnload(() => {
+      Services.prefs.removeObserver(this.PREF, follow);
+      this.unpatchDialog();
+    });
     window.ZenithLinks = this; // for tools/checks
+  },
+
+  routing() {
+    return window.gZenSpaceRoutingManager ?? null;
+  },
+
+  // The setting and Zen's default for links no rule matches follow each
+  // other: "Ask each time" here is "Ask me each time" there, and back.
+  followSetting() {
+    const R = this.routing();
+    if (!R?.getDefaultExternalRoute) return;
+    const ask = Services.prefs.getStringPref(this.PREF, "") === "ask";
+    try {
+      const now = R.getDefaultExternalRoute();
+      if (ask && now !== this.ASK) {
+        Services.prefs.setStringPref(this.SAVED, now);
+        R.setDefaultExternalRoute(this.ASK);
+        R.saveRoutes();
+      } else if (!ask && now === this.ASK) {
+        R.setDefaultExternalRoute(Services.prefs.getStringPref(this.SAVED, "") || "most-recent-space");
+        R.saveRoutes();
+      }
+    } catch (e) {
+      console.error("[Zenith] links: Space routing default", e);
+    }
+  },
+
+  // Zen's dialog builds each list of spaces with createOpenInList; Zenith's
+  // choice goes in after "Most recent space". The dialog's code is shared by
+  // every window, so one window patches it and hands over when it closes.
+  patchDialog() {
+    let proto;
+    try {
+      proto = ChromeUtils.importESModule("resource:///modules/zen/spacerouting/ZenSpaceRoutingDialog.mjs")
+        .nsZenSpaceRoutingDialog.prototype;
+    } catch {
+      return;
+    }
+    if (proto.zenithOrig) return;
+    const orig = (proto.zenithOrig = proto.createOpenInList);
+    const links = this;
+    proto.createOpenInList = async function (select, value) {
+      await orig.call(this, select, value);
+      const popup = select.querySelector("menupopup") ?? select;
+      const item = this.doc.createXULElement("menuitem");
+      item.setAttribute("label", "Ask me each time");
+      item.setAttribute("value", links.ASK);
+      item.className = "zenith-route-ask";
+      const recent = popup.querySelector('menuitem[value="most-recent-space"]');
+      if (recent) recent.after(item);
+      else popup.append(item);
+      const isDefault = select.id === "sr-default-external-open-in";
+      const asking = value === links.ASK || (isDefault && Services.prefs.getStringPref(links.PREF, "") === "ask");
+      if (asking) select.value = links.ASK;
+      if (isDefault) {
+        if (value !== links.ASK) Services.prefs.setStringPref(links.SAVED, value);
+        select.addEventListener("command", () => {
+          if (select.value === links.ASK) Services.prefs.setStringPref(links.PREF, "ask");
+          else Services.prefs.clearUserPref(links.PREF);
+        });
+      }
+    };
+    this.patched = proto;
+  },
+
+  unpatchDialog() {
+    const proto = this.patched;
+    if (!proto?.zenithOrig) return;
+    proto.createOpenInList = proto.zenithOrig;
+    delete proto.zenithOrig;
+    this.patched = null;
+    for (const w of Services.wm.getEnumerator("navigator:browser")) {
+      if (w !== window && !w.closed && w.ZenithLinks) {
+        w.ZenithLinks.patchDialog();
+        break;
+      }
+    }
   },
 
   spaces() {
@@ -1943,15 +2225,23 @@ const ExternalLinks = {
     }
   },
 
-  // Ask only for web links, with more than one space, that no rule routes.
+  // Ask only for web links, with more than one space: when the first rule
+  // that matches says "Ask me each time", or when none matches and the
+  // default is to ask.
   wanted(uri) {
-    if (Services.prefs.getStringPref(this.PREF, "") !== "ask" || !/^https?$/.test(uri?.scheme ?? "")) return false;
-    if (this.spaces().length < 2) return false;
-    const R = window.gZenSpaceRoutingManager;
+    if (!/^https?$/.test(uri?.scheme ?? "") || this.spaces().length < 2) return false;
+    const route = this.rule(uri);
+    if (route) return route.openIn === this.ASK;
+    return Services.prefs.getStringPref(this.PREF, "") === "ask" || this.routing()?.getDefaultExternalRoute?.() === this.ASK;
+  },
+
+  rule(uri) {
+    const R = this.routing();
     try {
-      if (R?.getAllRoutes().some(route => R.isRouteMatching(uri.spec, route))) return false;
-    } catch {}
-    return true;
+      return R?.getAllRoutes().find(route => R.isRouteMatching(uri.spec, route)) ?? null;
+    } catch {
+      return null;
+    }
   },
 
   ask(uri, open) {
@@ -1973,9 +2263,10 @@ const ExternalLinks = {
       card.remove();
       this.pending = null;
     };
+    const asked = this.rule(uri);
     const choose = async space => {
       done();
-      if (tick.checked) this.remember(host, space.uuid);
+      if (tick.checked) this.remember(host, space.uuid, !!asked);
       if (gZenWorkspaces.activeWorkspace !== space.uuid) await gZenWorkspaces.changeWorkspaceWithID(space.uuid);
       open();
     };
@@ -2024,15 +2315,23 @@ const ExternalLinks = {
   },
 
   // "Always open <site> there": a Space routing rule, as Zen's own dialog
-  // would make (contains <site> → that space).
-  remember(host, spaceId) {
-    const R = window.gZenSpaceRoutingManager;
+  // would make (contains <site> → that space). When an "ask" rule asked, the
+  // new one goes first, or the asking rule would still win.
+  remember(host, spaceId, first = false) {
+    const R = this.routing();
     if (!R?.createNewRoute) return;
     const route = R.createNewRoute();
     route.reference = host;
     route.matchType = "contains";
     route.openIn = spaceId;
     R.updateRoute(route);
+    if (first) {
+      // Zen keeps rules in a list and finds them by id; moving every rule's
+      // contents down one place puts the new rule at the top.
+      const all = R.getAllRoutes();
+      const wanted = [all.at(-1), ...all.slice(0, -1)];
+      all.forEach((slot, i) => R.updateRoute({ ...wanted[i], id: slot.id }));
+    }
     R.saveRoutes();
   },
 };
@@ -2318,6 +2617,7 @@ const DROPDOWNS = {
  "zenith.tabs.close-hover": "Zenith Tabs",
  "zenith.tabs.unloaded": "Zenith Tabs",
  "zenith.tabs.attention": "Zenith Tabs",
+ "zenith.tabs.pin-mark": "Zenith Tabs",
  "zenith.tabs.folder-activity": "Zenith Tabs",
  "zenith.tabs.container": "Zenith Tabs",
  "zenith.tabs.split-vertical": "Zenith Tabs",
@@ -2441,6 +2741,7 @@ start("key switch flash", () => KeySwitchFlash.init());
 start("ready pulse", () => ReadyPulse.init());
 start("sidebar width", () => SidebarWidth.init());
 start("ctrl+tab order", () => CtrlTabOrder.init());
+start("groups for unpinned tabs", () => LooseGroups.init());
 start("bookmarks bar", () => BookmarksBar.init());
 start("colours from an image", () => ImageColours.init());
 start("extensions per space", () => SpaceExtensions.init());

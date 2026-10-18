@@ -39,6 +39,7 @@ PRESETS = {
         },
         "sets": {
             "zenith.tabs.attention": {"plain": "off", "informative": "on", "everything": "on"},
+            "zenith.tabs.pin-mark": {"plain": "off", "informative": "on", "everything": "on"},
             "zenith.tabs.folder-activity": {"plain": "off", "informative": "on", "everything": "on"},
             "zenith.tabs.container": {"plain": "off", "informative": "subtle", "everything": "subtle"},
             "zenith.tabs.split-vertical": {"plain": "off", "informative": "on", "everything": "on"},
@@ -152,11 +153,11 @@ SECTIONS = [
         "preset": "zenith.tabs.preset",
         "groups": [
             ("The sidebar", ["zenith.tabs.reveal", "zenith.tabs.reveal-delay", "zenith.tabs.close-hover",
-                             "zen.tabs.open-pinned-in-new-tab", "zenith.plus.minimap",
+                             "zen.tabs.open-pinned-in-new-tab", "zenith.plus.loose-groups", "zenith.plus.minimap",
                              "zenith.plus.key-switch-flash"]),
             ("Spaces", ["zenith.plus.workspace-dots", "zenith.plus.workspace-flash"]),
             ("Links", ["zenith.plus.external-links", "zenith.action.space-routing"]),
-            ("Signals", ["zenith.tabs.unloaded", "zenith.tabs.attention", "zenith.tabs.folder-activity",
+            ("Signals", ["zenith.tabs.unloaded", "zenith.tabs.pin-mark", "zenith.tabs.attention", "zenith.tabs.folder-activity",
                          "zenith.tabs.container", "zenith.tabs.audio-wave", "zenith.tabs.split-vertical"]),
             ("Media", ["zenith.tabs.mini-player", "zenith.plus.media-art"]),
             ("Numbers", ["zenith.tabs.numbers"]),
@@ -183,7 +184,8 @@ SECTIONS = [
             ("Media", ["zenith.panels.pip"]),
             ("Menus", ["zenith.panels.compact-menus", "zenith.plus.more-menu", "zenith.panels.menu-icons"]),
             ("Tab previews", ["zenith.panels.tab-preview"]),
-            ("Bookmarks", ["zenith.plus.bookmarks-bar"]),
+            ("Bookmarks", ["zenith.plus.bookmarks-look", "zenith.plus.bookmarks-place", "zenith.plus.bookmarks-space-first",
+                           "zenith.plus.bookmarks-library", "zenith.plus.bookmarks-bar", "zenith.plus.bookmarks-import"]),
             ("Extras", ["zenith.panels.glance"]),
         ],
     },
@@ -203,7 +205,8 @@ SECTIONS = [
         "groups": [
             ("Switcher", ["zenith.plus.switcher", "zenith.plus.switcher-scope"]),
             ("Ctrl+Tab", ["zenith.plus.ctrl-tab"]),
-            ("Tab manager", ["zenith.plus.tab-manager"]),
+            ("Tab manager", ["zenith.plus.tab-manager", "zenith.plus.tab-manager-view", "zenith.plus.tabs-auto-sleep",
+                             "zenith.plus.tabs-auto-close"]),
             ("Focus mode", ["zenith.plus.focus-key"]),
         ],
     },
@@ -291,14 +294,30 @@ DESCRIPTIONS = {
                                   "always send that site there.",
     "zenith.plus.blend": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the "
                          "page you're on, so the window runs into the page.",
-    "zenith.plus.tab-manager": "Alt+Shift+T (or :tabs in the switcher): every space's tabs at a glance, with duplicates, "
-                               "tabs you haven't used for days, awake tabs and busy sites to tidy up. Nothing happens "
-                               "until you press a button, and closed tabs come back with Undo.",
-    "zenith.plus.ctrl-tab": "In order, as Zen does, or recently used like Alt+Tab: hold Ctrl and press Tab to step back "
-                            "through the tabs you used last, with pictures of them, and let go to land.",
-    "zenith.plus.bookmarks-bar": "When the bookmarks bar is on (Ctrl+Shift+B): a slim strip above the page, the same "
-                                 "strip over the page that shows when the pointer reaches the top, or Zen's own place "
-                                 "beside the window buttons.",
+    "zenith.plus.tab-manager": "Alt+Shift+T (or :tabs in the switcher) opens about:zenith-tabs: every space's tabs in columns "
+                               "to move, sleep, wake, put in folders or close (with Undo), tidying up (duplicates, unused, "
+                               "awake tabs, busy sites) and rules for grouping. Nothing happens until you press a button "
+                               "or set a rule.",
+    "zenith.plus.tab-manager-view": "The tab manager as its own page in a tab, or the small card over the page.",
+    "zenith.plus.tabs-auto-sleep": "Off unless you choose: tabs you haven't been to for this long are unloaded (not the one "
+                                   "you're on, playing tabs or tabs sharing your camera or screen).",
+    "zenith.plus.tabs-auto-close": "Off unless you choose: loose tabs (not pinned, not essentials, not in a folder or group) "
+                                   "you haven't been to for this long close. The tab manager's Rules list them to bring back.",
+    "zenith.plus.ctrl-tab": "In order, as Zen does (with or without a row of pictures), or recently used like Alt+Tab: "
+                            "hold Ctrl and press Tab to step through the tabs, with pictures of them, and let go to land.",
+    "zenith.plus.bookmarks-look": "Ctrl+B opens your bookmarks in Zenith's look: rows like the tab list, with folders that "
+                                  "open in place, or a grid of tiles. Drop a tab on it to bookmark it. \"Firefox's tree\" "
+                                  "keeps Firefox's own sidebar, in Zenith's colours.",
+    "zenith.plus.bookmarks-place": "Floating over the right of the page, docked on the right (the page gets narrower), "
+                                   "or on the left beside the tabs. Drag its inner edge to make it wider.",
+    "zenith.plus.bookmarks-space-first": "A section for the space you're in: its own folder (made when you first drop "
+                                         "something there) and the bookmarks Zen's edit dialog gives to this space. "
+                                         "Bookmarks given only to other spaces are left out, as in Zen's menus.",
+    "zenith.plus.bookmarks-library": "The same bookmarks as a section of Zen's Library, next to History.",
+    "zenith.plus.bookmarks-import": "Firefox's \"Import bookmarks…\" button on the bookmarks bar.",
+    "zenith.plus.bookmarks-bar": "When the bookmarks bar is on (Ctrl+Shift+B): Zen's own place beside the window "
+                                 "buttons, a slim strip above the page, or the same strip over the page that shows "
+                                 "when the pointer reaches the top.",
     "zenith.panels.menu-icons": "Small icons on the right-click items you use most (open, copy, paste, save, close, pin) "
                                 "and on More, from Zen's own icon set.",
     "zenith.panels.tab-preview": "Firefox's card with a picture of the page when you rest on a tab, in Zenith's "
@@ -313,6 +332,10 @@ DESCRIPTIONS = {
     "zenith.plus.minimap": "Small ticks at the edge for tabs that are loading, playing or want attention.",
     "zenith.tabs.unloaded": "How sleeping tabs look.",
     "zenith.tabs.attention": "A dot on tabs that want attention.",
+    "zenith.plus.loose-groups": "Zen's folders pin the tabs you put in them. This brings back Firefox's tab groups for "
+                                "the tabs under the pinned ones (right-click a tab › Add Tab to New Group): they stay "
+                                "ordinary tabs, and Zenith draws the groups like folders.",
+    "zenith.tabs.pin-mark": "A small pin on pinned tabs, where the sleeping moon goes (not on essentials or tabs in a folder).",
     "zenith.tabs.folder-activity": "A dot on closed folders when a tab inside is playing or wants attention.",
     "zenith.tabs.container": "A coloured stripe on tabs in a container.",
     "zenith.tabs.audio-wave": "A moving equaliser behind tabs that play sound.",
@@ -413,17 +436,27 @@ LABELS = {
     "zenith.plus.workspace-dots": "Workspace dots",
     "zenith.plus.workspace-flash": "Workspace flash",
     "zenith.tabs.badge-only": "Extension buttons only with a badge",
+    "zenith.tabs.pin-mark": "Pin mark",
+    "zenith.plus.loose-groups": "Groups for unpinned tabs",
     "zenith.plus.ready-pulse": "Background tab ready",
     "zenith.plus.more-menu": "More submenu",
     "zenith.plus.scroll": "Scroll feel",
     "zenith.plus.switcher-scope": "Finds tabs in",
     "zenith.plus.ctrl-tab": "Ctrl+Tab",
     "zenith.plus.bookmarks-bar": "Bookmarks bar",
+    "zenith.plus.bookmarks-look": "Bookmarks look",
+    "zenith.plus.bookmarks-place": "Where they open",
+    "zenith.plus.bookmarks-space-first": "This space first",
+    "zenith.plus.bookmarks-library": "In Zen's Library",
+    "zenith.plus.bookmarks-import": "Import button",
     "zenith.panels.menu-icons": "Menu icons",
     "zenith.panels.tab-preview": "Tab previews",
     "zenith.plus.switcher": "Switcher (Alt+W)",
     "zenith.plus.focus-key": "Focus mode (Alt+Z)",
     "zenith.plus.tab-manager": "Tab manager (Alt+Shift+T)",
+    "zenith.plus.tab-manager-view": "Opens as",
+    "zenith.plus.tabs-auto-sleep": "Sleep on their own",
+    "zenith.plus.tabs-auto-close": "Close on their own",
     "zenith.plus.external-links": "Where they open",
     "zenith.plus.blend": "Blend with the page",
     "zenith.tabs.audio-wave": "Audio wave",

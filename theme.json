@@ -4,7 +4,7 @@
   "description": "A quiet, minimal look for Zen: six areas (Core, Edges, Tabs, URL bar, Panels, Motion) plus Zenith Plus (Peek, live edges, timers and more). Settings are grouped by area.",
   "homepage": "https://github.com/bootzin/zenith/tree/master",
   "author": "bootzin",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "style": {
     "chrome": "chrome.css"
   },
@@ -34,6 +34,13 @@
     "plus/scripts/zenith-switcher.uc.mjs": {
       "name": "Switcher",
       "description": "Jump to any tab, folder or space by typing (Alt+W); : runs commands.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    },
+    "plus/scripts/zenith-bookmarks.uc.mjs": {
+      "name": "Bookmarks",
+      "description": "Your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.",
       "include": [
         "chrome://browser/content/browser.xhtml"
       ]
@@ -76,5 +83,5 @@
   ],
   "ai": "yes",
   "createdAt": "2026-10-16",
-  "updatedAt": "2026-10-17T05:35:15+00:00"
+  "updatedAt": "2026-10-17T20:33:42+00:00"
 }

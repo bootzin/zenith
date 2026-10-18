@@ -117,6 +117,11 @@ class Handler(BaseHTTPRequestHandler):
                        " requestAnimationFrame(tick); }, { passive: true });"
                        "addEventListener('keydown', e => { if (e.key === 'r') { t0 = 0; out.length = 0; scrollTo(0, 0); document.title = 'Long page'; } });"
                        "window.zthReset = () => { t0 = 0; out.length = 0; scrollTo(0, 0); document.title = 'Long page'; };</script>")
+        elif path == "/svgicon":
+            # A page whose icon is an SVG in a data: address, like ChatGPT's
+            # (Zen shows those through moz-remote-image://).
+            svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7' fill='%23e05'/></svg>"
+            self._html(f"<!doctype html><title>Icon page</title><link rel=icon href=\"data:image/svg+xml,{svg}\"><h1>Icon</h1>")
         elif path == "/camera":
             self._html("<!doctype html><title>Camera page</title><h1>Camera</h1><video id=v autoplay muted></video>"
                        "<script>navigator.mediaDevices.getUserMedia({video:true,audio:true})"

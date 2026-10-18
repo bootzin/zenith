@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.11.0
+// @version        0.11.1
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -954,6 +954,11 @@ const SCHEMA = [
      "informative": "on",
      "everything": "on"
     },
+    "zenith.tabs.pin-mark": {
+     "plain": "off",
+     "informative": "on",
+     "everything": "on"
+    },
     "zenith.tabs.folder-activity": {
      "plain": "off",
      "informative": "on",
@@ -1111,6 +1116,25 @@ const SCHEMA = [
       "default": null
      },
      {
+      "property": "zenith.plus.loose-groups",
+      "label": "Groups for unpinned tabs",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen's folders pin the tabs you put in them. This brings back Firefox's tab groups for the tabs under the pinned ones (right-click a tab › Add Tab to New Group): they stay ordinary tabs, and Zenith draws the groups like folders.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Off",
+        "value": "off"
+       },
+       {
+        "label": "On",
+        "value": "on"
+       }
+      ],
+      "default": "off"
+     },
+     {
       "property": "zenith.plus.minimap",
       "label": "Minimap",
       "type": "checkbox",
@@ -1183,7 +1207,7 @@ const SCHEMA = [
         "value": "zen"
        },
        {
-        "label": "Ask each time",
+        "label": "Ask when no Space routing rule matches",
         "value": "ask"
        }
       ],
@@ -1230,6 +1254,25 @@ const SCHEMA = [
        }
       ],
       "default": "grey"
+     },
+     {
+      "property": "zenith.tabs.pin-mark",
+      "label": "Pin mark",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A small pin on pinned tabs, where the sleeping moon goes (not on essentials or tabs in a folder).",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
      },
      {
       "property": "zenith.tabs.attention",
@@ -1965,13 +2008,81 @@ const SCHEMA = [
     "title": "Bookmarks",
     "settings": [
      {
+      "property": "zenith.plus.bookmarks-look",
+      "label": "Bookmarks look",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Ctrl+B opens your bookmarks in Zenith's look: rows like the tab list, with folders that open in place, or a grid of tiles. Drop a tab on it to bookmark it. \"Firefox's tree\" keeps Firefox's own sidebar, in Zenith's colours.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Like the tab list",
+        "value": "list"
+       },
+       {
+        "label": "Tiles",
+        "value": "tiles"
+       },
+       {
+        "label": "Firefox's tree, restyled",
+        "value": "firefox"
+       }
+      ],
+      "default": "list"
+     },
+     {
+      "property": "zenith.plus.bookmarks-place",
+      "label": "Where they open",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Floating over the right of the page, docked on the right (the page gets narrower), or on the left beside the tabs. Drag its inner edge to make it wider.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Right, over the page",
+        "value": "float"
+       },
+       {
+        "label": "Right, the page makes room",
+        "value": "right"
+       },
+       {
+        "label": "Left, beside the tabs",
+        "value": "left"
+       }
+      ],
+      "default": "float"
+     },
+     {
+      "property": "zenith.plus.bookmarks-space-first",
+      "label": "This space first",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A section for the space you're in: its own folder (made when you first drop something there) and the bookmarks Zen's edit dialog gives to this space. Bookmarks given only to other spaces are left out, as in Zen's menus.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.bookmarks-library",
+      "label": "In Zen's Library",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The same bookmarks as a section of Zen's Library, next to History.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
       "property": "zenith.plus.bookmarks-bar",
       "label": "Bookmarks bar",
       "type": "dropdown",
       "extra": false,
-      "desc": "When the bookmarks bar is on (Ctrl+Shift+B): a slim strip above the page, the same strip over the page that shows when the pointer reaches the top, or Zen's own place beside the window buttons.",
+      "desc": "When the bookmarks bar is on (Ctrl+Shift+B): Zen's own place beside the window buttons, a slim strip above the page, or the same strip over the page that shows when the pointer reaches the top.",
       "host": "Zenith Plus",
       "options": [
+       {
+        "label": "Zen's own, with the window buttons",
+        "value": "zen"
+       },
        {
         "label": "Above the page",
         "value": "above"
@@ -1979,13 +2090,28 @@ const SCHEMA = [
        {
         "label": "Over the page, on hover",
         "value": "hover"
-       },
-       {
-        "label": "Zen's own, with the window buttons",
-        "value": "zen"
        }
       ],
-      "default": "above"
+      "default": "zen"
+     },
+     {
+      "property": "zenith.plus.bookmarks-import",
+      "label": "Import button",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Firefox's \"Import bookmarks…\" button on the bookmarks bar.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Hidden",
+        "value": "hidden"
+       },
+       {
+        "label": "Shown",
+        "value": "shown"
+       }
+      ],
+      "default": "hidden"
      }
     ]
    },
@@ -2298,12 +2424,16 @@ const SCHEMA = [
       "label": "Ctrl+Tab",
       "type": "dropdown",
       "extra": false,
-      "desc": "In order, as Zen does, or recently used like Alt+Tab: hold Ctrl and press Tab to step back through the tabs you used last, with pictures of them, and let go to land.",
+      "desc": "In order, as Zen does (with or without a row of pictures), or recently used like Alt+Tab: hold Ctrl and press Tab to step through the tabs, with pictures of them, and let go to land.",
       "host": "Zenith Plus",
       "options": [
        {
         "label": "In order",
         "value": "order"
+       },
+       {
+        "label": "In order, with pictures",
+        "value": "pictures"
        },
        {
         "label": "Recently used, with pictures (like Alt+Tab)",
@@ -2322,9 +2452,98 @@ const SCHEMA = [
       "label": "Tab manager (Alt+Shift+T)",
       "type": "checkbox",
       "extra": false,
-      "desc": "Alt+Shift+T (or :tabs in the switcher): every space's tabs at a glance, with duplicates, tabs you haven't used for days, awake tabs and busy sites to tidy up. Nothing happens until you press a button, and closed tabs come back with Undo.",
+      "desc": "Alt+Shift+T (or :tabs in the switcher) opens about:zenith-tabs: every space's tabs in columns to move, sleep, wake, put in folders or close (with Undo), tidying up (duplicates, unused, awake tabs, busy sites) and rules for grouping. Nothing happens until you press a button or set a rule.",
       "host": "Zenith Plus",
       "default": true
+     },
+     {
+      "property": "zenith.plus.tab-manager-view",
+      "label": "Opens as",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The tab manager as its own page in a tab, or the small card over the page.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "A page in a tab",
+        "value": "page"
+       },
+       {
+        "label": "A card over the page",
+        "value": "card"
+       }
+      ],
+      "default": "page"
+     },
+     {
+      "property": "zenith.plus.tabs-auto-sleep",
+      "label": "Sleep on their own",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Off unless you choose: tabs you haven't been to for this long are unloaded (not the one you're on, playing tabs or tabs sharing your camera or screen).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Never",
+        "value": "off"
+       },
+       {
+        "label": "After 15 minutes",
+        "value": "15"
+       },
+       {
+        "label": "After 30 minutes",
+        "value": "30"
+       },
+       {
+        "label": "After an hour",
+        "value": "60"
+       },
+       {
+        "label": "After 2 hours",
+        "value": "120"
+       },
+       {
+        "label": "After 4 hours",
+        "value": "240"
+       }
+      ],
+      "default": "off"
+     },
+     {
+      "property": "zenith.plus.tabs-auto-close",
+      "label": "Close on their own",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Off unless you choose: loose tabs (not pinned, not essentials, not in a folder or group) you haven't been to for this long close. The tab manager's Rules list them to bring back.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Never",
+        "value": "off"
+       },
+       {
+        "label": "After a day",
+        "value": "1"
+       },
+       {
+        "label": "After 3 days",
+        "value": "3"
+       },
+       {
+        "label": "After a week",
+        "value": "7"
+       },
+       {
+        "label": "After 2 weeks",
+        "value": "14"
+       },
+       {
+        "label": "After a month",
+        "value": "30"
+       }
+      ],
+      "default": "off"
      }
     ]
    },
@@ -2839,7 +3058,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.11.0";
+const SCHEMA_VERSION = "0.11.1";
 
 class SettingsView {
   constructor(kind) {
@@ -3243,6 +3462,9 @@ const STYLE = `
     & .zp-section-head p { margin-bottom: 8px; }
     & .zp-group { padding: 2px 10px; margin: 8px 0; }
     & .zp-row { flex-wrap: wrap; gap: 8px 12px; padding: 8px 0; }
+    /* (The line beside a setting that depends on the one above needs its
+       room here too, or it runs through the words.) */
+    & .zp-row[child] { padding-inline-start: 16px; }
     & .zp-text { flex: 1 1 170px; }
     & .zp-row[wide] > .zp-text { flex: none; }
     & .zp-select { min-width: 150px; }

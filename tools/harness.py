@@ -177,6 +177,8 @@ def sync_sine(chrome):
     (dst / "preferences.json").write_text(json.dumps(prefs, indent=2), encoding="utf-8")
     for f in (ROOT / "plus" / "scripts").glob("*.uc.mjs"):
         shutil.copy2(f, dst / "plus" / "scripts" / f.name)
+    # Pages the scripts open (about:zenith-tabs), as Sine's install has them.
+    shutil.copytree(ROOT / "plus" / "pages", dst / "plus" / "pages")
     scripts = {f"plus/scripts/{file}": {"name": title, "description": desc, "include": include}
                for file, (title, desc, include) in PLUS_SCRIPTS.items()}
     entry = {"id": SINE_ID, "name": "Zenith", "description": "", "homepage": "", "author": "zenith-local",
