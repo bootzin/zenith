@@ -2,7 +2,7 @@
 // @name           Zenith Tab manager
 // @description    Zenith Plus: every tab of every space on one page (about:zenith-tabs), tidying up, and rules for grouping, sleeping and closing.
 // @include        main
-// @version        0.12.1
+// @version        0.12.2
 // ==/UserScript==
 
 // The tab manager (the "tab report" in DESIGN.md). Alt+Shift+T, or ":tabs"
@@ -166,7 +166,10 @@ const Look = {
   // container) the spaces using its container.
   essentialSpaces(tab) {
     const all = this.spaces();
-    if (!Services.prefs.getBoolPref("zen.workspaces.container-specific-essentials-enabled", false)) return all;
+    // Zen keeps essentials per container ("separate essentials", on by
+    // default): one shows in the spaces whose container is its own.
+    const separate = window.gZenWorkspaces?.containerSpecificEssentials ?? Services.prefs.getBoolPref("zen.workspaces.separate-essentials", false);
+    if (!separate) return all;
     const c = parseInt(tab.getAttribute("usercontextid") || "0", 10);
     return all.filter(s => (s.containerTabId || 0) === c);
   },
@@ -247,23 +250,34 @@ const Look = {
 
 const Act = {
   closed: 0, // how many tabs the last close took, for the card's Undo
-  history: [], // what Undo puts back, newest last: { label, undo }
+  history: [], // what Undo puts back, newest last: { label, at, undo }
 
   remember(label, undo) {
-    this.history.push({ label, undo });
-    if (this.history.length > 20) this.history.shift();
+    this.history.push({ label, at: Date.now(), undo });
+    if (this.history.length > 30) this.history.shift();
   },
 
-  // Undo the last thing done here (close, move, folder…).
+  // Undo the last thing done here (close, move, folder, sleep…): its label
+  // and how many tabs it actually put back (none when they'd already gone
+  // back another way, or are gone).
   undoLast() {
     const last = this.history.pop();
     if (!last) return null;
+    let n = 0;
     try {
-      last.undo();
+      const r = last.undo();
+      n = typeof r === "number" ? r : r ? 1 : 0;
     } catch (e) {
       console.error("[Zenith Tab manager] undo", e);
     }
-    return last.label;
+    return { label: last.label, n };
+  },
+
+  // Undo back to (and including) an entry of the history, newest first.
+  undoTo(index) {
+    const done = [];
+    while (this.history.length > index) done.push(this.undoLast());
+    return done;
   },
 
   // Where tabs are, to put them back: space, pinned, folder or group.
@@ -271,10 +285,14 @@ const Act = {
     return tabs.map(tab => ({ tab, space: Look.space(tab), pinned: tab.pinned, group: Look.ownGroup(tab) }));
   },
 
+  // (How many tabs it changed.)
   restore(states) {
+    let n = 0;
     for (const s of states) {
       const tab = s.tab;
       if (!tab.isConnected || tab.hasAttribute("zen-essential")) continue;
+      if (Look.space(tab) === s.space && tab.pinned === s.pinned && Look.ownGroup(tab) === s.group) continue;
+      n++;
       const now = Look.ownGroup(tab);
       if (now && now !== s.group) this.outOf(tab);
       if (s.space && Look.space(tab) !== s.space) gZenWorkspaces?.moveTabsToWorkspace?.([Look.splitOf(tab)?.tabs ?? tab].flat(), s.space);
@@ -285,6 +303,7 @@ const Act = {
         s.group.addTabs([tab]);
       }
     }
+    return n;
   },
 
   // Out of its folder or group (a split view comes out whole).
@@ -316,16 +335,18 @@ const Act = {
   // manager's page, say).
   reopen(n) {
     const stay = gBrowser.selectedTab;
+    let done = 0;
     for (let i = 0; i < n; i++) {
       try {
-        SessionStore.undoCloseTab(window, 0);
+        if ((SessionStore.getClosedTabCountForWindow?.(window) ?? 1) === 0) break;
+        if (SessionStore.undoCloseTab(window, 0)) done++;
       } catch (e) {
         console.error("[Zenith Tab manager] reopen", e);
         break;
       }
     }
     if (stay?.isConnected) gBrowser.selectedTab = stay;
-    return n;
+    return done;
   },
 
   undo() {
@@ -334,7 +355,9 @@ const Act = {
     return this.reopen(n);
   },
 
-  sleep(tabs) {
+  // Asleep; from the page, Undo wakes them (rules and auto-sleep don't
+  // remember).
+  sleep(tabs, remember = false) {
     tabs = tabs.filter(t => t.isConnected && !t.selected && Look.awake(t));
     if (!tabs.length) return 0;
     // Zen's own pages (Settings, this manager) run in the browser itself,
@@ -345,7 +368,12 @@ const Act = {
       if (typeof gBrowser.explicitUnloadTabs === "function") gBrowser.explicitUnloadTabs(web);
       else for (const t of web) gBrowser.discardBrowser(t, true);
     }
-    for (const t of own) this.sleepOwn(t);
+    const asleep = [...web];
+    for (const t of own) {
+      const copy = this.sleepOwn(t);
+      if (copy) asleep.push(copy);
+    }
+    if (remember) this.remember(`Put ${tabs.length} to sleep`, () => this.wake(asleep));
     return tabs.length;
   },
 
@@ -361,14 +389,14 @@ const Act = {
       if (group && Look.ownGroup(copy) !== group) group.addTabs([copy]);
       gBrowser.moveTabAfter?.(copy, tab);
       gBrowser.removeTab(tab, { animate: false, skipSessionStore: true });
-      return true;
+      return copy;
     } catch (e) {
       console.error("[Zenith Tab manager] sleeping a page of Zen's", e);
-      return false;
+      return null;
     }
   },
 
-  wake(tabs) {
+  wake(tabs, remember = false) {
     tabs = tabs.filter(t => t.isConnected && !Look.awake(t));
     for (const t of tabs) {
       try {
@@ -376,6 +404,7 @@ const Act = {
         if (t.hasAttribute("pending")) SessionStore.restoreTabContent?.(t) ?? gBrowser._insertBrowser?.(t);
       } catch {}
     }
+    if (remember && tabs.length) this.remember(`Woke ${tabs.length}`, () => this.sleep(tabs));
     return tabs.length;
   },
 
@@ -448,8 +477,9 @@ const Act = {
     const made = target.folder ? null : this.made;
     if (done) {
       this.remember(`Put ${tabs.length} in ${target.folder?.label || target.name || "a folder"}`, () => {
-        this.restore(before);
+        const n = this.restore(before);
         if (made?.isConnected && ![...(made.tabs ?? [])].some(t => !t.hasAttribute("zen-empty-tab"))) made.delete?.();
+        return n;
       });
     }
     return done;
@@ -679,11 +709,11 @@ const Page = {
       try {
         const page = new URL(`${d}tab-manager.html`, import.meta.url).href;
         const text = read(page);
-        ChromeUtils.importESModule(new URL(`${d}about.sys.mjs`, import.meta.url).href).register("zenith-tabs", page, text);
-        for (const t of gBrowser.tabs) {
-          const b = t.linkedBrowser;
-          if (b?.currentURI?.spec?.startsWith(this.URL) && b.documentURI?.spec?.startsWith("about:neterror")) b.reload();
-        }
+        const about = ChromeUtils.importESModule(new URL(`${d}about.sys.mjs`, import.meta.url).href);
+        about.register("zenith-tabs", page, text);
+        about.revive("zenith-tabs");
+        // (Again once the session is back, for a tab restored meanwhile.)
+        SessionStore.promiseAllWindowsRestored?.then(() => about.revive("zenith-tabs"));
         return true;
       } catch {}
     }

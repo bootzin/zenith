@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.12.1
+// @version        0.12.2
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -412,7 +412,7 @@ const WebCards = {
       ? [now.temp_F, now.FeelsLikeF, now.windspeedMiles, "°F"]
       : [now.temp_C, now.FeelsLikeC, now.windspeedKmph, "°C"];
     const text = `${place}: ${sky ? `${sky.trim()}, ` : ""}${t}${unit} (feels ${feels}${unit}), wind ${wind} ${imperial ? "mph" : "km/h"} ${now.winddir16Point ?? ""}`;
-    return { text: text.trim(), note: query ? "wttr.in" : "near you, by wttr.in" };
+    return { text: text.trim(), place, note: query ? "wttr.in" : "near you, by wttr.in" };
   },
 };
 

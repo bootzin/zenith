@@ -103,6 +103,21 @@ const loose = g => g.hasAttribute("zenith-unpinned");
 const realTabs = f => [...(f.tabs ?? [])].filter(t => !t.hasAttribute("zen-empty-tab"));
 const mem = t => state.usage.get(t)?.memory ?? 0;
 const cpu = t => state.usage.get(t)?.cpu ?? 0;
+// CPU swings a lot from one moment to the next: each tab's last minute or
+// so (a measure every 3 seconds) gives its average too.
+const cpuHist = new WeakMap();
+function recordCpu() {
+  for (const [t, u] of state.usage) {
+    const h = cpuHist.get(t) ?? [];
+    h.push(u.cpu ?? 0);
+    if (h.length > 20) h.shift();
+    cpuHist.set(t, h);
+  }
+}
+const avg = t => {
+  const h = cpuHist.get(t);
+  return h?.length ? h.reduce((a, b) => a + b, 0) / h.length : 0;
+};
 const playing = t => t.hasAttribute("soundplaying") || t.hasAttribute("sharing");
 const idle = t => Look.awake(t) && !t.selected && !playing(t) && t.lastAccessed && Date.now() - t.lastAccessed > HOUR;
 
@@ -121,6 +136,7 @@ const state = {
   filter: "all",
   editing: false, // a name being typed in the bar: no redrawing under it
   dirty: false,
+  done: [], // what Tidy up did lately: { text, entry, folder }
 };
 
 /* --- Drawing ------------------------------------------------------------------------- */
@@ -184,14 +200,15 @@ function renderTabs(all) {
     ["here", "This space", all.filter(t => Look.space(t) === here() || t.hasAttribute("zen-essential"))],
     ["idle", "Idle an hour+", all.filter(idle)],
     ["playing", "Playing", all.filter(playing)],
+    ["picked", "Picked", all.filter(t => state.picked.has(t))],
   ];
   const chosen = filters.find(f => f[0] === state.filter) ?? filters[0];
   $("filters").replaceChildren(...filters.filter(([k, , list]) => list.length || k === state.filter || k === "all").map(([k, label, list]) =>
     make("button", { type: "button", class: "chip", "aria-pressed": String(k === chosen[0]), onclick: () => { state.filter = k; render(); } },
          `${label} `, make("span", { class: "n" }, String(list.length)))));
   const shown = chosen[2].filter(matches);
-  const by = { title: t => (t.label || "").toLowerCase(), space: t => spaceName(t).toLowerCase(), memory: mem, cpu,
-               used: t => (t.selected ? Date.now() : t.lastAccessed || 0), state: t => stateOf(t)[1] };
+  const by = { title: t => (t.label || "").toLowerCase(), space: t => spaceName(t).toLowerCase(), memory: mem, cpu, avg,
+               used: t => (t.selected ? Date.now() : t.lastAccessed || 0), state: t => stateOf(t)[1], picked: t => (state.picked.has(t) ? 1 : 0) };
   const key = by[state.sort.key] ?? by.memory;
   shown.sort((a, b) => {
     const x = key(a), y = key(b);
@@ -211,9 +228,12 @@ function renderTabs(all) {
     render();
   });
   fill($("table"), [
-    make("div", { class: "tr thead" }, make("span", { class: "td pickcell" }, allBox), head("title", "Tab", "wide"), head("space", "Space"),
-         make("span", { class: "th plain" }, "Where"), head("state", "State"), head("memory", "Memory", "num"), head("cpu", "CPU", "num"),
-         head("used", "Used", "num"), make("span", { class: "th plain" })),
+    make("div", { class: "tr thead" },
+         make("span", { class: "td pickcell", title: "Click beside the box: picked tabs first", "aria-sort": state.sort.key === "picked" ? "descending" : null,
+                        onclick: e => { if (e.target === allBox) return; state.sort = { key: "picked", dir: state.sort.key === "picked" ? -state.sort.dir : -1 }; render(); } }, allBox),
+         head("title", "Tab", "wide"), head("space", "Space"),
+         make("span", { class: "th plain" }, "Where"), head("state", "State"), head("memory", "Memory", "num"), head("cpu", "CPU now", "num"),
+         head("avg", "CPU avg", "num"), head("used", "Used", "num"), make("span", { class: "th plain" })),
     shown.length ? shown.map(t => tableRow(t, top)) : make("div", { class: "empty" }, state.query ? "Nothing matches" : "No tabs here")]);
 }
 
@@ -260,7 +280,7 @@ function rowActions(tab) {
   const asleep = !Look.awake(tab);
   return make("span", { class: "acts" },
     isThis(tab) ? null : act("Go to it", "arrow-right", () => Z.Act.go(tab)),
-    isThis(tab) ? null : asleep ? act("Wake it", "reload", () => doing(() => Z.Act.wake([tab]))) : act("Put to sleep", "moon-stars", () => doing(() => Z.Act.sleep([tab]))),
+    isThis(tab) ? null : asleep ? act("Wake it", "reload", () => doing(() => Z.Act.wake([tab], true))) : act("Put to sleep", "moon-stars", () => doing(() => Z.Act.sleep([tab], true))),
     act("Close (Undo comes up)", "close", () => closeTabs([tab])));
 }
 
@@ -284,6 +304,7 @@ function tableRow(tab, top) {
     make("span", { class: "td num mem", title: use?.shared ? "Its share of its site's memory (tabs of one site share a process)" : "Memory" },
          make("span", { class: "v" }, use ? mb(use.memory) : "–"), bar),
     make("span", { class: "td num cpu" }, use ? pct(use.cpu ?? 0) : "–"),
+    make("span", { class: "td num avg", title: "Its average over the last minute or so" }, use ? pct(avg(tab)) : "–"),
     make("span", { class: "td num used", title: tab.lastAccessed ? new Date(tab.lastAccessed).toLocaleString() : "" }, tab.selected ? "now" : ago(tab.lastAccessed)),
     make("span", { class: "td" }, rowActions(tab)));
   rows.set(row, tab);
@@ -303,18 +324,19 @@ function idOf(t) {
 function renderInsights(all) {
   const awake = all.filter(t => Look.awake(t));
   const asleep = all.length - awake.length;
-  const total = sum(awake, mem), cpuNow = sum(awake, cpu);
+  const total = sum(awake, mem), cpuNow = sum(awake, cpu), cpuAvg = sum(awake, avg);
   const measured = state.usage.size > 0;
   const card = (title, ...body) => make("div", { class: "insight" }, make("h3", {}, title), body);
   const line = (main, value, ...buttons) => make("div", { class: "line" }, make("span", { class: "what" }, main), make("span", { class: "value" }, value), buttons);
   const btn = (label, fn, title) => make("button", { type: "button", title, onclick: () => doing(fn) }, label);
 
   const others = awake.filter(t => !t.hasAttribute("zen-essential") && Look.space(t) !== here() && !playing(t));
-  const memCard = card("Memory",
+  const cpuLine = x => (x >= 0.005 ? `${pct(x)} of one core` : "next to nothing");
+  const memCard = card("Memory and CPU",
     make("div", { class: "big" }, measured ? mb(total) : "…"),
     make("div", { class: "sub" }, `in ${plural(awake.length, "awake tab")} · ${asleep} asleep (asleep tabs use next to nothing)`),
-    make("div", { class: "sub" }, !measured ? "Measuring…" : cpuNow >= 0.005 ? `CPU now: ${pct(cpuNow)} of one core` : "CPU now: next to nothing"),
-    others.length ? make("div", { class: "buttons" }, btn(`Sleep other spaces (${mb(sum(others, mem))})`, () => Z.Act.sleep(others))) : null);
+    make("div", { class: "sub" }, !measured ? "Measuring…" : `CPU now: ${cpuLine(cpuNow)} · last minute: ${cpuLine(cpuAvg)}`),
+    others.length ? make("div", { class: "buttons" }, btn(`Sleep other spaces (${mb(sum(others, mem))})`, () => Z.Act.sleep(others, true))) : null);
 
   const sites = new Map();
   for (const t of awake) {
@@ -329,7 +351,7 @@ function renderInsights(all) {
   const sitesCard = card("Heaviest sites",
     heavy.length ? heavy.map(e => line(make("span", {}, e.site, make("small", {}, ` · ${plural(e.tabs.length, "tab")}`)),
                                        `${mb(e.mem)}${e.cpu >= 0.01 ? ` · ${pct(e.cpu)}` : ""}`,
-                                       e.tabs.some(t => !t.selected && !playing(t)) ? btn("Sleep", () => Z.Act.sleep(e.tabs.filter(t => !playing(t))), `Put ${e.site}'s tabs to sleep`) : null))
+                                       e.tabs.some(t => !t.selected && !playing(t)) ? btn("Sleep", () => Z.Act.sleep(e.tabs.filter(t => !playing(t)), true), `Put ${e.site}'s tabs to sleep`) : null))
                  : make("div", { class: "sub" }, "Nothing awake."));
 
   const spaceRows = spaces().filter(s => s.uuid).map(s => {
@@ -338,22 +360,23 @@ function renderInsights(all) {
     const dot = make("span", { class: "dot" });
     dot.style.setProperty("--space", spaceColour(s));
     return line(make("span", {}, dot, spaceLabel(s), make("small", {}, ` · ${up.length}/${list.length} awake`)), mb(sum(up, mem)),
-                up.some(t => !t.selected) ? btn("Sleep", () => Z.Act.sleep(up), "Put this space's tabs to sleep") : null,
-                up.length < list.length ? btn("Wake", () => Z.Act.wake(list), "Wake this space's tabs") : null);
+                up.some(t => !t.selected) ? btn("Sleep", () => Z.Act.sleep(up, true), "Put this space's tabs to sleep") : null,
+                up.length < list.length ? btn("Wake", () => Z.Act.wake(list, true), "Wake this space's tabs") : null);
   });
   const spacesCard = card("Spaces", spaceRows.length ? spaceRows : make("div", { class: "sub" }, "One space."));
 
   const lazy = all.filter(idle).sort((a, b) => mem(b) - mem(a));
   const idleCard = card("Idle but awake",
     make("div", { class: "sub" }, lazy.length ? `${plural(lazy.length, "tab")} not opened for an hour or more, holding ${mb(sum(lazy, mem))}.` : "Every awake tab was used in the last hour."),
-    lazy.length ? make("div", { class: "buttons" }, btn("Sleep them", () => Z.Act.sleep(lazy)),
+    lazy.length ? make("div", { class: "buttons" }, btn("Sleep them", () => Z.Act.sleep(lazy, true)),
                        make("button", { type: "button", onclick: () => { state.filter = "idle"; render(); } }, "Show them")) : null);
 
-  const busy = awake.filter(t => cpu(t) >= 0.03).sort((a, b) => cpu(b) - cpu(a)).slice(0, 3);
+  // (By their average: a moment's spike isn't working hard.)
+  const busy = awake.filter(t => Math.max(avg(t), cpu(t) / 3) >= 0.03).sort((a, b) => avg(b) - avg(a)).slice(0, 3);
   const busyCard = card("Working hard",
-    busy.length ? busy.map(t => line(make("span", { class: "clip" }, t.label || Look.site(t)), pct(cpu(t)),
+    busy.length ? busy.map(t => line(make("span", { class: "clip" }, t.label || Look.site(t)), `${pct(avg(t))} avg · ${pct(cpu(t))} now`,
                                      isThis(t) ? null : make("button", { type: "button", onclick: () => Z.Act.go(t) }, "Go"),
-                                     !t.selected && !playing(t) ? btn("Sleep", () => Z.Act.sleep([t])) : null))
+                                     !t.selected && !playing(t) ? btn("Sleep", () => Z.Act.sleep([t], true)) : null))
                 : make("div", { class: "sub" }, measured ? "Nothing is using much CPU." : "Measuring…"));
 
   const dupes = Look.report(state.days).duplicates;
@@ -374,6 +397,7 @@ function updateUsage() {
     row.querySelector(".mem .v").textContent = use ? mb(use.memory) : "–";
     row.querySelector(".meter").style.setProperty("--share", String(Math.min(1, mem(t) / top)));
     row.querySelector(".cpu").textContent = use ? pct(use.cpu ?? 0) : "–";
+    row.querySelector(".avg").textContent = use ? pct(avg(t)) : "–";
   }
   if (!state.editing && $("menu").hidden) keepScroll(() => renderInsights(tabs()));
   summary(tabs());
@@ -462,8 +486,8 @@ function renderBoard(all) {
       make("span", { class: "name", title: "Go to this space", onclick: () => space.uuid && W()?.changeWorkspaceWithID(space.uuid) }, spaceLabel(space)),
       space.uuid && space.uuid === here() ? make("span", { class: "here" }, "here") : null,
       make("span", { class: "count" }, [`${mine.length} · ${up.length} awake`, memory ? mb(memory) : ""].filter(Boolean).join(" · ")),
-      up.some(t => !t.selected) ? button("Sleep", () => Z.Act.sleep(up), "Put this space's tabs to sleep") : null,
-      up.length < mine.length ? button("Wake", () => Z.Act.wake(mine), "Wake this space's tabs") : null);
+      up.some(t => !t.selected) ? button("Sleep", () => Z.Act.sleep(up, true), "Put this space's tabs to sleep") : null,
+      up.length < mine.length ? button("Wake", () => Z.Act.wake(mine, true), "Wake this space's tabs") : null);
     head.style.setProperty("--space", spaceColour(space));
     const list = make("div", { class: "list", "data-scroll": `space-${space.uuid}` },
       ess.length ? [make("div", { class: "part" }, "Essentials"), ess.map(tabRow)] : null,
@@ -546,7 +570,7 @@ function doing(fn, undoable = true) {
     const emptied = before.filter(f => f.isConnected && !realTabs(f).length);
     const last = undoable && done ? Z.Act.history.at(-1) : null;
     const buttons = [];
-    if (last) buttons.push({ label: "Undo", run: () => say(Z.Act.undoLast() ? "Put back" : "Nothing to undo") });
+    if (last) buttons.push({ label: "Undo", run: () => undoSay(Z.Act.history.includes(last) ? Z.Act.undoTo(Z.Act.history.indexOf(last)) : []) });
     for (const f of emptied) buttons.push({ label: `Delete “${f.label || "Folder"}”`, run: () => { f.delete?.(); say("Folder deleted"); } });
     const text = [last?.label ?? (typeof done === "number" && done ? plural(done, "tab") : ""), emptied.length ? `${plural(emptied.length, "folder")} left empty` : ""].filter(Boolean).join(" · ");
     if (text || buttons.length) say(text || "Done", buttons);
@@ -575,8 +599,8 @@ function renderBar() {
     make("button", { type: "button", onclick: e => menu(e.currentTarget, spaceItems(picked)) }, "Move to…"),
     make("button", { type: "button", onclick: e => menu(e.currentTarget, folderItems(picked)) }, "Into…"),
     grouped ? make("button", { type: "button", title: "Out of their folder, as ordinary tabs", onclick: () => doing(() => Z.Act.takeOut(picked)) }, "Take out") : null,
-    picked.length > asleep ? make("button", { type: "button", onclick: () => doing(() => Z.Act.sleep(picked), false) }, "Sleep") : null,
-    asleep ? make("button", { type: "button", onclick: () => doing(() => Z.Act.wake(picked), false) }, "Wake") : null,
+    picked.length > asleep ? make("button", { type: "button", onclick: () => doing(() => Z.Act.sleep(picked, true)) }, "Sleep") : null,
+    asleep ? make("button", { type: "button", onclick: () => doing(() => Z.Act.wake(picked, true)) }, "Wake") : null,
     make("button", { type: "button", onclick: () => closeTabs(picked) }, "Close"),
     make("button", { type: "button", class: "quiet", title: "Pick nothing (Esc)", onclick: () => (state.picked.clear(), render()) }, "✕"),
   ].filter(Boolean));
@@ -607,12 +631,12 @@ function folderItems(picked) {
 }
 
 // A small list under a button. (Items that ask for a name keep the bar.)
-function menu(anchor, items) {
+function menu(anchor, items, plain = false) {
   const box = $("menu");
   box.replaceChildren(...items.map(i => i.sep ? make("div", { class: "sep" })
     : make("button", { type: "button", class: "item", onclick: () => {
         box.hidden = true;
-        if (i.label.endsWith("…")) i.run();
+        if (plain || i.label.endsWith("…")) i.run();
         else doing(i.run);
         if (state.dirty && !state.editing) render();
       } },
@@ -678,7 +702,7 @@ function say(text, buttons = []) {
 
 // Each suggestion lists its tabs, ticked; untick what to keep, then press
 // a button.
-function tidyCard(key, title, why, list, actions, extra = null) {
+function tidyCard(key, title, why, list, actions, extra = null, where = null) {
   const unticked = state.tidy.get(key) ?? new Set();
   state.tidy.set(key, unticked);
   const chosen = () => list.filter(t => !unticked.has(t));
@@ -698,10 +722,76 @@ function tidyCard(key, title, why, list, actions, extra = null) {
   })) : null;
   const n = chosen().length;
   return make("div", { class: "card", empty: !list.length },
-    head, make("p", {}, why), rowsBox,
+    head, make("p", {}, why), rowsBox, list.length ? where : null,
     list.length ? make("div", { class: "row" }, actions.map(([label, fn, primary, undoable = true]) =>
       make("button", { type: "button", class: primary ? "primary" : null, disabled: !n, onclick: () => doing(() => fn(chosen()), undoable) },
            `${label}${n !== list.length ? ` (${n})` : ""}`))) : null);
+}
+
+// Where a tidy card's tabs go, shown before anything moves: a new folder
+// (its name yours to change) or, when this space already has a folder of
+// that name, that folder (they join it).
+const nameFor = (key, fallback) => state.names?.get(key) ?? fallback;
+const folderNamed = (name, space) => Z.Act.folders().find(f => (f.label || "") === name && (f.getAttribute("zen-workspace-id") || "") === (space || ""));
+
+function destination(key, fallback, space) {
+  const name = nameFor(key, fallback), existing = folderNamed(name, space);
+  const input = make("input", { type: "text", value: name, spellcheck: "false", title: "The folder's name" });
+  // (Nothing redraws while you type; the card follows when you're done.)
+  input.addEventListener("focus", () => (state.editing = true));
+  input.addEventListener("input", () => (state.names ??= new Map()).set(key, input.value.trim() || fallback));
+  input.addEventListener("blur", () => {
+    state.editing = false;
+    render();
+  });
+  input.addEventListener("keydown", e => e.key === "Enter" && input.blur());
+  const where = Look.spaceName(space) ? ` in ${Look.spaceName(space)}` : "";
+  return make("div", { class: "where" }, make("span", { class: "to" }, "Goes into"), input,
+    make("small", {}, existing ? `your folder${where} (${plural(realTabs(existing).length, "tab")}): they join it` : `a new folder${where}`));
+}
+
+function intoActions(key, fallback, space, groupsOn) {
+  const run = kind => list => {
+    const name = nameFor(key, fallback), existing = folderNamed(name, space);
+    const n = existing ? Z.Act.into(list, { folder: existing }) : Z.Act.into(list, { name, kind, space });
+    if (n) {
+      const where = Look.spaceName(space) ? ` in ${Look.spaceName(space)}` : "";
+      state.done.unshift({ text: `${plural(n, "tab")} into “${name}”${where}`, entry: Z.Act.history.at(-1), name, space, at: Date.now() });
+      state.done.length = Math.min(state.done.length, 5);
+    }
+    return n;
+  };
+  const existing = folderNamed(nameFor(key, fallback), space);
+  if (existing) return [[`Into “${existing.label || "Folder"}”`, run("folder"), true]];
+  return [["Into a folder", run("folder"), true], ...(groupsOn ? [["Into an unpinned folder", run("group")]] : [])];
+}
+
+// What Tidy up just did, to check it and take it back.
+function justDone() {
+  const done = state.done.filter(d => Date.now() - d.at < HOUR);
+  if (!done.length) return null;
+  return make("div", { class: "card done" },
+    make("div", { class: "card-head" }, make("h3", {}, "Just done")),
+    done.map(d => {
+      const folder = folderNamed(d.name, d.space);
+      const undoable = Z.Act.history.includes(d.entry);
+      return make("div", { class: "line" }, make("span", { class: "what" }, d.text, make("small", {}, ` · ${ago(d.at)}`)),
+        folder ? make("button", { type: "button", title: "Show it in the Spaces view", onclick: () => show(folder) }, "Show") : null,
+        undoable ? make("button", { type: "button", onclick: () => { undoSay(Z.Act.undoTo(Z.Act.history.indexOf(d.entry))); state.done = state.done.filter(x => x !== d); } }, "Undo") : null);
+    }));
+}
+
+// A folder, open and in view in the Spaces view.
+function show(folder) {
+  state.view = "spaces";
+  state.open.add(folder.id);
+  render();
+  requestAnimationFrame(() => {
+    const head = [...document.querySelectorAll("#board .folder .head .name")].find(n => n.textContent === (folder.label || "Folder"))?.closest(".folder");
+    head?.scrollIntoView({ block: "center", behavior: "smooth" });
+    head?.setAttribute("flash", "");
+    setTimeout(() => head?.removeAttribute("flash"), 1600);
+  });
 }
 
 function renderTidy() {
@@ -715,17 +805,20 @@ function renderTidy() {
     onclick: e => { e.stopPropagation(); state.days = d; Services.prefs.setIntPref("zenith.internal.tabs.days", d); render(); },
   }, `${d}d`)));
   const groupsOn = (G()?.mode ?? "off") !== "off";
-  const busy = r.busy.map(b => tidyCard(`busy-${b.space}-${b.site}`, b.site, `${b.tabs.length} loose tabs${Look.spaceName(b.space) ? ` in ${Look.spaceName(b.space)}` : ""}: keep them together.`,
-    b.tabs, [["Into a folder", list => Z.Act.into(list, { name: b.site, kind: "folder", space: b.space }), true],
-             ...(groupsOn ? [["Into an unpinned folder", list => Z.Act.into(list, { name: b.site, kind: "group", space: b.space })]] : [])]));
+  const busy = r.busy.map(b => {
+    const key = `busy-${b.space}-${b.site}`;
+    return tidyCard(key, b.site, `${b.tabs.length} loose tabs${Look.spaceName(b.space) ? ` in ${Look.spaceName(b.space)}` : ""}: keep them together.`,
+      b.tabs, intoActions(key, b.site, b.space, groupsOn), null, destination(key, b.site, b.space));
+  });
   $("tidy").replaceChildren(
     make("div", { class: "column" },
+      justDone(),
       tidyCard("dupes", "Duplicates", "The same page open more than once; the one you used last isn't listed.", dupes,
                [["Close", list => Z.Act.closePicked(list), true]]),
       tidyCard("stale", `Not used in ${state.days} days`, "Loose tabs you haven't been to for a while.", stale,
-               [["Sleep", list => Z.Act.sleep(list), false, false], ["Close", list => Z.Act.closePicked(list), true]], chips),
+               [["Sleep", list => Z.Act.sleep(list, true)], ["Close", list => Z.Act.closePicked(list), true]], chips),
       tidyCard("awake", "Awake", "Loaded and using memory, heaviest first (not the tab you're on, nor playing tabs).", awake,
-               [["Sleep", list => Z.Act.sleep(list), true, false]])),
+               [["Sleep", list => Z.Act.sleep(list, true), true]])),
     make("div", { class: "column" }, busy.length ? [make("h2", {}, "Busy sites"), busy] : make("h2", {}, "No busy sites"), topicCards()));
 }
 
@@ -761,11 +854,13 @@ function topicCards() {
                                             : "Sorts them by what they're about, on this computer, and shows you the groups first.")),
     make("div", { class: "row" }, make("button", { type: "button", class: t?.groups ? null : "primary", disabled: looseTabs.length < 3 || t?.status === "Sorting…", onclick: run },
                                        t?.groups ? "Sort again" : "Sort by topic")));
-  const into = (g, kind) => list => Z.Act.into(list, { name: g.label || "Topic", kind, space });
   const groupsOn = (G()?.mode ?? "off") !== "off";
   return [make("h2", {}, "By topic"), intro,
-    ...groups.map((g, i) => tidyCard(`topic-${i}-${g.label}`, g.label || "Together", `${plural(g.tabs.length, "tab")} about the same thing.`, g.tabs,
-      [["Into a folder", into(g, "folder"), true], ...(groupsOn ? [["Into an unpinned folder", into(g, "group")]] : [])]))];
+    ...groups.map((g, i) => {
+      const key = `topic-${i}-${g.label}`;
+      return tidyCard(key, g.label || "Together", `${plural(g.tabs.length, "tab")} about the same thing.`, g.tabs,
+        intoActions(key, g.label || "Topic", space, groupsOn), null, destination(key, g.label || "Topic", space));
+    })];
 }
 
 /* --- Rules ---------------------------------------------------------------------------------- */
@@ -861,6 +956,7 @@ async function measure() {
   try {
     const first = !state.usage.size;
     state.usage = await Look.usage();
+    recordCpu();
     if (first) soon();
     else updateUsage();
   } catch (e) {
@@ -895,11 +991,27 @@ $("views").addEventListener("click", e => {
   state.view = view;
   render();
 });
-$("undo").addEventListener("click", () => {
-  const label = Z.Act.undoLast();
-  say(label ? `Put back: ${label}` : "Nothing to undo");
+// What Undo did, said plainly: put back, or already as it was.
+function undoSay(done) {
+  if (!done.length) return say("Nothing to undo");
+  const back = done.filter(d => d?.n), same = done.filter(d => d && !d.n);
+  say([back.length ? `Put back: ${back.map(d => d.label).join(", ")}` : "",
+       same.length ? `Already as it was: ${same.map(d => d.label).join(", ")}` : ""].filter(Boolean).join(" · "));
   soon();
-});
+}
+
+// Undo: the last change, or (from its list) back to any recent one.
+function undoMenu(anchor) {
+  const h = Z.Act.history;
+  if (h.length < 2) return undoSay(h.length ? [Z.Act.undoLast()] : []);
+  const items = [...h].map((entry, i) => ({ entry, i })).reverse().map(({ entry, i }, k) => ({
+    label: k ? `Back to before: ${entry.label}` : `Undo: ${entry.label}`,
+    note: ago(entry.at),
+    run: () => undoSay(Z.Act.undoTo(i)),
+  }));
+  menu(anchor, items, true);
+}
+$("undo").addEventListener("click", e => undoMenu(e.currentTarget));
 // This page's own tab.
 $("close").addEventListener("click", () => {
   const tab = gBrowser.getTabForBrowser(window.browsingContext.embedderElement);
@@ -927,7 +1039,7 @@ document.addEventListener("keydown", e => {
     closeTabs([...state.picked]);
   } else if ((e.ctrlKey || e.metaKey) && e.key === "z") {
     e.preventDefault();
-    $("undo").click();
+    undoSay(Z.Act.history.length ? [Z.Act.undoLast()] : []);
   } else if ((e.ctrlKey || e.metaKey) && e.key === "a" && (state.view === "tabs" || state.view === "spaces")) {
     e.preventDefault();
     state.picked = new Set(order);

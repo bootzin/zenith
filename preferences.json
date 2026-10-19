@@ -1879,6 +1879,10 @@
       {
         "label": "wallust (~/.cache/wallust/colors.json)",
         "value": "wallust"
+      },
+      {
+        "label": "Your wallpaper (with Window material on Wallpaper)",
+        "value": "wallpaper"
       }
     ],
     "usedBy": "zenith-plus"
@@ -1912,6 +1916,12 @@
             "if": {
               "property": "zenith.plus.palette-sync",
               "value": "wallust"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.palette-sync",
+              "value": "wallpaper"
             }
           }
         ],
@@ -2141,11 +2151,111 @@
     "zenithWhy": "The start page is off"
   },
   {
+    "property": "zenith.plus.startpage-weather-history",
+    "label": "With the places you looked up in Peek",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.startpage-weather",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The start page's weather is off"
+  },
+  {
+    "property": "zenith.plus.startpage-bookmarks",
+    "label": "Your bookmarks on the start page",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "newtab"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The start page is off"
+  },
+  {
+    "property": "zenith.plus.startpage-top",
+    "label": "Your most visited sites on the start page",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "newtab"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The start page is off"
+  },
+  {
     "property": "zenith.plus.float-tab",
-    "label": "Float a tab on Alt+Shift+Space: it pops out into a small window that stays on top",
+    "label": "Float a tab on Alt+Shift+F (or its right-click menu): it carries on in a small float",
     "type": "checkbox",
     "defaultValue": true,
     "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.float-as",
+    "label": "A floating tab is",
+    "type": "dropdown",
+    "placeholder": "Default (A window on top of everything)",
+    "options": [
+      {
+        "label": "A window on top of everything",
+        "value": "window"
+      },
+      {
+        "label": "A pane inside Zen",
+        "value": "pane"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.float-tab",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Float a tab is off"
   },
   {
     "property": "zenith.plus.link-hints",
@@ -2158,14 +2268,14 @@
     "property": "zenith.plus.focus-pages",
     "label": "Focus mode and the page",
     "type": "dropdown",
-    "placeholder": "Default (Reader view for articles, tidy the rest)",
+    "placeholder": "Default (Videos fill the window, articles in a reading view, the rest tidied)",
     "options": [
       {
-        "label": "Reader view for articles, tidy the rest",
+        "label": "Videos fill the window, articles in a reading view, the rest tidied",
         "value": "tidy"
       },
       {
-        "label": "Reader view for articles",
+        "label": "Videos and articles only (no tidying)",
         "value": "reader"
       },
       {
@@ -2174,6 +2284,34 @@
       }
     ],
     "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.focus-skip",
+    "label": "Sites focus mode leaves as they are (comma-separated)",
+    "type": "string",
+    "placeholder": "youtube.com, mail.example.org",
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.focus-pages",
+              "value": "tidy"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.focus-pages",
+              "value": "reader"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Focus mode leaves every page alone"
   },
   {
     "property": "zenith.plus.focus-key",
@@ -2260,6 +2398,135 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.plus.cookie-banners",
+    "label": "Cookie banners: answered for you",
+    "type": "dropdown",
+    "placeholder": "Default (Reject, or hide when there's no Reject)",
+    "options": [
+      {
+        "label": "Reject, or hide when there's no Reject",
+        "value": "reject-hide"
+      },
+      {
+        "label": "Reject only (leave the rest)",
+        "value": "reject"
+      },
+      {
+        "label": "Hide them, answer nothing",
+        "value": "hide"
+      },
+      {
+        "label": "Leave them",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.cookie-banners-skip",
+    "label": "Sites whose banners are left alone (comma-separated)",
+    "type": "string",
+    "placeholder": "example.com, bank.example",
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.cookie-banners",
+              "value": "reject-hide"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.cookie-banners",
+              "value": "reject"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.cookie-banners",
+              "value": "hide"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Cookie banners are left alone"
+  },
+  {
+    "property": "zenith.plus.cookie-policy",
+    "label": "Which cookies sites may set (Firefox's own setting)",
+    "type": "dropdown",
+    "placeholder": "Default (Firefox's own (Total Cookie Protection))",
+    "options": [
+      {
+        "label": "Firefox's own (Total Cookie Protection)",
+        "value": "firefox"
+      },
+      {
+        "label": "No cross-site cookies",
+        "value": "cross"
+      },
+      {
+        "label": "No cookies from trackers",
+        "value": "trackers"
+      },
+      {
+        "label": "Only sites you allow",
+        "value": "all"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.cookie-keep",
+    "label": "How long cookies are kept",
+    "type": "dropdown",
+    "placeholder": "Default (Until they expire)",
+    "options": [
+      {
+        "label": "Until they expire",
+        "value": "expire"
+      },
+      {
+        "label": "Until you close Zen (except sites you allow)",
+        "value": "session"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.extension-copies",
+    "label": "Experimental: extension copies for other spaces (right-click an extension)",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.download-delete",
+    "label": "Delete a download from its list (a bin beside Show in folder)",
+    "type": "dropdown",
+    "placeholder": "Default (One click)",
+    "options": [
+      {
+        "label": "One click",
+        "value": "one"
+      },
+      {
+        "label": "Two clicks (asks first)",
+        "value": "confirm"
+      },
+      {
+        "label": "No bin",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.plus.animate-zen",
     "label": "Let Zen and Zenith animate even when the system asks for less motion",
     "type": "checkbox",
@@ -2292,6 +2559,13 @@
     "label": "Fast start: the page you were on first, the rest of Zenith Plus right after",
     "type": "checkbox",
     "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.last-page",
+    "label": "The last page at once: as Zen starts, a picture of it until it's back",
+    "type": "checkbox",
+    "defaultValue": true,
     "usedBy": "zenith-plus"
   },
   {

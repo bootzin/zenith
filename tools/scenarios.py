@@ -104,6 +104,42 @@ class Handler(BaseHTTPRequestHandler):
                        "setInterval(() => { t++; g.fillStyle = `hsl(${t % 360} 60% 45%)`; g.fillRect(0, 0, 640, 360);"
                        " g.fillStyle = '#fff'; g.font = '48px sans-serif'; g.fillText('Zenith ' + t, 40, 200); }, 50);"
                        "v.srcObject = c.captureStream(20);</script>")
+        elif path.startswith("/consent"):
+            # Pages with consent banners (Zenith's cookie banners): each sets
+            # a cookie saying which button was pressed.
+            kind = path.split("-", 1)[1] if "-" in path else "generic"
+            say = "<script>function said(w) { document.cookie = 'choice=' + w + '; path=/'; document.querySelectorAll('.banner').forEach(b => b.remove()); }</script>"
+            text = "<p>We and our partners use cookies to personalise content and ads.</p>"
+            if kind == "onetrust":
+                banner = ("<div id=onetrust-consent-sdk><div id=onetrust-banner-sdk class=banner style='position:fixed;left:0;right:0;bottom:0;height:160px;background:#fff;border-top:1px solid #ccc'>"
+                          + text + "<button id=onetrust-accept-btn-handler onclick=\"said('accept')\">Accept All Cookies</button>"
+                          "<button id=onetrust-reject-all-handler onclick=\"said('reject')\">Reject All</button></div></div>")
+            elif kind == "noreject":
+                banner = ("<div class='banner cookie-wall' style='position:fixed;inset:0;background:rgb(0 0 0/.6)'><div style='background:#fff;margin:20vh auto;width:400px;padding:20px'>"
+                          + text + "<button onclick=\"said('accept')\">Accept and continue</button></div></div>"
+                          "<script>document.documentElement.style.overflow = 'hidden';</script>")
+            elif kind == "frame":
+                banner = "<iframe src='/consent-generic?inner=1' style='position:fixed;bottom:0;left:0;width:100%;height:200px;border:0'></iframe>"
+            else:
+                banner = ("<div class='banner cookie-notice' style='position:fixed;left:20px;bottom:20px;width:380px;background:#fff;border:1px solid #ccc;padding:12px'>"
+                          + text + "<button onclick=\"said('accept')\">Accept all</button> <button onclick=\"said('settings')\">Settings</button> "
+                          "<button onclick=\"said('reject')\">Reject all</button></div>")
+            filler = "".join(f"<p>Article paragraph {i} with enough words to make the page long enough to scroll.</p>" for i in range(60))
+            self._html(f"<!doctype html><title>Consent {kind}</title><body><h1>Consent {kind}</h1>{say}{filler}{banner}")
+        elif path == "/watch":
+            # A video site's watch page: a player (a box the video's size,
+            # with the site's own controls), suggestions beside it, comments
+            # below (focus mode's video).
+            self._html("<!doctype html><title>Watch page</title><body style='margin:0;font:14px sans-serif'>"
+                       "<header style='height:56px;background:#222;color:#fff'>Site</header><div style='display:flex;gap:16px;padding:16px'>"
+                       "<div style='flex:1'><div id=player style='position:relative;width:854px;height:480px'>"
+                       "<canvas id=c width=854 height=480 hidden></canvas><video id=v autoplay muted style='width:854px;height:480px;display:block'></video>"
+                       "<div id=controls style='position:absolute;left:0;right:0;bottom:0;height:40px;background:rgb(0 0 0/.5)'></div></div>"
+                       "<h1>A video</h1>" + "".join(f"<p>Comment {i}: lovely video, thanks for sharing it with everyone here today.</p>" for i in range(40)) +
+                       "</div><aside style='width:300px'>Up next</aside></div><script>"
+                       "const g = c.getContext('2d'); let t = 0;"
+                       "setInterval(() => { t++; g.fillStyle = `hsl(${t % 360} 60% 45%)`; g.fillRect(0, 0, 854, 480); }, 50);"
+                       "v.srcObject = c.captureStream(20);</script>")
         elif path == "/long":
             # A long page that times its own scrolling: from the first wheel
             # turn, where it is after 50, 100, 200, 400 and 800ms (in its title).

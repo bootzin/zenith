@@ -157,6 +157,7 @@ SECTIONS = [
                              "zen.tabs.open-pinned-in-new-tab", "zenith.plus.unpinned-groups", "zenith.plus.minimap",
                              "zenith.plus.key-switch-flash"]),
             ("Spaces", ["zenith.plus.workspace-dots", "zenith.plus.workspace-flash"]),
+            ("Extensions", ["zenith.plus.extension-copies"]),
             ("Links", ["zenith.plus.external-links", "zenith.action.space-routing"]),
             ("Signals", ["zenith.tabs.unloaded", "zenith.tabs.pin-mark", "zenith.tabs.attention", "zenith.tabs.folder-activity",
                          "zenith.tabs.container", "zenith.tabs.audio-wave", "zenith.tabs.split-vertical"]),
@@ -183,6 +184,7 @@ SECTIONS = [
             ("Split view", ["zenith.panels.split", "zenith.panels.gap"]),
             ("Notices and links", ["zenith.panels.notifications", "zenith.panels.status-delay"]),
             ("Media", ["zenith.panels.pip", "zenith.plus.pip-extras"]),
+            ("Downloads", ["zenith.plus.download-delete"]),
             ("Menus", ["zenith.panels.compact-menus", "zenith.plus.more-menu", "zenith.panels.menu-icons"]),
             ("Tab previews", ["zenith.panels.tab-preview"]),
             ("Bookmarks", ["zenith.plus.bookmarks-look", "zenith.plus.bookmarks-place", "zenith.plus.bookmarks-space-first",
@@ -208,9 +210,9 @@ SECTIONS = [
             ("Ctrl+Tab", ["zenith.plus.ctrl-tab"]),
             ("Tab manager", ["zenith.plus.tab-manager", "zenith.plus.tabs-auto-sleep",
                              "zenith.plus.tabs-auto-close"]),
-            ("Focus mode", ["zenith.plus.focus-key", "zenith.plus.focus-pages"]),
+            ("Focus mode", ["zenith.plus.focus-key", "zenith.plus.focus-pages", "zenith.plus.focus-skip"]),
             ("Link hints", ["zenith.plus.link-hints"]),
-            ("Float a tab", ["zenith.plus.float-tab"]),
+            ("Float a tab", ["zenith.plus.float-tab", "zenith.plus.float-as"]),
         ],
     },
     {
@@ -228,15 +230,24 @@ SECTIONS = [
         "blurb": "Small touches inside web pages, a start page, and this settings page.",
         "groups": [
             ("In web pages", ["zenith.page.selection", "zenith.page.thin-scrollbars", "zenith.plus.zoom-pill"]),
-            ("Start page", ["zenith.plus.startpage", "zenith.plus.startpage-weather"]),
+            ("Start page", ["zenith.plus.startpage", "zenith.plus.startpage-weather", "zenith.plus.startpage-weather-history",
+                            "zenith.plus.startpage-bookmarks", "zenith.plus.startpage-top"]),
             ("Settings", ["zenith.plus.sine-mods-first"]),
+        ],
+    },
+    {
+        "id": "cookies", "title": "Cookies", "icon": "cookie",
+        "blurb": "Cookie banners answered for you, which cookies sites may set, how long they're kept, and each site's own rule.",
+        "groups": [
+            ("Banners", ["zenith.plus.cookie-banners", "zenith.plus.cookie-banners-skip"]),
+            ("Cookies", ["zenith.plus.cookie-policy", "zenith.plus.cookie-keep", "zenith.action.cookies"]),
         ],
     },
     {
         "id": "speed", "title": "Speed and AI", "icon": "speed",
         "blurb": "How quickly Zen starts, and Firefox's own AI working on this computer.",
         "groups": [
-            ("Starting Zen", ["zenith.plus.fast-start"]),
+            ("Starting Zen", ["zenith.plus.last-page", "zenith.plus.fast-start"]),
             ("Local AI", ["zenith.plus.local-ai", "zenith.plus.ai-download-names"]),
         ],
     },
@@ -305,9 +316,7 @@ DESCRIPTIONS = {
                                   "stops at a small card to pick its space (and so its container), with an option to "
                                   "always send that site there.",
     "zenith.plus.blend": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the "
-                         "page you're on, so the window runs into the page. "
-                         "Note: while it's on, the glass shows the page's colour instead of your space's, so your "
-                         "theme's colours can look off; turn it off if colours aren't what you expect.",
+                         "page you're on, so the window runs into the page.",
     "zenith.plus.tab-manager": "Alt+Shift+T (or :tabs in the switcher) opens about:zenith-tabs: every tab in a table to sort "
                                "and filter, with where the memory and CPU go; each space's tabs in columns; tidying up "
                                "(duplicates, unused, awake tabs, busy sites, by topic) and rules. Move, sleep, wake, put in "
@@ -402,27 +411,64 @@ DESCRIPTIONS = {
                                 "other apps read. With this on, your spaces take that palette's most striking colours "
                                 "(one, two or three) the moment it changes. pywal writes ~/.cache/wal/colors.json itself; "
                                 "for wallust, add a template that writes the same file to ~/.cache/wallust/colors.json. "
-                                "Without those tools it does nothing (Colours from your wallpaper is the built-in way). "
-                                "Undo colours puts the spaces back.",
+                                "Or Your wallpaper: whenever the wallpaper Zenith draws changes (Window material on "
+                                "Wallpaper), the spaces take its colours, no other tool needed. Undo colours puts the "
+                                "spaces back.",
     "zenith.plus.palette-spaces": "Every space follows the palette, or only the space you're in when it changes.",
-    "zenith.plus.float-tab": "Alt+Shift+Space pops the tab you're on out into a small window that stays on top of "
-                             "everything, in the bottom right corner; the page carries on as it was. Alt+Shift+Space in "
-                             "that window puts it back.",
+    "zenith.plus.float-tab": "Alt+Shift+F (or right-click a tab › Float this tab) floats the tab you're on; the page carries "
+                             "on as it was. Its bar (point near its top) moves it, puts it back, switches between window "
+                             "and pane, minimises the window and closes the tab (Ctrl+Shift+T brings it back).",
+    "zenith.plus.float-as": "A window stays on top of everything, other apps too (a call while you work elsewhere); a pane "
+                            "floats over the page inside Zen, resizable from its corner.",
     "zenith.plus.pip-extras": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near a "
                               "screen edge and it settles against it; drop it more than halfway past the left or right "
-                              "edge and it tucks away, a sliver with an arrow staying on screen while it plays. Click "
-                              "the sliver to bring it back.",
+                              "edge and it tucks away, a sliver with an arrow staying on screen while it plays. Point "
+                              "at the sliver and it slides out while the pointer is on it; click it to bring it back.",
+    "zenith.plus.extension-copies": "Right-click an extension › Copy for other spaces: a second copy with its own storage "
+                                    "(another account in the same password manager), running in your other spaces while the "
+                                    "original runs in this one (Runs in spaces, as with any extension). Zenith loads copies as "
+                                    "temporary add-ons at each start, from your profile folder; nothing in about:config "
+                                    "changes.",
+    "zenith.plus.last-page": "Firefox brings back the page you were on about half a second after the window appears, "
+                             "and then it loads. Meanwhile the picture of it you last saw is shown in its place, until "
+                             "it has loaded (or you click or type). The picture is kept in your profile folder "
+                             "(zenith-last-page.jpg, beside Firefox's own session); never of private windows.",
+    "zenith.plus.cookie-banners": "Consent banners answered as they appear, in pages and their frames: Reject (or Only "
+                                  "necessary) pressed on the common consent tools (OneTrust, Cookiebot, Didomi, Quantcast, "
+                                  "Usercentrics, Sourcepoint, TrustArc and more), and on any other banner a button that "
+                                  "says no. Nothing is ever accepted. A banner with no way to refuse can be hidden instead "
+                                  "(the page scrolls again).",
+    "zenith.plus.cookie-banners-skip": "Sites whose banners stay as they are (a site covers its subdomains). The cookies "
+                                       "page's Banners left alone adds to it.",
+    "zenith.plus.cookie-policy": "Firefox's own cookie setting (yours comes back with Firefox's own). No cross-site: only "
+                                 "the site you're on sets cookies. No trackers: cross-site cookies from known trackers are "
+                                 "blocked. Only sites you allow: every cookie is blocked except sites you allow on the "
+                                 "cookies page (logins elsewhere stop working).",
+    "zenith.plus.cookie-keep": "Until you close Zen: Firefox deletes cookies and site data when Zen closes (you're signed "
+                               "out), except sites you allow; history, downloads, the cache and site settings are kept.",
+    "zenith.plus.download-delete": "A bin beside Show in folder on each finished download, in the sidebar's downloads, "
+                                   "Zen's Library and Firefox's Library window: it deletes the file and takes it off the "
+                                   "list. With two clicks, the first turns it red and asks.",
     "zenith.plus.startpage": "about:zenith-start, on the window's glass: a clock, a search box (Peek's engine) that also "
                              "finds your bookmarks as you type, and your bookmarks, 1–9 to open one. It becomes the home "
                              "page (the Home button, and new windows if they open the home page); with new tabs too, "
                              "Ctrl+T opens it instead of Zen's URL bar. Off gives yours back.",
     "zenith.plus.startpage-weather": "A line from wttr.in for where you are (worked out from your connection, as Peek's "
-                                     "\"wt\"), then the places you looked up in Peek lately, as many as Peek's weather "
-                                     "history keeps.",
+                                     "\"wt\").",
+    "zenith.plus.startpage-weather-history": "Below it, the places you looked up in Peek lately, as many as Peek's weather "
+                                             "history keeps (each place once).",
+    "zenith.plus.startpage-bookmarks": "Your bookmarks under the search box, toolbar first; 1–9 open one while the box is "
+                                       "empty, and typing finds them.",
+    "zenith.plus.startpage-top": "A row of the sites you visit most (Firefox's own ranking: how often and how lately), "
+                                 "one per site. Typing finds them too.",
     "zenith.plus.focus-pages": "Focus mode clears the browser around the page (and closes whatever was open); this is what "
-                               "it does to the page. Articles open in Firefox's Reader view; other pages that are mostly "
-                               "reading lose cookie banners, newsletter boxes, share bars, comments, sponsored blocks, ads, "
-                               "side columns and bars stuck to the window's edges. Leaving focus mode puts it all back.",
+                               "it does to the page. A video page gets its player filling the window; an article, a calm "
+                               "reading view over the page; other pages that are mostly reading lose cookie banners, "
+                               "newsletter boxes, share bars, comments, sponsored blocks, ads, side columns and bars stuck "
+                               "to the window's edges. A pill offers Show the page and Not on this site. Leaving focus mode "
+                               "puts it all back, without reloading.",
+    "zenith.plus.focus-skip": "Sites focus mode leaves as they are, like youtube.com, mail.example.org (a site covers its "
+                              "subdomains). The pill's Not on this site adds to it.",
     "zenith.plus.link-hints": "Alt+J puts a few letters on every link, button and field you can see; type them to "
                               "follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+J opens a link in a "
                               "new tab in the background.",
@@ -443,7 +489,24 @@ DESCRIPTIONS = {
 
 # Buttons on the page that open something of Zen's, with no setting behind
 # them (property names are only ids).
+# A caution shown under a setting, highlighted (something that can surprise
+# you later, like a setting overriding another).
+WARNINGS = {
+    "zenith.plus.blend": "Overrides your theme: while it's on, the glass shows the page's colour instead of your "
+                         "space's. If colours aren't what you expect, check this first.",
+    "zenith.plus.extension-copies": "Experimental. A copy doesn't update itself (right-click it › Refresh from the "
+                                    "original), loads a moment after Zen starts, may not talk to the extension's desktop "
+                                    "app, and Firefox lists it as temporary.",
+}
+
 ACTIONS = {
+    "zenith.action.cookies": {
+        "label": "Each site's cookies",
+        "desc": "Every site with cookies: allow it, keep its cookies until you close Zen, block it, leave its banners alone, "
+                "or delete its cookies and data (:cookies in the switcher).",
+        "button": "Cookies by site",
+        "command": "zenith-cookies-command",
+    },
     "zenith.action.colours-image": {
         "label": "Colours from an image",
         "desc": "Pick a picture: its colours (one, two or three) become this space's colours, as in Zen's theme picker.",
@@ -556,9 +619,21 @@ LABELS = {
     "zenith.plus.fast-start": "Fast start",
     "zenith.plus.link-hints": "Link hints",
     "zenith.plus.focus-pages": "Pages in focus mode",
+    "zenith.plus.focus-skip": "Sites left alone",
+    "zenith.plus.float-as": "Floats as",
     "zenith.plus.startpage": "Start page",
     "zenith.plus.startpage-weather": "Weather",
+    "zenith.plus.startpage-weather-history": "Weather history",
+    "zenith.plus.startpage-bookmarks": "Bookmarks",
+    "zenith.plus.startpage-top": "Most visited",
     "zenith.plus.pip-extras": "Move and tuck",
+    "zenith.plus.download-delete": "Delete button",
+    "zenith.plus.extension-copies": "Extension copies",
+    "zenith.plus.last-page": "The last page at once",
+    "zenith.plus.cookie-banners": "Banners",
+    "zenith.plus.cookie-banners-skip": "Sites left alone",
+    "zenith.plus.cookie-policy": "Which cookies",
+    "zenith.plus.cookie-keep": "Kept",
     "zenith.plus.float-tab": "Float a tab",
     "zenith.plus.local-ai": "Local AI",
     "zenith.plus.ai-download-names": "Download names",

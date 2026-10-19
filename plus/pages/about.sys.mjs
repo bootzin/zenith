@@ -38,3 +38,30 @@ export function register(name, url, text) {
     .registerFactory(Services.uuid.generateUUID(), `Zenith about:${name}`, contract, { createInstance: iid => module.QueryInterface(iid) });
   return true;
 }
+
+// Tabs that met the page before it was registered (the tab you were on,
+// restored as Zen starts, before the mod's scripts run): Firefox put them
+// in a web page process, where the page doesn't exist, or showed an error.
+// They load again here, in the browser itself. Tabs not loaded yet (asleep)
+// are left to load when you go to them.
+export function revive(name) {
+  const { E10SUtils } = ChromeUtils.importESModule("resource://gre/modules/E10SUtils.sys.mjs");
+  const system = Services.scriptSecurityManager.getSystemPrincipal();
+  let n = 0;
+  for (const win of Services.wm.getEnumerator("navigator:browser")) {
+    for (const tab of win.gBrowser?.tabs ?? []) {
+      const b = tab.linkedBrowser, spec = b?.currentURI?.spec ?? "";
+      if (!spec.startsWith(`about:${name}`) || tab.hasAttribute("pending")) continue;
+      const failed = b.isRemoteBrowser || b.documentURI?.spec?.startsWith("about:neterror") || b.documentURI?.spec?.startsWith("about:blank");
+      if (!failed) continue;
+      try {
+        if (b.isRemoteBrowser) win.gBrowser.updateBrowserRemoteness(b, { remoteType: E10SUtils.NOT_REMOTE });
+        b.loadURI(Services.io.newURI(spec), { triggeringPrincipal: system });
+        n++;
+      } catch (e) {
+        console.error(`[Zenith] about:${name} after the start`, e);
+      }
+    }
+  }
+  return n;
+}

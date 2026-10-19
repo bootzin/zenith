@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.1
+// @version        0.12.2
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -208,7 +208,7 @@ const SCHEMA = [
       "label": "Palette sync",
       "type": "dropdown",
       "extra": false,
-      "desc": "For people who theme their whole desktop with pywal (winwal on Windows) or wallust: those tools pick colours from your wallpaper and write them to a file your terminal and other apps read. With this on, your spaces take that palette's most striking colours (one, two or three) the moment it changes. pywal writes ~/.cache/wal/colors.json itself; for wallust, add a template that writes the same file to ~/.cache/wallust/colors.json. Without those tools it does nothing (Colours from your wallpaper is the built-in way). Undo colours puts the spaces back.",
+      "desc": "For people who theme their whole desktop with pywal (winwal on Windows) or wallust: those tools pick colours from your wallpaper and write them to a file your terminal and other apps read. With this on, your spaces take that palette's most striking colours (one, two or three) the moment it changes. pywal writes ~/.cache/wal/colors.json itself; for wallust, add a template that writes the same file to ~/.cache/wallust/colors.json. Or Your wallpaper: whenever the wallpaper Zenith draws changes (Window material on Wallpaper), the spaces take its colours, no other tool needed. Undo colours puts the spaces back.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -222,6 +222,10 @@ const SCHEMA = [
        {
         "label": "wallust (~/.cache/wallust/colors.json)",
         "value": "wallust"
+       },
+       {
+        "label": "Your wallpaper (with Window material on Wallpaper)",
+        "value": "wallpaper"
        }
       ],
       "default": "off"
@@ -259,6 +263,12 @@ const SCHEMA = [
            "if": {
             "property": "zenith.plus.palette-sync",
             "value": "wallust"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.palette-sync",
+            "value": "wallpaper"
            }
           }
          ],
@@ -563,8 +573,9 @@ const SCHEMA = [
       "label": "Blend with the page",
       "type": "dropdown",
       "extra": true,
-      "desc": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the page you're on, so the window runs into the page. Note: while it's on, the glass shows the page's colour instead of your space's, so your theme's colours can look off; turn it off if colours aren't what you expect.",
+      "desc": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the page you're on, so the window runs into the page.",
       "host": "Zenith Plus",
+      "warn": "Overrides your theme: while it's on, the glass shows the page's colour instead of your space's. If colours aren't what you expect, check this first.",
       "options": [
        {
         "label": "Off",
@@ -1308,6 +1319,21 @@ const SCHEMA = [
     ]
    },
    {
+    "title": "Extensions",
+    "settings": [
+     {
+      "property": "zenith.plus.extension-copies",
+      "label": "Extension copies",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Right-click an extension › Copy for other spaces: a second copy with its own storage (another account in the same password manager), running in your other spaces while the original runs in this one (Runs in spaces, as with any extension). Zenith loads copies as temporary add-ons at each start, from your profile folder; nothing in about:config changes.",
+      "host": "Zenith Plus",
+      "warn": "Experimental. A copy doesn't update itself (right-click it › Refresh from the original), loads a moment after Zen starts, may not talk to the extension's desktop app, and Firefox lists it as temporary.",
+      "default": false
+     }
+    ]
+   },
+   {
     "title": "Links",
     "settings": [
      {
@@ -2047,9 +2073,37 @@ const SCHEMA = [
       "label": "Move and tuck",
       "type": "checkbox",
       "extra": false,
-      "desc": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near a screen edge and it settles against it; drop it more than halfway past the left or right edge and it tucks away, a sliver with an arrow staying on screen while it plays. Click the sliver to bring it back.",
+      "desc": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near a screen edge and it settles against it; drop it more than halfway past the left or right edge and it tucks away, a sliver with an arrow staying on screen while it plays. Point at the sliver and it slides out while the pointer is on it; click it to bring it back.",
       "host": "Zenith Plus",
       "default": true
+     }
+    ]
+   },
+   {
+    "title": "Downloads",
+    "settings": [
+     {
+      "property": "zenith.plus.download-delete",
+      "label": "Delete button",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A bin beside Show in folder on each finished download, in the sidebar's downloads, Zen's Library and Firefox's Library window: it deletes the file and takes it off the list. With two clicks, the first turns it red and asks.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "One click",
+        "value": "one"
+       },
+       {
+        "label": "Two clicks (asks first)",
+        "value": "confirm"
+       },
+       {
+        "label": "No bin",
+        "value": "off"
+       }
+      ],
+      "default": "one"
      }
     ]
    },
@@ -2670,15 +2724,15 @@ const SCHEMA = [
       "label": "Pages in focus mode",
       "type": "dropdown",
       "extra": false,
-      "desc": "Focus mode clears the browser around the page (and closes whatever was open); this is what it does to the page. Articles open in Firefox's Reader view; other pages that are mostly reading lose cookie banners, newsletter boxes, share bars, comments, sponsored blocks, ads, side columns and bars stuck to the window's edges. Leaving focus mode puts it all back.",
+      "desc": "Focus mode clears the browser around the page (and closes whatever was open); this is what it does to the page. A video page gets its player filling the window; an article, a calm reading view over the page; other pages that are mostly reading lose cookie banners, newsletter boxes, share bars, comments, sponsored blocks, ads, side columns and bars stuck to the window's edges. A pill offers Show the page and Not on this site. Leaving focus mode puts it all back, without reloading.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Reader view for articles, tidy the rest",
+        "label": "Videos fill the window, articles in a reading view, the rest tidied",
         "value": "tidy"
        },
        {
-        "label": "Reader view for articles",
+        "label": "Videos and articles only (no tidying)",
         "value": "reader"
        },
        {
@@ -2687,6 +2741,37 @@ const SCHEMA = [
        }
       ],
       "default": "tidy"
+     },
+     {
+      "property": "zenith.plus.focus-skip",
+      "label": "Sites left alone",
+      "type": "string",
+      "extra": false,
+      "desc": "Sites focus mode leaves as they are, like youtube.com, mail.example.org (a site covers its subdomains). The pill's Not on this site adds to it.",
+      "host": "Zenith Plus",
+      "placeholder": "youtube.com, mail.example.org",
+      "rule": {
+       "why": "Focus mode leaves every page alone",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.plus.focus-pages",
+            "value": "tidy"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.focus-pages",
+            "value": "reader"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
      }
     ]
    },
@@ -2712,9 +2797,39 @@ const SCHEMA = [
       "label": "Float a tab",
       "type": "checkbox",
       "extra": false,
-      "desc": "Alt+Shift+Space pops the tab you're on out into a small window that stays on top of everything, in the bottom right corner; the page carries on as it was. Alt+Shift+Space in that window puts it back.",
+      "desc": "Alt+Shift+F (or right-click a tab › Float this tab) floats the tab you're on; the page carries on as it was. Its bar (point near its top) moves it, puts it back, switches between window and pane, minimises the window and closes the tab (Ctrl+Shift+T brings it back).",
       "host": "Zenith Plus",
       "default": true
+     },
+     {
+      "property": "zenith.plus.float-as",
+      "label": "Floats as",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A window stays on top of everything, other apps too (a call while you work elsewhere); a pane floats over the page inside Zen, resizable from its corner.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "A window on top of everything",
+        "value": "window"
+       },
+       {
+        "label": "A pane inside Zen",
+        "value": "pane"
+       }
+      ],
+      "default": "window",
+      "rule": {
+       "why": "Float a tab is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.float-tab",
+          "value": true
+         }
+        }
+       ]
+      }
      }
     ]
    }
@@ -3066,7 +3181,89 @@ const SCHEMA = [
       "label": "Weather",
       "type": "checkbox",
       "extra": false,
-      "desc": "A line from wttr.in for where you are (worked out from your connection, as Peek's \"wt\"), then the places you looked up in Peek lately, as many as Peek's weather history keeps.",
+      "desc": "A line from wttr.in for where you are (worked out from your connection, as Peek's \"wt\").",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "The start page is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.plus.startpage",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.startpage",
+            "value": "newtab"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.startpage-weather-history",
+      "label": "Weather history",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Below it, the places you looked up in Peek lately, as many as Peek's weather history keeps (each place once).",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "The start page's weather is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.startpage-weather",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.startpage-bookmarks",
+      "label": "Bookmarks",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Your bookmarks under the search box, toolbar first; 1–9 open one while the box is empty, and typing finds them.",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "The start page is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.plus.startpage",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.startpage",
+            "value": "newtab"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.startpage-top",
+      "label": "Most visited",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A row of the sites you visit most (Firefox's own ranking: how often and how lately), one per site. Typing finds them too.",
       "host": "Zenith Plus",
       "default": false,
       "rule": {
@@ -3111,6 +3308,144 @@ const SCHEMA = [
   ]
  },
  {
+  "id": "cookies",
+  "title": "Cookies",
+  "icon": "cookie",
+  "blurb": "Cookie banners answered for you, which cookies sites may set, how long they're kept, and each site's own rule.",
+  "groups": [
+   {
+    "title": "Banners",
+    "settings": [
+     {
+      "property": "zenith.plus.cookie-banners",
+      "label": "Banners",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Consent banners answered as they appear, in pages and their frames: Reject (or Only necessary) pressed on the common consent tools (OneTrust, Cookiebot, Didomi, Quantcast, Usercentrics, Sourcepoint, TrustArc and more), and on any other banner a button that says no. Nothing is ever accepted. A banner with no way to refuse can be hidden instead (the page scrolls again).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Reject, or hide when there's no Reject",
+        "value": "reject-hide"
+       },
+       {
+        "label": "Reject only (leave the rest)",
+        "value": "reject"
+       },
+       {
+        "label": "Hide them, answer nothing",
+        "value": "hide"
+       },
+       {
+        "label": "Leave them",
+        "value": "off"
+       }
+      ],
+      "default": "reject-hide"
+     },
+     {
+      "property": "zenith.plus.cookie-banners-skip",
+      "label": "Sites left alone",
+      "type": "string",
+      "extra": false,
+      "desc": "Sites whose banners stay as they are (a site covers its subdomains). The cookies page's Banners left alone adds to it.",
+      "host": "Zenith Plus",
+      "placeholder": "example.com, bank.example",
+      "rule": {
+       "why": "Cookie banners are left alone",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.plus.cookie-banners",
+            "value": "reject-hide"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.cookie-banners",
+            "value": "reject"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.cookie-banners",
+            "value": "hide"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "Cookies",
+    "settings": [
+     {
+      "property": "zenith.plus.cookie-policy",
+      "label": "Which cookies",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Firefox's own cookie setting (yours comes back with Firefox's own). No cross-site: only the site you're on sets cookies. No trackers: cross-site cookies from known trackers are blocked. Only sites you allow: every cookie is blocked except sites you allow on the cookies page (logins elsewhere stop working).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Firefox's own (Total Cookie Protection)",
+        "value": "firefox"
+       },
+       {
+        "label": "No cross-site cookies",
+        "value": "cross"
+       },
+       {
+        "label": "No cookies from trackers",
+        "value": "trackers"
+       },
+       {
+        "label": "Only sites you allow",
+        "value": "all"
+       }
+      ],
+      "default": "firefox"
+     },
+     {
+      "property": "zenith.plus.cookie-keep",
+      "label": "Kept",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Until you close Zen: Firefox deletes cookies and site data when Zen closes (you're signed out), except sites you allow; history, downloads, the cache and site settings are kept.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Until they expire",
+        "value": "expire"
+       },
+       {
+        "label": "Until you close Zen (except sites you allow)",
+        "value": "session"
+       }
+      ],
+      "default": "expire"
+     },
+     {
+      "property": "zenith.action.cookies",
+      "label": "Each site's cookies",
+      "type": "action",
+      "extra": false,
+      "desc": "Every site with cookies: allow it, keep its cookies until you close Zen, block it, leave its banners alone, or delete its cookies and data (:cookies in the switcher).",
+      "button": "Cookies by site",
+      "command": "zenith-cookies-command",
+      "host": "Zen"
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "speed",
   "title": "Speed and AI",
   "icon": "speed",
@@ -3119,6 +3454,15 @@ const SCHEMA = [
    {
     "title": "Starting Zen",
     "settings": [
+     {
+      "property": "zenith.plus.last-page",
+      "label": "The last page at once",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Firefox brings back the page you were on about half a second after the window appears, and then it loads. Meanwhile the picture of it you last saw is shown in its place, until it has loaded (or you click or type). The picture is kept in your profile folder (zenith-last-page.jpg, beside Firefox's own session); never of private windows.",
+      "host": "Zenith Plus",
+      "default": true
+     },
      {
       "property": "zenith.plus.fast-start",
       "label": "Fast start",
@@ -3347,7 +3691,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.1";
+const SCHEMA_VERSION = "0.12.2";
 
 class SettingsView {
   constructor(kind) {
@@ -3453,8 +3797,17 @@ class SettingsView {
     // and as a search hides sections.
     new ResizeObserver(soon).observe(this.root);
     // In Zen's Settings the bar sits under Settings' own search, which also
-    // stays at the top.
+    // stays at the top; its colour is the page's.
     const bar = this.root.querySelector(".zp-bar");
+    if (bar) {
+      for (let e = bar.parentElement; e; e = e.parentElement) {
+        const c = getComputedStyle(e).backgroundColor;
+        if (c && c !== "transparent" && !/rgba\(.*,\s*0\)$/.test(c)) {
+          bar.style.setProperty("--zp-bar-bg", c);
+          break;
+        }
+      }
+    }
     const below = document.querySelector(".sticky-container");
     if (bar && below) new ResizeObserver(() => (bar.style.top = `${below.offsetHeight}px`)).observe(below);
     update();
@@ -3532,7 +3885,9 @@ class SettingsView {
     const label = el("div", { class: "zp-label" }, s.label);
     if (s.extra) label.append(el("span", { class: "zp-tag" }, "Extra"));
     const why = el("div", { class: "zp-why" });
-    text.append(label, el("div", { class: "zp-desc" }, s.desc), why);
+    text.append(label, el("div", { class: "zp-desc" }, s.desc));
+    if (s.warn) text.append(el("div", { class: "zp-warn" }, s.warn));
+    text.append(why);
     row.append(text);
     const control = this.control(s);
     row.append(control.node);
@@ -3689,9 +4044,14 @@ const STYLE = `
   .zp-lede { margin: 2px 0 0; color: var(--zp-dim); font-size: 0.92em; }
   .zp-lede kbd { font: inherit; font-size: 0.9em; padding: 0 5px; border-radius: 5px; border: 1px solid var(--zp-border); }
   /* Search and the sections, at the top while you scroll. */
+  /* (The page's own background, worked out when it's built; a little wider
+     than the column so nothing peeks out beside it; it fades into the page
+     instead of ending in a line.) */
   .zp-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-direction: column; gap: 8px;
-    margin: 8px 0 0; padding: 10px 0 9px; border-bottom: 1px solid var(--zp-border);
-    background: var(--in-content-page-background, var(--background-color-canvas, Canvas)); }
+    margin: 8px -18px 0; padding: 10px 18px 6px;
+    background: var(--zp-bar-bg, var(--in-content-page-background, var(--background-color-canvas, Canvas))); }
+  .zp-bar::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 16px; pointer-events: none;
+    background: linear-gradient(var(--zp-bar-bg, Canvas), transparent); }
   .zp-search { width: 100%; box-sizing: border-box; padding: 8px 12px;
     border-radius: 10px; border: 1px solid var(--zp-border); background: var(--zp-box); color: inherit; font: inherit; }
   .zp-chips { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -3719,6 +4079,12 @@ const STYLE = `
   .zp-text { min-width: 0; }
   .zp-label { font-weight: 500; display: flex; align-items: center; gap: 8px; }
   .zp-desc { color: var(--zp-dim); font-size: 0.92em; margin-top: 2px; line-height: 1.4; }
+  .zp-warn { margin-top: 6px; padding: 5px 9px 5px 26px; border-radius: 8px; font-size: 0.9em; line-height: 1.4; position: relative;
+    color: light-dark(#7a4b00, #ffd08a); background: light-dark(rgb(255 180 40 / 0.14), rgb(255 180 40 / 0.12));
+    border: 1px solid light-dark(rgb(200 130 0 / 0.3), rgb(255 190 80 / 0.25)); }
+  /* (A ringed "!" before it.) */
+  .zp-warn::before { content: "!"; position: absolute; left: 8px; top: 6px; width: 13px; height: 13px; box-sizing: border-box;
+    border: 1.5px solid currentColor; border-radius: 50%; font: 700 9px/10px system-ui, sans-serif; text-align: center; }
   .zp-why:not(:empty) { margin-top: 4px; font-size: 0.88em; color: var(--zp-accent); }
   .zp-tag { font-size: 0.72em; font-weight: 600; padding: 1px 7px; border-radius: 999px;
     background: color-mix(in srgb, var(--zp-accent) 18%, transparent); color: var(--zp-accent); }

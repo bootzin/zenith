@@ -3287,11 +3287,73 @@ padding: 4px 6px 0;
 :root[zenith-blend="on"] {
 --zth-glass-color: color-mix(in srgb, var(--zth-page-tint, var(--zth-paint)) 30%, var(--zth-mica)) !important;
 }
+.tabbrowser-tab[zenith-split-swap] > .tab-stack > .tab-background {
+outline: 2px dashed var(--zth-accent) !important;
+outline-offset: -2px;
+}
+#zenith-last-page {
+position: fixed;
+z-index: 30 !important;
+object-fit: cover;
+object-position: top left;
+pointer-events: none;
+border-radius: var(--zen-native-inner-radius, var(--zth-radius, 8px));
+transition: opacity 180ms ease;
+&[leaving] {
+opacity: 0;
+}
+}
+#zenith-focus-pill {
+position: fixed;
+left: 50%;
+bottom: 18px;
+z-index: 415 !important;
+display: flex;
+align-items: center;
+gap: 8px;
+max-width: calc(100vw - 40px);
+padding: 6px 6px 6px 14px;
+border-radius: var(--zth-pill-radius, 999px);
+background: var(--zth-glass, color-mix(in srgb, var(--zth-glass-color, Canvas) 92%, transparent));
+backdrop-filter: blur(18px) saturate(1.4);
+border: 1px solid var(--zth-hairline, rgb(128 128 128 / 0.25));
+box-shadow: var(--zth-shadow, 0 8px 30px rgb(0 0 0 / 0.3));
+color: var(--zth-ink, CanvasText);
+font-size: 12.5px;
+opacity: 0;
+translate: -50% 12px;
+pointer-events: none;
+transition: opacity 160ms ease, translate 200ms ease;
+&[show] {
+opacity: 1;
+translate: -50% 0;
+pointer-events: auto;
+}
+& .what {
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+& button {
+appearance: none;
+flex: none;
+border: 1px solid var(--zth-hairline, rgb(128 128 128 / 0.25));
+background: color-mix(in srgb, currentColor 7%, transparent);
+color: inherit;
+font: inherit;
+border-radius: var(--zth-pill-radius, 999px);
+padding: 3px 10px;
+cursor: pointer;
+&:hover {
+background: color-mix(in srgb, currentColor 14%, transparent);
+}
+}
+}
 :root[zenith-pip-tucked]:not([zenith-pip-peek]) {
 -moz-window-dragging: no-drag !important;
 cursor: pointer;
-& #controls {
-display: none !important;
+& #controls > :not(#zenith-pip-cover) {
+visibility: hidden !important;
 }
 & .player-holder {
 filter: brightness(0.55);
@@ -3300,7 +3362,7 @@ filter: brightness(0.55);
 content: "";
 position: fixed;
 inset-block: 0;
-width: 26px;
+width: 40px;
 background: rgb(0 0 0 / 0.45) center / 14px no-repeat;
 background-image: url("chrome://global/skin/icons/arrow-right.svg");
 -moz-context-properties: fill;
@@ -3309,15 +3371,37 @@ z-index: 10;
 }
 &[zenith-pip-tucked="left"]::after {
 inset-inline-end: 0;
+background-position: calc(50% - 7px) center;
 }
 &[zenith-pip-tucked="right"]::after {
 inset-inline-start: 0;
+background-position: calc(50% + 7px) center;
 background-image: url("chrome://global/skin/icons/arrow-left.svg");
 }
 }
+#zenith-pip-cover {
+position: fixed;
+inset: 0;
+z-index: 2147483647;
+cursor: pointer;
+background: transparent;
+-moz-window-dragging: no-drag;
+&[hidden] {
+display: none;
+}
+}
 :root[zenith-float] {
+min-width: 240px !important;
+min-height: 150px !important;
 & #navigator-toolbox {
 display: none !important;
+}
+& .titlebar-buttonbox-container, & #zen-appcontent-navbar-wrapper, & #zen-appcontent-navbar-container {
+visibility: collapse !important;
+max-height: 0 !important;
+min-height: 0 !important;
+overflow: hidden !important;
+pointer-events: none !important;
 }
 & #zen-tabbox-wrapper {
 margin: 0 !important;
@@ -3326,16 +3410,30 @@ margin: 0 !important;
 position: relative;
 }
 }
-#zenith-float-bar {
-display: none;
+:root[zenith-float-pane-open] #tabbrowser-tabpanels {
+position: relative;
 }
-:root[zenith-float] #zenith-float-bar {
+#tabbrowser-tabpanels > [zenith-float-pane] {
+position: absolute !important;
+inset: auto !important;
+left: var(--zth-pane-left) !important;
+top: var(--zth-pane-top) !important;
+width: var(--zth-pane-width) !important;
+height: var(--zth-pane-height) !important;
+margin: 0 !important;
+z-index: 20 !important;
+visibility: visible !important;
+border-radius: var(--zth-radius, 10px) !important;
+overflow: hidden !important;
+box-shadow: 0 14px 44px rgb(0 0 0 / 0.45), 0 0 0 1px var(--zth-hairline) !important;
+}
+.zenith-float-bar {
 position: absolute;
 inset: 0 0 auto 0;
 z-index: 30 !important;
 display: flex;
 align-items: center;
-gap: 8px;
+gap: 6px;
 height: 30px;
 padding: 0 6px 0 10px;
 background: var(--zth-panel-bg);
@@ -3348,9 +3446,12 @@ cursor: grab;
 opacity: 0;
 translate: 0 -22px;
 transition: opacity 0.15s var(--zth-ease), translate 0.15s var(--zth-ease);
-&:hover {
+&:hover, &[moving] {
 opacity: 1;
 translate: 0 0;
+}
+&[moving] {
+cursor: grabbing;
 }
 & .zenith-float-grip {
 width: 18px;
@@ -3382,10 +3483,17 @@ background: var(--zth-accent-soft);
 }
 }
 }
-:root[zenith-float-moving] #zenith-float-bar {
-opacity: 1;
-translate: 0 0;
-cursor: grabbing;
+.zenith-float-resize {
+position: absolute;
+left: 0;
+top: 0;
+z-index: 31 !important;
+width: 14px;
+height: 14px;
+cursor: nwse-resize;
+background: linear-gradient(135deg, var(--zth-ink-dim) 0 2px, transparent 2px 5px, var(--zth-ink-dim) 5px 6px, transparent 6px);
+opacity: 0.55;
+border-radius: var(--zth-radius, 10px) 0 0 0;
 }
 .zenith-download-delete {
 opacity: 0.75;
@@ -3395,10 +3503,17 @@ opacity: 1;
 & .toolbarbutton-icon {
 -moz-context-properties: fill;
 fill: currentColor;
+transition: fill 120ms ease;
 }
 &[confirm] {
 opacity: 1;
-color: var(--zth-danger, #e5484d);
-background: color-mix(in srgb, var(--zth-danger, #e5484d) 18%, transparent) !important;
+& .toolbarbutton-icon {
+fill: var(--zth-danger, #e5484d);
+animation: zenith-bin-nudge 260ms ease;
 }
+}
+}
+@keyframes zenith-bin-nudge {
+  30% { transform: rotate(-12deg); }
+  60% { transform: rotate(9deg); }
 }

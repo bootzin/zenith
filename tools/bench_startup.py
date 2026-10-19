@@ -8,6 +8,7 @@ then starts Zen `runs` times (default 5) without wiping the session or the
 startup cache, as a real start would, and reports for each:
   first paint        the window's first paint (Firefox's own timestamp)
   session restored   Firefox's own timestamp
+  page start         the selected tab's page began loading (its timeOrigin)
   page shown         the selected tab's page finished loading (its load event)
   zenith             when each Zenith part started and how long it took
 --fast turns on Zenith's Fast start for the runs.
@@ -28,7 +29,8 @@ def make_pages():
     """Local pages, some heavy (a big document and a script that works for a
     while), each putting the moment it loaded into its title."""
     PAGES.mkdir(parents=True, exist_ok=True)
-    stamp = "<script>addEventListener('load', () => { document.title = document.title + ' | loaded ' + Date.now(); });</script>"
+    stamp = ("<script>addEventListener('load', () => { document.title = document.title + ' | start ' + Math.round(performance.timeOrigin) + "
+             "' | loaded ' + Date.now(); });</script>")
     for i in range(12):
         heavy = i % 3 == 0
         body = "".join(f"<div class=r><b>Row {n}</b> <span>{'lorem ipsum ' * 6}</span></div>" for n in range(4000 if heavy else 200))
@@ -104,9 +106,10 @@ def measure():
           await new Promise(r => setTimeout(r, 1500));
           const rel = d => (d && +d ? +d - p : null);
           const loaded = stamp() >= p ? stamp() : 0;
+          const began = +(title().match(/start (\\d+)/)?.[1] ?? 0);
           const origin = performance.timeOrigin;
           return { firstPaint: rel(info.firstPaint2 ?? info.firstPaint), sessionRestored: rel(info.sessionRestored), main: rel(info.main),
-                   delayedStartup: rel(info.delayedStartupFinished), pageShown: loaded ? loaded - p : null, windowCreated: origin - p,
+                   delayedStartup: rel(info.delayedStartupFinished), pageStart: loaded && began ? began - p : null, pageShown: loaded ? loaded - p : null, windowCreated: origin - p,
                    zenith: (window.zenithStartup ?? []).map(e => ({ ...e, at: Math.round(e.at + origin - p) })),
                    fast: Services.prefs.getBoolPref('zenith.plus.fast-start', false), selected: title().split(' | ')[0], labelKept: gBrowser.selectedTab.label === title() };""")
         z.quit()
@@ -142,7 +145,7 @@ def main():
     zenith = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--zenith=")), "all")
     only(zenith)
     results = [measure() for _ in range(runs)]
-    keys = ["main", "windowCreated", "firstPaint", "sessionRestored", "delayedStartup", "pageShown"]
+    keys = ["main", "windowCreated", "firstPaint", "sessionRestored", "delayedStartup", "pageStart", "pageShown"]
     summary = {k: round(statistics.median([r[k] for r in results if r.get(k) is not None]), 0) if any(r.get(k) for r in results) else None
                for k in keys}
     parts = {}

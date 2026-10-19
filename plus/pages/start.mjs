@@ -2,13 +2,17 @@
 // filters your bookmarks as you type, and the bookmarks themselves: 1–9
 // open one while the box is empty, arrows and Enter pick one, Shift+Enter
 // opens in a new tab. With the weather on, a line from wttr.in for where
-// you are, then the places you looked up in Peek lately.
+// you are (then, optionally, the places you looked up in Peek lately); and
+// optionally your most visited sites, as tiles. Each part has its switch
+// (Zenith › Pages › Start page).
 
 const win = window.browsingContext.topChromeWindow;
 const { Services } = win;
 const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs");
 const $ = id => document.getElementById(id);
 const MAX = 9;
+const P = Services.prefs;
+const want = (pref, fallback) => P.getBoolPref(`zenith.plus.startpage-${pref}`, fallback);
 
 function make(tag, attrs = {}, ...kids) {
   const node = document.createElement(tag);
@@ -44,22 +48,34 @@ function clock() {
 }
 
 // Where you are (wttr.in's guess from your connection, as Peek's "wt"),
-// then the places you looked up lately, as many as Peek's weather history
-// keeps. Peek does the asking (zenith-peek.uc.mjs).
+// then (with its switch) the places you looked up lately, as many as Peek's
+// weather history keeps; a place only once. Peek does the asking
+// (zenith-peek.uc.mjs).
 async function weather() {
   const peek = win.ZenithPeek;
-  if (!Services.prefs.getBoolPref("zenith.plus.startpage-weather", false) || !peek?.weather) return;
-  const places = ["", ...(peek.weatherPlaces?.() ?? [])];
+  if (!want("weather", false) || !peek?.weather) return;
+  const places = ["", ...(want("weather-history", true) ? (peek.weatherPlaces?.() ?? []) : [])];
   const lines = await Promise.all(places.map(p => peek.weather(p).catch(() => null)));
-  const shown = lines.filter(Boolean);
+  const seen = new Set();
+  const shown = lines.filter(l => {
+    const key = (l?.place ?? l?.text?.split(":")[0] ?? "").trim().toLowerCase();
+    if (!l || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   if (!shown.length) return;
   $("weather").replaceChildren(...shown.map((l, i) => make("div", { class: i ? "other" : null }, l.text)));
   $("weather").hidden = false;
 }
 
-// Bookmarks: the toolbar's first, then the menu's and the rest.
-let all = [];
+// Bookmarks (with their switch): the toolbar's first, then the menu's and
+// the rest.
+let all = [], top = [];
 async function bookmarks() {
+  if (!want("bookmarks", true)) {
+    all = [];
+    return show();
+  }
   const order = [PlacesUtils.bookmarks.toolbarGuid, PlacesUtils.bookmarks.menuGuid, PlacesUtils.bookmarks.unfiledGuid];
   const out = [];
   const walk = node => {
@@ -75,6 +91,27 @@ async function bookmarks() {
   show();
 }
 
+// Most visited (with its switch): Firefox's own top sites, by frecency
+// (how often and how lately you've been), one per site.
+async function topSites() {
+  if (!want("top", false)) return;
+  try {
+    const { NewTabUtils } = ChromeUtils.importESModule("resource://gre/modules/NewTabUtils.sys.mjs");
+    const links = await NewTabUtils.activityStreamLinks.getTopSites({ numItems: 8, onePerDomain: true, includeFavicon: false });
+    const hosts = new Set();
+    top = links.filter(l => /^https?:/.test(l.url) && !hosts.has(host(l.url)) && hosts.add(host(l.url)))
+      .slice(0, 8).map(l => ({ title: l.title || host(l.url), url: l.url }));
+  } catch (e) {
+    console.error("[Zenith start page] most visited", e);
+    top = [];
+  }
+  $("top").replaceChildren(...top.map(s => make("a", { href: s.url, title: s.title, onclick: e => (e.preventDefault(), open(s.url, e.shiftKey || e.button === 1)) },
+    make("img", { src: `page-icon:${s.url}`, alt: "", onerror: e => (e.target.style.visibility = "hidden") }),
+    make("span", {}, host(s.url)))));
+  $("top").hidden = !top.length;
+  show();
+}
+
 let shown = [], picked = -1;
 function host(url) {
   try {
@@ -86,16 +123,22 @@ function host(url) {
 
 function show() {
   const words = $("q").value.toLowerCase().split(/\s+/).filter(Boolean);
-  shown = (words.length ? all.filter(b => words.every(w => b.title.toLowerCase().includes(w) || b.url.toLowerCase().includes(w))) : all).slice(0, MAX);
+  // Typing finds most visited sites too (after the bookmarks); with no
+  // bookmarks shown, the number keys open the most visited.
+  const pool = words.length ? [...all, ...top.filter(s => !all.some(b => b.url === s.url))] : all.length ? all : top;
+  shown = (words.length ? pool.filter(b => words.every(w => b.title.toLowerCase().includes(w) || b.url.toLowerCase().includes(w))) : all).slice(0, MAX);
+  if (!words.length && !all.length) shown = top.slice(0, MAX);
+  $("marks").hidden = !words.length && !all.length;
   picked = words.length && shown.length ? 0 : -1;
   $("marks").replaceChildren(...shown.map((b, i) => make("li", { selected: i === picked, onclick: e => open(b.url, e.shiftKey || e.button === 1) },
     make("span", { class: "n" }, words.length ? "" : String(i + 1)),
     make("img", { src: `page-icon:${b.url}`, alt: "", onerror: e => (e.target.style.visibility = "hidden") }),
     make("span", { class: "title" }, b.title),
     make("span", { class: "host" }, host(b.url)))));
+  const what = all.length ? "bookmark" : "site";
   $("hint").textContent = words.length
-    ? (shown.length ? "Enter opens the highlighted bookmark · Alt+Enter searches instead" : "Enter searches")
-    : (shown.length ? "1–9 open a bookmark · type to find one, or to search" : "Type to search");
+    ? (shown.length ? `Enter opens the highlighted ${what} · Alt+Enter searches instead` : "Enter searches")
+    : (shown.length ? `1–9 open a ${what} · type to find one, or to search` : "Type to search");
 }
 
 function pick(i) {
@@ -147,5 +190,6 @@ $("q").addEventListener("keydown", e => {
 colours();
 clock();
 bookmarks();
+topSites();
 weather();
 $("q").focus();

@@ -1,0 +1,235 @@
+/* about:zenith-cookies, in Zenith's colours (cookies.mjs copies the
+   window's accent and ink onto :root). */
+
+:root {
+  --ink: light-dark(rgb(20 20 24), rgb(244 244 248));
+  --dim: light-dark(rgb(20 20 24 / 0.66), rgb(244 244 248 / 0.7));
+  --line: light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.13));
+  --accent: var(--zth-accent, AccentColor);
+  --soft: color-mix(in srgb, var(--accent) 24%, transparent);
+  --card: light-dark(rgb(255 255 255 / 0.62), rgb(255 255 255 / 0.06));
+  --hover: color-mix(in srgb, currentColor 9%, transparent);
+  --danger: light-dark(#c4363b, #ff8a8d);
+  color-scheme: light dark;
+  background: light-dark(rgb(246 246 248), rgb(20 20 24));
+  color: var(--ink);
+  font: menu;
+  font-size: 13px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--hover);
+  }
+
+  &.quiet {
+    background: transparent;
+  }
+
+  &.danger {
+    color: var(--danger);
+  }
+
+  &[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+}
+
+input[type="search"],
+select {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 8px;
+  padding: 5px 10px;
+
+  & option {
+    background: Canvas;
+    color: CanvasText;
+  }
+}
+
+#top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 20px 28px 10px;
+
+  & .title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 12px;
+    flex: 1 1 260px;
+  }
+
+  & h1 {
+    margin: 0;
+    font-size: 1.6em;
+    font-weight: 600;
+  }
+
+  & #summary {
+    color: var(--dim);
+    white-space: nowrap;
+  }
+
+  & #search {
+    flex: 0 1 260px;
+    min-width: 150px;
+  }
+}
+
+main {
+  max-width: 980px;
+  padding: 0 28px 60px;
+}
+
+h2 {
+  margin: 22px 0 8px;
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+
+  & .what {
+    flex: 1 1 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    & small {
+      color: var(--dim);
+    }
+  }
+}
+
+.segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+
+  & button {
+    border: none;
+    background: transparent;
+    padding: 4px 12px;
+
+    &[aria-checked="true"] {
+      background: var(--soft);
+    }
+  }
+}
+
+.list {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+.site {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.big {
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    background: var(--card);
+  }
+
+  & img {
+    width: 16px;
+    height: 16px;
+  }
+
+  & .name {
+    flex: 1 1 180px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  & .count {
+    color: var(--dim);
+    min-width: 80px;
+  }
+}
+
+.lately {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--dim);
+
+  & b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+}
+
+.empty {
+  color: var(--dim);
+}
+
+#note {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  padding: 8px 16px;
+  border-radius: 14px;
+  background: color-mix(in srgb, Canvas 96%, light-dark(white, black));
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.3);
+
+  &[hidden] {
+    display: none;
+  }
+}

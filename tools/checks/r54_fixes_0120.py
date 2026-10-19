@@ -96,7 +96,7 @@ with Scene(headless=False) as z:
       const win = window.ZenithFloat.out(tab);
       await new Promise(r => win.addEventListener('load', r, { once: true }));
       await zth.sleep(2500);
-      const d = win.document, bar = d.getElementById('zenith-float-bar'), s = win.screen;
+      const d = win.document, bar = d.querySelector('.zenith-float-bar'), s = win.screen;
       out['bar: buttons'] = [...(bar?.querySelectorAll('button') ?? [])].map(b => b.textContent);
       out['no title bar'] = d.documentElement.getAttribute('chromehidden');
       out['on screen'] = win.screenX >= s.availLeft && win.screenY >= s.availTop &&
@@ -130,14 +130,15 @@ with Scene(headless=False) as z:
     check(z, "focus mode", """
       const F = window.ZenithFocus, P = Services.prefs;
       P.setStringPref('zenith.plus.focus-pages', '');
-      // An article: Reader view.
+      // An article: the reading view over the page (0.12.2; 0.12.1 used Firefox's Reader view).
       const tab = zth.open(arguments[0] + '/reading'); await zth.sleep(2500);
       window.ZenithBookmarks.Panel.show(); await zth.sleep(500);
       (await gBrowser.getFindBar()).open(); await zth.sleep(500);
       const before = { bookmarks: !window.ZenithBookmarks.Panel.node?.hidden, find: !gBrowser.getCachedFindBar()?.hidden };
       F.toggle(true); await zth.sleep(3000);
       const out = { 'open before': before, 'put away': { bookmarks: !window.ZenithBookmarks.Panel.node?.hidden, find: !gBrowser.getCachedFindBar()?.hidden },
-                    'article: Reader view': tab.linkedBrowser.currentURI.spec.startsWith('about:reader') };
+                    'article: reading view, same address': [(await tab.linkedBrowser.browsingContext.currentWindowGlobal.getActor('ZenithFocus').sendQuery('state')).read,
+                                                            !tab.linkedBrowser.currentURI.spec.startsWith('about:reader')] };
       F.toggle(false); await zth.sleep(2500);
       out['left: page back'] = tab.linkedBrowser.currentURI.spec.replace(arguments[0], '');
       // A page that's mostly reading but not an article (as Firefox sees it): tidied.
@@ -199,13 +200,15 @@ with Scene(headless=False) as z:
       if (!w) return 'no picture-in-picture window';
       const s = w.screen, R = s.availLeft + s.availWidth, root = w.document.documentElement;
       w.moveTo(R - 60, s.availTop + 200); await zth.sleep(1200);
-      const out = { tucked: [root.getAttribute('zenith-pip-tucked'), R - w.screenX] };
-      root.dispatchEvent(new w.MouseEvent('mouseover', { bubbles: true })); await zth.sleep(700);
+      // (The pointer reaches the cover over a tucked window: r56 with real input.)
+      const cover = w.document.getElementById('zenith-pip-cover');
+      const out = { tucked: [root.getAttribute('zenith-pip-tucked'), R - w.screenX, !!cover && !cover.hidden] };
+      cover.dispatchEvent(new w.MouseEvent('mouseenter', { screenX: R - 20, screenY: w.screenY + 100 })); await zth.sleep(800);
       out['pointer over: out, still tucked'] = [root.hasAttribute('zenith-pip-peek'), R - w.screenX > 100, root.hasAttribute('zenith-pip-tucked')];
-      root.dispatchEvent(new w.MouseEvent('mouseout', { bubbles: true, relatedTarget: null })); await zth.sleep(900);
+      cover.dispatchEvent(new w.MouseEvent('mouseleave', { screenX: R - 900, screenY: w.screenY + 100 })); await zth.sleep(1000);
       out['pointer left: back to the sliver'] = [root.hasAttribute('zenith-pip-peek'), R - w.screenX];
-      root.dispatchEvent(new w.MouseEvent('mouseover', { bubbles: true })); await zth.sleep(500);
-      root.dispatchEvent(new w.MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 })); await zth.sleep(900);
+      cover.dispatchEvent(new w.MouseEvent('mouseenter', { screenX: R - 20, screenY: w.screenY + 100 })); await zth.sleep(600);
+      cover.dispatchEvent(new w.MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 })); await zth.sleep(900);
       out['click: untucked'] = [root.hasAttribute('zenith-pip-tucked'), root.hasAttribute('zenith-pip-peek'), R - (w.screenX + w.outerWidth)];
       w.close(); await zth.sleep(500);
       return out;""")
@@ -233,11 +236,13 @@ with Scene(headless=False) as z:
         return { 'sidebar list': 'not shown', 'first click: still there': first, 'second click: gone': !(await IOUtils.exists(target)) };
       }
       const b = row.querySelector('.zenith-download-delete');
+      Services.prefs.setStringPref('zenith.plus.download-delete', 'confirm'); // (one click by default since 0.12.2)
       const out = { 'bin in the row': !!b };
       b?.click(); await zth.sleep(200);
       out['first click: asks, file there'] = [b?.hasAttribute('confirm'), await IOUtils.exists(target)];
       b?.click(); await zth.sleep(1000);
       out['second click: file gone'] = !(await IOUtils.exists(target));
+      Services.prefs.clearUserPref('zenith.plus.download-delete');
       return out;""", z.base)
 
     if want("extensions"):

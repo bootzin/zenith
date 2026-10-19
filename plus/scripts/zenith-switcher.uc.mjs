@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.12.1
+// @version        0.12.2
 // ==/UserScript==
 
 // A rofi-style list over the page. Alt+W opens it; type a few letters of a
@@ -253,6 +253,8 @@ const COMMANDS = [
     run: () => document.getElementById("zenith-bookmarks-toggle").doCommand() },
   { name: "colours", arg: "", text: "This space's colours from an image (:colours wallpaper, :colours undo)", ok: () => !!window.ZenithColours,
     run: a => (/^wall/i.test(a) ? window.ZenithColours.fromWallpaper() : /^undo/i.test(a) ? window.ZenithColours.undo() : window.ZenithColours.pickFile()) },
+  { name: "cookies", text: "Cookies: banners, rules, and each site's cookies", ok: () => !!document.getElementById("zenith-cookies-command"),
+    run: () => document.getElementById("zenith-cookies-command").doCommand() },
   { name: "routing", text: "Links from other apps: Zen's space routing", ok: () => !!document.getElementById("cmd_zenOpenSpaceRoutingSettings"),
     run: () => document.getElementById("cmd_zenOpenSpaceRoutingSettings").doCommand() },
 ];

@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.1
+// @version        0.12.2
 // ==/UserScript==
 
 // Zen's mod settings list every option flat, with no way to show that one
@@ -328,6 +328,12 @@ const RULES = {
               "property": "zenith.plus.palette-sync",
               "value": "wallust"
             }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.palette-sync",
+              "value": "wallpaper"
+            }
           }
         ],
         "operator": "OR"
@@ -349,6 +355,122 @@ const RULES = {
             "if": {
               "property": "zenith.plus.startpage",
               "value": "newtab"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.plus.startpage-weather-history": {
+    "why": "The start page's weather is off",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.startpage-weather",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.plus.startpage-bookmarks": {
+    "why": "The start page is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "newtab"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.plus.startpage-top": {
+    "why": "The start page is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.startpage",
+              "value": "newtab"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.plus.float-as": {
+    "why": "Float a tab is off",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.float-tab",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.plus.focus-skip": {
+    "why": "Focus mode leaves every page alone",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.focus-pages",
+              "value": "tidy"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.focus-pages",
+              "value": "reader"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.plus.cookie-banners-skip": {
+    "why": "Cookie banners are left alone",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.cookie-banners",
+              "value": "reject-hide"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.cookie-banners",
+              "value": "reject"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.cookie-banners",
+              "value": "hide"
             }
           }
         ],
