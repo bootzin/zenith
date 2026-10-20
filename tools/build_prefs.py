@@ -39,6 +39,13 @@ def text(prop, label, placeholder):
     return {"property": prop, "label": label, "type": "string", "placeholder": placeholder}
 
 
+def sites(prop, label, placeholder):
+    """A list of sites, kept as one comma-separated text setting (Sine shows
+    the text; Zenith's own settings page shows a list to add to and take
+    from)."""
+    return {"property": prop, "label": label, "type": "string", "placeholder": "example.com, another.site", "zenithList": placeholder}
+
+
 def checkbox(prop, label, default=None):
     entry = {"property": prop, "label": label, "type": "checkbox"}
     if default is not None:
@@ -162,6 +169,9 @@ MODS = {
                  ("Grey and dim", "grey"), ("Italic title", "italic"), ("Hide favicon", "nofavicon"),
                  ("No change", "off")),
         tri("zenith.tabs.attention", "Attention dots"),
+        when(dropdown("zenith.tabs.attention-for", "Attention dots for", "Alerts and changed titles",
+                      ("Alerts and changed titles", "all"), ("Alerts only (a dialog waiting)", "alerts")),
+             "Attention dots are off", NOT("zenith.tabs.attention", "off")),
         tri("zenith.tabs.pin-mark", "Pin mark on pinned tabs"),
         tri("zenith.tabs.folder-activity", "Folder activity dot"),
         dropdown("zenith.tabs.container", "Container stripe", "Subtle",
@@ -334,15 +344,26 @@ MODS = {
         when(script(checkbox("zenith.plus.startpage-top", "Your most visited sites on the start page", False)),
              "The start page is off", ANY(IF("zenith.plus.startpage", "on"), IF("zenith.plus.startpage", "newtab"))),
         script(checkbox("zenith.plus.float-tab", "Float a tab on Alt+Shift+F (or its right-click menu): it carries on in a small float", True)),
-        when(script(dropdown("zenith.plus.float-as", "A floating tab is", "A window on top of everything",
-                             ("A window on top of everything", "window"), ("A pane inside Zen", "pane"))),
+        when(script(dropdown("zenith.plus.float-above", "A floating tab stays above", "Its Zen window only",
+                             ("Its Zen window only", "zen"), ("Every app", "all"))),
              "Float a tab is off", IF("zenith.plus.float-tab", True)),
         script(checkbox("zenith.plus.link-hints", "Link hints on Alt+J: letters on every link, type them to follow it (Alt+Shift+J: in a new tab)", True)),
-        script(dropdown("zenith.plus.focus-pages", "Focus mode and the page", "Videos fill the window, articles in a reading view, the rest tidied",
-                        ("Videos fill the window, articles in a reading view, the rest tidied", "tidy"),
-                        ("Videos and articles only (no tidying)", "reader"), ("Leave pages alone", "off"))),
-        when(script(text("zenith.plus.focus-skip", "Sites focus mode leaves as they are (comma-separated)", "youtube.com, mail.example.org")),
-             "Focus mode leaves every page alone", ANY(IF("zenith.plus.focus-pages", "tidy"), IF("zenith.plus.focus-pages", "reader"))),
+        script(dropdown("zenith.plus.focus-pages", "Focus mode and the page", "Articles in a reading view, the rest tidied",
+                        ("Articles in a reading view, the rest tidied", "tidy"),
+                        ("Articles in a reading view only", "reader"), ("Leave pages alone", "off"))),
+        script(checkbox("zenith.plus.focus-video", "Video sites become a place to watch: no feed, recommendations, Shorts or autoplay", True)),
+        when(script(checkbox("zenith.plus.focus-video-search", "Keep search (the home page is just a search box)", True)),
+             "Video sites are left as they are", IF("zenith.plus.focus-video", True)),
+        when(script(checkbox("zenith.plus.focus-video-description", "Keep the description and chapters", True)),
+             "Video sites are left as they are", IF("zenith.plus.focus-video", True)),
+        when(script(checkbox("zenith.plus.focus-video-playlist", "Keep the playlist you're in (under the video)", True)),
+             "Video sites are left as they are", IF("zenith.plus.focus-video", True)),
+        when(script(checkbox("zenith.plus.focus-video-comments", "Keep comments, folded behind a button", False)),
+             "Video sites are left as they are", IF("zenith.plus.focus-video", True)),
+        when(script(checkbox("zenith.plus.focus-video-subscriptions", "Keep subscriptions and the side menu", False)),
+             "Video sites are left as they are", IF("zenith.plus.focus-video", True)),
+        when(script(sites("zenith.plus.focus-skip", "Sites focus mode leaves as they are", "Add a site (example.com)")),
+             "Focus mode leaves every page alone", ANY(NOT("zenith.plus.focus-pages", "off"), IF("zenith.plus.focus-video", True))),
         script(checkbox("zenith.plus.focus-key", "Focus mode on Alt+Z: puts everything away but the page", True)),
         script(dropdown("zenith.plus.workspace-dots", "Workspace dots", "On switch",
                         ("Off", "off"), ("On switch", "switch"), ("Always", "always"))),
@@ -357,14 +378,14 @@ MODS = {
         script(dropdown("zenith.plus.cookie-banners", "Cookie banners: answered for you", "Reject, or hide when there's no Reject",
                         ("Reject, or hide when there's no Reject", "reject-hide"), ("Reject only (leave the rest)", "reject"),
                         ("Hide them, answer nothing", "hide"), ("Leave them", "off"))),
-        when(script(text("zenith.plus.cookie-banners-skip", "Sites whose banners are left alone (comma-separated)", "example.com, bank.example")),
-             "Cookie banners are left alone", ANY(IF("zenith.plus.cookie-banners", "reject-hide"), IF("zenith.plus.cookie-banners", "reject"),
-                                                 IF("zenith.plus.cookie-banners", "hide"))),
+        when(script(sites("zenith.plus.cookie-banners-skip", "Sites whose banners are left alone", "Add a site (example.com)")),
+             "Cookie banners are left alone", NOT("zenith.plus.cookie-banners", "off")),
         script(dropdown("zenith.plus.cookie-policy", "Which cookies sites may set (Firefox's own setting)", "Firefox's own (Total Cookie Protection)",
                         ("Firefox's own (Total Cookie Protection)", "firefox"), ("No cross-site cookies", "cross"),
                         ("No cookies from trackers", "trackers"), ("Only sites you allow", "all"))),
         script(dropdown("zenith.plus.cookie-keep", "How long cookies are kept", "Until they expire",
                         ("Until they expire", "expire"), ("Until you close Zen (except sites you allow)", "session"))),
+        script(checkbox("zenith.plus.cookie-notices", "Tell me when something new is blocked on a site, with Undo", True)),
         script(checkbox("zenith.plus.extension-copies", "Experimental: extension copies for other spaces (right-click an extension)", False)),
         script(dropdown("zenith.plus.download-delete", "Delete a download from its list (a bin beside Show in folder)", "One click",
                         ("One click", "one"), ("Two clicks (asks first)", "confirm"), ("No bin", "off"))),
@@ -373,10 +394,11 @@ MODS = {
         script(checkbox("zenith.page.thin-scrollbars", "Thin scrollbars in web pages in the workspace colour", False)),
         script(checkbox("zenith.plus.sine-mods-first", "Sine's mods page: your mods first, marketplace folded away", True)),
         script(checkbox("zenith.plus.fast-start", "Fast start: the page you were on first, the rest of Zenith Plus right after", False)),
-        script(checkbox("zenith.plus.last-page", "The last page at once: as Zen starts, a picture of it until it's back", True)),
         script(checkbox("zenith.plus.local-ai", "Local AI: Firefox's own, on this computer (fetches its models once)", False)),
         when(script(dropdown("zenith.plus.ai-download-names", "Download names that say nothing (IMG_0931.jpg)", "Rename at once, with Undo",
                              ("Rename at once, with Undo", "rename"), ("Offer a clearer one", "suggest"), ("Leave them", "off"))),
+             "Local AI is off", IF("zenith.plus.local-ai", True)),
+        when(script(checkbox("zenith.plus.ai-topics", "Tabs by topic: the tab manager sorts loose tabs into named groups", True)),
              "Local AI is off", IF("zenith.plus.local-ai", True)),
     ],
 }
@@ -460,6 +482,8 @@ def page_schema():
             out["default"] = e.get("defaultValue")  # None: a Zen setting, read its own default
         else:
             out["placeholder"] = e.get("placeholder", "")
+            if "zenithList" in e:
+                out["zenithList"] = e["zenithList"]
         if prop in ui.PARENTS:
             out["parent"] = ui.PARENTS[prop]
         if prop in ui.PICTURES:

@@ -2,7 +2,7 @@
 // @name           Zenith Tab manager
 // @description    Zenith Plus: every tab of every space on one page (about:zenith-tabs), tidying up, and rules for grouping, sleeping and closing.
 // @include        main
-// @version        0.12.2
+// @version        0.12.3
 // ==/UserScript==
 
 // The tab manager (the "tab report" in DESIGN.md). Alt+Shift+T, or ":tabs"
@@ -176,11 +176,16 @@ const Look = {
 
   // Memory and CPU per awake tab, from Firefox's process list: a process
   // shared by several tabs (the same site) is shared out between them; CPU
-  // is the share of one core since the last call.
+  // is the share of one core since the last call. Memory as the system
+  // counts it (on Windows, Task Manager's: the private working set; what
+  // Firefox reports there is the commit charge, often twice as much).
+  // The map's `all` is every process of Zen's together.
   lastCpu: new Map(),
   async usage() {
     const info = await ChromeUtils.requestProcInfo();
     const now = performance.now();
+    const own = this.privateSet();
+    const memOf = p => (own && own(p.pid)) ?? p.memory ?? 0;
     const byWindow = new Map(), tabsIn = new Map();
     for (const child of info.children ?? []) for (const w of child.windows ?? []) byWindow.set(w.outerWindowId, child);
     const awake = this.tabs().filter(t => this.awake(t));
@@ -199,9 +204,45 @@ const Look = {
       const proc = byWindow.get(t.linkedBrowser?.outerWindowID);
       if (!proc) continue;
       const n = tabsIn.get(proc.pid) || 1;
-      out.set(t, { memory: (proc.memory ?? 0) / n, cpu: cpuOf.has(proc.pid) ? cpuOf.get(proc.pid) / n : null, shared: n > 1 });
+      out.set(t, { memory: memOf(proc) / n, cpu: cpuOf.has(proc.pid) ? cpuOf.get(proc.pid) / n : null, shared: n > 1 });
     }
+    out.all = [info, ...(info.children ?? [])].reduce((total, p) => total + memOf(p), 0);
     return out;
+  },
+
+  // Windows: a process's private working set, by its pid (null if it can't
+  // be read); elsewhere none (Firefox's own number is used).
+  privateSet() {
+    if (this.pws !== undefined) return this.pws;
+    this.pws = null;
+    if (Services.appinfo.OS !== "WINNT") return null;
+    try {
+      const { ctypes } = ChromeUtils.importESModule("resource://gre/modules/ctypes.sys.mjs");
+      const k32 = ctypes.open("kernel32.dll");
+      const DW = ctypes.uint32_t, SZ = ctypes.size_t;
+      const Counters = new ctypes.StructType("PROCESS_MEMORY_COUNTERS_EX2", [
+        { cb: DW }, { PageFaultCount: DW }, { PeakWorkingSetSize: SZ }, { WorkingSetSize: SZ }, { QuotaPeakPagedPoolUsage: SZ },
+        { QuotaPagedPoolUsage: SZ }, { QuotaPeakNonPagedPoolUsage: SZ }, { QuotaNonPagedPoolUsage: SZ }, { PagefileUsage: SZ },
+        { PeakPagefileUsage: SZ }, { PrivateUsage: SZ }, { PrivateWorkingSetSize: ctypes.uint64_t }, { SharedCommitUsage: ctypes.uint64_t }]);
+      const open = k32.declare("OpenProcess", ctypes.winapi_abi, ctypes.voidptr_t, DW, ctypes.int32_t, DW);
+      const close = k32.declare("CloseHandle", ctypes.winapi_abi, ctypes.int32_t, ctypes.voidptr_t);
+      const read = k32.declare("K32GetProcessMemoryInfo", ctypes.winapi_abi, ctypes.int32_t, ctypes.voidptr_t, Counters.ptr, DW);
+      window.addEventListener("unload", () => k32.close(), { once: true });
+      this.pws = pid => {
+        const h = open(0x1000 /* PROCESS_QUERY_LIMITED_INFORMATION */, 0, pid);
+        if (h.isNull()) return null;
+        try {
+          const c = new Counters();
+          c.cb = Counters.size;
+          return read(h, c.address(), Counters.size) ? Number(c.PrivateWorkingSetSize.toString()) : null;
+        } finally {
+          close(h);
+        }
+      };
+    } catch (e) {
+      console.error("[Zenith Tab manager] memory as Windows counts it", e);
+    }
+    return this.pws;
   },
 
   report(days) {
@@ -361,39 +402,24 @@ const Act = {
     tabs = tabs.filter(t => t.isConnected && !t.selected && Look.awake(t));
     if (!tabs.length) return 0;
     // Zen's own pages (Settings, this manager) run in the browser itself,
-    // which Firefox won't unload: they're swapped for a sleeping copy.
+    // which Firefox won't unload the usual way: they're reset to a sleeping
+    // tab where they are (same tab, space and folder).
     const own = tabs.filter(t => !t.linkedBrowser?.isRemoteBrowser);
     const web = tabs.filter(t => !own.includes(t));
     if (web.length) {
       if (typeof gBrowser.explicitUnloadTabs === "function") gBrowser.explicitUnloadTabs(web);
       else for (const t of web) gBrowser.discardBrowser(t, true);
     }
-    const asleep = [...web];
     for (const t of own) {
-      const copy = this.sleepOwn(t);
-      if (copy) asleep.push(copy);
+      try {
+        SessionStore.resetBrowserToLazyState(t);
+      } catch (e) {
+        console.error("[Zenith Tab manager] sleeping a page of Zen's", e);
+      }
     }
+    const asleep = tabs;
     if (remember) this.remember(`Put ${tabs.length} to sleep`, () => this.wake(asleep));
     return tabs.length;
-  },
-
-  // A sleeping copy (its history kept) where the tab was: same space,
-  // pinned or not, same folder; then the tab itself goes.
-  sleepOwn(tab) {
-    try {
-      const copy = SessionStore.duplicateTab(window, tab, 0, false);
-      if (!copy) return false;
-      const group = Look.ownGroup(tab), space = Look.space(tab);
-      if (tab.pinned && !copy.pinned) gBrowser.pinTab(copy);
-      if (space && Look.space(copy) !== space) gZenWorkspaces?.moveTabsToWorkspace?.([copy], space);
-      if (group && Look.ownGroup(copy) !== group) group.addTabs([copy]);
-      gBrowser.moveTabAfter?.(copy, tab);
-      gBrowser.removeTab(tab, { animate: false, skipSessionStore: true });
-      return copy;
-    } catch (e) {
-      console.error("[Zenith Tab manager] sleeping a page of Zen's", e);
-      return null;
-    }
   },
 
   wake(tabs, remember = false) {
@@ -469,6 +495,8 @@ const Act = {
   // "folder" (Zen's, pinned) or "group" (a folder whose tabs act unpinned).
   // Undo puts the tabs back, and takes away a folder it made.
   into(tabs, target) {
+    const essentials = tabs.filter(t => t.hasAttribute("zen-essential")).length;
+    if (essentials) this.note = `${essentials === 1 ? "An essential stays" : `${essentials} essentials stay`} where ${essentials === 1 ? "it is" : "they are"}: essentials don't go into folders`;
     tabs = tabs.filter(t => t.isConnected && !t.hasAttribute("zen-essential"));
     if (!tabs.length) return 0;
     const before = this.snapshot(tabs);

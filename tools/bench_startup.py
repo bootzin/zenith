@@ -1,6 +1,6 @@
 """How long Zen takes to start with Zenith, and where the time goes.
 
-    python tools/bench_startup.py [runs] [--fast]
+    python tools/bench_startup.py [runs] [--fast] [--tabs=N]
 
 Sets up a session once (local test pages: a heavy one selected, pinned tabs,
 essentials, a second space), quits Zen normally so the session is saved,
@@ -12,6 +12,7 @@ startup cache, as a real start would, and reports for each:
   page shown         the selected tab's page finished loading (its load event)
   zenith             when each Zenith part started and how long it took
 --fast turns on Zenith's Fast start for the runs.
+--tabs=N restores N tabs instead of 12 (a big session).
 --zenith=css runs Zenith's CSS without its scripts, --zenith=off runs Zen
 (and Sine) without Zenith: what Zenith itself costs.
 All times are milliseconds from the process starting. Uses the test
@@ -25,9 +26,10 @@ from harness import Zen, ZEN_EXE, TEST_PROFILE, PORT
 PAGES = Path(os.environ["TEMP"]) / "claude" / "bench-pages"
 
 
-def make_pages():
+def make_pages(count=12):
     """Local pages, some heavy (a big document and a script that works for a
-    while), each putting the moment it loaded into its title."""
+    while), each putting the moment it loaded into its title (`count` tabs:
+    the 12 pages again, told apart by a query)."""
     PAGES.mkdir(parents=True, exist_ok=True)
     stamp = ("<script>addEventListener('load', () => { document.title = document.title + ' | start ' + Math.round(performance.timeOrigin) + "
              "' | loaded ' + Date.now(); });</script>")
@@ -36,7 +38,7 @@ def make_pages():
         body = "".join(f"<div class=r><b>Row {n}</b> <span>{'lorem ipsum ' * 6}</span></div>" for n in range(4000 if heavy else 200))
         work = "<script>{const t = performance.now(); let x = 0; while (performance.now() - t < 60) x += Math.sqrt(x + 1);}</script>" if heavy else ""
         (PAGES / f"p{i}.html").write_text(f"<!doctype html><meta charset=utf-8><title>Bench {i}</title><style>.r{{padding:2px;border-bottom:1px solid #ddd}}</style>{body}{work}{stamp}", encoding="utf-8")
-    return [(PAGES / f"p{i}.html").as_uri() for i in range(12)]
+    return [(PAGES / f"p{i % 12}.html").as_uri() + (f"?n={i}" if i >= 12 else "") for i in range(count)]
 
 
 class KeptZen(Zen):
@@ -79,7 +81,7 @@ def setup(urls, fast):
         js(z, """const [urls, fast] = arguments, W = gZenWorkspaces;
           if (fast) Services.prefs.setBoolPref('zenith.plus.fast-start', true); else Services.prefs.clearUserPref('zenith.plus.fast-start');
           const tabs = [];
-          for (const u of urls) { tabs.push(gBrowser.addTrustedTab(u, { inBackground: true })); await new Promise(r => setTimeout(r, 150)); }
+          for (const u of urls) { tabs.push(gBrowser.addTrustedTab(u, { inBackground: true })); await new Promise(r => setTimeout(r, urls.length > 12 ? 40 : 150)); }
           await new Promise(r => setTimeout(r, 2500));
           for (const t of tabs.slice(1, 5)) gBrowser.pinTab(t);
           for (const t of tabs.slice(5, 7)) gZenPinnedTabManager.addToEssentials(t);
@@ -140,7 +142,7 @@ def main():
     os.environ["ZENITH_EXTRA_PREFS"] = json.dumps({**my_prefs(), "browser.startup.page": 3, "zen.view.compact.enable-at-startup": False,
                                                    # as your profile has it: the last selected tab comes back selected
                                                    "zen.workspaces.continue-where-left-off": True})
-    urls = make_pages()
+    urls = make_pages(int(next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--tabs=")), 12)))
     setup(urls, fast)
     zenith = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--zenith=")), "all")
     only(zenith)

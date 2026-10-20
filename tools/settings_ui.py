@@ -159,7 +159,7 @@ SECTIONS = [
             ("Spaces", ["zenith.plus.workspace-dots", "zenith.plus.workspace-flash"]),
             ("Extensions", ["zenith.plus.extension-copies"]),
             ("Links", ["zenith.plus.external-links", "zenith.action.space-routing"]),
-            ("Signals", ["zenith.tabs.unloaded", "zenith.tabs.pin-mark", "zenith.tabs.attention", "zenith.tabs.folder-activity",
+            ("Signals", ["zenith.tabs.unloaded", "zenith.tabs.pin-mark", "zenith.tabs.attention", "zenith.tabs.attention-for", "zenith.tabs.folder-activity",
                          "zenith.tabs.container", "zenith.tabs.audio-wave", "zenith.tabs.split-vertical"]),
             ("Media", ["zenith.tabs.mini-player", "zenith.plus.media-art"]),
             ("Numbers", ["zenith.tabs.numbers"]),
@@ -211,8 +211,11 @@ SECTIONS = [
             ("Tab manager", ["zenith.plus.tab-manager", "zenith.plus.tabs-auto-sleep",
                              "zenith.plus.tabs-auto-close"]),
             ("Focus mode", ["zenith.plus.focus-key", "zenith.plus.focus-pages", "zenith.plus.focus-skip"]),
+            ("Focus mode › Video sites", ["zenith.plus.focus-video", "zenith.plus.focus-video-search", "zenith.plus.focus-video-description",
+                                          "zenith.plus.focus-video-playlist", "zenith.plus.focus-video-comments",
+                                          "zenith.plus.focus-video-subscriptions"]),
             ("Link hints", ["zenith.plus.link-hints"]),
-            ("Float a tab", ["zenith.plus.float-tab", "zenith.plus.float-as"]),
+            ("Float a tab", ["zenith.plus.float-tab", "zenith.plus.float-above"]),
         ],
     },
     {
@@ -240,15 +243,15 @@ SECTIONS = [
         "blurb": "Cookie banners answered for you, which cookies sites may set, how long they're kept, and each site's own rule.",
         "groups": [
             ("Banners", ["zenith.plus.cookie-banners", "zenith.plus.cookie-banners-skip"]),
-            ("Cookies", ["zenith.plus.cookie-policy", "zenith.plus.cookie-keep", "zenith.action.cookies"]),
+            ("Cookies", ["zenith.plus.cookie-policy", "zenith.plus.cookie-keep", "zenith.plus.cookie-notices", "zenith.action.cookies"]),
         ],
     },
     {
         "id": "speed", "title": "Speed and AI", "icon": "speed",
         "blurb": "How quickly Zen starts, and Firefox's own AI working on this computer.",
         "groups": [
-            ("Starting Zen", ["zenith.plus.last-page", "zenith.plus.fast-start"]),
-            ("Local AI", ["zenith.plus.local-ai", "zenith.plus.ai-download-names"]),
+            ("Starting Zen", ["zenith.plus.fast-start"]),
+            ("Local AI", ["zenith.plus.local-ai", "zenith.plus.ai-download-names", "zenith.plus.ai-topics"]),
         ],
     },
 ]
@@ -346,10 +349,10 @@ DESCRIPTIONS = {
                                  "corners and colours, or left as Firefox draws it.",
     "zenith.plus.switcher": "Alt+W: type part of a tab's title or site, a folder or a space, and Enter goes there. "
                             "Start with : for commands, like :focus or :timer 10m tea.",
-    "zenith.plus.focus-key": "Alt+Z puts everything away but the page, for reading or video: the sidebar, the edges, "
-                             "the minimap, pills, the bookmarks bar and the link address hide, and whatever's open "
-                             "closes (bookmarks, the Library, this panel, the find bar). You can open any of them again. "
-                             "The sharing alarm still shows. Alt+Z again brings it all back.",
+    "zenith.plus.focus-key": "Alt+Z puts everything away but the page, for reading or watching: the sidebar, the top "
+                             "toolbar, the edges, the minimap, pills, the bookmarks bar and the link address hide, and "
+                             "whatever's open closes (bookmarks, the Library, this panel, the find bar). You can open any "
+                             "of them again. The sharing alarm still shows. Alt+Z again brings it all back.",
     "zenith.tabs.reveal-delay": "A short wait before the sidebar slides out on hover.",
     "zenith.tabs.close-hover": "Close buttons show only on the tab under the mouse.",
     "zen.tabs.open-pinned-in-new-tab": "Zen's own setting. Off: a pinned tab goes to the other site itself.",
@@ -415,24 +418,25 @@ DESCRIPTIONS = {
                                 "Wallpaper), the spaces take its colours, no other tool needed. Undo colours puts the "
                                 "spaces back.",
     "zenith.plus.palette-spaces": "Every space follows the palette, or only the space you're in when it changes.",
-    "zenith.plus.float-tab": "Alt+Shift+F (or right-click a tab › Float this tab) floats the tab you're on; the page carries "
-                             "on as it was. Its bar (point near its top) moves it, puts it back, switches between window "
-                             "and pane, minimises the window and closes the tab (Ctrl+Shift+T brings it back).",
-    "zenith.plus.float-as": "A window stays on top of everything, other apps too (a call while you work elsewhere); a pane "
-                            "floats over the page inside Zen, resizable from its corner.",
+    "zenith.plus.float-tab": "Alt+Shift+F (or right-click a tab › Float this tab) moves the tab you're on into a small "
+                             "window of its own, which takes the focus; the page carries on as it was, and Alt+Shift+F "
+                             "there puts it back. Its bar: the title (click it, or Ctrl+L, Alt+D or F4, to type an "
+                             "address), a pin (the bar stays above the page, or slides down when the pointer comes in), "
+                             "back into the window, minimise or roll up, and close (Ctrl+Shift+T brings it back floating). "
+                             "A floating tab floats again after Zen restarts.",
+    "zenith.plus.float-above": "Its Zen window only: the float stays above that window but not above other apps; it "
+                               "closes with the window (Ctrl+Shift+T floats it again; after Zen quits, it floats again at start). Every app: it stays "
+                               "on top of everything (a call while you work elsewhere), and can be minimised.",
     "zenith.plus.pip-extras": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near a "
                               "screen edge and it settles against it; drop it more than halfway past the left or right "
-                              "edge and it tucks away, a sliver with an arrow staying on screen while it plays. Point "
-                              "at the sliver and it slides out while the pointer is on it; click it to bring it back.",
+                              "edge and it tucks away, a sliver with an arrow staying on screen while it plays. Rest the "
+                              "pointer on the sliver for half a second (or click it) and it comes out; it goes back when "
+                              "you click anywhere else. Drag it away from the edge to keep it out.",
     "zenith.plus.extension-copies": "Right-click an extension › Copy for other spaces: a second copy with its own storage "
                                     "(another account in the same password manager), running in your other spaces while the "
                                     "original runs in this one (Runs in spaces, as with any extension). Zenith loads copies as "
                                     "temporary add-ons at each start, from your profile folder; nothing in about:config "
                                     "changes.",
-    "zenith.plus.last-page": "Firefox brings back the page you were on about half a second after the window appears, "
-                             "and then it loads. Meanwhile the picture of it you last saw is shown in its place, until "
-                             "it has loaded (or you click or type). The picture is kept in your profile folder "
-                             "(zenith-last-page.jpg, beside Firefox's own session); never of private windows.",
     "zenith.plus.cookie-banners": "Consent banners answered as they appear, in pages and their frames: Reject (or Only "
                                   "necessary) pressed on the common consent tools (OneTrust, Cookiebot, Didomi, Quantcast, "
                                   "Usercentrics, Sourcepoint, TrustArc and more), and on any other banner a button that "
@@ -462,13 +466,29 @@ DESCRIPTIONS = {
     "zenith.plus.startpage-top": "A row of the sites you visit most (Firefox's own ranking: how often and how lately), "
                                  "one per site. Typing finds them too.",
     "zenith.plus.focus-pages": "Focus mode clears the browser around the page (and closes whatever was open); this is what "
-                               "it does to the page. A video page gets its player filling the window; an article, a calm "
-                               "reading view over the page; other pages that are mostly reading lose cookie banners, "
-                               "newsletter boxes, share bars, comments, sponsored blocks, ads, side columns and bars stuck "
-                               "to the window's edges. A pill offers Show the page and Not on this site. Leaving focus mode "
-                               "puts it all back, without reloading.",
-    "zenith.plus.focus-skip": "Sites focus mode leaves as they are, like youtube.com, mail.example.org (a site covers its "
-                              "subdomains). The pill's Not on this site adds to it.",
+                               "it does to the page. An article gets a calm reading view over the page; other pages that "
+                               "are mostly reading lose cookie banners, newsletter boxes, share bars, comments, sponsored "
+                               "blocks, ads, side columns and bars stuck to the window's edges. A pill offers Show the "
+                               "page and Not on this site. Leaving focus mode puts it all back, without reloading.",
+    "zenith.plus.focus-video": "On a video site, focus mode turns a feed into a place to watch: you come for something, and "
+                               "the page helps you find it and watch it without offering the next thing. On YouTube the "
+                               "home feed, recommendations, Shorts, end screens, autoplay and the bell go, and the video gets "
+                               "the room (theatre, everything else under it); what you keep is below. Elsewhere, blocks of "
+                               "recommended videos go. Leaving focus mode puts it all back.",
+    "zenith.plus.focus-video-search": "The search box stays; the home page is just a search box, with the cursor in it.",
+    "zenith.plus.focus-video-description": "The video's description and its chapters stay under the video.",
+    "zenith.plus.focus-video-playlist": "A playlist or course you're watching stays, under the video (never beside it).",
+    "zenith.plus.focus-video-comments": "Comments stay, folded behind a Show comments button.",
+    "zenith.plus.focus-video-subscriptions": "The side menu stays, with your subscriptions (Shorts still go).",
+    "zenith.plus.focus-skip": "Sites focus mode leaves as they are (a site covers its subdomains). The pill's Not on this "
+                              "site adds to the list; remove one with its ✕.",
+    "zenith.plus.cookie-notices": "The first time Zenith does something on a site (this run of Zen): a banner refused or "
+                                  "hidden, or cookies blocked beyond what Firefox blocks on its own (No cross-site cookies, "
+                                  "Only sites you allow), a notice says so, with Undo: the site is left alone (its banner "
+                                  "back, or its cookies allowed), so no site stays broken by it. Nothing from private "
+                                  "windows is kept.",
+    "zenith.tabs.attention-for": "Alerts: a tab waiting on a dialog. Changed titles: a background tab whose title changed "
+                                 "(a pinned mail or chat tab with something new).",
     "zenith.plus.link-hints": "Alt+J puts a few letters on every link, button and field you can see; type them to "
                               "follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+J opens a link in a "
                               "new tab in the background.",
@@ -478,8 +498,10 @@ DESCRIPTIONS = {
                             "names, 60 MB for topics). Turning it off gives Firefox's setting back.",
     "zenith.plus.ai-download-names": "When a download with a name like IMG_20241012_0931.jpg or 8f3a2c1e.pdf finishes, "
                                      "the page it came from gives it a clearer one: offered on a notice, or given at once "
-                                     "with Undo. Names that already say something are left alone. The tab manager's "
-                                     "\"By topic\" sorts loose tabs into named groups with the same AI.",
+                                     "with Undo. Names that already say something are left alone.",
+    "zenith.plus.ai-topics": "The tab manager's Tidy up › By topic: loose tabs (in this space, or every space) sorted "
+                             "into groups by what they're about, named by the words their titles share. Nothing moves "
+                             "until you put a group into a folder.",
     "zenith.plus.fast-start": "When Zen starts, the look, the keys and the page you were on come first; the switcher, "
                               "Peek, the tab manager, bookmarks and the other extras start a part at a time right after "
                               "the page has loaded (within a few seconds). Use one early and it starts at once. Takes "
@@ -620,7 +642,16 @@ LABELS = {
     "zenith.plus.link-hints": "Link hints",
     "zenith.plus.focus-pages": "Pages in focus mode",
     "zenith.plus.focus-skip": "Sites left alone",
-    "zenith.plus.float-as": "Floats as",
+    "zenith.plus.focus-video": "Video sites",
+    "zenith.plus.focus-video-search": "Search",
+    "zenith.plus.focus-video-description": "Description and chapters",
+    "zenith.plus.focus-video-playlist": "Your playlist",
+    "zenith.plus.focus-video-comments": "Comments",
+    "zenith.plus.focus-video-subscriptions": "Subscriptions",
+    "zenith.plus.cookie-notices": "Notices with Undo",
+    "zenith.plus.ai-topics": "Tabs by topic",
+    "zenith.tabs.attention-for": "Dots for",
+    "zenith.plus.float-above": "Stays above",
     "zenith.plus.startpage": "Start page",
     "zenith.plus.startpage-weather": "Weather",
     "zenith.plus.startpage-weather-history": "Weather history",
@@ -629,7 +660,6 @@ LABELS = {
     "zenith.plus.pip-extras": "Move and tuck",
     "zenith.plus.download-delete": "Delete button",
     "zenith.plus.extension-copies": "Extension copies",
-    "zenith.plus.last-page": "The last page at once",
     "zenith.plus.cookie-banners": "Banners",
     "zenith.plus.cookie-banners-skip": "Sites left alone",
     "zenith.plus.cookie-policy": "Which cookies",

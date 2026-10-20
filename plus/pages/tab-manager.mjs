@@ -204,22 +204,28 @@ function renderTabs(all) {
   ];
   const chosen = filters.find(f => f[0] === state.filter) ?? filters[0];
   $("filters").replaceChildren(...filters.filter(([k, , list]) => list.length || k === state.filter || k === "all").map(([k, label, list]) =>
-    make("button", { type: "button", class: "chip", "aria-pressed": String(k === chosen[0]), onclick: () => { state.filter = k; render(); } },
+    make("button", { type: "button", class: "chip", "aria-pressed": String(k === chosen[0]), onclick: () => { state.filter = state.filter === k ? "all" : k; render(); } },
          `${label} `, make("span", { class: "n" }, String(list.length)))));
   const shown = chosen[2].filter(matches);
   const by = { title: t => (t.label || "").toLowerCase(), space: t => spaceName(t).toLowerCase(), memory: mem, cpu, avg,
                used: t => (t.selected ? Date.now() : t.lastAccessed || 0), state: t => stateOf(t)[1], picked: t => (state.picked.has(t) ? 1 : 0) };
-  const key = by[state.sort.key] ?? by.memory;
-  shown.sort((a, b) => {
+  // (No column chosen: the sidebar's order.)
+  const key = by[state.sort.key];
+  if (key) shown.sort((a, b) => {
     const x = key(a), y = key(b);
     return (x < y ? -1 : x > y ? 1 : 0) * state.sort.dir || (a.label || "").localeCompare(b.label || "");
   });
   const top = Math.max(1, ...shown.map(mem));
-  const head = (k, label, cls = "") => make("button", { type: "button", class: `th ${cls}`, "aria-sort": state.sort.key === k ? (state.sort.dir > 0 ? "ascending" : "descending") : null,
-    onclick: () => {
-      state.sort = { key: k, dir: state.sort.key === k ? -state.sort.dir : (k === "title" || k === "space" ? 1 : -1) };
-      render();
-    } }, label);
+  // A column's heading: sorted one way, the other way, then not at all.
+  const cycle = (k, first) => {
+    const s = state.sort;
+    state.sort = s.key !== k ? { key: k, dir: first } : s.dir === first ? { key: k, dir: -first } : { key: null, dir: 0 };
+    render();
+  };
+  const sortedAs = k => (state.sort.key === k ? (state.sort.dir > 0 ? "ascending" : "descending") : null);
+  const head = (k, label, cls = "") => make("button", { type: "button", class: `th ${cls}`, "aria-sort": sortedAs(k),
+    title: "Sort (again: the other way; a third time: as in the sidebar)",
+    onclick: () => cycle(k, k === "title" || k === "space" ? 1 : -1) }, label);
   const allBox = make("input", { type: "checkbox", class: "pick", title: "Pick all shown" });
   allBox.checked = shown.length > 0 && shown.every(t => state.picked.has(t));
   allBox.addEventListener("click", e => {
@@ -229,8 +235,8 @@ function renderTabs(all) {
   });
   fill($("table"), [
     make("div", { class: "tr thead" },
-         make("span", { class: "td pickcell", title: "Click beside the box: picked tabs first", "aria-sort": state.sort.key === "picked" ? "descending" : null,
-                        onclick: e => { if (e.target === allBox) return; state.sort = { key: "picked", dir: state.sort.key === "picked" ? -state.sort.dir : -1 }; render(); } }, allBox),
+         make("span", { class: "td pickcell", title: "Click beside the box: picked tabs first", "aria-sort": sortedAs("picked"),
+                        onclick: e => { if (e.target === allBox) return; cycle("picked", -1); } }, allBox),
          head("title", "Tab", "wide"), head("space", "Space"),
          make("span", { class: "th plain" }, "Where"), head("state", "State"), head("memory", "Memory", "num"), head("cpu", "CPU now", "num"),
          head("avg", "CPU avg", "num"), head("used", "Used", "num"), make("span", { class: "th plain" })),
@@ -332,9 +338,12 @@ function renderInsights(all) {
 
   const others = awake.filter(t => !t.hasAttribute("zen-essential") && Look.space(t) !== here() && !playing(t));
   const cpuLine = x => (x >= 0.005 ? `${pct(x)} of one core` : "next to nothing");
+  const zen = state.usage.all;
   const memCard = card("Memory and CPU",
     make("div", { class: "big" }, measured ? mb(total) : "…"),
     make("div", { class: "sub" }, `in ${plural(awake.length, "awake tab")} · ${asleep} asleep (asleep tabs use next to nothing)`),
+    zen ? make("div", { class: "sub", title: "Every process of Zen's: its window, graphics, network and tabs, as the system counts them (on Windows, what Task Manager shows)" },
+               `Zen in all: ${mb(zen)} (with its window, graphics and network)`) : null,
     make("div", { class: "sub" }, !measured ? "Measuring…" : `CPU now: ${cpuLine(cpuNow)} · last minute: ${cpuLine(cpuAvg)}`),
     others.length ? make("div", { class: "buttons" }, btn(`Sleep other spaces (${mb(sum(others, mem))})`, () => Z.Act.sleep(others, true))) : null);
 
@@ -354,6 +363,8 @@ function renderInsights(all) {
                                        e.tabs.some(t => !t.selected && !playing(t)) ? btn("Sleep", () => Z.Act.sleep(e.tabs.filter(t => !playing(t)), true), `Put ${e.site}'s tabs to sleep`) : null))
                  : make("div", { class: "sub" }, "Nothing awake."));
 
+  const essentials = awake.filter(t => t.hasAttribute("zen-essential"));
+  const essentialRow = essentials.length ? line(make("span", {}, "Essentials", make("small", {}, ` · ${essentials.length} awake`)), mb(sum(essentials, mem))) : null;
   const spaceRows = spaces().filter(s => s.uuid).map(s => {
     const list = all.filter(t => !t.hasAttribute("zen-essential") && Look.space(t) === s.uuid);
     const up = list.filter(t => Look.awake(t));
@@ -363,7 +374,7 @@ function renderInsights(all) {
                 up.some(t => !t.selected) ? btn("Sleep", () => Z.Act.sleep(up, true), "Put this space's tabs to sleep") : null,
                 up.length < list.length ? btn("Wake", () => Z.Act.wake(list, true), "Wake this space's tabs") : null);
   });
-  const spacesCard = card("Spaces", spaceRows.length ? spaceRows : make("div", { class: "sub" }, "One space."));
+  const spacesCard = card("Spaces", spaceRows.length ? [essentialRow, spaceRows] : [essentialRow, make("div", { class: "sub" }, "One space.")]);
 
   const lazy = all.filter(idle).sort((a, b) => mem(b) - mem(a));
   const idleCard = card("Idle but awake",
@@ -565,14 +576,17 @@ function dropOn(node, fn) {
 // undone, and an offer to delete any folder it left empty), then a redraw.
 function doing(fn, undoable = true) {
   const before = Z.Act.folders().filter(f => realTabs(f).length);
+  Z.Act.note = "";
   const done = fn();
+  const note = Z.Act.note;
   setTimeout(() => {
     const emptied = before.filter(f => f.isConnected && !realTabs(f).length);
     const last = undoable && done ? Z.Act.history.at(-1) : null;
     const buttons = [];
     if (last) buttons.push({ label: "Undo", run: () => undoSay(Z.Act.history.includes(last) ? Z.Act.undoTo(Z.Act.history.indexOf(last)) : []) });
     for (const f of emptied) buttons.push({ label: `Delete “${f.label || "Folder"}”`, run: () => { f.delete?.(); say("Folder deleted"); } });
-    const text = [last?.label ?? (typeof done === "number" && done ? plural(done, "tab") : ""), emptied.length ? `${plural(emptied.length, "folder")} left empty` : ""].filter(Boolean).join(" · ");
+    const text = [last?.label ?? (typeof done === "number" && done ? plural(done, "tab") : ""), emptied.length ? `${plural(emptied.length, "folder")} left empty` : "", note]
+      .filter(Boolean).join(" · ");
     if (text || buttons.length) say(text || "Done", buttons);
     soon();
   }, 120);
@@ -768,6 +782,7 @@ function intoActions(key, fallback, space, groupsOn) {
 
 // What Tidy up just did, to check it and take it back.
 function justDone() {
+  state.done = state.done.filter(d => Z.Act.history.includes(d.entry));
   const done = state.done.filter(d => Date.now() - d.at < HOUR);
   if (!done.length) return null;
   return make("div", { class: "card done" },
@@ -822,44 +837,80 @@ function renderTidy() {
     make("div", { class: "column" }, busy.length ? [make("h2", {}, "Busy sites"), busy] : make("h2", {}, "No busy sites"), topicCards()));
 }
 
-// By topic (with Zenith's local AI on): this space's loose tabs, sorted
-// into groups by what they're about and named for it. The groups show
-// first, each a ticked list; nothing moves until you press a button.
+// By topic (with Zenith's local AI on): loose tabs, in this space or each
+// space, sorted into groups by what they're about and named for it (the
+// words their titles share, else the AI's own name for the topic). The
+// groups show first, each a ticked list; nothing moves until you press a
+// button, and each goes into a folder in its own space.
+const STOP = new Set(("the a an and or of to in on for with from by at as is are be this that it its your you our how what why when " +
+  "new home page site official online free best top vs com www http https login sign log welcome de da do das dos e o os a as em no na " +
+  "um uma para por com que el la los las y en del al un una").split(" "));
+
+function topicName(label, tabs) {
+  const counts = new Map();
+  for (const t of tabs) {
+    const site = Look.site(t).toLowerCase().split(".");
+    const words = new Set((t.label || "").toLowerCase().split(/[^\p{L}\p{N}]+/u)
+      .filter(w => w.length > 2 && !STOP.has(w) && !/^\d+$/.test(w) && !site.includes(w)));
+    for (const w of words) counts.set(w, (counts.get(w) ?? 0) + 1);
+  }
+  const shared = [...counts].filter(([, n]) => n >= Math.max(2, Math.ceil(tabs.length / 2))).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([w]) => w);
+  const title = w => w.charAt(0).toUpperCase() + w.slice(1);
+  if (shared.length) return shared.map(title).join(" ");
+  if (label) return label;
+  const sites = new Set(tabs.map(t => Look.site(t)));
+  return sites.size === 1 ? [...sites][0] : "Together";
+}
+
 function topicCards() {
   const AI = win.ZenithAI;
   if (!AI?.on) return [make("h2", {}, "By topic"), make("div", { class: "card" }, make("p", {}, "Sorting loose tabs by topic needs Zenith's local AI (Zenith › Speed and AI › Local AI)."))];
-  const space = here();
-  const looseTabs = Look.tabs().filter(t => Look.space(t) === space && !Look.kept(t) && !t.group && !t.hasAttribute("zen-empty-tab") && !isThis(t));
+  if (!Services.prefs.getBoolPref("zenith.plus.ai-topics", true)) return [make("h2", {}, "By topic"), make("div", { class: "card" }, make("p", {}, "Sorting by topic is off (Zenith › Speed and AI › Local AI › Tabs by topic)."))];
+  const all = state.topicScope === "all";
+  const looseIn = space => Look.tabs().filter(t => Look.space(t) === space && !Look.kept(t) && !t.group && !t.hasAttribute("zen-empty-tab") && !isThis(t));
+  const scopes = all ? spaces().filter(s => s.uuid).map(s => s.uuid) : [here()];
+  const looseCount = scopes.reduce((n, sp) => n + looseIn(sp).length, 0);
+  const key = `${state.topicScope ?? "here"}:${here()}`;
   const run = async () => {
-    state.topics = { space, status: "Sorting…" };
+    state.topics = { key, status: "Sorting…" };
     render();
     try {
-      const groups = await AI.topics(looseTabs, p => {
-        state.topics.status = `Getting the models: ${p}% (once, about 60 MB)`;
-        render();
-      });
-      state.topics = { space, groups };
+      const groups = [];
+      for (const space of scopes) {
+        const list = looseIn(space);
+        if (list.length < 3) continue;
+        for (const g of await AI.topics(list, p => {
+          state.topics.status = `Getting the models: ${p}% (once, about 60 MB)`;
+          render();
+        })) groups.push({ ...g, space });
+      }
+      state.topics = { key, groups };
     } catch (e) {
       console.error("[Zenith Tab manager] topics", e);
-      state.topics = { space, status: "Couldn't sort them: " + (e.message || e) };
+      state.topics = { key, status: "Couldn't sort them: " + (e.message || e) };
     }
     render();
   };
-  const t = state.topics?.space === space ? state.topics : null;
+  const t = state.topics?.key === key ? state.topics : null;
   const groups = (t?.groups ?? []).map(g => ({ ...g, tabs: g.tabs.filter(x => x.isConnected && !x.group && !Look.kept(x)) }))
     .filter(g => g.tabs.length > 1);
+  const chips = make("div", { class: "chips" }, [["here", "This space"], ["all", "All spaces"]].map(([k, label]) => make("button", {
+    type: "button", "aria-pressed": String((state.topicScope ?? "here") === k),
+    onclick: e => { e.stopPropagation(); state.topicScope = k; render(); },
+  }, label)));
   const intro = make("div", { class: "card" },
-    make("div", { class: "card-head" }, make("h3", {}, "Loose tabs in this space"), make("span", { class: "n" }, String(looseTabs.length))),
+    make("div", { class: "card-head" }, make("h3", {}, all ? "Loose tabs in every space" : "Loose tabs in this space"), make("span", { class: "n" }, String(looseCount)), chips),
     make("p", {}, t?.status ?? (t?.groups ? (groups.length ? "Here's what goes together. Untick what to leave out, then put each group away." : "Nothing that clearly belongs together.")
-                                            : "Sorts them by what they're about, on this computer, and shows you the groups first.")),
-    make("div", { class: "row" }, make("button", { type: "button", class: t?.groups ? null : "primary", disabled: looseTabs.length < 3 || t?.status === "Sorting…", onclick: run },
+                                            : `Sorts them by what they're about, on this computer, and shows you the groups first${all ? " (each space on its own: folders stay in their space)" : ""}.`)),
+    make("div", { class: "row" }, make("button", { type: "button", class: t?.groups ? null : "primary", disabled: looseCount < 3 || t?.status === "Sorting…", onclick: run },
                                        t?.groups ? "Sort again" : "Sort by topic")));
   const groupsOn = (G()?.mode ?? "off") !== "off";
   return [make("h2", {}, "By topic"), intro,
     ...groups.map((g, i) => {
-      const key = `topic-${i}-${g.label}`;
-      return tidyCard(key, g.label || "Together", `${plural(g.tabs.length, "tab")} about the same thing.`, g.tabs,
-        intoActions(key, g.label || "Topic", space, groupsOn), null, destination(key, g.label || "Topic", space));
+      const name = topicName(g.label, g.tabs), cardKey = `topic-${g.space}-${i}-${name}`;
+      const where = all && Look.spaceName(g.space) ? ` in ${Look.spaceName(g.space)}` : "";
+      return tidyCard(cardKey, name, `${plural(g.tabs.length, "tab")} about the same thing${where}.`, g.tabs,
+        intoActions(cardKey, name, g.space, groupsOn), null, destination(cardKey, name, g.space));
     })];
 }
 
@@ -1050,6 +1101,6 @@ document.addEventListener("keydown", e => {
   }
 });
 
-window.ZenithTabsPage = { state, render, measure, ask, doing }; // for tools/checks
+window.ZenithTabsPage = { state, render, measure, ask, doing, topicName }; // for tools/checks
 render();
 measure();

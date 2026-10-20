@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.12.2
+// @version        0.12.3
 // ==/UserScript==
 
 // A rofi-style list over the page. Alt+W opens it; type a few letters of a
@@ -222,7 +222,8 @@ const Items = {
     const essential = item.kind === "tab" && item.tab.hasAttribute("zen-essential");
     if (W?.workspaceEnabled && target && target !== W.activeWorkspace && !essential) await W.changeWorkspaceWithID(target);
     if (item.kind === "tab") {
-      gBrowser.selectedTab = item.tab;
+      // (A tab with a glance open: its glance, as a click on it would.)
+      gBrowser.selectedTab = item.tab.glanceTab ?? item.tab;
     } else if (item.kind === "folder") {
       item.folder.collapsed = false;
       const first = item.folder.tabs?.find(t => !t.hasAttribute("zen-empty-tab"));
@@ -448,6 +449,7 @@ function addKeys() {
   window.addEventListener("unload", () => Services.prefs.removeObserver(PREF, watch), { once: true });
   watch();
   window.ZenithSwitcher = Switcher; // for tools/checks
+  Switcher.go = item => Items.go(item);
   Switcher.Items = Items;
 }
 

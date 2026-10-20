@@ -676,6 +676,32 @@
     ]
   },
   {
+    "property": "zenith.tabs.attention-for",
+    "label": "Attention dots for",
+    "type": "dropdown",
+    "placeholder": "Default (Alerts and changed titles)",
+    "options": [
+      {
+        "label": "Alerts and changed titles",
+        "value": "all"
+      },
+      {
+        "label": "Alerts only (a dialog waiting)",
+        "value": "alerts"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.tabs.attention",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Attention dots are off"
+  },
+  {
     "property": "zenith.tabs.pin-mark",
     "label": "Pin mark on pinned tabs",
     "type": "dropdown",
@@ -2231,18 +2257,18 @@
     "usedBy": "zenith-plus"
   },
   {
-    "property": "zenith.plus.float-as",
-    "label": "A floating tab is",
+    "property": "zenith.plus.float-above",
+    "label": "A floating tab stays above",
     "type": "dropdown",
-    "placeholder": "Default (A window on top of everything)",
+    "placeholder": "Default (Its Zen window only)",
     "options": [
       {
-        "label": "A window on top of everything",
-        "value": "window"
+        "label": "Its Zen window only",
+        "value": "zen"
       },
       {
-        "label": "A pane inside Zen",
-        "value": "pane"
+        "label": "Every app",
+        "value": "all"
       }
     ],
     "usedBy": "zenith-plus",
@@ -2268,14 +2294,14 @@
     "property": "zenith.plus.focus-pages",
     "label": "Focus mode and the page",
     "type": "dropdown",
-    "placeholder": "Default (Videos fill the window, articles in a reading view, the rest tidied)",
+    "placeholder": "Default (Articles in a reading view, the rest tidied)",
     "options": [
       {
-        "label": "Videos fill the window, articles in a reading view, the rest tidied",
+        "label": "Articles in a reading view, the rest tidied",
         "value": "tidy"
       },
       {
-        "label": "Videos and articles only (no tidying)",
+        "label": "Articles in a reading view only",
         "value": "reader"
       },
       {
@@ -2286,24 +2312,117 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.plus.focus-video",
+    "label": "Video sites become a place to watch: no feed, recommendations, Shorts or autoplay",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.focus-video-search",
+    "label": "Keep search (the home page is just a search box)",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Video sites are left as they are"
+  },
+  {
+    "property": "zenith.plus.focus-video-description",
+    "label": "Keep the description and chapters",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Video sites are left as they are"
+  },
+  {
+    "property": "zenith.plus.focus-video-playlist",
+    "label": "Keep the playlist you're in (under the video)",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Video sites are left as they are"
+  },
+  {
+    "property": "zenith.plus.focus-video-comments",
+    "label": "Keep comments, folded behind a button",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Video sites are left as they are"
+  },
+  {
+    "property": "zenith.plus.focus-video-subscriptions",
+    "label": "Keep subscriptions and the side menu",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Video sites are left as they are"
+  },
+  {
     "property": "zenith.plus.focus-skip",
-    "label": "Sites focus mode leaves as they are (comma-separated)",
+    "label": "Sites focus mode leaves as they are",
     "type": "string",
-    "placeholder": "youtube.com, mail.example.org",
+    "placeholder": "example.com, another.site",
+    "zenithList": "Add a site (example.com)",
     "usedBy": "zenith-plus",
     "conditions": [
       {
         "conditions": [
           {
-            "if": {
+            "not": {
               "property": "zenith.plus.focus-pages",
-              "value": "tidy"
+              "value": "off"
             }
           },
           {
             "if": {
-              "property": "zenith.plus.focus-pages",
-              "value": "reader"
+              "property": "zenith.plus.focus-video",
+              "value": true
             }
           }
         ],
@@ -2424,33 +2543,17 @@
   },
   {
     "property": "zenith.plus.cookie-banners-skip",
-    "label": "Sites whose banners are left alone (comma-separated)",
+    "label": "Sites whose banners are left alone",
     "type": "string",
-    "placeholder": "example.com, bank.example",
+    "placeholder": "example.com, another.site",
+    "zenithList": "Add a site (example.com)",
     "usedBy": "zenith-plus",
     "conditions": [
       {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.plus.cookie-banners",
-              "value": "reject-hide"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.plus.cookie-banners",
-              "value": "reject"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.plus.cookie-banners",
-              "value": "hide"
-            }
-          }
-        ],
-        "operator": "OR"
+        "not": {
+          "property": "zenith.plus.cookie-banners",
+          "value": "off"
+        }
       }
     ],
     "operator": "AND",
@@ -2496,6 +2599,13 @@
         "value": "session"
       }
     ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.cookie-notices",
+    "label": "Tell me when something new is blocked on a site, with Undo",
+    "type": "checkbox",
+    "defaultValue": true,
     "usedBy": "zenith-plus"
   },
   {
@@ -2562,13 +2672,6 @@
     "usedBy": "zenith-plus"
   },
   {
-    "property": "zenith.plus.last-page",
-    "label": "The last page at once: as Zen starts, a picture of it until it's back",
-    "type": "checkbox",
-    "defaultValue": true,
-    "usedBy": "zenith-plus"
-  },
-  {
     "property": "zenith.plus.local-ai",
     "label": "Local AI: Firefox's own, on this computer (fetches its models once)",
     "type": "checkbox",
@@ -2594,6 +2697,23 @@
         "value": "off"
       }
     ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.local-ai",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Local AI is off"
+  },
+  {
+    "property": "zenith.plus.ai-topics",
+    "label": "Tabs by topic: the tab manager sorts loose tabs into named groups",
+    "type": "checkbox",
+    "defaultValue": true,
     "usedBy": "zenith-plus",
     "conditions": [
       {

@@ -96,6 +96,32 @@
     ]
   },
   {
+    "property": "zenith.tabs.attention-for",
+    "label": "Attention dots for",
+    "type": "dropdown",
+    "placeholder": "Default (Alerts and changed titles)",
+    "options": [
+      {
+        "label": "Alerts and changed titles",
+        "value": "all"
+      },
+      {
+        "label": "Alerts only (a dialog waiting)",
+        "value": "alerts"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.tabs.attention",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Attention dots are off"
+  },
+  {
     "property": "zenith.tabs.pin-mark",
     "label": "Pin mark on pinned tabs",
     "type": "dropdown",

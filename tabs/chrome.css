@@ -254,6 +254,13 @@
   }
 }
 
+/* Attention dots for alerts only: a tab whose title merely changed gets
+   none. */
+:root:has(#theme-Zenith-Tabs[zenith-tabs-attention-for="alerts"])
+  .tabbrowser-tab[titlechanged]:not([attention]) > .tab-stack > .tab-content > .tab-icon-stack::after {
+  display: none !important;
+}
+
 /* --- Folder activity (Informative) ---------------------------------------
    A collapsed folder shows what is happening inside it at the right end of
    its row:

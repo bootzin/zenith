@@ -111,7 +111,7 @@ async function render() {
     make("div", { class: "lately" }, lately.map(l => make("div", {}, make("b", {}, l.host), ` · ${l.how === "rejected" ? "rejected" : "hidden"}${l.tool && l.tool !== "banner" ? ` (${l.tool})` : ""}`)))] : []));
   const q = $("search").value.trim().toLowerCase();
   const shown = sites.filter(e => !q || e.site.includes(q));
-  $("sites").replaceChildren(make("h2", {}, "Sites"),
+  $("sites").replaceChildren(
     shown.length ? make("div", { class: "list" }, shown.map(e => siteRow(e))) : make("p", { class: "empty" }, q ? "No site matches." : "No cookies."));
 }
 

@@ -66,11 +66,14 @@ const SHEET = "data:text/css," + encodeURIComponent(
   "[zenith-cookie-hidden] { display: none !important; }\n" +
   "html[zenith-cookie-unlocked], html[zenith-cookie-unlocked] > body { overflow: auto !important; }");
 
-// What pages did lately (this run of Zen), for the cookies page.
+// What pages did lately (this run of Zen, never private windows), for the
+// cookies page; and what Zenith already told you about this run (a site
+// and what was done: told once).
 const log = [];
 export function lately() {
   return log.slice();
 }
+export const told = new Set();
 
 // (Zenith's settings aren't passed into web page processes: the page asks
 // the browser for what applies to it.)
@@ -83,8 +86,21 @@ const covers = (list, host) => {
 export class ZenithCookiesParent extends JSWindowActorParent {
   receiveMessage(msg) {
     if (msg.name === "did") {
-      log.unshift({ ...msg.data, at: Date.now() });
-      log.length = Math.min(log.length, 50);
+      const priv = (this.browsingContext.originAttributes?.privateBrowsingId ?? 0) > 0;
+      if (!priv) {
+        log.unshift({ ...msg.data, at: Date.now() });
+        log.length = Math.min(log.length, 50);
+      }
+      // The window whose tab it is says so, with Undo. (Found by its tab:
+      // the browser's own global isn't always that window in Zen.)
+      const browser = this.browsingContext.top.embedderElement;
+      try {
+        const wins = [...Services.wm.getEnumerator("navigator:browser")];
+        const win = wins.find(w => w.gBrowser?.getTabForBrowser?.(browser)) ?? Services.wm.getMostRecentWindow("navigator:browser");
+        win?.ZenithCookies?.acted(browser, msg.data, this);
+      } catch (e) {
+        console.error("[Zenith] cookie banners: telling", e);
+      }
       return null;
     }
     if (msg.name === "settings") {
@@ -108,9 +124,21 @@ export class ZenithCookiesChild extends JSWindowActorChild {
     if (e.type === "DOMContentLoaded" || (e.type === "pageshow" && !this.watching)) this.start();
   }
 
+  // Undo (from the notice): what was hidden shows again, and nothing more
+  // is done on this page.
+  undo() {
+    this.mode = "off";
+    this.stop();
+    for (const el of this.hidden ?? []) el.removeAttribute("zenith-cookie-hidden");
+    this.hidden = [];
+    this.document?.documentElement?.removeAttribute("zenith-cookie-unlocked");
+    return true;
+  }
+
   receiveMessage(msg) {
     if (msg.name === "state") return { done: this.done ?? null, hidden: this.hidden?.length ?? 0 };
     if (msg.name === "run") return this.sweep(true);
+    if (msg.name === "undo") return this.undo();
     return null;
   }
 

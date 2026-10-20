@@ -93,11 +93,11 @@ with Scene(headless=False) as z:
       const tab = zth.open(arguments[0] + '/page?n=floated'); await zth.sleep(1500);
       const item = document.getElementById('zenith-float-tab');
       const out = { 'menu item after Move tab': item?.previousElementSibling?.id };
-      const win = window.ZenithFloat.out(tab);
+      const win = window.ZenithFloat.float(tab);
       await new Promise(r => win.addEventListener('load', r, { once: true }));
       await zth.sleep(2500);
       const d = win.document, bar = d.querySelector('.zenith-float-bar'), s = win.screen;
-      out['bar: buttons'] = [...(bar?.querySelectorAll('button') ?? [])].map(b => b.textContent);
+      out['bar: buttons'] = [...(bar?.querySelectorAll('button') ?? [])].map(b => b.getAttribute('kind'));
       out['no title bar'] = d.documentElement.getAttribute('chromehidden');
       out['on screen'] = win.screenX >= s.availLeft && win.screenY >= s.availTop &&
                          win.screenX + win.outerWidth <= s.availLeft + s.availWidth + 1 && win.screenY + win.outerHeight <= s.availTop + s.availHeight + 1;
@@ -107,7 +107,7 @@ with Scene(headless=False) as z:
       win.TabContextMenu.contextTab = win.gBrowser.selectedTab;
       wmenu.dispatchEvent(new win.Event('popupshowing'));
       out['its menu'] = d.getElementById('zenith-float-tab')?.getAttribute('label');
-      bar.querySelector('button').click(); await zth.sleep(2000);
+      bar.querySelector('[kind=back]').click(); await zth.sleep(2000);
       out['↩: back, float closed'] = [gBrowser.selectedTab.label, win.closed];
       return out;""", z.base)
 
@@ -195,23 +195,7 @@ with Scene(headless=False) as z:
       return Object.fromEntries(names.map(n => [n, N.vague(n)]));""")
 
     want("picture") and z.js("zth.open(arguments[0] + '/video'); await zth.sleep(2500); document.getElementById('View:PictureInPicture').doCommand(); await zth.sleep(3000); return 1", z.base)
-    check(z, "picture-in-picture: peek", """
-      const w = [...Services.wm.getEnumerator('Toolkit:PictureInPicture')][0];
-      if (!w) return 'no picture-in-picture window';
-      const s = w.screen, R = s.availLeft + s.availWidth, root = w.document.documentElement;
-      w.moveTo(R - 60, s.availTop + 200); await zth.sleep(1200);
-      // (The pointer reaches the cover over a tucked window: r56 with real input.)
-      const cover = w.document.getElementById('zenith-pip-cover');
-      const out = { tucked: [root.getAttribute('zenith-pip-tucked'), R - w.screenX, !!cover && !cover.hidden] };
-      cover.dispatchEvent(new w.MouseEvent('mouseenter', { screenX: R - 20, screenY: w.screenY + 100 })); await zth.sleep(800);
-      out['pointer over: out, still tucked'] = [root.hasAttribute('zenith-pip-peek'), R - w.screenX > 100, root.hasAttribute('zenith-pip-tucked')];
-      cover.dispatchEvent(new w.MouseEvent('mouseleave', { screenX: R - 900, screenY: w.screenY + 100 })); await zth.sleep(1000);
-      out['pointer left: back to the sliver'] = [root.hasAttribute('zenith-pip-peek'), R - w.screenX];
-      cover.dispatchEvent(new w.MouseEvent('mouseenter', { screenX: R - 20, screenY: w.screenY + 100 })); await zth.sleep(600);
-      cover.dispatchEvent(new w.MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 })); await zth.sleep(900);
-      out['click: untucked'] = [root.hasAttribute('zenith-pip-tucked'), root.hasAttribute('zenith-pip-peek'), R - (w.screenX + w.outerWidth)];
-      w.close(); await zth.sleep(500);
-      return out;""")
+    # (0.12.3: picture-in-picture's peek is gone; r57 checks resting and clicking elsewhere.)
 
     check(z, "delete a download", """
       const { Downloads } = ChromeUtils.importESModule('resource://gre/modules/Downloads.sys.mjs');
@@ -377,7 +361,7 @@ with Scene(headless=False) as z:
       const settings = zth.open('about:preferences', { background: true }); await zth.sleep(2000);
       const n = Z.Act.sleep([settings]); await zth.sleep(800);
       const copy = Z.Look.tabs().find(t => t.linkedBrowser.currentURI?.spec?.startsWith('about:preferences') || /preferences/.test(SessionStore.getLazyTabValue?.(t, 'url') ?? ''));
-      out['Settings asleep'] = [n, !settings.isConnected, !!copy && !Z.Look.awake(copy)];
+      out['Settings asleep (in place, 0.12.3)'] = [n, settings.isConnected, !Z.Look.awake(settings)];
       // A rule: the second tab joins, a deleted folder comes back.
       Z.Rules.save([{ on: true, match: 'url', value: 'n=rule', name: 'Ruled', kind: 'folder' }]);
       const r1 = zth.open(arguments[0] + '/page?n=rule1', { background: true }); await zth.sleep(1500);

@@ -13,8 +13,7 @@ Zen:
   that's mostly reading tidied (a consent box too, however it's written),
   the pill's Not on this site;
 - float a tab: Alt+Shift+F in Zen's list (Alt+Shift+Space moved), the
-  menu item beside Duplicate, a pane inside Zen that keeps painting and
-  goes back when selected, a window without window buttons that shrinks,
+  menu item beside Duplicate, a window without window buttons that shrinks,
   closing either reopens with Ctrl+Shift+T;
 - settings: the bar takes the page's colour, Blend's warning;
 - split views: a tab dropped on another swaps them;
@@ -167,9 +166,9 @@ with Scene(headless=False) as z:
       window.ZenithBookmarks.Panel.hide();
       const v = zth.open(arguments[0] + '/watch'); await zth.sleep(2500);
       F.toggle(true); await zth.sleep(2500);
-      out['video page: player fills'] = (await act(v.linkedBrowser).sendQuery('state')).video;
+      out['video page: a place to watch (0.12.3)'] = (await act(v.linkedBrowser).sendQuery('state')).watch;
       document.querySelectorAll('#zenith-focus-pill button')[1].click(); await zth.sleep(800);
-      out['Not on this site'] = [Services.prefs.getStringPref('zenith.plus.focus-skip', ''), (await act(v.linkedBrowser).sendQuery('state')).video];
+      out['Not on this site'] = [Services.prefs.getStringPref('zenith.plus.focus-skip', ''), (await act(v.linkedBrowser).sendQuery('state')).watch];
       F.toggle(false); Services.prefs.clearUserPref('zenith.plus.focus-skip');
       Services.prefs.setStringPref('zenith.plus.cookie-banners', 'off'); // (so focus mode meets the banner itself)
       const c = zth.open(arguments[0] + '/consent-noreject'); await zth.sleep(2000);
@@ -187,16 +186,7 @@ with Scene(headless=False) as z:
       const a = zth.open(arguments[0] + '/video'); await zth.sleep(2000);
       zth.open(arguments[0] + '/reading'); await zth.sleep(1000);
       gBrowser.selectedTab = a; await zth.sleep(300);
-      Services.prefs.setStringPref('zenith.plus.float-as', 'pane');
-      document.getElementById('zenith-float-command').doCommand(); await zth.sleep(1200);
-      zth.open(arguments[0] + '/page?n=x'); await zth.sleep(1200);
-      out['pane: shown, painting, after another tab'] = [!!F.pane, a.linkedBrowser.docShellIsActive, F.pane?.box.classList.contains('deck-selected')];
-      gBrowser.selectedTab = a; await zth.sleep(800);
-      out['pane: selecting it puts it back'] = !F.pane;
-      F.toPane(a); await zth.sleep(600); F.closePane(); await zth.sleep(600);
-      SessionStore.undoCloseTab(window, 0); await zth.sleep(1200);
-      out['pane: closed, reopened'] = gBrowser.tabs.some(t => /\/video$/.test(t.linkedBrowser.currentURI.spec));
-      Services.prefs.clearUserPref('zenith.plus.float-as');
+      // (0.12.3: the pane is gone; float windows are r57's.)
       const b = gBrowser.tabs.find(t => /\/video$/.test(t.linkedBrowser.currentURI.spec)); gBrowser.selectedTab = b; await zth.sleep(300);
       const w = F.float(b); await new Promise(r => w.addEventListener('load', r, { once: true })); await zth.sleep(2500);
       const d = w.document;

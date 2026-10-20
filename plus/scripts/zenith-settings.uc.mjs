@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.2
+// @version        0.12.3
 // ==/UserScript==
 
 // Zen's mod settings list every option flat, with no way to show that one
@@ -94,6 +94,17 @@ const RULES = {
           }
         ],
         "operator": "OR"
+      }
+    ]
+  },
+  "zenith.tabs.attention-for": {
+    "why": "Attention dots are off",
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.tabs.attention",
+          "value": "off"
+        }
       }
     ]
   },
@@ -417,12 +428,67 @@ const RULES = {
       }
     ]
   },
-  "zenith.plus.float-as": {
+  "zenith.plus.float-above": {
     "why": "Float a tab is off",
     "conditions": [
       {
         "if": {
           "property": "zenith.plus.float-tab",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.plus.focus-video-search": {
+    "why": "Video sites are left as they are",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.plus.focus-video-description": {
+    "why": "Video sites are left as they are",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.plus.focus-video-playlist": {
+    "why": "Video sites are left as they are",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.plus.focus-video-comments": {
+    "why": "Video sites are left as they are",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.plus.focus-video-subscriptions": {
+    "why": "Video sites are left as they are",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.focus-video",
           "value": true
         }
       }
@@ -434,15 +500,15 @@ const RULES = {
       {
         "conditions": [
           {
-            "if": {
+            "not": {
               "property": "zenith.plus.focus-pages",
-              "value": "tidy"
+              "value": "off"
             }
           },
           {
             "if": {
-              "property": "zenith.plus.focus-pages",
-              "value": "reader"
+              "property": "zenith.plus.focus-video",
+              "value": true
             }
           }
         ],
@@ -454,31 +520,25 @@ const RULES = {
     "why": "Cookie banners are left alone",
     "conditions": [
       {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.plus.cookie-banners",
-              "value": "reject-hide"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.plus.cookie-banners",
-              "value": "reject"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.plus.cookie-banners",
-              "value": "hide"
-            }
-          }
-        ],
-        "operator": "OR"
+        "not": {
+          "property": "zenith.plus.cookie-banners",
+          "value": "off"
+        }
       }
     ]
   },
   "zenith.plus.ai-download-names": {
+    "why": "Local AI is off",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.local-ai",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.plus.ai-topics": {
     "why": "Local AI is off",
     "conditions": [
       {

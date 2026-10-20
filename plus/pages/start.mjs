@@ -97,19 +97,44 @@ async function topSites() {
   if (!want("top", false)) return;
   try {
     const { NewTabUtils } = ChromeUtils.importESModule("resource://gre/modules/NewTabUtils.sys.mjs");
-    const links = await NewTabUtils.activityStreamLinks.getTopSites({ numItems: 8, onePerDomain: true, includeFavicon: false });
-    const hosts = new Set();
-    top = links.filter(l => /^https?:/.test(l.url) && !hosts.has(host(l.url)) && hosts.add(host(l.url)))
-      .slice(0, 8).map(l => ({ title: l.title || host(l.url), url: l.url }));
+    const links = await NewTabUtils.activityStreamLinks.getTopSites({ numItems: 12, onePerDomain: true, includeFavicon: false });
+    // This space's essentials first (a click goes to the tab), then the
+    // most visited, none of them twice.
+    const mine = essentials();
+    const hosts = new Set(mine.map(e => host(e.url)));
+    top = [...mine, ...links.filter(l => /^https?:/.test(l.url) && !hosts.has(host(l.url)) && hosts.add(host(l.url)))
+      .slice(0, 8).map(l => ({ title: l.title || host(l.url), url: l.url }))];
   } catch (e) {
     console.error("[Zenith start page] most visited", e);
     top = [];
   }
-  $("top").replaceChildren(...top.map(s => make("a", { href: s.url, title: s.title, onclick: e => (e.preventDefault(), open(s.url, e.shiftKey || e.button === 1)) },
+  $("top").replaceChildren(...top.map(s => make("a", { href: s.url, title: s.title, class: s.tab ? "essential" : null,
+    onclick: e => (e.preventDefault(), s.tab?.isConnected && !e.shiftKey ? (s.tab.ownerGlobal.gBrowser.selectedTab = s.tab) : open(s.url, e.shiftKey || e.button === 1)) },
     make("img", { src: `page-icon:${s.url}`, alt: "", onerror: e => (e.target.style.visibility = "hidden") }),
     make("span", {}, host(s.url)))));
   $("top").hidden = !top.length;
   show();
+}
+
+// The essentials of the space this page is in (each space's own, when Zen
+// keeps them apart by container).
+function essentials() {
+  const win = window.browsingContext?.topChromeWindow, W = win?.gZenWorkspaces;
+  if (!win?.gBrowser) return [];
+  const space = W?.getWorkspaces?.()?.find(w => w.uuid === W.activeWorkspace);
+  const separate = W?.containerSpecificEssentials ?? Services.prefs.getBoolPref("zen.workspaces.separate-essentials", false);
+  return win.gBrowser.tabs.filter(t => t.hasAttribute("zen-essential") && !t.closing &&
+      (!separate || parseInt(t.getAttribute("usercontextid") || "0", 10) === (space?.containerTabId || 0)))
+    .map(t => {
+      let url = t.linkedBrowser?.currentURI?.spec ?? "";
+      if (!/^https?:/.test(url)) {
+        try {
+          url = win.SessionStore.getLazyTabValue(t, "url") || url;
+        } catch {}
+      }
+      return { title: t.label, url, tab: t };
+    })
+    .filter(e => /^https?:/.test(e.url));
 }
 
 let shown = [], picked = -1;

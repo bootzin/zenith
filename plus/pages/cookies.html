@@ -15,14 +15,19 @@
         <h1>Cookies</h1>
         <span id="summary"></span>
       </div>
-      <input id="search" type="search" placeholder="Find a site" spellcheck="false" />
       <button type="button" id="close" title="Close this page">✕</button>
     </header>
     <main>
       <section id="choices"></section>
       <section id="here"></section>
       <section id="lately"></section>
-      <section id="sites"></section>
+      <section>
+        <div class="sites-head">
+          <h2>Sites</h2>
+          <input id="search" type="search" placeholder="Find a site" spellcheck="false" />
+        </div>
+        <div id="sites"></div>
+      </section>
     </main>
     <div id="note" hidden></div>
   </body>

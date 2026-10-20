@@ -136,7 +136,9 @@ class Handler(BaseHTTPRequestHandler):
                        "<canvas id=c width=854 height=480 hidden></canvas><video id=v autoplay muted style='width:854px;height:480px;display:block'></video>"
                        "<div id=controls style='position:absolute;left:0;right:0;bottom:0;height:40px;background:rgb(0 0 0/.5)'></div></div>"
                        "<h1>A video</h1>" + "".join(f"<p>Comment {i}: lovely video, thanks for sharing it with everyone here today.</p>" for i in range(40)) +
-                       "</div><aside style='width:300px'>Up next</aside></div><script>"
+                       "</div><aside id=recs style='width:300px'><h3>Up next</h3>" +
+                       "".join(f"<a href='/page?n=v{i}'><img src='/art.png' width=120 height=68> Video {i}</a>" for i in range(5)) +
+                       "</aside></div><script>"
                        "const g = c.getContext('2d'); let t = 0;"
                        "setInterval(() => { t++; g.fillStyle = `hsl(${t % 360} 60% 45%)`; g.fillRect(0, 0, 854, 480); }, 50);"
                        "v.srcObject = c.captureStream(20);</script>")

@@ -1490,26 +1490,11 @@ zenith-bookmarks-host.zen-library-section {
   outline-offset: -2px;
 }
 
-/* The last page you saw, shown at once as Zen starts until the page itself
-   has loaded (Zenith Plus › Speed and AI › The last page at once). */
-#zenith-last-page {
-  position: fixed;
-  z-index: 30 !important;
-  object-fit: cover;
-  object-position: top left;
-  pointer-events: none;
-  border-radius: var(--zen-native-inner-radius, var(--zth-radius, 8px));
-  transition: opacity 180ms ease;
-
-  &[leaving] {
-    opacity: 0;
-  }
-}
-
 /* === Focus mode's pill ============================================================
-   What focus mode did to the page (a reading view, the video filling the
-   window, a tidy), with "Show the page" and "Not on <site>". Bottom centre,
-   for a few seconds (it stays while the pointer is on it). */
+   Focus mode is on, then what it did to the page (a reading view, a place
+   to watch, a tidy), with "Show the page" and "Not on <site>". Bottom
+   centre, for a few seconds (it stays while the pointer is on it). One
+   pill, so the two never overlap. */
 #zenith-focus-pill {
   position: fixed;
   left: 50%;
@@ -1536,6 +1521,14 @@ zenith-bookmarks-host.zen-library-section {
     opacity: 1;
     translate: -50% 0;
     pointer-events: auto;
+  }
+
+  &:not([buttons]) {
+    padding-inline-end: 14px;
+
+    & button {
+      display: none;
+    }
   }
 
   & .what {
@@ -1565,9 +1558,9 @@ zenith-bookmarks-host.zen-library-section {
    Past a side edge only a sliver of the window stays on screen (Zenith Plus
    moves it, 40px of which the outer 14 are the system's resize edge): the
    controls go, the picture dims, and an arrow on the sliver says it comes
-   back (on hover for a look, on a click to stay). (The sliver
-   isn't a drag handle then; while it's out for a look it's itself.) */
-:root[zenith-pip-tucked]:not([zenith-pip-peek]) {
+   back (rest the pointer on it, or click it). (The sliver isn't a drag
+   handle then.) */
+:root[zenith-pip-tucked] {
   -moz-window-dragging: no-drag !important;
   cursor: pointer;
 
@@ -1615,7 +1608,7 @@ zenith-bookmarks-host.zen-library-section {
   z-index: 2147483647;
   cursor: pointer;
   background: transparent;
-  /* (A click is "keep it out", not the start of a window drag.) */
+  /* (A click brings it out, not the start of a window drag.) */
   -moz-window-dragging: no-drag;
 
   &[hidden] {
@@ -1624,16 +1617,19 @@ zenith-bookmarks-host.zen-library-section {
 }
 
 /* === Float a tab ==================================================================
-   A window on top of everything: just the page (it holds one tab), no
-   toolbars, no window buttons (its own bar has them), and small if you
-   like. A pane inside Zen: the tab's panel over the page, in a rounded
-   box with a shadow, at the place and size Zenith Plus sets. Either has a
-   slim bar that slides down when the pointer is near its top: drag it to
-   move, double-click for its corner; ↩ puts the tab back, ▭/⧉ switches
-   between pane and window, – minimises the window, ✕ closes the tab. */
+   A small window of its own: just the page (it holds one tab), no toolbars,
+   no window buttons (its own bar has them), and small if you like. The
+   bar: the title (click to type an address), pin, back into the window,
+   minimise or roll up, close. Pinned, it sits above the page; unpinned,
+   it slides down over it when the pointer comes into the window or to the
+   top edge (Zenith Plus). Rolled up, the window is only the bar. */
 :root[zenith-float] {
   min-width: 240px !important;
   min-height: 150px !important;
+
+  &[zenith-float-rolled] {
+    min-height: 0 !important;
+  }
 
   & #navigator-toolbox {
     display: none !important;
@@ -1658,25 +1654,23 @@ zenith-bookmarks-host.zen-library-section {
   & #zen-appcontent-wrapper {
     position: relative;
   }
+
+  &[zenith-float-pinned] #zen-appcontent-wrapper,
+  &[zenith-float-rolled] #zen-appcontent-wrapper {
+    padding-top: 30px !important;
+  }
 }
 
-:root[zenith-float-pane-open] #tabbrowser-tabpanels {
-  position: relative;
-}
+.zenith-float-edge {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 12px;
+  z-index: 29 !important;
+  -moz-window-dragging: no-drag;
 
-#tabbrowser-tabpanels > [zenith-float-pane] {
-  position: absolute !important;
-  inset: auto !important;
-  left: var(--zth-pane-left) !important;
-  top: var(--zth-pane-top) !important;
-  width: var(--zth-pane-width) !important;
-  height: var(--zth-pane-height) !important;
-  margin: 0 !important;
-  z-index: 20 !important;
-  visibility: visible !important;
-  border-radius: var(--zth-radius, 10px) !important;
-  overflow: hidden !important;
-  box-shadow: 0 14px 44px rgb(0 0 0 / 0.45), 0 0 0 1px var(--zth-hairline) !important;
+  :root[zenith-float-pinned] & {
+    display: none;
+  }
 }
 
 .zenith-float-bar {
@@ -1685,9 +1679,10 @@ zenith-bookmarks-host.zen-library-section {
   z-index: 30 !important;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   height: 30px;
-  padding: 0 6px 0 10px;
+  box-sizing: border-box;
+  padding: 0 4px 0 10px;
   background: var(--zth-panel-bg);
   backdrop-filter: var(--zth-panel-filter);
   border-bottom: 1px solid var(--zth-hairline);
@@ -1695,25 +1690,15 @@ zenith-bookmarks-host.zen-library-section {
   font: var(--zth-font) / 1 system-ui, sans-serif;
   cursor: grab;
   -moz-window-dragging: no-drag;
-  opacity: 0;
-  translate: 0 -22px;
   transition: opacity 0.15s var(--zth-ease), translate 0.15s var(--zth-ease);
 
-  &:hover,
-  &[moving] {
-    opacity: 1;
-    translate: 0 0;
+  :root:not([zenith-float-pinned], [zenith-float-rolled], [zenith-float-peek]) &:not(:hover, [moving], [editing]) {
+    opacity: 0;
+    translate: 0 -24px;
   }
 
   &[moving] {
     cursor: grabbing;
-  }
-
-  & .zenith-float-grip {
-    width: 18px;
-    height: 8px;
-    border-block: 2px solid var(--zth-ink-dim);
-    opacity: 0.7;
   }
 
   & .zenith-float-title {
@@ -1723,38 +1708,78 @@ zenith-bookmarks-host.zen-library-section {
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--zth-ink-dim);
+    cursor: text;
+
+    &:hover {
+      color: var(--zth-ink);
+    }
+  }
+
+  &[editing] .zenith-float-title {
+    display: none;
+  }
+
+  & .zenith-float-address {
+    flex: 1;
+    min-width: 0;
+    height: 22px;
+    margin-inline-end: 4px;
+    padding: 0 8px;
+    border: 1px solid var(--zth-accent, AccentColor);
+    border-radius: var(--zth-pill-radius);
+    background: var(--zth-field-bg, light-dark(white, rgb(0 0 0 / 0.35)));
+    color: var(--zth-ink);
+    font: inherit;
+    outline: none;
   }
 
   & .zenith-float-button {
     appearance: none;
-    min-width: 26px;
+    flex: none;
+    width: 26px;
     height: 22px;
-    padding: 0 6px;
+    padding: 0;
     border: none;
     border-radius: var(--zth-pill-radius);
-    background: transparent;
-    color: inherit;
-    font: inherit;
+    background: currentColor center / 14px no-repeat;
+    mask: var(--zth-icon) center / 14px no-repeat;
+    color: var(--zth-ink-dim);
     cursor: pointer;
 
     &:hover {
-      background: var(--zth-accent-soft);
+      color: var(--zth-ink);
+    }
+
+    &[kind="pin"] {
+      --zth-icon: url("chrome://browser/skin/zen-icons/unpin.svg");
+
+      :root[zenith-float-pinned] & {
+        --zth-icon: url("chrome://browser/skin/zen-icons/pin.svg");
+        color: var(--zth-accent, AccentColor);
+      }
+    }
+
+    /* (Open in a page: a box with an arrow out of its corner.) */
+    &[kind="back"] {
+      --zth-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 2.75H4A1.25 1.25 0 0 0 2.75 4v8A1.25 1.25 0 0 0 4 13.25h8A1.25 1.25 0 0 0 13.25 12V9M9.5 2.75h3.75V6.5M13 3 7.5 8.5'/%3E%3C/svg%3E");
+    }
+
+    &[kind="minimise"] {
+      --zth-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h10' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+    }
+
+    &[kind="roll"] {
+      --zth-icon: url("chrome://browser/skin/zen-icons/arrow-up.svg");
+
+      :root[zenith-float-rolled] & {
+        rotate: 180deg;
+      }
+    }
+
+    &[kind="close"] {
+      --zth-icon: url("chrome://browser/skin/zen-icons/close.svg");
     }
   }
-}
-
-/* The pane's corner (top left: it sits in the bottom right). */
-.zenith-float-resize {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 31 !important;
-  width: 14px;
-  height: 14px;
-  cursor: nwse-resize;
-  background: linear-gradient(135deg, var(--zth-ink-dim) 0 2px, transparent 2px 5px, var(--zth-ink-dim) 5px 6px, transparent 6px);
-  opacity: 0.55;
-  border-radius: var(--zth-radius, 10px) 0 0 0;
 }
 
 /* === Delete a download ============================================================

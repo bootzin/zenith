@@ -4,8 +4,12 @@
 //   - read: an article is shown in a reading view drawn over the page
 //     (Firefox's own article parser, a calm column of text); the page
 //     itself stays underneath, untouched;
-//   - video: a page whose main thing is a video gets its player filling
-//     the window (the site's own player and controls, just bigger);
+//   - watch: a video site becomes a place to watch rather than a feed:
+//     on YouTube the home feed, recommendations, Shorts, end screens,
+//     autoplay and notifications go, the video gets the room (theatre),
+//     and what you chose stays (search, description and chapters, the
+//     playlist you're in under the video, comments folded, subscriptions);
+//     on other sites, blocks of recommended videos go;
 //   - tidy: any other page that's mostly reading loses what annoyance lists
 //     and distraction-free extensions take away (cookie and consent
 //     banners, newsletter boxes, share bars, comment sections, "related"
@@ -16,7 +20,7 @@
 // is. It changes only how the page looks, and takes nothing from the page
 // to the browser but whether it's an article, a video page or reading.
 
-const { setTimeout, clearTimeout } = ChromeUtils.importESModule("resource://gre/modules/Timer.sys.mjs");
+const { setTimeout, clearTimeout, setInterval, clearInterval } = ChromeUtils.importESModule("resource://gre/modules/Timer.sys.mjs");
 
 // Firefox's article parser (its Reader view's), wherever this Firefox keeps it.
 function readerMode() {
@@ -58,6 +62,61 @@ const CONSENT = /(cookie|consent|your\s+privacy|partner.{0,200}vendors|accept\s+
 
 const HIDDEN_SHEET = "data:text/css," + encodeURIComponent("[zenith-focus-hidden] { display: none !important; }");
 
+// Video sites. YouTube, piece by piece; elsewhere, what's named as more
+// videos to watch.
+const YOUTUBE = /(^|\.)youtube\.com$/;
+const RECOMMENDED = /(recommend|related|up.?next|watch.?next|more.?videos|suggested|you may also like|you might also like|trending)/i;
+
+function youtubeSheet(opts) {
+  const hide = [
+    // more to watch, beside and after the video
+    "ytd-watch-flexy #related", "ytd-watch-next-secondary-results-renderer",
+    ".ytp-endscreen-content", ".html5-endscreen", ".ytp-ce-element", ".ytp-cards-teaser", ".ytp-pause-overlay",
+    ".ytp-autonav-endscreen-countdown-overlay", ".ytp-suggested-action", ".ytp-featured-product", ".ytp-paid-content-overlay",
+    // the home feed and its topic chips; shelves in search results
+    "ytd-browse[page-subtype='home'] ytd-rich-grid-renderer", "ytd-browse[page-subtype='home'] #chips-wrapper",
+    "ytd-browse[page-subtype='home'] ytd-feed-filter-chip-bar-renderer",
+    "ytd-search ytd-shelf-renderer", "ytd-search ytd-horizontal-card-list-renderer", "ytd-search ytd-reel-shelf-renderer",
+    // Shorts, everywhere
+    "ytd-reel-shelf-renderer", "ytd-rich-shelf-renderer[is-shorts]", "ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts])",
+    "grid-shelf-view-model:has(ytm-shorts-lockup-view-model)", "ytd-video-renderer:has(a[href^='/shorts/'])",
+    "ytd-guide-entry-renderer:has(a[title='Shorts'])", "ytd-mini-guide-entry-renderer[aria-label='Shorts']",
+    // the bell, and what YouTube adds to pull you elsewhere
+    "ytd-notification-topbar-button-renderer", "ytd-merch-shelf-renderer", "ytd-statement-banner-renderer", "ytd-ad-slot-renderer",
+    "#masthead-ad", "ytd-banner-promo-renderer",
+  ];
+  // (Subscriptions live in the side menu, with Home and Shorts: the whole
+  // menu goes unless they stay.)
+  if (!opts.subscriptions) hide.push("#guide", "ytd-mini-guide-renderer", "#guide-button", "ytd-browse[page-subtype='subscriptions'] #contents");
+  if (!opts.search) hide.push("ytd-masthead #center");
+  if (!opts.description) hide.push("ytd-watch-metadata #description", "ytd-watch-flexy #description",
+                                   "ytd-engagement-panel-section-list-renderer[target-id*='macro-markers']");
+  if (!opts.playlist) hide.push("ytd-playlist-panel-renderer");
+  if (!opts.comments) hide.push("ytd-watch-flexy #comments");
+  return `
+    ${hide.join(",\n    ")} { display: none !important; }
+    [zenith-folded] { display: none !important; }
+    /* The video first: the rest under it, in one column (a playlist under
+       the video, never beside it) */
+    ytd-watch-flexy[theater] #columns { flex-direction: column !important; align-items: center !important; }
+    ytd-watch-flexy[theater] #secondary { width: 100% !important; max-width: var(--ytd-watch-flexy-max-player-width, 1280px) !important;
+                                          padding: 0 !important; margin: 0 auto !important; }
+    ytd-watch-flexy[theater] #primary { width: 100% !important; max-width: var(--ytd-watch-flexy-max-player-width, 1280px) !important;
+                                        margin: 0 auto !important; }
+    /* The home page: just the search */
+    ytd-browse[page-subtype='home'] #primary::before {
+      content: ${opts.search ? '"Search for what you came to watch."' : '"Focus mode: no feed here."'};
+      display: block; margin: 22vh auto 0; text-align: center;
+      font: 400 2rem/1.3 "YouTube Sans", Roboto, system-ui, sans-serif; color: var(--yt-spec-text-secondary, #888);
+    }
+    [zenith-show-comments] {
+      display: block; margin: 16px 0; padding: 10px 16px; border: 0; border-radius: 18px; cursor: pointer;
+      background: var(--yt-spec-badge-chip-background, rgb(128 128 128 / 0.15)); color: var(--yt-spec-text-primary, inherit);
+      font: 500 1.4rem/1 Roboto, system-ui, sans-serif;
+    }
+  `;
+}
+
 const READING_CSS = `
   :host { all: initial; position: fixed; inset: 0; z-index: 2147483646; overflow-y: auto; display: block;
           background: #f7f5f0; color: #1d1d1f; color-scheme: light; }
@@ -86,13 +145,14 @@ export class ZenithFocusChild extends JSWindowActorChild {
       case "kind": return this.kind();
       case "read": return this.read(true);
       case "unread": return this.read(false);
-      case "video": return this.video(true);
-      case "unvideo": return this.video(false);
+      case "watch": return this.watch(msg.data ?? {});
+      case "unwatch": return this.unwatch();
       case "tidy": return this.tidy(true);
       case "untidy": return this.tidy(false);
       case "undo": return this.undoAll();
-      case "state": return { on: !!this.on, hidden: this.hidden?.length ?? 0, reading: this.reading(), read: !!this.host, video: !!this.player };
+      case "state": return { on: !!this.on, hidden: this.hidden?.length ?? 0, reading: this.reading(), read: !!this.host, watch: !!this.watching };
       case "fixed": return this.fixedList(); // (for tools/checks)
+      case "watched": return this.watched(); // (for tools/checks)
     }
     return null;
   }
@@ -100,12 +160,12 @@ export class ZenithFocusChild extends JSWindowActorChild {
   didDestroy() {
     this.hidden = null;
     this.host = null;
-    this.player = null;
+    this.watching = null;
   }
 
   undoAll() {
     this.read(false);
-    this.video(false);
+    this.unwatch();
     this.tidy(false);
     return true;
   }
@@ -113,7 +173,8 @@ export class ZenithFocusChild extends JSWindowActorChild {
   // What this page is: a video page (a big video on screen), reading
   // (enough running text), both or neither.
   kind() {
-    return { video: !!this.mainVideo(), reading: this.reading() };
+    const host = this.document?.location?.hostname ?? "";
+    return { video: !!this.mainVideo(), reading: this.reading(), site: YOUTUBE.test(host) ? "youtube" : "" };
   }
 
   textLength() {
@@ -192,7 +253,7 @@ export class ZenithFocusChild extends JSWindowActorChild {
     return true;
   }
 
-  /* Video: the player fills the window */
+  /* Video sites: a place to watch */
 
   // The biggest video on screen, if it's a big part of the window.
   mainVideo() {
@@ -211,43 +272,126 @@ export class ZenithFocusChild extends JSWindowActorChild {
     return best && bestArea >= area * 0.18 ? best : null;
   }
 
-  video(on) {
+  // On: the site's sheet (what goes, by what you chose to keep), the
+  // video in theatre, autoplay off, again on each of YouTube's own page
+  // changes (it doesn't load pages, it swaps them).
+  watch(opts) {
     const doc = this.document, win = this.contentWindow;
-    if (!on) {
-      if (!this.player) return true;
-      for (const [el, style] of this.saved ?? []) {
-        if (style == null) el.removeAttribute("style");
-        else el.setAttribute("style", style);
+    if (!doc?.documentElement || !win) return false;
+    if (this.watching) return true;
+    const site = YOUTUBE.test(doc.location?.hostname ?? "") ? "youtube" : "";
+    if (!site && !this.mainVideo()) return false;
+    this.watching = { opts, site, sheet: null, theatre: false, autoplay: false, hidden: [] };
+    if (site === "youtube") {
+      this.watching.sheet = "data:text/css," + encodeURIComponent(youtubeSheet(opts));
+      try {
+        win.windowUtils.loadSheetUsingURIString(this.watching.sheet, win.windowUtils.USER_SHEET);
+      } catch {}
+      this.onNavigate = () => setTimeout(() => this.settleWatch(), 300);
+      doc.addEventListener("yt-navigate-finish", this.onNavigate);
+      this.settleWatch();
+      // (The player builds its buttons a while after the page: tried each
+      // second for 20 seconds, and after each of YouTube's page changes.)
+      let tries = 0;
+      this.watching.timer = setInterval(() => {
+        if (!this.watching || ++tries > 20) return clearInterval(this.watching?.timer);
+        this.settleWatch();
+      }, 1000);
+    } else {
+      try {
+        win.windowUtils.loadSheetUsingURIString(HIDDEN_SHEET, win.windowUtils.USER_SHEET);
+      } catch {}
+      this.hideRecommendations();
+    }
+    return true;
+  }
+
+  // YouTube, after each of its page changes: theatre for a video, autoplay
+  // off, comments folded behind a button (if kept), the search box ready on
+  // the home page.
+  settleWatch() {
+    const w = this.watching, doc = this.document;
+    if (!w || !doc) return;
+    const flexy = doc.querySelector("ytd-watch-flexy:not([hidden])");
+    if (flexy && !flexy.hasAttribute("theater") && !flexy.hasAttribute("fullscreen") && !w.theatreAsked) {
+      const size = doc.querySelector(".ytp-size-button");
+      if (size) {
+        size.click();
+        w.theatre = w.theatreAsked = true;
       }
-      this.saved = null;
-      this.player = null;
-      win?.dispatchEvent(new win.Event("resize"));
-      return true;
     }
-    if (this.player) return true;
-    const v = this.mainVideo();
-    if (!v) return false;
-    // The player: the outermost box around the video that's the video's
-    // size (where the site keeps its controls).
-    const r = v.getBoundingClientRect();
-    let player = v;
-    for (let el = v.parentElement; el && el !== doc.body && el !== doc.documentElement; el = el.parentElement) {
-      const b = el.getBoundingClientRect();
-      if (Math.abs(b.width - r.width) > 6 || Math.abs(b.height - r.height) > 6) break;
-      player = el;
+    const auto = doc.querySelector(".ytp-autonav-toggle-button[aria-checked='true']");
+    if (auto) {
+      auto.click();
+      w.autoplay = true;
     }
-    this.saved = [[player, player.getAttribute("style")], [doc.documentElement, doc.documentElement.getAttribute("style")]];
-    if (player !== v) this.saved.push([v, v.getAttribute("style")]);
-    const set = (el, props) => {
-      for (const [k, val] of Object.entries(props)) el.style.setProperty(k, val, "important");
+    if (w.opts.comments) {
+      const comments = flexy?.querySelector("#comments");
+      if (comments && !comments.hasAttribute("zenith-folded") && !comments.hasAttribute("zenith-unfolded")) {
+        comments.setAttribute("zenith-folded", "");
+        const show = doc.createElement("button");
+        show.setAttribute("zenith-show-comments", "");
+        show.textContent = "Show comments";
+        show.addEventListener("click", () => {
+          comments.removeAttribute("zenith-folded");
+          comments.setAttribute("zenith-unfolded", "");
+          show.remove();
+        });
+        comments.before(show);
+      }
+    }
+    if (w.opts.search && doc.location?.pathname === "/") {
+      const box = doc.querySelector("input[name='search_query']");
+      if (box && doc.activeElement !== box) box.focus();
+    }
+  }
+
+  // What watching changed, as the page shows it (for tools/checks).
+  watched() {
+    const doc = this.document, win = this.contentWindow;
+    const shown = sel => {
+      const el = doc.querySelector(sel);
+      return el ? win.getComputedStyle(el).display !== "none" : null;
     };
-    set(player, { position: "fixed", inset: "0", width: "100vw", height: "100vh", "max-width": "none", "max-height": "none",
-                  margin: "0", transform: "none", "z-index": "2147483646", background: "black" });
-    if (player !== v) set(v, { width: "100%", height: "100%", "object-fit": "contain", left: "0", top: "0" });
-    set(doc.documentElement, { overflow: "hidden" });
-    this.player = player;
-    // (Players lay themselves out again on a resize.)
-    win.dispatchEvent(new win.Event("resize"));
+    return { on: !!this.watching, theatre: !!doc.querySelector("ytd-watch-flexy[theater]"),
+             autoplay: doc.querySelector(".ytp-autonav-toggle-button")?.getAttribute("aria-checked") ?? null,
+             related: shown("ytd-watch-flexy #related"), comments: shown("ytd-watch-flexy #comments"),
+             description: shown("ytd-watch-metadata #description"), recs: shown("#recs") };
+  }
+
+  // Elsewhere: blocks of recommended videos (a heading or name that says
+  // so, and several pictures that are links).
+  hideRecommendations() {
+    const doc = this.document;
+    for (const el of doc.querySelectorAll("section, aside, [class*='related' i], [class*='recommend' i], [id*='related' i], [id*='recommend' i], [class*='up-next' i], [class*='upnext' i]")) {
+      if (el === doc.body || el.contains(this.mainVideo())) continue;
+      const named = RECOMMENDED.test(`${el.id} ${el.className} ${el.getAttribute("aria-label") ?? ""} ${el.querySelector("h1, h2, h3, h4")?.textContent ?? ""}`);
+      if (!named || el.querySelectorAll("a img, a picture").length < 3) continue;
+      el.setAttribute("zenith-focus-hidden", "");
+      this.watching.hidden.push(el);
+    }
+  }
+
+  unwatch() {
+    const w = this.watching, doc = this.document, win = this.contentWindow;
+    if (!w) return true;
+    this.watching = null;
+    clearInterval(w.timer);
+    if (this.onNavigate) doc?.removeEventListener("yt-navigate-finish", this.onNavigate);
+    this.onNavigate = null;
+    try {
+      win?.windowUtils.removeSheetUsingURIString(w.sheet ?? HIDDEN_SHEET, win.windowUtils.USER_SHEET);
+    } catch {}
+    for (const el of w.hidden) el.removeAttribute("zenith-focus-hidden");
+    if (!doc) return true;
+    // As it was: theatre and autoplay back as you had them.
+    if (w.theatre && doc.querySelector("ytd-watch-flexy[theater]")) doc.querySelector(".ytp-size-button")?.click();
+    if (w.autoplay) doc.querySelector(".ytp-autonav-toggle-button[aria-checked='false']")?.click();
+    for (const b of doc.querySelectorAll("[zenith-show-comments]")) b.remove();
+    for (const c of doc.querySelectorAll("[zenith-folded], [zenith-unfolded]")) {
+      c.removeAttribute("zenith-folded");
+      c.removeAttribute("zenith-unfolded");
+    }
     return true;
   }
 

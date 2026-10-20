@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.2
+// @version        0.12.3
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -379,6 +379,7 @@ const DownloadEdge = {
 
 const Minimap = {
   init() {
+    window.ZenithMinimap = this; // for tools/checks
     this.strip = el("div", { id: "zenith-minimap" });
     document.getElementById("zen-tabbox-wrapper")?.append(this.strip);
     const schedule = () => {
@@ -423,9 +424,17 @@ const Minimap = {
     maybe();
   },
 
+  // As the tabs show it: no attention dots, no attention ticks; a title
+  // that changed counts only if it gets a dot (Tabs › Attention dots).
+  attentionOn() {
+    const P = Services.prefs, v = P.getStringPref("zenith.tabs.attention", "");
+    return v ? v === "on" : (P.getStringPref("zenith.tabs.preset", "") || "informative") !== "plain";
+  },
+
   kind(tab) {
     if (tab.hasAttribute("sharing")) return "sharing";
-    if (tab.hasAttribute("attention") || tab.hasAttribute("titlechanged")) return "attention";
+    if (this.attentionOn() && (tab.hasAttribute("attention") ||
+        (tab.hasAttribute("titlechanged") && Services.prefs.getStringPref("zenith.tabs.attention-for", "") !== "alerts"))) return "attention";
     if (tab.hasAttribute("soundplaying") && !tab.hasAttribute("muted")) return "playing";
     if (tab.hasAttribute("busy")) return "loading";
     return null;
@@ -1399,24 +1408,28 @@ function hint(text) {
 }
 
 /* --- Focus mode: Alt+Z puts everything away ----------------------------------
-   For reading or video: the sidebar hides (compact mode, if it wasn't
-   already), and so do the edges, the minimap, pills, the workspace dots,
+   For reading or watching: the sidebar hides (compact mode, if it wasn't
+   already), the top toolbar too (Zen's own "hide the toolbar" for the
+   while), and so do the edges, the minimap, pills, the workspace dots,
    the bookmarks bar and the link address at the bottom; whatever was open
    closes (Firefox's sidebar, Zenith's bookmarks, Zen's Library, the
    settings panel, the switcher, the find bar, menus). You can open any of
    them again while focused. The sharing alarm still shows.
-   The page too (Focus mode › Pages; see plus/pages/focus-page.sys.mjs), the
-   tab you're on and any you switch to: a video page gets its player
-   filling the window, an article a reading view over the page, and any
-   other page that's mostly reading is tidied. A small pill says what was
-   done, with "Show the page" (this tab, now) and "Not on <site>" (added to
-   the sites focus mode leaves alone, Focus mode › Sites left alone).
-   Alt+Z again brings everything back: compact mode as it was, what was open
-   opens again, pages as they were (nothing reloads). */
+   The page too (see plus/pages/focus-page.sys.mjs), the tab you're on and
+   any you switch to: a video site becomes a place to watch (Focus mode ›
+   Video sites), an article gets a reading view over the page, and any
+   other page that's mostly reading is tidied (Focus mode › Pages). One
+   pill says focus mode is on, then what was done, with "Show the page"
+   (this tab, now) and "Not on <site>" (added to the sites focus mode
+   leaves alone, Focus mode › Sites left alone).
+   Alt+Z again brings everything back: compact mode and the toolbar as they
+   were, what was open opens again, pages as they were (nothing reloads). */
 const FocusMode = {
   PREF: "zenith.plus.focus-key",
-  PAGES: "zenith.plus.focus-pages", // "" video, reading view, tidy · reader (no tidy) · off
+  PAGES: "zenith.plus.focus-pages", // "" reading view, tidy · reader (no tidy) · off
   SKIP: "zenith.plus.focus-skip", // sites left alone: "example.com, news.site"
+  VIDEO: "zenith.plus.focus-video", // video sites, a place to watch; its parts: focus-video-<part>
+  PARTS: { search: true, description: true, playlist: true, comments: false, subscriptions: false },
 
   get on() {
     return root.hasAttribute("zenith-focus");
@@ -1442,15 +1455,18 @@ const FocusMode = {
       this.madeCompact = !!compact && !compact.preference;
       if (this.madeCompact) compact.preference = true;
       root.setAttribute("zenith-focus", "true");
+      // (The top toolbar, when Zen shows one: hidden as compact mode can.)
+      if (!Services.prefs.getBoolPref("zen.view.use-single-toolbar", true)) Bridge.apply("focus", { "zen.view.compact.hide-toolbar": true });
       this.putAway();
       this.changed = new Map(); // tab → what was done to its page
       this.follow(true);
+      this.say(null, Services.prefs.getBoolPref(this.PREF, true) ? "Focus mode · Alt+Z to leave" : "Focus mode");
       this.page(gBrowser.selectedTab);
-      hint(Services.prefs.getBoolPref(this.PREF, true) ? "Focus mode · Alt+Z to leave" : "Focus mode");
     } else {
       root.removeAttribute("zenith-focus");
       if (this.madeCompact && compact?.preference) compact.preference = false;
       this.madeCompact = false;
+      Bridge.apply("focus", { "zen.view.compact.hide-toolbar": null });
       this.follow(false);
       this.restorePages();
       this.bringBack();
@@ -1554,11 +1570,16 @@ const FocusMode = {
     return PageActors.in(browser, "ZenithFocus", "focus-page.sys.mjs");
   },
 
-  // The page you're on: its video filling the window, a reading view for an
-  // article, or tidied; each only once per page.
+  // What to keep on video sites (each its own setting).
+  get keep() {
+    return Object.fromEntries(Object.entries(this.PARTS).map(([part, on]) => [part, Services.prefs.getBoolPref(`${this.VIDEO}-${part}`, on)]));
+  },
+
+  // The page you're on: a place to watch on a video site, a reading view
+  // for an article, or tidied; each only once per page.
   async page(tab) {
-    const mode = this.pages, browser = tab?.linkedBrowser;
-    if (mode === "off" || !browser || !this.on) return;
+    const mode = this.pages, video = Services.prefs.getBoolPref(this.VIDEO, true), browser = tab?.linkedBrowser;
+    if ((mode === "off" && !video) || !browser || !this.on) return;
     const uri = browser.currentURI;
     if (!/^https?$/.test(uri?.scheme ?? "") || this.skips(uri.host)) return;
     // (Firefox works out whether it's an article a moment after it loads.)
@@ -1567,14 +1588,13 @@ const FocusMode = {
     if (!this.on || tab !== gBrowser.selectedTab || this.changed.get(tab)?.spec === uri.spec) return;
     const actor = await this.actor(browser);
     if (!actor) return;
-    const ask = name => actor.sendQuery(name).catch(() => false);
+    const ask = (name, data) => actor.sendQuery(name, data).catch(() => false);
     const kind = (await ask("kind")) || {};
     // (An article with a video in it is still an article; the reading view
     // only for what Firefox itself takes for an article.)
     let done = null;
-    if (kind.video && !browser.isArticle && (await ask("video"))) done = "video";
-    else if (browser.isArticle && (await ask("read"))) done = "read";
-    else if (kind.video && (await ask("video"))) done = "video";
+    if (video && (kind.site || (kind.video && !browser.isArticle)) && (await ask("watch", this.keep))) done = "watch";
+    else if (mode !== "off" && browser.isArticle && (await ask("read"))) done = "read";
     else if (mode === "tidy" && kind.reading && (await ask("tidy"))) done = "tidy";
     if (!done) return;
     this.changed.set(tab, { spec: uri.spec, done });
@@ -1591,7 +1611,8 @@ const FocusMode = {
     this.changed = null;
   },
 
-  // The pill: what was done to the page, and two ways out.
+  // The pill: focus mode is on (no tab), then what was done to the page,
+  // and two ways out.
   say(tab, done) {
     if (!this.pill) {
       const pill = (this.pill = el("div", { id: "zenith-focus-pill" }));
@@ -1608,16 +1629,27 @@ const FocusMode = {
       this.pillParts = { text, site };
     }
     this.pillTab = tab;
-    const host = tab.linkedBrowser.currentURI?.host?.replace(/^www\./, "") ?? "";
-    this.pillParts.text.textContent = { read: "Reading view", video: "The video fills the window", tidy: "Tidied: banners and clutter hidden" }[done];
-    this.pillParts.site.textContent = `Not on ${host}`;
+    this.pill.toggleAttribute("buttons", !!tab);
+    if (tab) {
+      const host = tab.linkedBrowser.currentURI?.host?.replace(/^www\./, "") ?? "";
+      this.pillParts.text.textContent = {
+        read: "Reading view",
+        watch: "A place to watch: recommendations, Shorts and autoplay are gone",
+        tidy: "Tidied: banners and clutter hidden",
+      }[done];
+      this.pillParts.site.textContent = `Not on ${host}`;
+    } else {
+      this.pillParts.text.textContent = done;
+    }
+    this.pill.removeAttribute("show");
+    void this.pill.offsetWidth; // (the same pill again: it comes up again)
     this.pill.setAttribute("show", "true");
-    this.hidePillSoon();
+    this.hidePillSoon(tab ? 6000 : 1800);
   },
 
-  hidePillSoon() {
+  hidePillSoon(ms = 6000) {
     clearTimeout(this.pillTimer);
-    this.pillTimer = setTimeout(() => this.pill?.removeAttribute("show"), 6000);
+    this.pillTimer = setTimeout(() => this.pill?.removeAttribute("show"), ms);
   },
 
   // "Show the page": as it is, for this page; "Not on <site>": and never
@@ -1628,7 +1660,7 @@ const FocusMode = {
     if (site) {
       const host = tab.linkedBrowser.currentURI?.host?.replace(/^www\./, "");
       if (host && !this.skips(host)) Services.prefs.setStringPref(this.SKIP, [...this.skipped, host].join(", "));
-      hint(`Focus mode leaves ${host} alone (Zenith › Keys › Focus mode)`);
+      this.say(null, `Focus mode leaves ${host} alone (Zenith › Keys › Focus mode › Sites left alone)`);
     }
     const actor = await this.actor(tab.linkedBrowser);
     actor?.sendAsyncMessage("undo");
@@ -1660,6 +1692,9 @@ const FocusMode = {
     Services.prefs.addObserver(this.PREF, watch);
     onUnload(() => Services.prefs.removeObserver(this.PREF, watch));
     watch();
+    // (Zen quit while focused: its toolbar setting back as it was.)
+    if (!this.on && Services.prefs.prefHasUserValue("zenith.internal.focus.zen.view.compact.hide-toolbar") &&
+        Services.wm.getMostRecentWindow("navigator:browser") === window) Bridge.apply("focus", { "zen.view.compact.hide-toolbar": null });
     window.ZenithFocus = this; // the switcher's :focus
   },
 };
@@ -2117,31 +2152,32 @@ const ZenithKeys = {
 };
 
 /* --- Float a tab (Alt+Shift+F) --------------------------------------------------
-   The tab you're on (or the one you right-click › Float this tab) floats,
-   its page carrying on as it was (nothing reloads), in one of two ways
-   (Keys › Float a tab › Floats as):
-     window  a small window of its own that stays on top of everything,
-             other apps too (a call or a stream while you work elsewhere);
-     pane    a small pane over the page inside Zen (another tab is in the
-             main view meanwhile).
-   Either has a slim bar of its own that shows when the pointer is near its
-   top: drag it to move the float (it settles against an edge it's let go
-   near; double-click to send it back to its corner), and its buttons put
-   the tab back in the window, switch between window and pane, minimise
-   (the window) and close the tab (Ctrl+Shift+T brings it back, in the main
-   window). A pane resizes from its corner; a window from its edges. The
-   same keys in a float window put the tab back; selecting a floating pane's
-   tab in the sidebar puts it back too. The float's size and corner are
-   remembered. */
+   The tab you're on (or the one you right-click › Float this tab) moves into
+   a small window of its own, its page carrying on as it was (nothing
+   reloads). The window has the focus once it opens, so Alt+Shift+F again
+   puts the tab back. It stays on top (Keys › Float a tab › Stays above):
+     zen  above its Zen window only, not other apps (the default); it closes
+          with that window (Ctrl+Shift+T brings it back floating, or the next start does);
+     all  above every app (a call or a stream while you work elsewhere).
+   Its bar: the page's title (click it, or Ctrl+L, Alt+D or F4, to type
+   another address), a pin (pinned, the bar stays above the page; unpinned,
+   it slides down when the pointer comes into the window or to its top
+   edge), back into the window, minimise (above every app) or roll up to
+   just the bar (above Zen), and close (Ctrl+Shift+T brings it back,
+   floating). Drag the bar to move it (it settles against an edge it's let
+   go near; double-click for its corner). A floating tab is kept with the
+   session: as Zen quits it goes back into its window, marked, and floats
+   again as Zen starts. */
 const FloatTab = {
   PREF: "zenith.plus.float-tab",
-  AS: "zenith.plus.float-as", // "" window · pane
-  PLACE: "zenith.internal.float.place", // { pane: [x, y, w, h] as shares of the content area }
+  ABOVE: "zenith.plus.float-above", // zen · all
+  PINNED: "zenith.internal.float.bar-pinned",
+  MARK: "zenithFloat", // a tab to float again once it's back (session)
   GAP: 16,
   NEAR: 48,
 
-  get as() {
-    return Services.prefs.getStringPref(this.AS, "") === "pane" ? "pane" : "window";
+  get above() {
+    return Services.prefs.getStringPref(this.ABOVE, "zen") === "all" ? "all" : "zen";
   },
 
   init() {
@@ -2164,12 +2200,12 @@ const FloatTab = {
       const on = Services.prefs.getBoolPref(this.PREF, true);
       key.toggleAttribute("disabled", !on);
       if (this.item) this.item.hidden = !on;
-      if (!on && this.pane) this.unpane();
     };
     Services.prefs.addObserver(this.PREF, watch);
     onUnload(() => Services.prefs.removeObserver(this.PREF, watch));
     watch();
     if (window.zenithFloatFrom) this.asWindow();
+    else this.asHome();
     window.ZenithFloat = this; // for tools/checks
   },
 
@@ -2187,71 +2223,241 @@ const FloatTab = {
     menu.addEventListener("popupshowing", e => {
       if (e.target !== menu) return;
       const tab = window.TabContextMenu?.contextTab;
-      const floating = window.zenithFloatFrom || (tab && tab === this.pane?.tab);
-      item.setAttribute("label", floating ? "Put back in the window" : "Float this tab");
-      item.disabled = !tab || tab.hasAttribute("zen-empty-tab") || tab.hasAttribute("zen-essential") && !floating;
+      item.setAttribute("label", window.zenithFloatFrom ? "Put back in the window" : "Float this tab");
+      item.disabled = !tab || tab.hasAttribute("zen-empty-tab") || (tab.hasAttribute("zen-essential") && !window.zenithFloatFrom);
     });
     item.addEventListener("command", () => {
       const tab = window.TabContextMenu?.contextTab;
       if (window.zenithFloatFrom) this.back(tab);
-      else if (tab && tab === this.pane?.tab) this.unpane();
       else this.float(tab);
     });
   },
 
   toggle() {
     if (window.zenithFloatFrom) return this.back();
-    if (this.pane && gBrowser.selectedTab === this.pane.tab) return this.unpane();
     return this.float(gBrowser.selectedTab);
   },
 
-  float(tab, as = this.as) {
-    if (!tab || tab.hasAttribute("zen-empty-tab")) return null;
-    return as === "pane" ? this.toPane(tab) : this.out(tab);
+  floating(tab) {
+    return !!tab && !tab.hasAttribute("zen-empty-tab");
   },
 
-  /* The float's bar (the same in a window and a pane) */
+  /* In a main window */
 
-  bar(where, kind) {
-    const bar = el("div", { class: "zenith-float-bar" });
-    const grip = el("div", { class: "zenith-float-grip" });
-    const title = el("span", { class: "zenith-float-title" });
-    const button = (glyph, tip, fn) => {
-      const b = el("button", { class: "zenith-float-button", title: tip });
-      b.textContent = glyph;
+  // Tabs marked to float again (closed from a float, or brought home as Zen
+  // quit or their window closed) float once they're back; above Zen, its
+  // floats come home with this window as it closes.
+  asHome() {
+    const restoring = e => {
+      const tab = e.target;
+      if (!SessionStore.getCustomTabValue(tab, this.MARK)) return;
+      SessionStore.deleteCustomTabValue(tab, this.MARK);
+      SessionStore.promiseAllWindowsRestored.then(() => setTimeout(() => {
+        if (tab.isConnected && Services.prefs.getBoolPref(this.PREF, true)) this.float(tab, { focus: Services.focus.activeWindow === window });
+      }, 400));
+    };
+    gBrowser.tabContainer.addEventListener("SSTabRestoring", restoring);
+    // As Zen starts: marked tabs come back asleep, which says nothing; they
+    // float once the session is back.
+    SessionStore.promiseAllWindowsRestored.then(() => setTimeout(() => {
+      if (!Services.prefs.getBoolPref(this.PREF, true)) return;
+      for (const tab of gBrowser.tabs) {
+        if (!tab.isConnected || !SessionStore.getCustomTabValue(tab, this.MARK)) continue;
+        SessionStore.deleteCustomTabValue(tab, this.MARK);
+        this.float(tab, { focus: false });
+      }
+    }, 800));
+    // This window closing: its floats above Zen close with it. Their tabs
+    // go to another Zen window's recently closed tabs (Ctrl+Shift+T there
+    // floats them again: Zen keeps no closed windows to bring back), or,
+    // with no other window (Zen is quitting), home, to float again next time.
+    const closing = () => {
+      const other = [...Services.wm.getEnumerator("navigator:browser")].reverse()
+        .find(w => w !== window && !w.zenithFloatFrom && !w.closed && !w.closing);
+      for (const win of Services.wm.getEnumerator("navigator:browser")) {
+        if (win.zenithFloatFrom !== window || win.ZenithFloat?.mode !== "zen") continue;
+        const moved = win.ZenithFloat.comeHome(other ?? window);
+        if (moved && other) other.gBrowser.removeTab(moved, { animate: false });
+      }
+    };
+    window.addEventListener("SSWindowClosing", closing);
+    onUnload(() => {
+      gBrowser.tabContainer.removeEventListener("SSTabRestoring", restoring);
+      window.removeEventListener("SSWindowClosing", closing);
+    });
+  },
+
+  float(tab, { focus = true } = {}) {
+    if (!this.floating(tab)) return null;
+    // Your only tab: a new one keeps this window (Firefox closes a window
+    // whose last tab leaves, and Zen's empty tab doesn't count).
+    if (!gBrowser.tabs.some(t => t !== tab && !t.closing && !t.hasAttribute("zen-empty-tab"))) {
+      gBrowser.addTrustedTab(window.BROWSER_NEW_TAB_URL || "about:newtab", { inBackground: true });
+    }
+    // Asleep (as it comes back at start): woken first, the way Firefox wakes
+    // a tab, by selecting it, so the window gets the page and not a blank;
+    // then the tab you were on is selected again.
+    if (!tab.linkedPanel || tab.hasAttribute("pending")) {
+      const was = gBrowser.selectedTab;
+      const woke = new Promise(resolve => {
+        tab.addEventListener("SSTabRestored", resolve, { once: true });
+        setTimeout(resolve, 5000);
+      });
+      gBrowser.selectedTab = tab;
+      return woke.then(() => {
+        if (!tab.isConnected) return null;
+        const win = this.float(tab, { focus });
+        if (was?.isConnected && was !== tab) gBrowser.selectedTab = was;
+        return win;
+      });
+    }
+    SessionStore.deleteCustomTabValue(tab, this.MARK);
+    const { w, h, x, y } = this.box(), mode = this.above;
+    // Above Zen: a window owned by this one (the system keeps it above this
+    // window only, minimises it with it, and closes it with it).
+    const features = { popup: "yes", resizable: "yes", outerWidth: w, outerHeight: h, left: x, top: y,
+                       ...(mode === "zen" ? { dependent: "yes" } : { alwaysontop: "yes" }) };
+    const win = gBrowser.replaceTabWithWindow(tab, features);
+    if (!win) return null;
+    // Only this tab: with Zen's window sync a new window would otherwise
+    // take every tab (and leave this window empty).
+    win._zenStartupSyncFlag = "unsynced";
+    win.zenithFloatFrom = window;
+    win.zenithFloatMode = mode;
+    if (focus) win.addEventListener("load", () => win.setTimeout(() => win.focus(), 0), { once: true });
+    return win;
+  },
+
+  // The float window's size on this screen (half the width on small
+  // screens, 40%, a third on big ones; 16:10) in the bottom right corner.
+  box() {
+    const s = screen, wide = s.availWidth;
+    const w = Math.round(wide * (wide <= 1400 ? 0.42 : wide < 2200 ? 0.34 : 0.28));
+    const h = Math.round(w * 0.625);
+    return { w, h, x: s.availLeft + s.availWidth - w - this.GAP, y: s.availTop + s.availHeight - h - this.GAP };
+  },
+
+  /* In the float window itself */
+
+  asWindow() {
+    this.mode = window.zenithFloatMode ?? this.above;
+    root.setAttribute("zenith-float", this.mode);
+    if (this.mode === "all") {
+      try {
+        window.docShell.treeOwner.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIAppWindow).zLevel = Ci.nsIAppWindow.highestZ;
+      } catch {}
+    }
+    this.buildBar();
+    const pinned = () => root.toggleAttribute("zenith-float-pinned", Services.prefs.getBoolPref(this.PINNED, true));
+    Services.prefs.addObserver(this.PINNED, pinned);
+    onUnload(() => Services.prefs.removeObserver(this.PINNED, pinned));
+    pinned();
+    // Ctrl+L, Alt+D, F4: type an address (the window has no address bar).
+    window.addEventListener("keydown", e => {
+      const k = e.key.toLowerCase();
+      if (!((e.ctrlKey && !e.altKey && !e.shiftKey && k === "l") || (e.altKey && !e.ctrlKey && !e.shiftKey && k === "d") || (e.key === "F4" && !e.altKey && !e.ctrlKey))) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.edit();
+    }, true);
+    // Ctrl+W, or the window closing any other way: the tab closes in the
+    // main window, so Ctrl+Shift+T there brings it back (floating).
+    document.getElementById("cmd_close")?.addEventListener("command", e => {
+      e.stopImmediatePropagation();
+      this.closeFromWindow();
+    }, true);
+    window.addEventListener("close", e => {
+      if (this.closing) return;
+      e.preventDefault();
+      this.closeFromWindow();
+    });
+    // Zen quitting: the tab goes home first, marked, so it floats again
+    // when Zen starts.
+    const quitting = () => !this.closing && this.comeHome();
+    Services.obs.addObserver(quitting, "quit-application-requested");
+    onUnload(() => Services.obs.removeObserver(quitting, "quit-application-requested"));
+    requestAnimationFrame(() => this.place());
+  },
+
+  buildBar() {
+    const holder = document.getElementById("zen-appcontent-wrapper") ?? document.body;
+    const bar = (this.bar = el("div", { class: "zenith-float-bar" }));
+    const title = (this.title = el("span", { class: "zenith-float-title", title: "Type an address (Ctrl+L)" }));
+    const button = (kind, tip, fn) => {
+      const b = el("button", { class: "zenith-float-button", kind, title: tip });
       b.addEventListener("click", e => {
         e.stopPropagation();
         fn();
       });
       return b;
     };
-    bar.append(grip, title,
-      button("↩", "Put back in the window (Alt+Shift+F)", () => (kind === "window" ? this.back() : this.unpane())),
-      button(kind === "window" ? "▭" : "⧉", kind === "window" ? "Make it a pane inside Zen" : "Make it a window on top of everything",
-             () => (kind === "window" ? this.windowToPane() : this.paneToWindow())),
-      ...(kind === "window" ? [button("–", "Minimise", () => window.minimize())] : []),
-      button("✕", "Close the tab (Ctrl+Shift+T brings it back)", () => (kind === "window" ? this.closeFromWindow() : this.closePane())));
-    where.append(bar);
-    return { bar, title };
+    const pin = button("pin", "", () => Services.prefs.setBoolPref(this.PINNED, !Services.prefs.getBoolPref(this.PINNED, true)));
+    const tipPin = () => pin.setAttribute("title", Services.prefs.getBoolPref(this.PINNED, true) ? "Unpin the bar: it shows when the pointer comes in" : "Pin the bar above the page");
+    Services.prefs.addObserver(this.PINNED, tipPin);
+    onUnload(() => Services.prefs.removeObserver(this.PINNED, tipPin));
+    tipPin();
+    bar.append(title, pin,
+      button("back", "Put back in the window (Alt+Shift+F)", () => this.back()),
+      this.mode === "all" ? button("minimise", "Minimise", () => window.minimize())
+                          : button("roll", "Roll up to the bar", () => this.roll()),
+      button("close", "Close the tab (Ctrl+Shift+T brings it back)", () => this.closeFromWindow()));
+    // (Unpinned: a strip along the top edge to bring it down.)
+    const edge = el("div", { class: "zenith-float-edge" });
+    holder.append(edge, bar);
+    const name = () => {
+      if (!bar.hasAttribute("editing")) title.textContent = gBrowser.selectedTab?.label ?? "";
+    };
+    gBrowser.tabContainer.addEventListener("TabAttrModified", name);
+    name();
+    // Unpinned, the bar comes down for a moment when the pointer comes into
+    // the window, and while it's on the top edge or the bar.
+    const peek = ms => {
+      root.setAttribute("zenith-float-peek", "true");
+      clearTimeout(this.peekTimer);
+      this.peekTimer = setTimeout(() => !bar.matches(":hover") && root.removeAttribute("zenith-float-peek"), ms);
+    };
+    edge.addEventListener("mouseenter", () => peek(1200));
+    bar.addEventListener("mouseleave", () => peek(400));
+    document.addEventListener("mouseover", e => !e.relatedTarget && peek(1500));
+    this.draggable(bar, () => [window.screenX, window.screenY],
+      ([x0, y0], dx, dy) => window.moveTo(Math.round(x0 + dx), Math.round(y0 + dy)),
+      moved => {
+        if (!moved) return;
+        const s = screen;
+        const [x, y] = this.settle(window.screenX, window.screenY, window.outerWidth, window.outerHeight,
+                                   s.availLeft, s.availTop, s.availLeft + s.availWidth, s.availTop + s.availHeight);
+        window.moveTo(x, y);
+      },
+      target => {
+        if (this.rolled) this.roll();
+        else if (target === title) this.edit();
+      });
+    bar.addEventListener("dblclick", e => !e.target.closest("button, input") && this.place());
   },
 
-  // Dragging the bar moves the float: move(dx, dy) from where it was;
-  // done() once let go.
-  draggable(bar, start, move, done) {
+  // Dragging the bar moves the float: move(from, dx, dy); done(moved) once
+  // let go; clicked(target) if it was let go where it was pressed.
+  draggable(bar, start, move, done, clicked) {
     bar.addEventListener("pointerdown", e => {
-      if (e.button !== 0 || e.target.closest("button")) return;
+      if (e.button !== 0 || e.target.closest("button, input")) return;
       e.preventDefault();
-      const from = start(), sx = e.screenX, sy = e.screenY;
+      const from = start(), sx = e.screenX, sy = e.screenY, target = e.target;
+      let moved = false;
       bar.setPointerCapture(e.pointerId);
-      bar.setAttribute("moving", "true");
-      const onMove = m => move(from, m.screenX - sx, m.screenY - sy);
+      const onMove = m => {
+        if (!moved && Math.abs(m.screenX - sx) + Math.abs(m.screenY - sy) < 4) return;
+        moved = true;
+        bar.setAttribute("moving", "true");
+        move(from, m.screenX - sx, m.screenY - sy);
+      };
       const up = () => {
         bar.removeEventListener("pointermove", onMove);
+        bar.removeEventListener("lostpointercapture", up);
         bar.removeAttribute("moving");
-        done();
+        done(moved);
+        if (!moved) clicked(target);
       };
       bar.addEventListener("pointermove", onMove);
-      bar.addEventListener("pointerup", up, { once: true });
       bar.addEventListener("lostpointercapture", up, { once: true });
     });
   },
@@ -2266,79 +2472,73 @@ const FloatTab = {
     return [Math.min(Math.max(x, L - w + 80), R - 80), Math.min(Math.max(y, T), B - 40)];
   },
 
-  /* A window on top of everything */
-
-  // The float window's size on this screen (half the width on small
-  // screens, 40%, a third on big ones; 16:10) in the bottom right corner.
-  box() {
-    const s = screen, wide = s.availWidth;
-    const w = Math.round(wide * (wide <= 1400 ? 0.42 : wide < 2200 ? 0.34 : 0.28));
-    const h = Math.round(w * 0.625);
-    return { w, h, x: s.availLeft + s.availWidth - w - this.GAP, y: s.availTop + s.availHeight - h - this.GAP };
-  },
-
-  // In the float window itself: its look, its bar, on top, placed.
-  asWindow() {
-    root.setAttribute("zenith-float", "true");
-    try {
-      window.docShell.treeOwner.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIAppWindow).zLevel = Ci.nsIAppWindow.highestZ;
-    } catch {}
-    const { bar, title } = this.bar(document.getElementById("zen-appcontent-wrapper") ?? document.body, "window");
-    const name = () => (title.textContent = gBrowser.selectedTab?.label ?? "");
-    gBrowser.tabContainer.addEventListener("TabAttrModified", name);
-    name();
-    this.draggable(bar, () => [window.screenX, window.screenY],
-      ([x0, y0], dx, dy) => window.moveTo(Math.round(x0 + dx), Math.round(y0 + dy)),
-      () => {
-        const s = screen;
-        const [x, y] = this.settle(window.screenX, window.screenY, window.outerWidth, window.outerHeight,
-                                   s.availLeft, s.availTop, s.availLeft + s.availWidth, s.availTop + s.availHeight);
-        window.moveTo(x, y);
-      });
-    bar.addEventListener("dblclick", e => !e.target.closest("button") && this.place());
-    // Ctrl+W, or the window closing any other way: the tab closes in the
-    // main window, so Ctrl+Shift+T there brings it back.
-    document.getElementById("cmd_close")?.addEventListener("command", e => {
-      e.stopImmediatePropagation();
-      this.closeFromWindow();
-    }, true);
-    window.addEventListener("close", e => {
-      if (this.closing) return;
-      e.preventDefault();
-      this.closeFromWindow();
-    });
-    requestAnimationFrame(() => this.place());
-  },
-
   // (Zen keeps windows fairly tall unless told otherwise: placed by the
   // size it got.)
   place() {
+    if (this.rolled) this.roll();
     const { w, h } = this.box(), s = screen;
     window.resizeTo(w, h);
     requestAnimationFrame(() => window.moveTo(s.availLeft + s.availWidth - window.outerWidth - this.GAP,
                                               Math.max(s.availTop, s.availTop + s.availHeight - window.outerHeight - this.GAP)));
   },
 
-  out(tab) {
-    if (!tab || tab.hasAttribute("zen-empty-tab")) return null;
-    // Your only tab: a new one keeps this window (Firefox closes a window
-    // whose last tab leaves, and Zen's empty tab doesn't count).
-    if (!gBrowser.tabs.some(t => t !== tab && !t.closing && !t.hasAttribute("zen-empty-tab"))) {
-      gBrowser.addTrustedTab(window.BROWSER_NEW_TAB_URL || "about:newtab", { inBackground: true });
+  // Rolled up: only the bar (a click on it, or its button, unrolls it).
+  roll() {
+    if (this.rolled) {
+      const [w, h] = this.rolled;
+      this.rolled = null;
+      root.removeAttribute("zenith-float-rolled");
+      window.resizeTo(w, h);
+      return;
     }
-    const { w, h, x, y } = this.box();
-    const win = gBrowser.replaceTabWithWindow(tab, { popup: "yes", alwaysontop: "yes", resizable: "yes", outerWidth: w, outerHeight: h, left: x, top: y });
-    if (!win) return null;
-    // Only this tab: with Zen's window sync a new window would otherwise
-    // take every tab (and leave this window empty).
-    win._zenStartupSyncFlag = "unsynced";
-    win.zenithFloatFrom = window;
-    return win;
+    this.rolled = [window.outerWidth, window.outerHeight];
+    root.setAttribute("zenith-float-rolled", "true");
+    const chrome = window.outerHeight - window.innerHeight;
+    window.resizeTo(window.outerWidth, Math.ceil(this.bar.getBoundingClientRect().height) + chrome);
+  },
+
+  // The title becomes an address field: Enter goes there (an address, or a
+  // search with your engine), Escape or clicking away leaves it be.
+  edit() {
+    const bar = this.bar;
+    if (!bar || bar.hasAttribute("editing")) return bar?.querySelector("input")?.select();
+    if (this.rolled) this.roll();
+    bar.setAttribute("editing", "true");
+    const input = el("input", { class: "zenith-float-address", type: "text", spellcheck: "false" });
+    input.value = gBrowser.selectedBrowser.currentURI?.displaySpec ?? "";
+    this.title.after(input);
+    const finish = go => {
+      if (!input.isConnected) return;
+      const text = input.value.trim();
+      input.remove();
+      bar.removeAttribute("editing");
+      this.title.textContent = gBrowser.selectedTab?.label ?? "";
+      if (!go || !text) return gBrowser.selectedBrowser.focus();
+      let flags = Ci.nsIURIFixup.FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP | Ci.nsIURIFixup.FIXUP_FLAG_FIX_SCHEME_TYPOS;
+      if (ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs").PrivateBrowsingUtils.isWindowPrivate(window)) flags |= Ci.nsIURIFixup.FIXUP_FLAG_PRIVATE_CONTEXT;
+      try {
+        const uri = Services.uriFixup.getFixupURIInfo(text, flags).preferredURI;
+        if (uri) gBrowser.selectedBrowser.loadURI(uri, { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });
+      } catch (e) {
+        console.error("[Zenith] float address", e);
+      }
+      gBrowser.selectedBrowser.focus();
+    };
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") finish(true);
+      else if (e.key === "Escape") finish(false);
+      else return;
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    input.addEventListener("blur", () => finish(false));
+    input.focus();
+    input.select();
   },
 
   home() {
     let home = window.zenithFloatFrom;
-    if (!home || home.closed) home = [...Services.wm.getEnumerator("navigator:browser")].reverse().find(w => w !== window && !w.zenithFloatFrom);
+    if (!home || home.closed) home = [...Services.wm.getEnumerator("navigator:browser")].reverse().find(w => w !== window && !w.zenithFloatFrom && !w.closed);
     return home ?? null;
   },
 
@@ -2352,162 +2552,29 @@ const FloatTab = {
     return moved;
   },
 
-  // Closed from the float window: back to the main window first, closed
-  // there (so it's among that window's closed tabs).
-  closeFromWindow() {
-    const home = this.home(), tab = gBrowser.selectedTab;
-    if (!home || !tab) {
-      this.closing = true;
-      return window.close();
-    }
+  // Home (marked, not selected) without a fuss: Zen quitting, or the window
+  // it floats above closing (that window: `to`).
+  comeHome(to = this.home()) {
+    const tab = gBrowser.selectedTab;
+    if (!to || !tab || this.closing) return null;
     this.closing = true;
-    const moved = home.gBrowser.adoptTab(tab, { selectTab: false });
-    if (moved) home.gBrowser.removeTab(moved, { animate: false });
+    const moved = to.gBrowser.adoptTab(tab, { selectTab: false });
+    if (moved) to.SessionStore.setCustomTabValue(moved, this.MARK, "1");
     return moved;
   },
 
-  windowToPane() {
+  // Closed from the float window: back to the main window first, closed
+  // there (so it's among that window's closed tabs, marked to float).
+  closeFromWindow() {
     const home = this.home(), tab = gBrowser.selectedTab;
-    if (!home || !tab) return;
     this.closing = true;
+    if (!home || !tab) return window.close();
     const moved = home.gBrowser.adoptTab(tab, { selectTab: false });
-    if (moved) home.ZenithFloat?.toPane(moved);
-  },
-
-  /* A pane inside Zen */
-
-  panel(tab) {
-    return tab?.linkedBrowser?.closest(".browserSidebarContainer") ?? null;
-  },
-
-  area() {
-    return document.getElementById("tabbrowser-tabpanels");
-  },
-
-  toPane(tab) {
-    if (this.pane) this.unpane();
-    const box = this.panel(tab), area = this.area();
-    if (!box || !area) return null;
-    // Something else in the main view: the tab you were on before, else
-    // the next one.
-    if (tab.selected) {
-      const next = gBrowser._findTabToBlurTo?.(tab) ?? gBrowser.visibleTabs.find(t => t !== tab && !t.hasAttribute("zen-empty-tab"));
-      if (next) gBrowser.selectedTab = next;
+    if (moved) {
+      home.SessionStore.setCustomTabValue(moved, this.MARK, "1");
+      home.gBrowser.removeTab(moved, { animate: false });
     }
-    const { bar, title } = this.bar(box, "pane");
-    const handle = el("div", { class: "zenith-float-resize", title: "Drag to resize" });
-    box.append(handle);
-    this.pane = { tab, box, bar, handle };
-    box.setAttribute("zenith-float-pane", "true");
-    root.setAttribute("zenith-float-pane-open", "true");
-    const name = () => (title.textContent = tab.label ?? "");
-    name();
-    // Keep it shown and painting while other tabs come and go in the main
-    // view; selecting it puts it back; it closing ends the pane.
-    const keep = () => {
-      if (!this.pane) return;
-      if (gBrowser.selectedTab === tab) return this.unpane();
-      box.classList.add("deck-selected");
-      try {
-        tab.linkedBrowser.docShellIsActive = true;
-      } catch {}
-    };
-    const closed = e => e.target === tab && this.unpane(false);
-    const attr = e => e.target === tab && name();
-    this.pane.listeners = [["TabSelect", () => setTimeout(keep, 0)], ["TabClose", closed], ["TabAttrModified", attr]];
-    for (const [type, fn] of this.pane.listeners) gBrowser.tabContainer.addEventListener(type, fn);
-    this.pane.keeper = setInterval(keep, 1000);
-    keep();
-    this.placePane();
-    const read = () => {
-      const r = area.getBoundingClientRect(), b = box.getBoundingClientRect();
-      return [b.left - r.left, b.top - r.top, b.width, b.height, r.width, r.height];
-    };
-    this.draggable(bar, read, ([x, y, w, h, W, H], dx, dy) => this.setPane(x + dx, y + dy, w, h, W, H), () => {
-      const [x, y, w, h, W, H] = read();
-      const [nx, ny] = this.settle(x, y, w, h, 0, 0, W, H);
-      this.setPane(nx, ny, w, h, W, H, true);
-    });
-    bar.addEventListener("dblclick", e => !e.target.closest("button") && this.placePane(true));
-    // The corner: drag to resize (16:10 kept unless Shift is held).
-    handle.addEventListener("pointerdown", e => {
-      if (e.button !== 0) return;
-      e.preventDefault();
-      const [x, y, w, h, W, H] = read(), sx = e.screenX, sy = e.screenY;
-      handle.setPointerCapture(e.pointerId);
-      const onMove = m => {
-        const nw = Math.max(240, Math.min(W - 8, w - (m.screenX - sx)));
-        const nh = m.shiftKey ? Math.max(150, Math.min(H - 8, h - (m.screenY - sy))) : Math.round(nw * (h / w));
-        this.setPane(x + w - nw, y + h - nh, nw, nh, W, H);
-      };
-      const up = () => {
-        handle.removeEventListener("pointermove", onMove);
-        const [px, py, pw, ph, PW, PH] = read();
-        this.setPane(px, py, pw, ph, PW, PH, true);
-      };
-      handle.addEventListener("pointermove", onMove);
-      handle.addEventListener("pointerup", up, { once: true });
-      handle.addEventListener("lostpointercapture", up, { once: true });
-    });
-    return box;
-  },
-
-  // Where the pane goes: where it was last time, else the bottom right
-  // corner at about a third of the content's width.
-  placePane(fresh = false) {
-    const area = this.area(), r = area.getBoundingClientRect();
-    let saved = null;
-    try {
-      saved = JSON.parse(Services.prefs.getStringPref(this.PLACE, "{}")).pane;
-    } catch {}
-    if (saved && !fresh) return this.setPane(saved[0] * r.width, saved[1] * r.height, saved[2] * r.width, saved[3] * r.height, r.width, r.height);
-    const w = Math.max(280, Math.round(r.width * 0.34)), h = Math.round(w * 0.625);
-    this.setPane(r.width - w - this.GAP, r.height - h - this.GAP, w, h, r.width, r.height, true);
-  },
-
-  setPane(x, y, w, h, W, H, save = false) {
-    const box = this.pane?.box;
-    if (!box) return;
-    w = Math.min(Math.max(w, 240), W);
-    h = Math.min(Math.max(h, 150), H);
-    x = Math.min(Math.max(x, -w + 80), W - 80);
-    y = Math.min(Math.max(y, 0), H - 40);
-    for (const [k, v] of Object.entries({ left: x, top: y, width: w, height: h })) box.style.setProperty(`--zth-pane-${k}`, `${Math.round(v)}px`);
-    if (save) Services.prefs.setStringPref(this.PLACE, JSON.stringify({ pane: [x / W, y / H, w / W, h / H] }));
-  },
-
-  // The pane's tab back in the main view (select = it's shown there).
-  unpane(select = true) {
-    const p = this.pane;
-    if (!p) return;
-    this.pane = null;
-    clearInterval(p.keeper);
-    for (const [type, fn] of p.listeners) gBrowser.tabContainer.removeEventListener(type, fn);
-    p.bar.remove();
-    p.handle.remove();
-    p.box.removeAttribute("zenith-float-pane");
-    for (const k of ["left", "top", "width", "height"]) p.box.style.removeProperty(`--zth-pane-${k}`);
-    root.removeAttribute("zenith-float-pane-open");
-    if (!p.tab.isConnected) return;
-    if (select) gBrowser.selectedTab = p.tab;
-    else if (!p.tab.selected) {
-      p.box.classList.remove("deck-selected");
-      try {
-        p.tab.linkedBrowser.docShellIsActive = false;
-      } catch {}
-    }
-  },
-
-  closePane() {
-    const tab = this.pane?.tab;
-    this.unpane(false);
-    if (tab?.isConnected) gBrowser.removeTab(tab, { animate: false });
-  },
-
-  paneToWindow() {
-    const tab = this.pane?.tab;
-    this.unpane(false);
-    if (tab?.isConnected) this.out(tab);
+    return moved;
   },
 };
 
@@ -2519,16 +2586,19 @@ const FloatTab = {
        corner), a small gap away;
      - drop it more than halfway past the left or right edge and it tucks
        away: only a sliver with an arrow stays on screen, the video keeps
-       playing; point at the sliver and it glides out while the pointer is
-       over it, click it and it comes back for good.
-   The window has no "moved" event, so its place is checked a few times a
-   second while it's open (and only then). The front browser window looks
-   after each picture-in-picture window. */
+       playing. Rest the pointer on the sliver for half a second (or click
+       it) and it comes out, its controls working; it goes back once you
+       click anywhere else. Drag it away from the edge to keep it out.
+   Nothing moves while the pointer merely passes by: the window only moves
+   on a rest, a click or a drag. The window has no "moved" event, so its
+   place is checked a few times a second while it's open (and only then).
+   The front browser window looks after each picture-in-picture window. */
 const PiPWindows = {
   PREF: "zenith.plus.pip-extras",
   GAP: 12,
   NEAR: 56,
   SLIVER: 40, // (the outer 14px are the window's resize edge, which the pointer can't hover)
+  REST: 500,
 
   init() {
     this.listener = {
@@ -2540,7 +2610,16 @@ const PiPWindows = {
     };
     Services.wm.addListener(this.listener);
     for (const win of Services.wm.getEnumerator("Toolkit:PictureInPicture")) this.attach(win);
-    onUnload(() => Services.wm.removeListener(this.listener));
+    // A click in any Zen window is a click elsewhere: a picture-in-picture
+    // that came out for a visit goes back.
+    const elsewhere = () => {
+      for (const win of Services.wm.getEnumerator("Toolkit:PictureInPicture")) win.zenithPiP?.owner.tuckBack(win);
+    };
+    window.addEventListener("mousedown", elsewhere, true);
+    onUnload(() => {
+      Services.wm.removeListener(this.listener);
+      window.removeEventListener("mousedown", elsewhere, true);
+    });
     window.ZenithPiP = this; // for tools/checks
   },
 
@@ -2551,59 +2630,41 @@ const PiPWindows = {
   attach(win) {
     if (win.document.documentElement.getAttribute("windowtype") !== "Toolkit:PictureInPicture" || win.zenithPiP) return;
     if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
-    const state = (win.zenithPiP = { at: [win.screenX, win.screenY], still: 0, tucked: null });
+    const state = (win.zenithPiP = { owner: this, at: [win.screenX, win.screenY], still: 0, tucked: null, visiting: null, calmUntil: 0 });
     const wheel = e => this.on() && !state.tucked && this.resize(win, e);
-    // Tucked: resting the pointer on the sliver brings it out for a look
-    // (flush with the screen edge, so it stays under the pointer), and
-    // leaving it for a moment tucks it away again; a click keeps it out.
-    // The pointer over the video is the page's (another process), so a
-    // clear cover over the window catches it while it's tucked.
+    // Tucked, the pointer over the video would be the page's (another
+    // process): a clear cover in the controls' layer catches it.
     const doc = win.document;
     const cover = (state.cover = doc.createElementNS("http://www.w3.org/1999/xhtml", "div"));
     cover.id = "zenith-pip-cover";
     cover.hidden = true;
-    // (Inside the controls' layer, which the pointer reaches over the video.)
     (doc.getElementById("controls") ?? doc.body ?? doc.documentElement).append(cover);
+    const cancel = () => {
+      win.clearTimeout(state.restTimer);
+      state.restTimer = null;
+    };
     cover.addEventListener("mousedown", e => {
       if (!state.tucked || e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
-      win.clearTimeout(state.enterTimer);
-      win.clearTimeout(state.leaveTimer);
-      state.enterTimer = null;
-      this.untuck(win);
+      cancel();
+      this.visit(win);
     });
-    // Moving the window under a still pointer makes the system report the
-    // pointer leaving (and coming back): a leave counts only if the pointer
-    // is really outside the window.
-    const inside = ([x, y] = []) => x >= win.screenX && x < win.screenX + win.outerWidth && y >= win.screenY && y < win.screenY + win.outerHeight;
-    cover.addEventListener("mousemove", e => (state.pointer = [e.screenX, e.screenY]));
-    cover.addEventListener("mouseenter", e => {
-      state.pointer = [e.screenX, e.screenY];
-      if (!state.tucked) return;
-      win.clearTimeout(state.leaveTimer);
-      if (state.peek || state.enterTimer) return;
-      state.enterTimer = win.setTimeout(() => {
-        state.enterTimer = null;
-        if (state.tucked && !state.peek) this.peek(win, true);
-      }, 120);
-    });
-    state.tuckSoon = () => {
-      win.clearTimeout(state.leaveTimer);
-      const later = () => {
-        if (!state.tucked || !state.peek) return;
-        if (state.animating) return void (state.leaveTimer = win.setTimeout(later, 150));
-        if (!inside(state.pointer)) this.peek(win, false);
-      };
-      state.leaveTimer = win.setTimeout(later, 350);
+    // A rest: the pointer moved onto the sliver and stayed on it. (Right
+    // after tucking, a pointer already there doesn't count until it moves.)
+    const rest = () => {
+      if (!state.tucked || state.animating || state.restTimer || Date.now() < state.calmUntil) return;
+      state.restTimer = win.setTimeout(() => {
+        state.restTimer = null;
+        if (state.tucked && !state.animating) this.visit(win);
+      }, this.REST);
     };
-    cover.addEventListener("mouseleave", e => {
-      state.pointer = [e.screenX, e.screenY];
-      if (!state.tucked || inside(state.pointer)) return;
-      win.clearTimeout(state.enterTimer);
-      state.enterTimer = null;
-      if (state.peek && !state.animating) state.tuckSoon();
-    });
+    cover.addEventListener("mousemove", rest);
+    cover.addEventListener("mouseenter", rest);
+    cover.addEventListener("mouseleave", cancel);
+    // Out for a visit: clicking anywhere else puts it back (another app
+    // included, once the window has had the focus).
+    win.addEventListener("deactivate", () => this.tuckBack(win));
     win.addEventListener("wheel", wheel, { passive: false });
     const watch = win.setInterval(() => this.watch(win), 150);
     win.addEventListener("unload", () => win.clearInterval(watch), { once: true });
@@ -2614,7 +2675,8 @@ const PiPWindows = {
     return { L: s.availLeft, T: s.availTop, R: s.availLeft + s.availWidth, B: s.availTop + s.availHeight };
   },
 
-  // The window moved and then stayed put for a moment: it was let go.
+  // The window moved and then stayed put for a moment: it was let go (and
+  // a visit became its place).
   watch(win) {
     const state = win.zenithPiP;
     const at = [win.screenX, win.screenY];
@@ -2626,6 +2688,7 @@ const PiPWindows = {
     }
     if (!state.moved || ++state.still < 2) return;
     state.moved = false;
+    state.visiting = null;
     if (this.on() && !state.tucked) this.settle(win);
   },
 
@@ -2645,36 +2708,36 @@ const PiPWindows = {
   },
 
   tuck(win, side) {
+    const state = win.zenithPiP;
     const { L, T, R, B } = this.screen(win);
     const w = win.outerWidth, h = win.outerHeight;
     const y = Math.min(Math.max(win.screenY, T + this.GAP), B - h - this.GAP);
-    win.zenithPiP.tucked = { side, y };
-    win.zenithPiP.cover.hidden = false;
+    state.tucked = { side, y };
+    state.visiting = null;
+    state.cover.hidden = false;
     win.document.documentElement.setAttribute("zenith-pip-tucked", side);
-    this.glide(win, side === "left" ? L - w + this.SLIVER : R - this.SLIVER, y);
+    this.glide(win, side === "left" ? L - w + this.SLIVER : R - this.SLIVER, y, () => (state.calmUntil = Date.now() + 400));
   },
 
-  untuck(win) {
+  // Out for a visit: the whole window by its edge, its controls working
+  // (the cover goes), and the focus, so a click elsewhere is noticed.
+  visit(win) {
     const state = win.zenithPiP, { side, y } = state.tucked;
     const { L, R } = this.screen(win);
+    state.visiting = state.tucked;
     state.tucked = null;
-    state.peek = false;
     state.cover.hidden = true;
     win.document.documentElement.removeAttribute("zenith-pip-tucked");
-    win.document.documentElement.removeAttribute("zenith-pip-peek");
     this.glide(win, side === "left" ? L + this.GAP : R - win.outerWidth - this.GAP, y);
+    try {
+      win.focus();
+    } catch {}
   },
 
-  // Out for a look (still tucked: leaving puts it back), or back in. Out
-  // means flush with the edge: with a gap, the pointer resting on the
-  // sliver would end up beside it, and it would tuck straight back.
-  peek(win, out) {
-    const state = win.zenithPiP, { side, y } = state.tucked;
-    const { L, R } = this.screen(win), w = win.outerWidth;
-    state.peek = out;
-    win.document.documentElement.toggleAttribute("zenith-pip-peek", out);
-    // (Out: if the pointer left while it slid, it goes back in.)
-    this.glide(win, out ? (side === "left" ? L : R - w) : (side === "left" ? L - w + this.SLIVER : R - this.SLIVER), y, out ? () => state.tuckSoon() : null);
+  tuckBack(win) {
+    const state = win.zenithPiP;
+    if (!state?.visiting || state.animating || !this.on()) return;
+    this.tuck(win, state.visiting.side);
   },
 
   // A short slide to a place (a few steps; the window can't be animated).
@@ -2892,6 +2955,12 @@ const LinkHints = {
 const WarmStart = {
   async init() {
     window.ZenithWarmStart = this; // for tools/checks
+    // (0.12.2's picture of the last page is gone, and so is the picture.)
+    if (Services.prefs.prefHasUserValue("zenith.internal.last-page")) {
+      Services.prefs.clearUserPref("zenith.internal.last-page");
+      Services.prefs.clearUserPref("zenith.plus.last-page");
+      IOUtils.remove(PathUtils.join(PathUtils.profileDir, "zenith-last-page.jpg"), { ignoreAbsent: true }).catch(() => {});
+    }
     try {
       const SessionStartup = sessionStartup();
       if (!SessionStartup || SessionStartup.zenithWarmed) return;
@@ -2909,154 +2978,6 @@ const WarmStart = {
       this.warmed = uri.host;
     } catch (e) {
       console.error("[Zenith] warm start", e);
-    }
-  },
-};
-
-/* --- The last page at once -----------------------------------------------------
-   As Zen starts, the page you were on takes a moment to come back: Firefox
-   restores it about half a second after the window appears, then it loads.
-   From the moment Zenith starts (Zen starts it a little after the window
-   appears), the picture of it you last saw is shown in its place, until
-   the page itself has loaded (or you click or type, or 6 seconds
-   pass); a picture of another page than the one coming back isn't shown.
-   The picture is taken when you've stayed on a page for a moment (never in
-   private windows, and only of web pages and Zen's own) and kept in your
-   profile folder (zenith-last-page.jpg, beside Firefox's own session).
-   Speed and AI › Starting Zen. */
-const LastPage = {
-  PREF: "zenith.plus.last-page",
-  META: "zenith.internal.last-page", // { url, at }
-
-  get on() {
-    return Services.prefs.getBoolPref(this.PREF, true);
-  },
-
-  get file() {
-    return PathUtils.join(PathUtils.profileDir, "zenith-last-page.jpg");
-  },
-
-  init() {
-    window.ZenithLastPage = this; // for tools/checks
-    const SessionStartup = sessionStartup();
-    // Once per run of Zen, in the first window.
-    if (SessionStartup && !SessionStartup.zenithLastPage && this.on) {
-      SessionStartup.zenithLastPage = true;
-      this.show(SessionStartup);
-    }
-    this.watch();
-  },
-
-  async show(SessionStartup) {
-    let meta = null;
-    try {
-      meta = JSON.parse(Services.prefs.getStringPref(this.META, ""));
-    } catch {}
-    if (!meta?.url || Date.now() - (meta.at ?? 0) > 30 * 86400000) return;
-    const area = document.getElementById("tabbrowser-tabpanels");
-    if (!area) return;
-    const img = (this.img = el("img", { id: "zenith-last-page", alt: "" }));
-    img.src = `${PathUtils.toFileURI(this.file)}?${meta.at}`;
-    img.addEventListener("error", () => this.hide("no picture"), { once: true });
-    // Over the page's area, from outside Firefox's panels (they hold tabs only).
-    const place = () => {
-      const r = area.getBoundingClientRect();
-      Object.assign(img.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
-    };
-    place();
-    (document.getElementById("zen-main-app-wrapper") ?? document.documentElement).append(img);
-    new ResizeObserver(() => this.img && place()).observe(area);
-    this.trace = { shown: Math.round(performance.now()), url: meta.url }; // (for tools/checks)
-    const gone = why => this.hide(why);
-    window.addEventListener("mousedown", () => gone("click"), { capture: true, once: true });
-    window.addEventListener("keydown", () => gone("key"), { capture: true, once: true });
-    this.giveUp = setTimeout(() => gone("time"), 6000);
-    // Only for the page that's coming back: the tab you're on, once Firefox
-    // has put it back.
-    let spec = "";
-    for (let i = 0; i < 40 && this.img; i++) {
-      spec = gBrowser.selectedBrowser?.currentURI?.spec ?? "";
-      if (spec && spec !== "about:blank") break;
-      await new Promise(r => setTimeout(r, 100));
-    }
-    if (!this.img) return;
-    if (spec !== meta.url) return this.hide("another page");
-    // (Already loaded meanwhile.)
-    if (!gBrowser.selectedBrowser.webProgress?.isLoadingDocument && gBrowser.selectedTab.hasAttribute("busy") === false &&
-        !gBrowser.selectedTab.hasAttribute("pending")) {
-      return requestAnimationFrame(() => requestAnimationFrame(() => gone("loaded")));
-    }
-    // Gone once that page has loaded in the tab you're on.
-    this.progress = {
-      onStateChange: (browser, webProgress, request, flags) => {
-        const done = flags & Ci.nsIWebProgressListener.STATE_STOP && flags & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
-        if (done && webProgress?.isTopLevel && browser === gBrowser.selectedBrowser && browser.currentURI?.spec === meta.url) {
-          requestAnimationFrame(() => requestAnimationFrame(() => gone("loaded")));
-        }
-      },
-    };
-    gBrowser.addTabsProgressListener(this.progress);
-  },
-
-  hide(why = "") {
-    clearTimeout(this.giveUp);
-    if (this.trace && !this.trace.hidden) Object.assign(this.trace, { hidden: Math.round(performance.now()), why });
-    if (this.progress) gBrowser.removeTabsProgressListener(this.progress);
-    this.progress = null;
-    const img = this.img;
-    this.img = null;
-    if (!img) return;
-    img.setAttribute("leaving", "true");
-    setTimeout(() => img.remove(), 200);
-  },
-
-  // A picture of the page you stay on (a moment after it's loaded or you
-  // switch to it; the same page at most every 15 seconds).
-  watch() {
-    const { PrivateBrowsingUtils } = ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs");
-    if (PrivateBrowsingUtils.isWindowPrivate(window)) return;
-    const soon = () => {
-      clearTimeout(this.timer);
-      if (this.on) this.timer = setTimeout(() => this.capture(), 2500);
-    };
-    this.listener = {
-      onStateChange: (browser, webProgress, request, flags) => {
-        const done = flags & Ci.nsIWebProgressListener.STATE_STOP && flags & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
-        if (done && webProgress?.isTopLevel && browser === gBrowser.selectedBrowser) soon();
-      },
-    };
-    gBrowser.addTabsProgressListener(this.listener);
-    gBrowser.tabContainer.addEventListener("TabSelect", soon);
-    onUnload(() => {
-      clearTimeout(this.timer);
-      gBrowser.removeTabsProgressListener(this.listener);
-      gBrowser.tabContainer.removeEventListener("TabSelect", soon);
-    });
-  },
-
-  async capture() {
-    if (!this.on || this.img || document.hidden || Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
-    const browser = gBrowser.selectedBrowser, spec = browser?.currentURI?.spec ?? "";
-    if (!/^(https?|about):/.test(spec) || spec === "about:blank" || browser.webProgress?.isLoadingDocument) return;
-    if (spec === this.lastSpec && Date.now() - (this.last ?? 0) < 15000) return;
-    this.last = Date.now();
-    this.lastSpec = spec;
-    try {
-      const r = browser.getBoundingClientRect();
-      if (r.width < 200 || r.height < 150) return;
-      const scale = Math.min(1, 1400 / r.width) * window.devicePixelRatio;
-      const bitmap = await browser.drawSnapshot(0, 0, r.width, r.height, scale, "white");
-      const canvas = document.createElementNS(HTML_NS, "canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.getContext("2d").drawImage(bitmap, 0, 0);
-      bitmap.close?.();
-      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.72));
-      if (!blob) return;
-      await IOUtils.write(this.file, new Uint8Array(await blob.arrayBuffer()));
-      Services.prefs.setStringPref(this.META, JSON.stringify({ url: spec, at: Date.now() }));
-    } catch (e) {
-      console.error("[Zenith] last page picture", e);
     }
   },
 };
@@ -3186,13 +3107,29 @@ const DownloadDelete = {
   },
 
   // Zen's Library, Downloads: its rows don't carry their download, so each
-  // is found by its file name (and where it came from).
+  // is found by its file name (and where it came from). (Its sections draw
+  // inside shadow roots: they're searched, and watched, too.)
   watchLibrary() {
     const lib = document.querySelector("zen-library");
     if (!lib) return;
+    const roots = () => {
+      const out = [lib];
+      for (let i = 0; i < out.length; i++) {
+        for (const n of out[i].querySelectorAll("*")) if (n.shadowRoot) out.push(n.shadowRoot);
+        if (out[i].shadowRoot) out.push(out[i].shadowRoot);
+      }
+      return [...new Set(out)];
+    };
+    const watched = new WeakSet();
     const add = async () => {
-      if (lib.activeTab !== "downloads" || this.mode === "off") return;
-      const rows = [...lib.querySelectorAll(".zen-library-row")].filter(r => !r.querySelector(".zenith-download-delete"));
+      for (const r of roots()) {
+        if (watched.has(r)) continue;
+        watched.add(r);
+        watcher.observe(r, { childList: true, subtree: true });
+      }
+      if (this.mode === "off") return;
+      const rows = roots().flatMap(r => [...r.querySelectorAll(".zen-library-row")])
+        .filter(r => !r.querySelector(".zenith-download-delete") && r.querySelector(".zen-library-download-url, .zen-library-download-status"));
       if (!rows.length) return;
       const { Downloads } = ChromeUtils.importESModule("resource://gre/modules/Downloads.sys.mjs");
       const all = (await (await Downloads.getList(Downloads.ALL)).getAll()).filter(d => this.finished(d));
@@ -3213,7 +3150,7 @@ const DownloadDelete = {
       clearTimeout(this.libTimer);
       this.libTimer = setTimeout(add, 60);
     });
-    watcher.observe(lib, { childList: true, subtree: true });
+    add();
     onUnload(() => watcher.disconnect());
   },
 
@@ -3396,6 +3333,7 @@ const CtrlTabOrder = {
   PREF: "zenith.plus.ctrl-tab",
 
   init() {
+    window.ZenithCtrlTab = this; // for tools/checks
     const apply = () => this.apply();
     Services.prefs.addObserver(this.PREF, apply);
     onUnload(() => {
@@ -3471,8 +3409,11 @@ const CtrlTabOrder = {
   // from the one you're on round to the one before it; asleep ones too.
   // With more tabs than the row holds, the ones just before this one take
   // its end, so going back (Ctrl+Shift+Tab) lands on the previous tab.
+  // (A tab with a glance open is its glance: that's what's selected and
+  // shown for it.)
   inOrder() {
-    const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
+    const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"))
+      .map(t => t.glanceTab ?? t);
     const i = Math.max(0, tabs.indexOf(gBrowser.selectedTab));
     const round = [...tabs.slice(i), ...tabs.slice(0, i)];
     const max = window.ctrlTab?.maxTabPreviews ?? 7;
@@ -3560,13 +3501,15 @@ const UnpinnedGroups = {
     this.remember();
   },
 
-  // Each tab in such a folder carries the folder's id in its session data,
-  // so a closed one (Ctrl+Shift+T) comes back into its folder.
+  // Each tab in a folder (any folder: pinned ones too) carries the folder's
+  // id in its session data ("~" first for one that acts unpinned), so a
+  // closed one (Ctrl+Shift+T) comes back into its folder.
   remember() {
     clearTimeout(this.remembering);
     this.remembering = setTimeout(() => {
       for (const tab of gBrowser.tabs) {
-        const folder = this.mode === "folders" && tab.group?.isZenFolder && this.folderOf(tab) ? tab.group.id : "";
+        const loose = this.mode === "folders" && this.folderOf(tab);
+        const folder = tab.group?.isZenFolder && !tab.hasAttribute("zen-empty-tab") ? `${loose ? "~" : ""}${tab.group.id}` : "";
         try {
           if ((SessionStore.getCustomTabValue(tab, this.KEY) || "") === folder) continue;
           if (folder) SessionStore.setCustomTabValue(tab, this.KEY, folder);
@@ -3577,13 +3520,16 @@ const UnpinnedGroups = {
   },
 
   // A tab coming back from being closed: into its folder, if it's still
-  // there; else as the ordinary unpinned tab it acted as.
+  // there; else, from a folder that acted unpinned, as the ordinary
+  // unpinned tab it acted as.
   restore(tab) {
     let id = "";
     try {
       id = SessionStore.getCustomTabValue(tab, this.KEY) || "";
     } catch {}
-    if (!id || this.mode !== "folders") return;
+    const loose = id.startsWith("~");
+    id = id.replace(/^~/, "");
+    if (!id) return;
     const folder = document.getElementById(id);
     if (folder?.isZenFolder && folder.isConnected) {
       if (tab.group === folder) return;
@@ -3591,7 +3537,7 @@ const UnpinnedGroups = {
       if (space && tab.getAttribute("zen-workspace-id") !== space) window.gZenWorkspaces?.moveTabsToWorkspace?.([tab], space);
       if (!tab.pinned) gBrowser.pinTab(tab);
       folder.addTabs([tab]);
-    } else if (tab.pinned && !tab.group) {
+    } else if (loose && tab.pinned && !tab.group) {
       gBrowser.unpinTab(tab);
       try {
         SessionStore.deleteCustomTabValue(tab, this.KEY);
@@ -3724,12 +3670,18 @@ const UnpinnedGroups = {
      Per site  Allow, Until you close Zen, Block, or as the policy says:
                Firefox's own cookie exceptions (Settings › Privacy shows
                them too); and deleting a site's cookies and data.
-   Firefox does the keeping and blocking; Zenith only sets it up. */
+     Notices   the first time Zenith does something on a site (this run of
+               Zen): a banner refused or hidden, or cookies blocked beyond
+               what Firefox blocks on its own; each with Undo, which leaves
+               that site alone (so no site stays broken by it).
+   Firefox does the keeping and blocking; Zenith only sets it up. Nothing
+   from private windows is kept, not even in the page's "lately". */
 const Cookies = {
   BANNERS: "zenith.plus.cookie-banners", // "" reject (else hide) · reject · hide · off
   SKIP: "zenith.plus.cookie-banners-skip",
   POLICY: "zenith.plus.cookie-policy", // "" Firefox's own · cross · trackers · all
   KEEP: "zenith.plus.cookie-keep", // "" until they expire · session
+  NOTICES: "zenith.plus.cookie-notices",
   URL: "about:zenith-cookies",
   RULES: { allow: Ci.nsIPermissionManager.ALLOW_ACTION, session: 8 /* ACCESS_SESSION */, block: Ci.nsIPermissionManager.DENY_ACTION },
 
@@ -3747,6 +3699,10 @@ const Cookies = {
     });
     banners();
     policy();
+    // Cookies blocked beyond Firefox's own blocking: told, with Undo.
+    this.blocking = { onContentBlockingEvent: (browser, webProgress, request, event) => webProgress?.isTopLevel !== false && this.blocked(browser, event) };
+    gBrowser.addTabsProgressListener(this.blocking);
+    onUnload(() => gBrowser.removeTabsProgressListener(this.blocking));
     const commandset = document.createXULElement("commandset");
     const command = document.createXULElement("command");
     command.id = "zenith-cookies-command";
@@ -3809,6 +3765,86 @@ const Cookies = {
     });
   },
 
+  /* Notices */
+
+  // Told once per site and thing this run of Zen (shared by every window).
+  async firstTime(site, what) {
+    let told;
+    try {
+      told = ChromeUtils.importESModule(this.actorURL ?? new URL("../pages/cookies.sys.mjs", import.meta.url).href).told;
+    } catch {
+      told = Cookies.told ??= new Set();
+    }
+    const key = `${site} ${what}`;
+    if (told.has(key)) return false;
+    told.add(key);
+    return true;
+  },
+
+  noticesOn() {
+    return Services.prefs.getBoolPref(this.NOTICES, true);
+  },
+
+  // A banner answered (from the page's actor).
+  async acted(browser, data, actor) {
+    const site = this.site(data?.host);
+    if (!site || !this.noticesOn() || !(await this.firstTime(site, data.how))) return;
+    const rejected = data.how === "rejected", tool = data.tool && data.tool !== "banner" ? ` (${data.tool})` : "";
+    notice({
+      title: rejected ? `Cookies refused on ${site}` : `Cookie banner hidden on ${site}`,
+      body: rejected ? `Zenith pressed Reject${tool}. Undo forgets that answer and leaves this site's banners to you.`
+                     : `It had no Reject button${tool}. Undo shows it again and leaves this site's banners to you.`,
+      actions: [
+        { label: "Undo", run: () => this.undoBanner(browser, site, rejected, actor) },
+        { label: "Cookies…", run: () => this.open(site) },
+      ],
+    });
+  },
+
+  async undoBanner(browser, site, rejected, actor) {
+    this.setBannersLeftAlone(site, true);
+    try {
+      actor?.sendAsyncMessage?.("undo");
+    } catch {}
+    if (!rejected) return;
+    // (The answer the site stored goes, so it asks again.)
+    await this.remove(site);
+    browser?.reload?.();
+  },
+
+  // Firefox told the tab cookies were blocked: beyond its own blocking (a
+  // stricter policy of Zenith's), the first time on this site.
+  async blocked(browser, event) {
+    const F = Ci.nsIWebProgressListener, policy = Services.prefs.getStringPref(this.POLICY, "");
+    if (!["cross", "all"].includes(policy) || !this.noticesOn()) return;
+    const kind = event & F.STATE_COOKIES_BLOCKED_ALL ? "all" : event & F.STATE_COOKIES_BLOCKED_FOREIGN ? "cross" : null;
+    if (!kind) return;
+    const site = this.site(browser?.currentURI?.host);
+    if (!site || this.rules().get(site) === "allow" || !(await this.firstTime(site, kind))) return;
+    notice({
+      title: `Cookies blocked on ${site}`,
+      body: kind === "all" ? "Zenith blocks every cookie except the sites you allow. If this site doesn't work as it should, allow it."
+                           : "Zenith blocks cookies from other sites here. If something on this site doesn't work (a login, a video), allow them.",
+      actions: [
+        { label: "Allow on this site", run: () => this.allowHere(browser, site, kind) },
+        { label: "Cookies…", run: () => this.open(site) },
+      ],
+    });
+  },
+
+  async allowHere(browser, site, kind) {
+    if (kind === "all") this.setRule(site, "allow");
+    else {
+      try {
+        const { ContentBlockingAllowList } = ChromeUtils.importESModule("resource://gre/modules/ContentBlockingAllowList.sys.mjs");
+        ContentBlockingAllowList.add(browser);
+      } catch {
+        this.setRule(site, "allow");
+      }
+    }
+    browser?.reload?.();
+  },
+
   /* Sites */
 
   site(host) {
@@ -3824,6 +3860,7 @@ const Cookies = {
   sites() {
     const by = new Map();
     for (const c of Services.cookies.cookies) {
+      if (c.originAttributes?.privateBrowsingId) continue;
       const site = this.site(c.host);
       const e = by.get(site) ?? { site, count: 0 };
       e.count++;
@@ -3935,46 +3972,57 @@ const Cookies = {
 };
 
 /* --- Split views: reorder from the sidebar ----------------------------------------
-   Zen won't move a tab within its split view in the sidebar (only in the
-   split itself, by its rearranging view). Here, dropping a split view's
-   tab on another tab of the same split swaps them: their places in the
-   split and in the sidebar. The tab it'd swap with is outlined while you
-   drag over it. */
+   Zen drags a whole split view by any of its tabs. Here, while you drag one
+   of its tabs and the pointer stays within the split view's box in the
+   sidebar, the split view stays put and the tab under the pointer is
+   outlined: let go there and the two swap (their places in the split and
+   in the sidebar). Leave the box and it's Zen's drag of the whole split
+   view, as before. */
 const SplitReorder = {
-  TYPE: "application/x-moz-tabbrowser-tab",
-
   init() {
-    const box = gBrowser.tabContainer;
-    const pair = e => {
-      const dragged = e.dataTransfer?.mozGetDataAt?.(this.TYPE, 0);
-      const target = e.target?.closest?.("tab");
-      if (!dragged || !target || dragged === target || !dragged.group?.hasAttribute("split-view-group") || target.group !== dragged.group) return null;
-      return [dragged, target];
+    const start = e => {
+      this.drag = null;
+      // (A drag that starts on the tab's title starts on its text, or
+      // further out: then it's the tab the button went down on.)
+      const node = e.target?.nodeType === Node.TEXT_NODE ? e.target.parentElement : e.target;
+      const tab = node?.closest?.("tab.tabbrowser-tab") ?? (Date.now() - (this.pressed?.at ?? 0) < 3000 ? this.pressed.tab : null);
+      const group = tab?.group;
+      if (!group?.hasAttribute("split-view-group") || !gBrowser.tabContainer.contains(tab)) return;
+      const tabs = (group.tabs ?? [...group.querySelectorAll("tab.tabbrowser-tab")]).filter(t => t.isConnected);
+      if (tabs.length < 2) return;
+      this.drag = { tab, group, box: group.getBoundingClientRect(), places: tabs.map(t => [t, t.getBoundingClientRect()]) };
     };
+    const within = (r, e) => e.clientX >= r.left && e.clientX < r.right && e.clientY >= r.top && e.clientY < r.bottom;
     const over = e => {
-      const p = pair(e);
-      this.mark(p?.[1] ?? null);
-      if (!p) return;
+      if (!this.drag) return;
+      if (!within(this.drag.box, e)) return this.mark(null);
+      // (Zen's own handling would move the whole split view.)
       e.preventDefault();
-      e.stopPropagation();
-      e.dataTransfer.dropEffect = "move";
+      e.stopImmediatePropagation();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      const t = this.drag.places.find(([, r]) => within(r, e))?.[0];
+      this.mark(t && t !== this.drag.tab ? t : null);
     };
     const drop = e => {
-      const p = pair(e);
-      this.mark(null);
-      if (!p) return;
+      if (!this.drag || !within(this.drag.box, e)) return;
       e.preventDefault();
-      e.stopPropagation();
-      this.swap(...p);
+      e.stopImmediatePropagation();
+      const target = this.marked;
+      this.mark(null);
+      if (target) this.swap(this.drag.tab, target);
     };
-    const end = () => this.mark(null);
-    box.addEventListener("dragover", over, true);
-    box.addEventListener("drop", drop, true);
-    box.addEventListener("dragend", end, true);
+    const end = () => {
+      this.mark(null);
+      this.drag = null;
+    };
+    const press = e => {
+      const tab = e.button === 0 && e.target?.closest?.("tab.tabbrowser-tab");
+      this.pressed = tab?.group?.hasAttribute("split-view-group") ? { tab, at: Date.now() } : null;
+    };
+    const listeners = [["mousedown", press], ["dragstart", start], ["dragover", over], ["drop", drop], ["dragend", end]];
+    for (const [type, fn] of listeners) window.addEventListener(type, fn, true);
     onUnload(() => {
-      box.removeEventListener("dragover", over, true);
-      box.removeEventListener("drop", drop, true);
-      box.removeEventListener("dragend", end, true);
+      for (const [type, fn] of listeners) window.removeEventListener(type, fn, true);
     });
     window.ZenithSplitReorder = this; // for tools/checks
   },
@@ -5428,6 +5476,41 @@ const MediaArt = {
    Plus leans on Core's colours, sizes and glass. With Core missing or
    switched off it would just look broken, so it says so once instead (an
    idea from Natsumi, which checks that its styles loaded). */
+function notice({ title, body, actions = [], ms = 12000 }) {
+  let stack = document.getElementById("zenith-toasts");
+  if (!stack) {
+    stack = el("div", { id: "zenith-toasts" });
+    (document.getElementById("zen-main-app-wrapper") ?? document.body).append(stack);
+  }
+  const card = el("div", { class: "zenith-toast zenith-ai-notice" });
+  const head = el("div", { class: "zenith-toast-title" });
+  const text = el("div", { class: "zenith-toast-body" });
+  head.textContent = title;
+  text.textContent = body;
+  card.append(head, text);
+  const close = () => card.remove();
+  if (actions.length) {
+    const row = el("div", { class: "zenith-toast-actions" });
+    for (const a of actions) {
+      const b = el("button", { class: "zenith-toast-button" });
+      b.textContent = a.label;
+      b.addEventListener("click", e => {
+        e.stopPropagation();
+        close();
+        a.run();
+      });
+      row.append(b);
+    }
+    card.append(row);
+  }
+  card.addEventListener("click", close);
+  let timer = setTimeout(close, ms);
+  card.addEventListener("mouseenter", () => clearTimeout(timer));
+  card.addEventListener("mouseleave", () => (timer = setTimeout(close, 4000)));
+  stack.append(card);
+  return card;
+}
+
 function toast(title, body) {
   let stack = document.getElementById("zenith-toasts");
   if (!stack) {
@@ -5490,6 +5573,7 @@ const DROPDOWNS = {
  "zenith.tabs.close-hover": "Zenith Tabs",
  "zenith.tabs.unloaded": "Zenith Tabs",
  "zenith.tabs.attention": "Zenith Tabs",
+ "zenith.tabs.attention-for": "Zenith Tabs",
  "zenith.tabs.pin-mark": "Zenith Tabs",
  "zenith.tabs.folder-activity": "Zenith Tabs",
  "zenith.tabs.container": "Zenith Tabs",
@@ -5585,7 +5669,6 @@ function migrateCtrlNumbers() {
   Services.prefs.clearUserPref(OLD);
 }
 
-start("last page at once", () => LastPage.init(), true);
 start("first page sooner", () => WarmStart.init(), true);
 start("settings", () => {
   migrateSettings();

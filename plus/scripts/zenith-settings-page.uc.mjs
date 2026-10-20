@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.2
+// @version        0.12.3
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -1436,6 +1436,36 @@ const SCHEMA = [
       "default": null
      },
      {
+      "property": "zenith.tabs.attention-for",
+      "label": "Dots for",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Alerts: a tab waiting on a dialog. Changed titles: a background tab whose title changed (a pinned mail or chat tab with something new).",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "Alerts and changed titles",
+        "value": "all"
+       },
+       {
+        "label": "Alerts only (a dialog waiting)",
+        "value": "alerts"
+       }
+      ],
+      "default": "all",
+      "rule": {
+       "why": "Attention dots are off",
+       "conditions": [
+        {
+         "not": {
+          "property": "zenith.tabs.attention",
+          "value": "off"
+         }
+        }
+       ]
+      }
+     },
+     {
       "property": "zenith.tabs.folder-activity",
       "label": "Folder activity dot",
       "type": "dropdown",
@@ -2073,7 +2103,7 @@ const SCHEMA = [
       "label": "Move and tuck",
       "type": "checkbox",
       "extra": false,
-      "desc": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near a screen edge and it settles against it; drop it more than halfway past the left or right edge and it tucks away, a sliver with an arrow staying on screen while it plays. Point at the sliver and it slides out while the pointer is on it; click it to bring it back.",
+      "desc": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near a screen edge and it settles against it; drop it more than halfway past the left or right edge and it tucks away, a sliver with an arrow staying on screen while it plays. Rest the pointer on the sliver for half a second (or click it) and it comes out; it goes back when you click anywhere else. Drag it away from the edge to keep it out.",
       "host": "Zenith Plus",
       "default": true
      }
@@ -2715,7 +2745,7 @@ const SCHEMA = [
       "label": "Focus mode (Alt+Z)",
       "type": "checkbox",
       "extra": false,
-      "desc": "Alt+Z puts everything away but the page, for reading or video: the sidebar, the edges, the minimap, pills, the bookmarks bar and the link address hide, and whatever's open closes (bookmarks, the Library, this panel, the find bar). You can open any of them again. The sharing alarm still shows. Alt+Z again brings it all back.",
+      "desc": "Alt+Z puts everything away but the page, for reading or watching: the sidebar, the top toolbar, the edges, the minimap, pills, the bookmarks bar and the link address hide, and whatever's open closes (bookmarks, the Library, this panel, the find bar). You can open any of them again. The sharing alarm still shows. Alt+Z again brings it all back.",
       "host": "Zenith Plus",
       "default": true
      },
@@ -2724,15 +2754,15 @@ const SCHEMA = [
       "label": "Pages in focus mode",
       "type": "dropdown",
       "extra": false,
-      "desc": "Focus mode clears the browser around the page (and closes whatever was open); this is what it does to the page. A video page gets its player filling the window; an article, a calm reading view over the page; other pages that are mostly reading lose cookie banners, newsletter boxes, share bars, comments, sponsored blocks, ads, side columns and bars stuck to the window's edges. A pill offers Show the page and Not on this site. Leaving focus mode puts it all back, without reloading.",
+      "desc": "Focus mode clears the browser around the page (and closes whatever was open); this is what it does to the page. An article gets a calm reading view over the page; other pages that are mostly reading lose cookie banners, newsletter boxes, share bars, comments, sponsored blocks, ads, side columns and bars stuck to the window's edges. A pill offers Show the page and Not on this site. Leaving focus mode puts it all back, without reloading.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Videos fill the window, articles in a reading view, the rest tidied",
+        "label": "Articles in a reading view, the rest tidied",
         "value": "tidy"
        },
        {
-        "label": "Videos and articles only (no tidying)",
+        "label": "Articles in a reading view only",
         "value": "reader"
        },
        {
@@ -2747,28 +2777,143 @@ const SCHEMA = [
       "label": "Sites left alone",
       "type": "string",
       "extra": false,
-      "desc": "Sites focus mode leaves as they are, like youtube.com, mail.example.org (a site covers its subdomains). The pill's Not on this site adds to it.",
+      "desc": "Sites focus mode leaves as they are (a site covers its subdomains). The pill's Not on this site adds to the list; remove one with its ✕.",
       "host": "Zenith Plus",
-      "placeholder": "youtube.com, mail.example.org",
+      "placeholder": "example.com, another.site",
+      "zenithList": "Add a site (example.com)",
       "rule": {
        "why": "Focus mode leaves every page alone",
        "conditions": [
         {
          "conditions": [
           {
-           "if": {
+           "not": {
             "property": "zenith.plus.focus-pages",
-            "value": "tidy"
+            "value": "off"
            }
           },
           {
            "if": {
-            "property": "zenith.plus.focus-pages",
-            "value": "reader"
+            "property": "zenith.plus.focus-video",
+            "value": true
            }
           }
          ],
          "operator": "OR"
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "Focus mode › Video sites",
+    "settings": [
+     {
+      "property": "zenith.plus.focus-video",
+      "label": "Video sites",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "On a video site, focus mode turns a feed into a place to watch: you come for something, and the page helps you find it and watch it without offering the next thing. On YouTube the home feed, recommendations, Shorts, end screens, autoplay and the bell go, and the video gets the room (theatre, everything else under it); what you keep is below. Elsewhere, blocks of recommended videos go. Leaving focus mode puts it all back.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.focus-video-search",
+      "label": "Search",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The search box stays; the home page is just a search box, with the cursor in it.",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "Video sites are left as they are",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.focus-video-description",
+      "label": "Description and chapters",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The video's description and its chapters stay under the video.",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "Video sites are left as they are",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.focus-video-playlist",
+      "label": "Your playlist",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A playlist or course you're watching stays, under the video (never beside it).",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "Video sites are left as they are",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.focus-video-comments",
+      "label": "Comments",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Comments stay, folded behind a Show comments button.",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "Video sites are left as they are",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.focus-video-subscriptions",
+      "label": "Subscriptions",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The side menu stays, with your subscriptions (Shorts still go).",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "Video sites are left as they are",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+         }
         }
        ]
       }
@@ -2797,28 +2942,28 @@ const SCHEMA = [
       "label": "Float a tab",
       "type": "checkbox",
       "extra": false,
-      "desc": "Alt+Shift+F (or right-click a tab › Float this tab) floats the tab you're on; the page carries on as it was. Its bar (point near its top) moves it, puts it back, switches between window and pane, minimises the window and closes the tab (Ctrl+Shift+T brings it back).",
+      "desc": "Alt+Shift+F (or right-click a tab › Float this tab) moves the tab you're on into a small window of its own, which takes the focus; the page carries on as it was, and Alt+Shift+F there puts it back. Its bar: the title (click it, or Ctrl+L, Alt+D or F4, to type an address), a pin (the bar stays above the page, or slides down when the pointer comes in), back into the window, minimise or roll up, and close (Ctrl+Shift+T brings it back floating). A floating tab floats again after Zen restarts.",
       "host": "Zenith Plus",
       "default": true
      },
      {
-      "property": "zenith.plus.float-as",
-      "label": "Floats as",
+      "property": "zenith.plus.float-above",
+      "label": "Stays above",
       "type": "dropdown",
       "extra": false,
-      "desc": "A window stays on top of everything, other apps too (a call while you work elsewhere); a pane floats over the page inside Zen, resizable from its corner.",
+      "desc": "Its Zen window only: the float stays above that window but not above other apps; it closes with the window (Ctrl+Shift+T floats it again; after Zen quits, it floats again at start). Every app: it stays on top of everything (a call while you work elsewhere), and can be minimised.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "A window on top of everything",
-        "value": "window"
+        "label": "Its Zen window only",
+        "value": "zen"
        },
        {
-        "label": "A pane inside Zen",
-        "value": "pane"
+        "label": "Every app",
+        "value": "all"
        }
       ],
-      "default": "window",
+      "default": "zen",
       "rule": {
        "why": "Float a tab is off",
        "conditions": [
@@ -3350,32 +3495,16 @@ const SCHEMA = [
       "extra": false,
       "desc": "Sites whose banners stay as they are (a site covers its subdomains). The cookies page's Banners left alone adds to it.",
       "host": "Zenith Plus",
-      "placeholder": "example.com, bank.example",
+      "placeholder": "example.com, another.site",
+      "zenithList": "Add a site (example.com)",
       "rule": {
        "why": "Cookie banners are left alone",
        "conditions": [
         {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.plus.cookie-banners",
-            "value": "reject-hide"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.plus.cookie-banners",
-            "value": "reject"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.plus.cookie-banners",
-            "value": "hide"
-           }
-          }
-         ],
-         "operator": "OR"
+         "not": {
+          "property": "zenith.plus.cookie-banners",
+          "value": "off"
+         }
         }
        ]
       }
@@ -3432,6 +3561,15 @@ const SCHEMA = [
       "default": "expire"
      },
      {
+      "property": "zenith.plus.cookie-notices",
+      "label": "Notices with Undo",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The first time Zenith does something on a site (this run of Zen): a banner refused or hidden, or cookies blocked beyond what Firefox blocks on its own (No cross-site cookies, Only sites you allow), a notice says so, with Undo: the site is left alone (its banner back, or its cookies allowed), so no site stays broken by it. Nothing from private windows is kept.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
       "property": "zenith.action.cookies",
       "label": "Each site's cookies",
       "type": "action",
@@ -3454,15 +3592,6 @@ const SCHEMA = [
    {
     "title": "Starting Zen",
     "settings": [
-     {
-      "property": "zenith.plus.last-page",
-      "label": "The last page at once",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Firefox brings back the page you were on about half a second after the window appears, and then it loads. Meanwhile the picture of it you last saw is shown in its place, until it has loaded (or you click or type). The picture is kept in your profile folder (zenith-last-page.jpg, beside Firefox's own session); never of private windows.",
-      "host": "Zenith Plus",
-      "default": true
-     },
      {
       "property": "zenith.plus.fast-start",
       "label": "Fast start",
@@ -3491,7 +3620,7 @@ const SCHEMA = [
       "label": "Download names",
       "type": "dropdown",
       "extra": false,
-      "desc": "When a download with a name like IMG_20241012_0931.jpg or 8f3a2c1e.pdf finishes, the page it came from gives it a clearer one: offered on a notice, or given at once with Undo. Names that already say something are left alone. The tab manager's \"By topic\" sorts loose tabs into named groups with the same AI.",
+      "desc": "When a download with a name like IMG_20241012_0931.jpg or 8f3a2c1e.pdf finishes, the page it came from gives it a clearer one: offered on a notice, or given at once with Undo. Names that already say something are left alone.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -3508,6 +3637,26 @@ const SCHEMA = [
        }
       ],
       "default": "rename",
+      "rule": {
+       "why": "Local AI is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.local-ai",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.ai-topics",
+      "label": "Tabs by topic",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The tab manager's Tidy up › By topic: loose tabs (in this space, or every space) sorted into groups by what they're about, named by the words their titles share. Nothing moves until you put a group into a folder.",
+      "host": "Zenith Plus",
+      "default": true,
       "rule": {
        "why": "Local AI is off",
        "conditions": [
@@ -3691,7 +3840,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.2";
+const SCHEMA_VERSION = "0.12.3";
 
 class SettingsView {
   constructor(kind) {
@@ -3928,6 +4077,39 @@ class SettingsView {
       });
       return { node: sw, update: v => sw.setAttribute("aria-checked", String(v === true || v === "on")) };
     }
+    // A list of sites (kept as one comma-separated setting): each with its
+    // ✕, and a field to add one.
+    if (s.type === "string" && s.zenithList) {
+      const box = el("div", { class: "zp-list" });
+      const items = el("div", { class: "zp-list-items" });
+      const add = el("input", { type: "text", class: "zp-input", placeholder: s.zenithList, spellcheck: "false", "aria-label": s.label });
+      const parse = v => String(v ?? "").split(/[\s,]+/).map(x => x.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "")).filter(Boolean);
+      let current = [];
+      const save = list => write(s, [...new Set(list)].join(", "));
+      add.addEventListener("keydown", e => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        const more = parse(add.value);
+        if (!more.length) return;
+        add.value = "";
+        save([...current, ...more]);
+      });
+      box.append(items, add);
+      return {
+        node: box,
+        update: v => {
+          current = parse(v);
+          items.replaceChildren(...current.map(site => {
+            const row = el("span", { class: "zp-list-item" }, site);
+            const x = el("button", { type: "button", class: "zp-list-remove", title: `Remove ${site}`, "aria-label": `Remove ${site}` }, "✕");
+            x.addEventListener("click", () => save(current.filter(c => c !== site)));
+            row.append(x);
+            return row;
+          }));
+          items.hidden = !current.length;
+        },
+      };
+    }
     if (s.type === "string") {
       const input = el("input", { type: "text", class: "zp-input", placeholder: s.placeholder, spellcheck: "false" });
       input.addEventListener("change", () => write(s, input.value.trim()));
@@ -4108,6 +4290,13 @@ const STYLE = `
   .zp-select { background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
     background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
   .zp-input { min-width: 260px; padding-inline-end: 10px; cursor: text; }
+  .zp-list { display: flex; flex-direction: column; gap: 6px; max-width: 300px; min-width: 260px; }
+  .zp-list-items { display: flex; flex-wrap: wrap; gap: 4px; }
+  .zp-list-item { display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 9px; border-radius: 999px;
+    border: 1px solid var(--zp-border); background: var(--zp-control); font-size: 0.92em; }
+  .zp-list-remove { appearance: none; border: none; background: none; color: inherit; opacity: 0.6; cursor: pointer;
+    min-height: 0; margin: 0; padding: 1px 6px; border-radius: 999px; font-size: 0.85em; }
+  .zp-list-remove:hover { opacity: 1; background: color-mix(in srgb, currentColor 12%, transparent); }
   .zp-options { display: none; position: absolute; inset-inline-end: 0; top: calc(100% + 4px); z-index: 5; min-width: 100%;
     max-height: 260px; overflow: auto; padding: 4px; border-radius: 10px; border: 1px solid var(--zp-border);
     background: var(--zp-control); box-shadow: 0 10px 30px rgb(0 0 0 / 0.35); }
@@ -4182,8 +4371,12 @@ const STYLE = `
     animation: zth-enter var(--zth-dur, 0.18s) var(--zth-ease, ease);
 
     &[hidden] { display: none; }
-    & .zp-live-head { position: sticky; top: -12px; z-index: 6; margin: -12px -14px 6px; padding: 12px 14px 8px;
-      background: light-dark(rgb(248 248 250 / 0.97), rgb(28 28 34 / 0.97)); border-radius: inherit; }
+    /* (Flat at the bottom, fading into the list as it scrolls under.) */
+    & .zp-live-head { --zp-head-bg: light-dark(rgb(248 248 250 / 0.97), rgb(28 28 34 / 0.97));
+      position: sticky; top: -12px; z-index: 6; margin: -12px -14px 6px; padding: 12px 14px 8px;
+      background: var(--zp-head-bg); border-radius: var(--zth-radius, 14px) var(--zth-radius, 14px) 0 0; }
+    & .zp-live-head::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 14px; pointer-events: none;
+      background: linear-gradient(var(--zp-head-bg), transparent); }
     & .zp-live-title { display: flex; align-items: center; gap: 8px; }
     & .zp-live-title h1 { margin: 0; font-size: 1.15em; font-weight: 600; }
     & .zp-live-title .zp-tag { margin-inline-end: auto; }
@@ -4214,9 +4407,16 @@ const STYLE = `
 
 /* --- The page: joining Zen's Settings ----------------------------------------- */
 
+// Zenith's mark: the sun at its zenith, eclipsed (a ring, and the bead of
+// light where it breaks), over the horizon. Its own colours, light and
+// dark: Firefox draws an icon in the text's colour (context-fill) only for
+// its built-in files, not for one like this.
 const ICON = "data:image/svg+xml," + encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="context-fill" stroke-width="1.4" stroke-linecap="round">
-     <circle cx="8" cy="8" r="6.2"/><path d="M8 1.8V8l3.6 2.4"/></svg>`);
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+     <style>.i { fill: rgb(43 42 51); } @media (prefers-color-scheme: dark) { .i { fill: rgb(251 251 254); } }</style>
+     <path class="i" fill-rule="evenodd" d="M8 1.6a4.6 4.6 0 1 1 0 9.2a4.6 4.6 0 1 1 0-9.2Zm0 1.55a3.05 3.05 0 1 0 0 6.1a3.05 3.05 0 1 0 0-6.1Z"/>
+     <circle class="i" cx="11.35" cy="2.95" r="1.25"/>
+     <rect class="i" x="1.5" y="13" width="13" height="1.5" rx="0.75"/></svg>`);
 
 function addCategory() {
   const categories = document.getElementById("categories");

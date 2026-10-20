@@ -97,6 +97,19 @@ select {
     white-space: nowrap;
   }
 
+}
+
+.sites-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 22px 0 8px;
+
+  & h2 {
+    margin: 0;
+  }
+
   & #search {
     flex: 0 1 260px;
     min-width: 150px;
