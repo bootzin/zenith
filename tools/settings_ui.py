@@ -210,7 +210,7 @@ SECTIONS = [
             ("Ctrl+Tab", ["zenith.plus.ctrl-tab"]),
             ("Tab manager", ["zenith.plus.tab-manager", "zenith.plus.tabs-auto-sleep",
                              "zenith.plus.tabs-auto-close"]),
-            ("Focus mode", ["zenith.plus.focus-key", "zenith.plus.focus-pages", "zenith.plus.focus-skip"]),
+            ("Focus mode", ["zenith.plus.focus-key", "zenith.plus.focus-scope", "zenith.plus.focus-pages", "zenith.plus.focus-skip"]),
             ("Focus mode › Video sites", ["zenith.plus.focus-video", "zenith.plus.focus-video-search", "zenith.plus.focus-video-description",
                                           "zenith.plus.focus-video-playlist", "zenith.plus.focus-video-comments",
                                           "zenith.plus.focus-video-subscriptions"]),
@@ -472,6 +472,8 @@ DESCRIPTIONS = {
                                        "empty, and typing finds them.",
     "zenith.plus.startpage-top": "A row of the sites you visit most (Firefox's own ranking: how often and how lately), "
                                  "one per site. Typing finds them too.",
+    "zenith.plus.focus-scope": "Alt+Z focuses the site you're on: its tabs, and pages on it you go to; on another site's tab "
+                               "the browser is as it was. Every site: all tabs, until Alt+Z again.",
     "zenith.plus.focus-pages": "Focus mode clears the browser around the page (and closes whatever was open); this is what "
                                "it does to the page. An article gets a calm reading view over the page; other pages that "
                                "are mostly reading lose cookie banners, newsletter boxes, share bars, comments, sponsored "

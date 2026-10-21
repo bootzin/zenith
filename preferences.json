@@ -2335,6 +2335,23 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.plus.focus-scope",
+    "label": "Focus mode is on for",
+    "type": "dropdown",
+    "placeholder": "Default (The site you're on)",
+    "options": [
+      {
+        "label": "The site you're on",
+        "value": "site"
+      },
+      {
+        "label": "Every site",
+        "value": "all"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.plus.focus-pages",
     "label": "Focus mode and the page",
     "type": "dropdown",

@@ -353,6 +353,8 @@ MODS = {
                              ("Its Zen window only", "zen"), ("Every app", "all"))),
              "Float a tab is off", IF("zenith.plus.float-tab", True)),
         script(checkbox("zenith.plus.link-hints", "Link hints on Alt+J: letters on every link, type them to follow it (Alt+Shift+J: in a new tab)", True)),
+        script(dropdown("zenith.plus.focus-scope", "Focus mode is on for", "The site you're on",
+                        ("The site you're on", "site"), ("Every site", "all"))),
         script(dropdown("zenith.plus.focus-pages", "Focus mode and the page", "Articles in a reading view, the rest tidied",
                         ("Articles in a reading view, the rest tidied", "tidy"),
                         ("Articles in a reading view only", "reader"), ("Leave pages alone", "off"))),

@@ -1517,6 +1517,55 @@ tab-group[split-view-group]:hover {
   cursor: grabbing !important;
 }
 
+/* What's on the move, under the pointer: the tab, or the split's tabs. */
+#zenith-split-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 3px;
+  border-radius: calc(var(--zth-tab-radius, 8px) + 3px);
+  will-change: transform;
+}
+
+#zenith-split-ghost[whole] {
+  outline: 2px solid var(--zth-accent, AccentColor);
+  background: color-mix(in srgb, var(--zth-accent, AccentColor) 14%, transparent);
+}
+
+#zenith-split-ghost .chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  padding: 6px 10px;
+  border-radius: var(--zth-tab-radius, 8px);
+  background: light-dark(rgb(255 255 255 / 0.96), rgb(40 40 46 / 0.96));
+  color: light-dark(rgb(29 29 31), rgb(236 236 241));
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.28);
+  font: menu;
+}
+
+#zenith-split-ghost .icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+#zenith-split-ghost .icon[blank] {
+  visibility: hidden;
+}
+
+#zenith-split-ghost .label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 :root[zenith-split-dragging][zenith-split-nowhere],
 :root[zenith-split-dragging][zenith-split-nowhere] * {
   cursor: no-drop !important;

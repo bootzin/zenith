@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.6
+// @version        0.12.7
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -1427,16 +1427,41 @@ function hint(text) {
    (this tab, now) and "Not on <site>" (added to the sites focus mode
    leaves alone, Focus mode › Sites left alone).
    Alt+Z again brings everything back: compact mode and the toolbar as they
-   were, what was open opens again, pages as they were (nothing reloads). */
+   were, what was open opens again, pages as they were (nothing reloads).
+   Focus mode is for the site you're on (Focus mode › On for): its tabs,
+   and pages on it you go to; on another site's tab the browser is as it
+   was, and back on the site it's focused again. Or for every site. */
 const FocusMode = {
   PREF: "zenith.plus.focus-key",
   PAGES: "zenith.plus.focus-pages", // "" reading view, tidy · reader (no tidy) · off
   SKIP: "zenith.plus.focus-skip", // sites left alone: "example.com, news.site"
   VIDEO: "zenith.plus.focus-video", // video sites, a place to watch; its parts: focus-video-<part>
+  SCOPE: "zenith.plus.focus-scope", // "" the site you're on · all: every site
   PARTS: { search: true, description: true, playlist: true, comments: false, subscriptions: false },
 
+  // (The browser's part: focused for the tab you're on.)
   get on() {
     return root.hasAttribute("zenith-focus");
+  },
+
+  get scope() {
+    return Services.prefs.getStringPref(this.SCOPE, "") === "all" ? "all" : "site";
+  },
+
+  // A tab's site, as focus mode counts them (example.com for
+  // news.example.com too).
+  siteOf(tab) {
+    const uri = tab?.linkedBrowser?.currentURI;
+    if (!uri) return "";
+    try {
+      return Services.eTLD.getBaseDomain(uri);
+    } catch {
+      return uri.asciiHost || uri.spec;
+    }
+  },
+
+  focused(tab) {
+    return !!this.everywhere || !!this.sites?.has(this.siteOf(tab));
   },
 
   get pages() {
@@ -1452,7 +1477,37 @@ const FocusMode = {
     return !!host && this.skipped.some(s => host === s || host.endsWith(`.${s}`));
   },
 
-  toggle(want = !this.on) {
+  // Alt+Z: on or off for the site you're on (or every site).
+  toggle(want) {
+    const tab = gBrowser.selectedTab, site = this.siteOf(tab);
+    this.sites ??= new Set();
+    want ??= !this.focused(tab);
+    if (want === this.focused(tab)) return;
+    this.changed ??= new Map(); // tab → what was done to its page
+    if (want && this.scope === "all") this.everywhere = true;
+    else if (want) this.sites.add(site);
+    else if (this.everywhere || this.scope === "all") return this.off();
+    else {
+      this.sites.delete(site);
+      this.restorePages(t => this.siteOf(t) === site);
+    }
+    this.follow(this.everywhere || this.sites.size > 0);
+    this.browser(this.focused(tab), true);
+    if (want) this.page(tab);
+  },
+
+  // Off everywhere.
+  off() {
+    this.everywhere = false;
+    this.sites?.clear();
+    this.follow(false);
+    this.restorePages();
+    this.browser(false, true);
+  },
+
+  // The browser around the page: away (compact, no toolbar, what's open
+  // closed) or back as it was.
+  browser(want, told) {
     if (want === this.on) return;
     const compact = window.gZenCompactModeManager;
     if (want) {
@@ -1462,20 +1517,25 @@ const FocusMode = {
       // (The top toolbar, when Zen shows one: hidden as compact mode can.)
       if (!Services.prefs.getBoolPref("zen.view.use-single-toolbar", true)) Bridge.apply("focus", { "zen.view.compact.hide-toolbar": true });
       this.putAway();
-      this.changed = new Map(); // tab → what was done to its page
-      this.follow(true);
-      this.say(null, Services.prefs.getBoolPref(this.PREF, true) ? "Focus mode · Alt+Z to leave" : "Focus mode");
-      this.page(gBrowser.selectedTab);
+      if (told) {
+        const where = this.everywhere ? "Focus mode" : `Focus mode on ${this.siteOf(gBrowser.selectedTab)}`;
+        this.say(null, Services.prefs.getBoolPref(this.PREF, true) ? `${where} · Alt+Z to leave` : where);
+      }
     } else {
       root.removeAttribute("zenith-focus");
       if (this.madeCompact && compact?.preference) compact.preference = false;
       this.madeCompact = false;
       Bridge.apply("focus", { "zen.view.compact.hide-toolbar": null });
-      this.follow(false);
-      this.restorePages();
       this.bringBack();
       this.pill?.removeAttribute("show");
     }
+  },
+
+  // The tab you're on now: focused or not, as its site is.
+  onTab() {
+    const tab = gBrowser.selectedTab, on = this.focused(tab);
+    this.browser(on, false);
+    if (on) this.page(tab);
   },
 
   // Whatever's open closes as focus mode starts; what it was is kept, to
@@ -1553,12 +1613,13 @@ const FocusMode = {
 
   // While focused: the tab you switch to, and pages loading in it.
   follow(on) {
+    if (on && this.onSelect) return;
     if (on) {
-      this.onSelect = () => this.page(gBrowser.selectedTab);
+      this.onSelect = () => this.onTab();
       this.progress = {
         onStateChange: (browser, webProgress, request, flags) => {
           const done = flags & Ci.nsIWebProgressListener.STATE_STOP && flags & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
-          if (done && webProgress?.isTopLevel && browser === gBrowser.selectedBrowser) this.page(gBrowser.selectedTab);
+          if (done && webProgress?.isTopLevel && browser === gBrowser.selectedBrowser) this.onTab();
         },
       };
       gBrowser.tabContainer.addEventListener("TabSelect", this.onSelect);
@@ -1583,13 +1644,13 @@ const FocusMode = {
   // for an article, or tidied; each only once per page.
   async page(tab) {
     const mode = this.pages, video = Services.prefs.getBoolPref(this.VIDEO, true), browser = tab?.linkedBrowser;
-    if ((mode === "off" && !video) || !browser || !this.on) return;
+    if ((mode === "off" && !video) || !browser || !this.focused(tab)) return;
     const uri = browser.currentURI;
     if (!/^https?$/.test(uri?.scheme ?? "") || this.skips(uri.host)) return;
     // (Firefox works out whether it's an article a moment after it loads.)
     for (let i = 0; i < 12 && !browser.isArticle && browser.webProgress?.isLoadingDocument; i++) await new Promise(r => setTimeout(r, 250));
     await new Promise(r => setTimeout(r, 300));
-    if (!this.on || tab !== gBrowser.selectedTab || this.changed.get(tab)?.spec === uri.spec) return;
+    if (!this.focused(tab) || tab !== gBrowser.selectedTab || this.changed?.get(tab)?.spec === uri.spec) return;
     const actor = await this.actor(browser);
     if (!actor) return;
     const ask = (name, data) => actor.sendQuery(name, data).catch(() => false);
@@ -1601,18 +1662,18 @@ const FocusMode = {
     else if (mode !== "off" && browser.isArticle && (await ask("read"))) done = "read";
     else if (mode === "tidy" && kind.reading && (await ask("tidy"))) done = "tidy";
     if (!done) return;
-    this.changed.set(tab, { spec: uri.spec, done });
+    this.changed?.set(tab, { spec: uri.spec, done });
     this.say(tab, done);
   },
 
-  // Each page as it was.
-  async restorePages() {
-    for (const tab of this.changed?.keys() ?? []) {
-      if (!tab.isConnected) continue;
+  // Each page as it was (those that pass which()).
+  async restorePages(which = () => true) {
+    for (const tab of [...(this.changed?.keys() ?? [])]) {
+      if (!tab.isConnected || !which(tab)) continue;
+      this.changed.delete(tab);
       const actor = await this.actor(tab.linkedBrowser);
       actor?.sendAsyncMessage("undo");
     }
-    this.changed = null;
   },
 
   // The pill: focus mode is on (no tab), then what was done to the page,
@@ -1691,11 +1752,16 @@ const FocusMode = {
     const watch = () => {
       const on = Services.prefs.getBoolPref(this.PREF, true);
       key.toggleAttribute("disabled", !on);
-      if (!on) this.toggle(false);
+      if (!on) this.off();
     };
     Services.prefs.addObserver(this.PREF, watch);
     onUnload(() => Services.prefs.removeObserver(this.PREF, watch));
     watch();
+    // On YouTube, always: no picture-in-picture for the previews that play
+    // as the pointer passes over a video (Firefox's button on them broke
+    // the preview and the page).
+    PageActors.child("ZenithYouTube", "focus-page.sys.mjs", { loadstart: { capture: true }, play: { capture: true } },
+                     ["*://*.youtube.com/*", "*://youtube.com/*"]);
     // (Zen quit while focused: its toolbar setting back as it was.)
     if (!this.on && Services.prefs.prefHasUserValue("zenith.internal.focus.zen.view.compact.hide-toolbar") &&
         Services.wm.getMostRecentWindow("navigator:browser") === window) Bridge.apply("focus", { "zen.view.compact.hide-toolbar": null });
@@ -3140,17 +3206,29 @@ const StartPage = {
 const PageActors = {
   ready: new Map(),
 
+  async url(file) {
+    for (const d of ["../pages/", "zenith-pages/"]) {
+      const u = new URL(`${d}${file}`, import.meta.url).href;
+      if (await fetch(u).then(r => r.ok, () => false)) return u;
+    }
+    return null;
+  },
+
+  // A child only, in every page of some sites, from the page's start.
+  async child(name, file, events, matches) {
+    const url = await this.url(file);
+    if (!url) return;
+    try {
+      ChromeUtils.registerWindowActor(name, { child: { esModuleURI: url, events }, matches, safeForUntrustedWebProcess: true });
+    } catch (e) {
+      if (e.name !== "NotSupportedError") console.error(`[Zenith] ${name}`, e); // (another window registered it)
+    }
+  },
+
   register(name, file) {
     if (!this.ready.has(name)) {
       this.ready.set(name, (async () => {
-        let url = null;
-        for (const d of ["../pages/", "zenith-pages/"]) {
-          const u = new URL(`${d}${file}`, import.meta.url).href;
-          if (await fetch(u).then(r => r.ok, () => false)) {
-            url = u;
-            break;
-          }
-        }
+        const url = await this.url(file);
         if (!url) throw new Error(`plus/pages/${file} isn't there`);
         try {
           ChromeUtils.registerWindowActor(name, { parent: { esModuleURI: url }, child: { esModuleURI: url }, safeForUntrustedWebProcess: true });
@@ -4368,6 +4446,7 @@ const SplitReorder = {
       const at = document.elementFromPoint(e.clientX, e.clientY);
       this.mark(this.drag.whole ? this.whatWhole(this.drag.group, at, e) : this.whatDrop(this.drag.tab, this.targetOf(at), e, true));
       root.toggleAttribute("zenith-split-nowhere", !this.marked);
+      this.ghost(e);
     };
     const up = e => {
       this.press = null;
@@ -4420,6 +4499,28 @@ const SplitReorder = {
     return group?.hasAttribute?.("split-view-group") ? group : null;
   },
 
+  // What's on the move, under the pointer: the tab (its icon and title) or
+  // the split's tabs, as Zen shows a tab it drags.
+  ghost(e) {
+    if (!this.ghostNode) {
+      const g = (this.ghostNode = el("div", { id: "zenith-split-ghost" }));
+      g.toggleAttribute("whole", !!this.drag.whole);
+      for (const t of this.drag.whole ? this.drag.group.tabs : [this.drag.tab]) {
+        const chip = el("div", { class: "chip" });
+        const icon = el("img", { class: "icon", alt: "" });
+        const src = t.getAttribute("image") || t.querySelector(".tab-icon-image")?.src;
+        if (src) icon.src = src;
+        else icon.setAttribute("blank", "true");
+        const label = el("span", { class: "label" });
+        label.textContent = t.label;
+        chip.append(icon, label);
+        g.append(chip);
+      }
+      (document.getElementById("zen-main-app-wrapper") ?? document.body).append(g);
+    }
+    this.ghostNode.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 10}px)`;
+  },
+
   // The tab under the pointer; between a split's tabs, its first one.
   targetOf(node) {
     if (node?.nodeType === Node.TEXT_NODE) node = node.parentElement;
@@ -4443,6 +4544,8 @@ const SplitReorder = {
     this.drag?.node.removeAttribute("zenith-split-moving");
     root.removeAttribute("zenith-split-dragging");
     root.removeAttribute("zenith-split-nowhere");
+    this.ghostNode?.remove();
+    this.ghostNode = null;
     this.drag = null;
     this.press = null;
   },
@@ -5510,6 +5613,9 @@ const ExternalLinks = {
     };
     if (window.browserDOMWindow) hook();
     else window.delayedStartupPromise?.then(hook);
+    // A link that starts Zen: Zen leaves tabs alone while it starts (they'd
+    // be the session's), so its rules (or Ask) apply here once it's ready.
+    if (!window.gZenStartup?.isReady) this.startup();
     this.patchDialog();
     const follow = () => this.followSetting();
     Services.prefs.addObserver(this.PREF, follow);
@@ -5522,6 +5628,56 @@ const ExternalLinks = {
 
   routing() {
     return window.gZenSpaceRoutingManager ?? null;
+  },
+
+  startupLinks() {
+    const a = window.arguments?.[0];
+    let urls = [];
+    try {
+      if (typeof a === "string") urls = a.split("|");
+      else if (a instanceof Ci.nsIArray) for (let i = 0; i < a.length; i++) urls.push(a.queryElementAt(i, Ci.nsISupportsString).data);
+      else if (Array.isArray(a)) urls = a.map(String);
+    } catch {}
+    return urls.map(u => u.trim()).filter(u => /^https?:/i.test(u));
+  },
+
+  async startup() {
+    const urls = this.startupLinks();
+    if (!urls.length) return;
+    for (let i = 0; i < 150 && !window.gZenStartup?.isReady; i++) await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 500));
+    for (const url of urls) {
+      const same = s => !!s && s.replace(/\/$/, "") === url.replace(/\/$/, "");
+      const tab = gBrowser.tabs.filter(t => !t.pinned && !t.closing && (same(t.linkedBrowser.currentURI?.spec) || same(t.linkedBrowser.userTypedValue))).at(-1);
+      if (tab) await this.route(tab, url).catch(e => console.error("[Zenith] links: a link that started Zen", e));
+    }
+  },
+
+  // A tab opened from another app, routed as Zen would have: the space its
+  // rule (or the default for other links) names, or the card to ask.
+  async route(tab, url) {
+    const R = this.routing();
+    if (!R || this.spaces().length < 2) return;
+    if (this.wanted(Services.io.newURI(url))) {
+      return this.ask(Services.io.newURI(url), () => this.place(tab, url, gZenWorkspaces.getWorkspaceFromId(gZenWorkspaces.activeWorkspace)));
+    }
+    const space = gZenWorkspaces.getWorkspaceFromId?.(R.routeUri(url, { fromExternal: true }));
+    if (space) await this.place(tab, url, space);
+  },
+
+  // Into a space (and its container: opened again in it), shown.
+  async place(tab, url, space) {
+    if (!space || !tab?.isConnected) return;
+    if (space.containerTabId && (tab.userContextId ?? 0) !== space.containerTabId) {
+      const fresh = gBrowser.addTrustedTab(url, { userContextId: space.containerTabId, skipRoute: true });
+      gZenWorkspaces.moveTabToWorkspace(fresh, space.uuid);
+      gBrowser.removeTab(tab);
+      tab = fresh;
+    } else if (tab.getAttribute("zen-workspace-id") !== space.uuid) {
+      gZenWorkspaces.moveTabToWorkspace(tab, space.uuid);
+    }
+    if (gZenWorkspaces.activeWorkspace !== space.uuid) await gZenWorkspaces.changeWorkspaceWithID(space.uuid);
+    gBrowser.selectedTab = tab;
   },
 
   // The setting and Zen's default for links no rule matches follow each

@@ -77,6 +77,8 @@ function youtubeSheet(opts) {
     ".ytp-endscreen-content", ".html5-endscreen", ".ytp-ce-element", ".ytp-cards-teaser", ".ytp-pause-overlay",
     ".ytp-autonav-endscreen-countdown-overlay", ".ytp-suggested-action", ".ytp-featured-product", ".ytp-paid-content-overlay",
     ".ytp-title-channel", ".ytp-chrome-top-buttons", ".ytp-cards-button", ".annotation.iv-branding", ".ytp-ce-covering-overlay",
+    ".ytp-fullscreen-grid", ".ytp-fullscreen-grid-stills-container", ".ytp-videowall-still", ".ytp-modern-videowall-still",
+    ".videowall-endscreen", ".ytp-endscreen-previous", ".ytp-endscreen-next", ".ytp-upnext", ".ytp-autonav-endscreen",
     // the channel, subscribe, likes, share and the rest under the video;
     // the counts and tags; what the description adds around its text
     "ytd-watch-metadata #owner", "ytd-watch-metadata #actions", "ytd-watch-metadata #info-container",
@@ -107,6 +109,11 @@ function youtubeSheet(opts) {
     "ytd-shorts :is(.reel-video-in-sequence-new, .reel-video-in-sequence):not(:has(#shorts-player))",
     "ytd-shorts #actions", "ytd-shorts .action-container", "ytd-shorts reel-action-bar-view-model",
     "ytd-shorts :is(yt-subscribe-button-view-model, ytd-subscribe-button-renderer)",
+    // and under it, its channel and the video it links to (the title stays)
+    "ytd-shorts :is(yt-reel-channel-bar-view-model, .ytReelChannelBarViewModelHost, ytd-channel-name, #channel-container)",
+    "ytd-shorts :is(yt-reel-multi-format-link-view-model, .ytReelMultiFormatLinkViewModelHost, yt-shorts-suggested-action-view-model,",
+    "  .ytShortsSuggestedActionViewModelStaticHost, ytd-reel-multi-format-link-view-model, reel-sound-metadata-view-model, .ytReelSoundMetadataViewModelHost,",
+    "  yt-reel-carousel-view-model, .ytReelCarouselViewModelHost)",
   ];
   // Subscriptions: of the side menu, only your channels (and Home and
   // Subscriptions); and that feed.
@@ -152,8 +159,10 @@ function youtubeSheet(opts) {
     ytd-shorts #shorts-container { overflow: hidden !important; }
     [zenith-yt-suggest-row] { display: block !important; width: 100% !important; padding: 6px 24px !important; border: 0 !important;
                               background: transparent !important; text-align: start !important; cursor: pointer !important;
-                              color: inherit !important; opacity: 0.8; font: 400 1.6rem/2.4rem Roboto, Arial, sans-serif !important; }
-    [zenith-yt-suggest-row]:hover { background: color-mix(in srgb, currentColor 10%, transparent) !important; opacity: 1; }
+                              color: #0f0f0f !important; font: 400 1.6rem/2.4rem Roboto, Arial, sans-serif !important; }
+    html[dark] [zenith-yt-suggest-row] { color: #f1f1f1 !important; }
+    [zenith-yt-suggest-row]:hover { background: rgb(0 0 0 / 0.05) !important; }
+    html[dark] [zenith-yt-suggest-row]:hover { background: rgb(255 255 255 / 0.1) !important; }
     [zenith-show-comments] {
       display: block; margin: 16px 0; padding: 10px 16px; border: 0; border-radius: 18px; cursor: pointer;
       background: var(--yt-spec-badge-chip-background, rgb(128 128 128 / 0.15)); color: var(--yt-spec-text-primary, inherit);
@@ -184,6 +193,17 @@ const READING_CSS = `
   .content h2, .content h3, .content h4 { font-family: system-ui, sans-serif; line-height: 1.3; margin: 1.6em 0 0.5em; }
 `;
 
+// On YouTube, always (not only in focus mode): a video that isn't the
+// player's (the previews that play as the pointer passes over a video, on
+// the home page and in search results) can't go picture-in-picture.
+export class ZenithYouTubeChild extends JSWindowActorChild {
+  handleEvent(e) {
+    const video = e.target;
+    if (video?.localName !== "video" || video.closest("#movie_player, #shorts-player")) return;
+    video.setAttribute("disablepictureinpicture", "");
+  }
+}
+
 export class ZenithFocusChild extends JSWindowActorChild {
   receiveMessage(msg) {
     switch (msg.name) {
@@ -192,6 +212,7 @@ export class ZenithFocusChild extends JSWindowActorChild {
       case "unread": return this.read(false);
       case "watch": return this.watch(msg.data ?? {});
       case "unwatch": return this.unwatch();
+      case "scrollY": return Math.round(this.contentWindow?.scrollY ?? 0); // (for tools/checks)
       case "tidy": return this.tidy(true);
       case "untidy": return this.tidy(false);
       case "undo": return this.undoAll();

@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.6
+// @version        0.12.7
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -2830,6 +2830,25 @@ const SCHEMA = [
       "default": true
      },
      {
+      "property": "zenith.plus.focus-scope",
+      "label": "Focus mode is on for",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Alt+Z focuses the site you're on: its tabs, and pages on it you go to; on another site's tab the browser is as it was. Every site: all tabs, until Alt+Z again.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The site you're on",
+        "value": "site"
+       },
+       {
+        "label": "Every site",
+        "value": "all"
+       }
+      ],
+      "default": "site"
+     },
+     {
       "property": "zenith.plus.focus-pages",
       "label": "Pages in focus mode",
       "type": "dropdown",
@@ -3920,7 +3939,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.6";
+const SCHEMA_VERSION = "0.12.7";
 
 class SettingsView {
   constructor(kind) {
@@ -4168,7 +4187,9 @@ class SettingsView {
       const items = el("div", { class: "zp-list-items" });
       const add = el("input", { type: "text", class: "zp-input", placeholder: s.zenithList, spellcheck: "false", "aria-label": s.label });
       const done = el("button", { class: "zp-chip zp-action", type: "button" }, "Done");
-      dialog.append(el("h3", {}, s.label), items, add, el("div", { class: "zp-sites-foot" }, done));
+      const foot = el("div", { class: "zp-sites-foot" });
+      foot.append(done);
+      dialog.append(el("h3", {}, s.label), items, add, foot);
       box.append(count, open);
       (doc.body ?? doc.documentElement).append(dialog);
       const parse = v => String(v ?? "").split(/[\s,]+/).map(x => x.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "")).filter(Boolean);
