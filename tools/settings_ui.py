@@ -112,6 +112,7 @@ PARENTS = {
     "zenith.panels.gap": "zenith.panels.split",
     "zenith.motion.swipe-round": "zenith.motion.swipe",
     "zenith.peek.engine": "zenith.peek.enabled",
+    "zenith.plus.peek-click": "zenith.peek.enabled",
     "zenith.peek.custom-engine": "zenith.peek.enabled",
     "zenith.peek.instant": "zenith.peek.enabled",
     "zenith.peek.web-cards": "zenith.peek.enabled",
@@ -222,7 +223,7 @@ SECTIONS = [
         "id": "peek", "title": "Peek", "icon": "peek",
         "blurb": "Quick lookups with Alt+Q: answers in the prompt, pages in a floating window, timers.",
         "groups": [
-            ("Peek", ["zenith.peek.enabled", "zenith.peek.engine", "zenith.peek.custom-engine"]),
+            ("Peek", ["zenith.peek.enabled", "zenith.plus.peek-click", "zenith.peek.engine", "zenith.peek.custom-engine"]),
             ("Answers", ["zenith.peek.instant", "zenith.peek.web-cards", "zenith.peek.units",
                          "zenith.peek.weather-history"]),
             ("Timers", ["zenith.peek.pomodoro"]),
@@ -399,6 +400,8 @@ DESCRIPTIONS = {
     # Peek
     "zenith.peek.enabled": "Alt+Q looks up the selected text or opens the Peek prompt; Shift+Enter in the URL bar peeks.",
     "zenith.peek.engine": "Where searches go.",
+    "zenith.plus.peek-click": "A link clicked with these keys opens in Peek, as Alt+click opens Zen's Glance; Alt takes Glance's "
+                              "place. Any link's right-click menu has Open Link in Peek.",
     "zenith.peek.custom-engine": "Your own search address, with %s where the search goes. Used instead of the engine.",
     "zenith.peek.instant": "Maths, units and time zones answered in the prompt, offline.",
     "zenith.peek.web-cards": "Currency ($), definitions (d) and weather (wt) answered in the prompt.",

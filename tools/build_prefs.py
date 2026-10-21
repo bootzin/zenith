@@ -246,6 +246,10 @@ MODS = {
     # that another setting makes irrelevant (plus/scripts/zenith-settings).
     "plus": [
         script(checkbox("zenith.peek.enabled", "Peek: Alt+Q, or Shift+Enter in the URL bar (type ? in Peek to edit prefixes)", True)),
+        when(script(dropdown("zenith.plus.peek-click", "Peek a link by clicking it with", "Alt+Shift",
+                             ("Alt+Shift", "alt-shift"), ("Ctrl+Alt", "ctrl-alt"), ("Alt (instead of Zen's Glance)", "alt"),
+                             ("Nothing (its right-click menu only)", "off"))),
+             "Peek is off", PEEK_ON),
         when(script(dropdown("zenith.peek.engine", "Peek search engine", "Google",
                              ("Google", "google"), ("Google AI Mode", "google-ai"),
                              ("Google web results", "google-web"), ("DuckDuckGo", "duckduckgo"),

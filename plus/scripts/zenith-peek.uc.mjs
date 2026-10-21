@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.12.8
+// @version        0.12.9
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -10,7 +10,8 @@
 //   Alt+Q               looks up the selected text, or opens the Peek prompt
 //   Shift+Enter         in the URL bar, peeks what you typed (or the
 //                       highlighted result) instead of navigating
-//   Alt+click a link    Zen's own Glance, unchanged
+//   Alt+Shift+click     a link peeks it (Keys › Peek: Ctrl+Alt, or Alt instead
+//                       of Zen's Glance); any link's right-click menu too
 // Inside a Peek: Escape closes it, Ctrl+Enter keeps it as a real tab.
 // The prompt shows instant answers (maths, units, time zones) computed by
 // Firefox's own calculator and converters, offline; Enter copies them.
@@ -496,6 +497,64 @@ const Peek = {
     }
   },
 };
+
+/* --- Peek a link: clicked with keys, or from its right-click menu ----------------
+   The click is caught in the page (plus/pages/peek-link.sys.mjs). */
+async function watchPeekLinks() {
+  for (const d of ["../pages/", "zenith-pages/"]) {
+    const url = new URL(`${d}peek-link.sys.mjs`, import.meta.url).href;
+    if (!(await fetch(url).then(r => r.ok, () => false))) continue;
+    try {
+      ChromeUtils.registerWindowActor("ZenithPeekLink", {
+        parent: { esModuleURI: url },
+        child: { esModuleURI: url, events: { click: { capture: true }, mousedown: { capture: true } } },
+        allFrames: true,
+        matches: ["http://*/*", "https://*/*"],
+        safeForUntrustedWebProcess: true,
+      });
+    } catch (e) {
+      if (e.name !== "NotSupportedError") console.error("[Zenith] Peek links", e); // (another window registered it)
+    }
+    break;
+  }
+  // Alt instead of Glance: Zen's Glance sees a click before any page
+  // script can, so while it's so, Glance's own key moves to the Windows
+  // key (Zenith's Bridge keeps yours and gives it back after).
+  const glance = () => {
+    // (Pages can't read Zenith's settings: shared with them.)
+    const mode = Services.prefs.getStringPref("zenith.plus.peek-click", "") || "alt-shift", on = prefs.bool("zenith.peek.enabled", true);
+    Services.ppmm.sharedData.set("zenith-peek-click", { mode, on });
+    Services.ppmm.sharedData.flush();
+    const take = mode === "alt" && on;
+    const zen = Services.prefs.getStringPref("zen.glance.activation-method", "alt");
+    if (take && zen === "alt") window.ZenithBridge?.apply("peek-click", { "zen.glance.activation-method": "meta" });
+    else if (!take) window.ZenithBridge?.apply("peek-click", { "zen.glance.activation-method": null });
+  };
+  for (const pref of ["zenith.plus.peek-click", "zenith.peek.enabled"]) Services.prefs.addObserver(pref, glance);
+  window.addEventListener("unload", () => {
+    for (const pref of ["zenith.plus.peek-click", "zenith.peek.enabled"]) Services.prefs.removeObserver(pref, glance);
+  }, { once: true });
+  glance();
+  setTimeout(glance, 1000); // (Zenith's Bridge starts with the other scripts)
+  const menu = document.getElementById("contentAreaContextMenu");
+  if (!menu || document.getElementById("context-zenith-peek")) return;
+  const item = document.createXULElement("menuitem");
+  item.id = "context-zenith-peek";
+  item.setAttribute("label", "Open Link in Peek");
+  item.setAttribute("accesskey", "k");
+  item.addEventListener("command", () => {
+    const url = window.gContextMenu?.linkURL;
+    if (/^https?:/i.test(url ?? "")) Peek.show({ url });
+  });
+  const after = document.getElementById("context-openlinkintab");
+  if (after) after.after(item);
+  else menu.prepend(item);
+  menu.addEventListener("popupshowing", e => {
+    if (e.target !== menu) return;
+    const c = window.gContextMenu;
+    item.hidden = !c?.onLink || !/^https?:/i.test(c.linkURL ?? "") || !prefs.bool("zenith.peek.enabled", true);
+  });
+}
 
 /* --- The prompt (Alt+Q with nothing selected) -------------------------------- */
 
@@ -1215,6 +1274,7 @@ function migrateWeatherPlace() {
 if (FIRST) {
   window.ZenithPeek = {
     prompt: text => Prompt.show(text),
+    open: (url, origin) => Peek.show({ url }, origin),
     command: text => Commands.match(text),
     lookup: text => Peek.show(Lookup.resolve(text)),
     engine: () => Lookup.engine(), // [name, url with %s], for about:zenith-start
@@ -1230,3 +1290,4 @@ start("weather places", migrateWeatherPlace);
 start("hotkey", addKeys, true);
 start("url bar", watchUrlbar, true);
 start("peek keys", watchPeekKeys, true);
+start("peek links", watchPeekLinks, true);

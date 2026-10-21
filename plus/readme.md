@@ -1,10 +1,10 @@
 # Zenith Plus
 
-Version 0.12.8
+Version 0.12.9
 
 The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
 
-**Peek**: quick lookups that leave nothing behind.
+**Peek**: quick lookups that leave nothing behind. Alt+Shift+click a link to peek it (Keys › Peek: Ctrl+Alt, or Alt instead of Zen's Glance), or Open Link in Peek from its right-click menu.
 
 - **Alt+Q** looks up the text you've selected. With nothing selected, it opens a small prompt.
 - **Shift+Enter** in the URL bar peeks what you typed instead of going there.

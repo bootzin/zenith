@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.8
+// @version        0.12.9
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -3098,6 +3098,45 @@ const SCHEMA = [
       "default": true
      },
      {
+      "property": "zenith.plus.peek-click",
+      "label": "Peek a link by clicking it with",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A link clicked with these keys opens in Peek, as Alt+click opens Zen's Glance; Alt takes Glance's place. Any link's right-click menu has Open Link in Peek.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Alt+Shift",
+        "value": "alt-shift"
+       },
+       {
+        "label": "Ctrl+Alt",
+        "value": "ctrl-alt"
+       },
+       {
+        "label": "Alt (instead of Zen's Glance)",
+        "value": "alt"
+       },
+       {
+        "label": "Nothing (its right-click menu only)",
+        "value": "off"
+       }
+      ],
+      "default": "alt-shift",
+      "parent": "zenith.peek.enabled",
+      "rule": {
+       "why": "Peek is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
       "property": "zenith.peek.engine",
       "label": "Search engine",
       "type": "dropdown",
@@ -3939,7 +3978,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.8";
+const SCHEMA_VERSION = "0.12.9";
 
 class SettingsView {
   constructor(kind) {

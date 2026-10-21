@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.8
+// @version        0.12.9
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -5615,8 +5615,8 @@ const ExternalLinks = {
     else window.delayedStartupPromise?.then(hook);
     // A link that starts Zen: Zen leaves tabs alone while it starts (they'd
     // be the session's), so its rules (or Ask) apply here once it's ready.
-    // (The first window, as Zen starts: Zenith's scripts may come after
-    // Zen is ready.)
+    // (A window Zen opened for them as it started: Zenith's scripts may come
+    // after Zen is ready.)
     this.startup();
     this.patchDialog();
     const follow = () => this.followSetting();
@@ -5632,25 +5632,33 @@ const ExternalLinks = {
     return window.gZenSpaceRoutingManager ?? null;
   },
 
+  // The links Zen was started with, as the command line hands them to the
+  // window: only strings (a window opened for a link from a page gets
+  // more: who opened it, and so on).
   startupLinks() {
     const a = window.arguments?.[0];
-    let urls = [];
+    const urls = [];
     try {
-      if (typeof a === "string") urls = a.split("|");
-      else if (a instanceof Ci.nsIArray) for (let i = 0; i < a.length; i++) urls.push(a.queryElementAt(i, Ci.nsISupportsString).data);
-      else if (Array.isArray(a)) urls = a.map(String);
-    } catch {}
+      if (!(a instanceof Ci.nsIArray)) return [];
+      for (let i = 0; i < a.length; i++) {
+        const s = a.queryElementAt(i, Ci.nsISupports);
+        if (!(s instanceof Ci.nsISupportsString)) return [];
+        urls.push(s.data);
+      }
+    } catch {
+      return [];
+    }
     return urls.map(u => u.trim()).filter(u => /^https?:/i.test(u));
   },
 
   async startup() {
-    let age = 0;
+    let started = Date.now();
     try {
-      age = Date.now() - Services.startup.getStartupInfo().process.getTime();
+      started = Services.startup.getStartupInfo().process.getTime();
     } catch {}
-    const first = [...Services.wm.getEnumerator("navigator:browser")].every(w => w === window);
-    const urls = first && age < 120000 ? this.startupLinks() : [];
-    this.startupState = urls.length ? "links" : `none (first ${first}, ${Math.round(age / 1000)}s)`; // (for tools/checks)
+    // (Any window Zen restored may be the one; only links from its start.)
+    const urls = Date.now() - started < 120000 ? this.startupLinks() : [];
+    this.startupState = urls.length ? "links" : "none"; // (for tools/checks)
     if (!urls.length) return;
     const wait = async (ok, tries) => {
       for (let i = 0; i < tries && !ok(); i++) await new Promise(r => setTimeout(r, 100));
@@ -5663,9 +5671,12 @@ const ExternalLinks = {
     const bare = u => (u || "").replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
     for (const url of urls) {
       const shows = t => [t.linkedBrowser.currentURI?.spec, t.linkedBrowser.userTypedValue, t.linkedBrowser.documentURI?.spec].some(u => u && bare(u) === bare(url));
+      // (Not a tab the session brought back with the same page: those were
+      // last used before this start.)
+      const fresh = t => t.selected || !(t.lastAccessed < started);
       let tab = null;
       for (let i = 0; i < 100 && !tab; i++) {
-        tab = gBrowser.tabs.filter(t => !t.pinned && !t.closing && shows(t)).at(-1) ?? null;
+        tab = gBrowser.tabs.filter(t => !t.pinned && !t.closing && !t.hasAttribute("pending") && fresh(t) && shows(t)).at(-1) ?? null;
         if (!tab) await new Promise(r => setTimeout(r, 150));
       }
       this.startupState = tab ? "routing" : "no tab";
@@ -5802,6 +5813,8 @@ const ExternalLinks = {
   },
 
   ask(uri, open) {
+    // (The same link asked about again: the card already up stays.)
+    if (this.pending?.spec === uri.spec) return;
     this.pending?.cancel();
     const host = uri.host.replace(/^www\./, "");
     const card = el("div", { id: "zenith-linkask" });
@@ -5868,7 +5881,7 @@ const ExternalLinks = {
     (document.getElementById("zen-main-app-wrapper") ?? document.body).append(card);
     window.focus();
     rows[selected]?.focus();
-    this.pending = { cancel: () => { done(); open(); }, choose, spaces, tick };
+    this.pending = { cancel: () => { done(); open(); }, choose, spaces, tick, spec: uri.spec };
   },
 
   // "Always open <site> there": a Space routing rule, as Zen's own dialog

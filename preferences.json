@@ -1410,6 +1410,41 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.plus.peek-click",
+    "label": "Peek a link by clicking it with",
+    "type": "dropdown",
+    "placeholder": "Default (Alt+Shift)",
+    "options": [
+      {
+        "label": "Alt+Shift",
+        "value": "alt-shift"
+      },
+      {
+        "label": "Ctrl+Alt",
+        "value": "ctrl-alt"
+      },
+      {
+        "label": "Alt (instead of Zen's Glance)",
+        "value": "alt"
+      },
+      {
+        "label": "Nothing (its right-click menu only)",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek is off"
+  },
+  {
     "property": "zenith.peek.engine",
     "label": "Peek search engine",
     "type": "dropdown",
