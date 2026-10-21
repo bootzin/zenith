@@ -97,16 +97,24 @@ function youtubeSheet(opts) {
     "#masthead-ad", "ytd-banner-promo-renderer",
     // the preview that plays as the pointer passes over a video
     "ytd-video-preview", "#video-preview", "ytd-moving-thumbnail-renderer",
-    // past searches, until you ask for them (the dropdown says Show history)
-    "html:not([zenith-yt-history])[zenith-yt-empty] :is(.ytSearchboxComponentSuggestionsContainer, .sbdd_a) :is(.ytSuggestionComponentSuggestion, .sbsb_c, [role='option'])",
-    "html:not([zenith-yt-empty]) [zenith-yt-history-row]", "html[zenith-yt-history] [zenith-yt-history-row]",
-    // the next Short (scrolling on is blocked too)
+    // suggestions and past searches, until you ask for them (the dropdown
+    // says Show suggestions)
+    "html:not([zenith-yt-suggest]) :is(.ytSearchboxComponentSuggestionsContainer, .sbdd_a) :is(.ytSuggestionComponentSuggestion, .sbsb_c, [role='option'])",
+    "html[zenith-yt-suggest] [zenith-yt-suggest-row]",
+    // the next Short (scrolling on is blocked too), and on a Short: likes,
+    // comments, share, remix, subscribe
     "ytd-shorts #navigation-button-up", "ytd-shorts #navigation-button-down", "ytd-shorts .navigation-container",
+    "ytd-shorts :is(.reel-video-in-sequence-new, .reel-video-in-sequence):not(:has(#shorts-player))",
+    "ytd-shorts #actions", "ytd-shorts .action-container", "ytd-shorts reel-action-bar-view-model",
+    "ytd-shorts :is(yt-subscribe-button-view-model, ytd-subscribe-button-renderer)",
   ];
-  // Subscriptions: only that part of the side menu (and its feed).
+  // Subscriptions: of the side menu, only your channels (and Home and
+  // Subscriptions); and that feed.
   if (opts.subscriptions) {
-    hide.push("#guide ytd-guide-section-renderer:not(:has(a[href^='/@'], a[href^='/channel/'], a[href='/feed/subscriptions']))",
-              "ytd-mini-guide-entry-renderer:not(:has(a[href='/feed/subscriptions']))");
+    hide.push("#guide ytd-guide-section-renderer:not(:first-of-type):not([zenith-yt-subs])",
+              "#guide ytd-guide-section-renderer:first-of-type #items > :not(:has(a[href='/'], a[href='/feed/subscriptions']))",
+              "#guide ytd-guide-renderer #footer", "#guide ytd-guide-signin-promo-renderer",
+              "ytd-mini-guide-entry-renderer:not(:has(a[href='/'], a[href='/feed/subscriptions']))");
   } else {
     hide.push("#guide", "ytd-mini-guide-renderer", "#guide-button", "ytd-browse[page-subtype='subscriptions'] #contents");
   }
@@ -120,6 +128,12 @@ function youtubeSheet(opts) {
     [zenith-folded] { display: none !important; }
     /* The video first (theatre); the rest under it, in one column (a
        playlist under the video, never beside it) */
+    ytd-watch-flexy[theater] #full-bleed-container { height: calc(100vh - var(--ytd-masthead-height, 56px)) !important; max-height: none !important; }
+    ytd-watch-flexy[theater] #full-bleed-container :is(#player-full-bleed-container, #player-container, #player-container-outer,
+        #player-container-inner, #ytd-player, #container.ytd-player, #movie_player, .html5-video-container) {
+      width: 100% !important; height: 100% !important; max-height: none !important; }
+    ytd-watch-flexy[theater] #full-bleed-container video.html5-main-video {
+      width: 100% !important; height: 100% !important; left: 0 !important; top: 0 !important; object-fit: contain !important; }
     ytd-watch-flexy[theater] #columns { flex-direction: column !important; align-items: center !important; }
     ytd-watch-flexy[theater] #secondary { width: 100% !important; max-width: var(--ytd-watch-flexy-max-player-width, 1280px) !important;
                                           padding: 0 !important; margin: 0 auto !important; }
@@ -136,9 +150,10 @@ function youtubeSheet(opts) {
     html[zenith-yt-home] ytd-masthead #center { flex: none !important; width: min(640px, 88vw) !important; margin: 0 !important; }
     html[zenith-yt-home] ytd-masthead #end { position: absolute !important; top: 8px; right: 16px; }
     ytd-shorts #shorts-container { overflow: hidden !important; }
-    [zenith-yt-history-row] { display: block; width: 100%; padding: 6px 24px; border: 0; background: none; text-align: start; cursor: pointer;
-                              color: var(--yt-spec-text-secondary, inherit); font: 400 1.6rem/2.4rem Roboto, Arial, sans-serif; }
-    [zenith-yt-history-row]:hover { background: var(--yt-spec-badge-chip-background, rgb(128 128 128 / 0.12)); }
+    [zenith-yt-suggest-row] { display: block !important; width: 100% !important; padding: 6px 24px !important; border: 0 !important;
+                              background: transparent !important; text-align: start !important; cursor: pointer !important;
+                              color: inherit !important; opacity: 0.8; font: 400 1.6rem/2.4rem Roboto, Arial, sans-serif !important; }
+    [zenith-yt-suggest-row]:hover { background: color-mix(in srgb, currentColor 10%, transparent) !important; opacity: 1; }
     [zenith-show-comments] {
       display: block; margin: 16px 0; padding: 10px 16px; border: 0; border-radius: 18px; cursor: pointer;
       background: var(--yt-spec-badge-chip-background, rgb(128 128 128 / 0.15)); color: var(--yt-spec-text-primary, inherit);
@@ -351,11 +366,16 @@ export class ZenithFocusChild extends JSWindowActorChild {
     const home = doc.location?.pathname === "/";
     doc.documentElement.toggleAttribute("zenith-yt-home", home);
     this.searchBox(w);
-    this.historyRow(w);
+    this.suggestRow(w);
+    this.markGuide(w);
     const flexy = doc.querySelector("ytd-watch-flexy:not([hidden])");
     // (A click before the player is ready does nothing: tried a few times,
     // until it's taken; after that, theatre is yours to turn off.)
-    if (flexy?.hasAttribute("theater")) w.theatreSeen = true;
+    if (flexy?.hasAttribute("theater") && !w.theatreSeen) {
+      w.theatreSeen = true;
+      // (The player sizes its controls on a resize: to the room it now has.)
+      for (const ms of [300, 1200]) setTimeout(() => win?.dispatchEvent(new win.Event("resize")), ms);
+    }
     if (flexy && !w.theatreSeen && !flexy.hasAttribute("fullscreen") && (w.theatreTries ?? 0) < 4) {
       const size = doc.querySelector(".ytp-size-button");
       if (size) {
@@ -368,8 +388,11 @@ export class ZenithFocusChild extends JSWindowActorChild {
         } catch {}
       }
     }
+    // (Once a page: clicked again and again, the player takes the focus
+    // back, and the page scrolls to it.)
     const auto = doc.querySelector(".ytp-autonav-toggle-button[aria-checked='true']");
-    if (auto) {
+    if (auto && w.autoplayAt !== doc.location.href) {
+      w.autoplayAt = doc.location.href;
       auto.click();
       w.autoplay = true;
     }
@@ -400,35 +423,52 @@ export class ZenithFocusChild extends JSWindowActorChild {
     }
   }
 
-  // Past searches only when asked: while the box is empty, the dropdown
-  // shows Show history instead of them.
+  // Suggestions and past searches only when asked: the dropdown shows
+  // Show suggestions instead of them, typed or not.
   searchBox(w) {
     const doc = this.document, box = doc.querySelector("input[name='search_query']");
     if (!box || box.zenithWatched) return;
     box.zenithWatched = true;
-    const empty = () => {
-      doc.documentElement.toggleAttribute("zenith-yt-empty", !box.value.trim());
-      // (The dropdown is drawn a moment after the box takes the focus.)
-      for (const ms of [0, 150, 500]) setTimeout(() => this.historyRow(w), ms);
+    // (The dropdown is drawn a moment after the box takes the focus.)
+    const row = () => {
+      for (const ms of [0, 150, 500]) setTimeout(() => this.suggestRow(w), ms);
     };
-    box.addEventListener("input", empty);
-    box.addEventListener("focus", empty);
-    box.addEventListener("blur", () => doc.documentElement.removeAttribute("zenith-yt-history"));
-    empty();
+    box.addEventListener("input", row);
+    box.addEventListener("focus", row);
+    box.addEventListener("blur", () => doc.documentElement.removeAttribute("zenith-yt-suggest"));
   }
 
-  historyRow(w) {
+  suggestRow(w) {
     const doc = this.document;
     const list = doc.querySelector(".ytSearchboxComponentSuggestionsContainer, .sbdd_a");
-    if (!list || list.querySelector("[zenith-yt-history-row]")) return;
+    if (!list || list.querySelector("[zenith-yt-suggest-row]")) return;
     const row = doc.createElement("button");
-    row.setAttribute("zenith-yt-history-row", "");
+    row.setAttribute("zenith-yt-suggest-row", "");
     row.type = "button";
-    row.textContent = "Show history";
+    row.textContent = "Show suggestions";
     row.addEventListener("mousedown", e => e.preventDefault());
-    row.addEventListener("click", () => doc.documentElement.setAttribute("zenith-yt-history", ""));
+    row.addEventListener("click", () => doc.documentElement.setAttribute("zenith-yt-suggest", ""));
     list.prepend(row);
     w.added = [...(w.added ?? []), row];
+  }
+
+  // Subscriptions kept: the side menu's part that's your channels (its
+  // entries have pictures; Explore's and You's have icons).
+  markGuide(w) {
+    if (!w.opts.subscriptions) return;
+    const doc = this.document;
+    for (const sec of doc.querySelectorAll("#guide ytd-guide-section-renderer")) {
+      const entries = [...sec.querySelectorAll("ytd-guide-entry-renderer")];
+      const channels = entries.filter(e => e.wrappedJSObject?.data?.thumbnail || e.querySelector("img[src*='yt3.']"));
+      sec.toggleAttribute("zenith-yt-subs", channels.length > 0 && channels.length * 2 >= entries.length);
+    }
+    const button = doc.querySelector("#guide-button");
+    if (button && !button.zenithWatched) {
+      button.zenithWatched = true;
+      button.addEventListener("click", () => {
+        for (const ms of [100, 600]) setTimeout(() => this.watching && this.markGuide(this.watching), ms);
+      });
+    }
   }
 
   // On a Short as focus mode started: no scrolling or keys on to the next.
@@ -463,7 +503,7 @@ export class ZenithFocusChild extends JSWindowActorChild {
              related: shown("ytd-watch-flexy #related"), comments: shown("ytd-watch-flexy #comments"),
              description: shown("ytd-watch-metadata #description"), recs: shown("#recs"),
              home: doc.documentElement.hasAttribute("zenith-yt-home"), owner: shown("ytd-watch-metadata #owner"),
-             actions: shown("ytd-watch-metadata #actions"), historyRow: !!doc.querySelector("[zenith-yt-history-row]"),
+             actions: shown("ytd-watch-metadata #actions"), suggestRow: !!doc.querySelector("[zenith-yt-suggest-row]"),
              bg: win.getComputedStyle(doc.querySelector("#masthead-container") ?? doc.body).backgroundColor, path: doc.location?.pathname };
   }
 
@@ -504,7 +544,8 @@ export class ZenithFocusChild extends JSWindowActorChild {
     if (w.autoplay) doc.querySelector(".ytp-autonav-toggle-button[aria-checked='false']")?.click();
     for (const b of doc.querySelectorAll("[zenith-show-comments]")) b.remove();
     for (const n of w.added ?? []) n.remove();
-    for (const a of ["zenith-yt-home", "zenith-yt-empty", "zenith-yt-history"]) doc.documentElement.removeAttribute(a);
+    for (const a of ["zenith-yt-home", "zenith-yt-suggest"]) doc.documentElement.removeAttribute(a);
+    for (const n of doc.querySelectorAll("[zenith-yt-subs]")) n.removeAttribute("zenith-yt-subs");
     const box = doc.querySelector("input[name='search_query']");
     if (box) box.zenithWatched = false;
     for (const c of doc.querySelectorAll("[zenith-folded], [zenith-unfolded]")) {

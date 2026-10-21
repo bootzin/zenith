@@ -365,7 +365,7 @@ MODS = {
              "Video sites are left as they are", IF("zenith.plus.focus-video", True)),
         when(script(checkbox("zenith.plus.focus-video-comments", "Keep comments, folded behind a button", False)),
              "Video sites are left as they are", IF("zenith.plus.focus-video", True)),
-        when(script(checkbox("zenith.plus.focus-video-subscriptions", "Keep subscriptions and the side menu", False)),
+        when(script(checkbox("zenith.plus.focus-video-subscriptions", "Keep subscriptions", False)),
              "Video sites are left as they are", IF("zenith.plus.focus-video", True)),
         when(script(sites("zenith.plus.focus-skip", "Sites focus mode leaves as they are", "Add a site (example.com)")),
              "Focus mode leaves every page alone", ANY(NOT("zenith.plus.focus-pages", "off"), IF("zenith.plus.focus-video", True))),

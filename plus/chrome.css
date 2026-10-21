@@ -1494,11 +1494,11 @@ tab-group[zenith-split-join] {
   border-radius: var(--zth-tab-radius, 8px);
 }
 
-.tabbrowser-tab[zenith-split-before] {
+:is(.tabbrowser-tab, tab-group)[zenith-split-before] {
   box-shadow: 0 -2px 0 var(--zth-accent, AccentColor) !important;
 }
 
-.tabbrowser-tab[zenith-split-after] {
+:is(.tabbrowser-tab, tab-group)[zenith-split-after] {
   box-shadow: 0 2px 0 var(--zth-accent, AccentColor) !important;
 }
 
@@ -1507,12 +1507,19 @@ tab-group[split-view-group]:hover {
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--zth-accent, AccentColor) 55%, transparent);
 }
 
-.tabbrowser-tab[zenith-split-moving] {
+:is(.tabbrowser-tab, tab-group)[zenith-split-moving] {
   opacity: 0.55;
 }
 
-:root[zenith-split-dragging] {
+/* (The pointer while dragging: a hand, or "no" where letting go does nothing.) */
+:root[zenith-split-dragging],
+:root[zenith-split-dragging] * {
   cursor: grabbing !important;
+}
+
+:root[zenith-split-dragging][zenith-split-nowhere],
+:root[zenith-split-dragging][zenith-split-nowhere] * {
+  cursor: no-drop !important;
 }
 
 /* === Focus mode's pill ============================================================

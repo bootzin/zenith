@@ -1029,7 +1029,7 @@
   },
   {
     "property": "zenith.plus.focus-video-subscriptions",
-    "label": "Keep subscriptions and the side menu",
+    "label": "Keep subscriptions",
     "type": "checkbox",
     "defaultValue": false,
     "usedBy": "zenith-plus",

@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.5
+// @version        0.12.6
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -3662,7 +3662,11 @@ const CtrlTabOrder = {
       event.stopPropagation();
       document.addEventListener("keyup", this, { mozSystemGroup: true });
       const tabs = gBrowser.visibleTabs;
-      if (tabs.length > 2) {
+      if (tabs.length > 2 && CtrlTabOrder.all) {
+        this.open();
+        CtrlTabOrder.step(this, -1);
+        CtrlTabOrder.step(this, -1);
+      } else if (tabs.length > 2) {
         this.open();
         // From the next one (open's choice), back past this one to the
         // last; moved directly, so the pictures still wait Firefox's 200ms
@@ -3685,39 +3689,87 @@ const CtrlTabOrder = {
     if (!C) return;
     this.firefox ??= Object.getOwnPropertyDescriptor(C, "tabList");
     this.open ??= C.open;
+    this.advance ??= C.advanceFocus;
     if (on) {
-      Object.defineProperty(C, "tabList", { get: () => this.inOrder(), configurable: true, enumerable: true });
-      // (Firefox starts on the second picture: here, the one after yours.)
+      const self = this;
+      Object.defineProperty(C, "tabList", { get: () => this.shown(), configurable: true, enumerable: true });
+      // (Firefox starts on the second picture: here, the tab after yours.)
       const open = this.open;
       C.open = function (...args) {
         const r = open.apply(this, args);
-        const i = this.tabList.indexOf(gBrowser.selectedTab);
-        if (i >= 0) this._selectedIndex = (i + 1) % this.tabPreviewCount;
+        this._selectedIndex = self.cursor - self.from;
         return r;
+      };
+      C.advanceFocus = function (forward) {
+        const p = self.step(this, forward ? 1 : -1);
+        if (p?._tab) gBrowser.warmupTab(p._tab);
+        if (this._timer) {
+          clearTimeout(this._timer);
+          this._timer = null;
+          this._openPanel();
+        }
       };
     } else if (this.firefox) {
       Object.defineProperty(C, "tabList", this.firefox);
       C.open = this.open;
+      C.advanceFocus = this.advance;
+      this.all = null;
     }
   },
 
-  // This space's tabs in the sidebar's order (essentials first; asleep
-  // ones too). With more than the row holds: the essentials, then the tabs
-  // around the one you're on. The row opens on the tab after this one.
-  // (A tab with a glance open is its glance: that's what's selected and
-  // shown for it.)
-  inOrder() {
-    const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"))
-      .map(t => t.glanceTab ?? t);
-    const max = window.ctrlTab?.maxTabPreviews ?? 7;
-    if (tabs.length <= max) return tabs;
-    const essential = t => (t.closest?.(".tabbrowser-tab:not([zen-glance-tab])") ?? t).hasAttribute("zen-essential");
-    const ess = tabs.filter(essential).slice(0, max - 3);
-    const rest = tabs.filter(t => !ess.includes(t));
-    const room = max - ess.length, here = Math.max(0, rest.indexOf(gBrowser.selectedTab));
-    const from = Math.max(0, Math.min(here - Math.floor((room - 1) / 2), rest.length - room));
-    return [...ess, ...rest.slice(from, from + room)];
+  // The row: as many pictures as it holds, from this space's tabs in order;
+  // stepping past either end moves it along, so every tab comes round.
+  // (Set afresh each time it opens.)
+  shown() {
+    if (!this.all || !window.ctrlTab?.isOpen) this.begin();
+    return this.all.slice(this.from, this.from + this.max());
   },
+
+  max() {
+    return window.ctrlTab?.maxTabPreviews ?? 7;
+  },
+
+  begin() {
+    const tabs = (this.all = this.inOrder()), n = tabs.length, here = tabs.indexOf(gBrowser.selectedTab);
+    this.cursor = n ? (here + 1) % n : 0;
+    this.from = Math.max(0, Math.min(here, n - this.max()));
+    this.from = this.fit(this.from);
+  },
+
+  fit(from) {
+    const max = this.max();
+    if (this.all.length <= max) return 0;
+    if (this.cursor < from) return this.cursor;
+    if (this.cursor >= from + max) return this.cursor - max + 1;
+    return from;
+  },
+
+  step(C, by) {
+    const n = this.all?.length;
+    if (!n) return null;
+    const i = C.previews.indexOf(C.selected);
+    if (i >= 0) this.cursor = this.from + i; // (the pointer may have moved it)
+    this.cursor = (this.cursor + by + n) % n;
+    const from = this.fit(this.from);
+    if (from !== this.from) {
+      this.from = from;
+      C.updatePreviews();
+    }
+    const j = this.cursor - this.from;
+    if (C._selectedIndex === -1) C.previews[j]?.focus();
+    else C._selectedIndex = j;
+    return C.previews[j];
+  },
+
+  // This space's tabs in the sidebar's order, essentials first (asleep
+  // ones too). (A tab with a glance open is its glance: that's what's
+  // selected and shown for it.)
+  inOrder() {
+    const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
+    const essential = tabs.filter(t => t.hasAttribute("zen-essential"));
+    return [...essential, ...tabs.filter(t => !essential.includes(t))].map(t => t.glanceTab ?? t);
+  },
+
 
 };
 
@@ -4195,6 +4247,11 @@ const Cookies = {
   // A site's cookies and the data it keeps (as Firefox's "Clear cookies
   // and site data").
   remove(site) {
+    try {
+      const { told } = ChromeUtils.importESModule(this.actorURL ?? new URL("../pages/cookies.sys.mjs", import.meta.url).href);
+      for (const key of [...told]) if (key.startsWith(`${site} `)) told.delete(key);
+    } catch {}
+    for (const key of [...(Cookies.told ?? [])]) if (key.startsWith(`${site} `)) Cookies.told.delete(key);
     const flags = Ci.nsIClearDataService.CLEAR_COOKIES | Ci.nsIClearDataService.CLEAR_DOM_STORAGES |
                   (Ci.nsIClearDataService.CLEAR_COOKIE_BANNER_EXECUTED_RECORD ?? 0);
     return new Promise(resolve => {
@@ -4278,8 +4335,9 @@ const Cookies = {
    (not in a folder), it leaves its split and goes before or after it.
    What letting go would do shows as you drag (the tab or split outlined,
    or a line). Escape cancels. A loose tab dragged onto a split's tab
-   joins the split. Pressing on a split's left edge (it lights up on
-   hover) drags the whole split, as Zen does.
+   joins the split (anywhere on it). Pressing on a split's left edge (it
+   lights up on hover) drags the whole split, before or after a loose tab
+   or another split.
    The tab is moved with the pointer here, not with the browser's
    drag-and-drop: Zen's own drag would take the whole split, and nothing
    of Zen's sidebar is touched. */
@@ -4292,9 +4350,10 @@ const SplitReorder = {
     const down = e => {
       this.press = null;
       if (e.button !== 0 || e.altKey || e.ctrlKey || e.shiftKey || e.metaKey) return;
-      const tab = tabOf(e.target), group = this.split(tab?.group);
-      if (!group || !gBrowser.tabContainer.contains(tab) || e.clientX - group.getBoundingClientRect().left < this.EDGE) return;
-      this.press = { tab, x: e.screenX, y: e.screenY };
+      const group = this.split(e.target?.closest?.("tab-group")), tab = tabOf(e.target) ?? group?.tabs[0];
+      if (!group || !gBrowser.tabContainer.contains(group)) return;
+      const whole = e.clientX - group.getBoundingClientRect().left < this.EDGE;
+      this.press = { tab, group, whole, x: e.screenX, y: e.screenY };
     };
     const move = e => {
       const p = this.press;
@@ -4302,11 +4361,13 @@ const SplitReorder = {
       if (!(e.buttons & 1)) return this.endDrag();
       if (!this.drag) {
         if (Math.hypot(e.screenX - p.x, e.screenY - p.y) < 6) return;
-        this.drag = { tab: p.tab };
+        this.drag = { tab: p.tab, group: p.group, whole: p.whole, node: p.whole ? p.group : p.tab };
         root.setAttribute("zenith-split-dragging", "true");
-        p.tab.setAttribute("zenith-split-moving", "true");
+        this.drag.node.setAttribute("zenith-split-moving", "true");
       }
-      this.mark(this.whatDrop(this.drag.tab, tabOf(document.elementFromPoint(e.clientX, e.clientY)), e, true));
+      const at = document.elementFromPoint(e.clientX, e.clientY);
+      this.mark(this.drag.whole ? this.whatWhole(this.drag.group, at, e) : this.whatDrop(this.drag.tab, this.targetOf(at), e, true));
+      root.toggleAttribute("zenith-split-nowhere", !this.marked);
     };
     const up = e => {
       this.press = null;
@@ -4330,7 +4391,7 @@ const SplitReorder = {
       if (this.drag) return;
       const dragged = e.dataTransfer?.mozGetDataAt?.(this.TYPE, 0);
       if (!dragged?.isConnected || !(dragged instanceof XULElement)) return this.mark(null);
-      const what = this.whatDrop(dragged, tabOf(e.target), e, false);
+      const what = this.whatDrop(dragged, this.targetOf(e.target), e, false);
       this.mark(what);
       if (!what) return;
       e.preventDefault();
@@ -4359,10 +4420,29 @@ const SplitReorder = {
     return group?.hasAttribute?.("split-view-group") ? group : null;
   },
 
+  // The tab under the pointer; between a split's tabs, its first one.
+  targetOf(node) {
+    if (node?.nodeType === Node.TEXT_NODE) node = node.parentElement;
+    return node?.closest?.("tab.tabbrowser-tab") ?? this.split(node?.closest?.("tab-group"))?.tabs[0] ?? null;
+  },
+
+  // The whole split: before or after a loose tab or another split (as
+  // pinned as it is; not among the essentials or in a folder).
+  whatWhole(group, node, e) {
+    const tab = this.targetOf(node);
+    if (!tab || group.contains(tab) || tab.hasAttribute("zen-essential") || tab.hasAttribute("zen-glance-tab") ||
+        tab.hasAttribute("zen-empty-tab") || tab.pinned !== group.tabs[0]?.pinned) return null;
+    const target = this.split(tab.group) ?? (tab.group ? null : tab);
+    if (!target) return null;
+    const r = target.getBoundingClientRect();
+    return { kind: e.clientY < r.top + r.height / 2 ? "before" : "after", whole: true, tab: group, target, node: target };
+  },
+
   endDrag() {
     this.mark(null);
-    this.drag?.tab.removeAttribute("zenith-split-moving");
+    this.drag?.node.removeAttribute("zenith-split-moving");
     root.removeAttribute("zenith-split-dragging");
+    root.removeAttribute("zenith-split-nowhere");
     this.drag = null;
     this.press = null;
   },
@@ -4391,10 +4471,15 @@ const SplitReorder = {
     what?.node.setAttribute(`zenith-split-${what.kind}`, "true");
   },
 
-  apply({ kind, tab, target }) {
+  apply({ kind, tab, target, whole }) {
     const S = window.gZenViewSplitter;
     if (!S) return;
     try {
+      if (whole) {
+        if (kind === "before") gBrowser.moveTabBefore(tab, target);
+        else gBrowser.moveTabAfter(tab, target);
+        return;
+      }
       if (kind === "swap") return this.swap(tab, target);
       if (this.split(tab.group)) S.removeTabFromGroup(tab);
       if (kind === "join") return S.splitTabs([target, tab], undefined, -1, { activate: false });

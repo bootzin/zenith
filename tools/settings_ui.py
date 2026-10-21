@@ -486,7 +486,7 @@ DESCRIPTIONS = {
     "zenith.plus.focus-video-description": "The video's description and its chapters stay under the video.",
     "zenith.plus.focus-video-playlist": "A playlist or course you're watching stays, under the video (never beside it).",
     "zenith.plus.focus-video-comments": "Comments stay, folded behind a Show comments button.",
-    "zenith.plus.focus-video-subscriptions": "The side menu stays, with your subscriptions (Shorts still go).",
+    "zenith.plus.focus-video-subscriptions": "The side menu, with only your channels (and Home and Subscriptions); Shorts still go.",
     "zenith.plus.focus-skip": "Sites focus mode leaves as they are (a site covers its subdomains). The pill's Not on this "
                               "site adds to the list; remove one with its ✕.",
     "zenith.plus.cookie-notices": "The first time Zenith does something on a site (this run of Zen): a banner refused or "

@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.5
+// @version        0.12.6
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -2983,7 +2983,7 @@ const SCHEMA = [
       "label": "Subscriptions",
       "type": "checkbox",
       "extra": false,
-      "desc": "The side menu stays, with your subscriptions (Shorts still go).",
+      "desc": "The side menu, with only your channels (and Home and Subscriptions); Shorts still go.",
       "host": "Zenith Plus",
       "default": false,
       "rule": {
@@ -3920,7 +3920,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.5";
+const SCHEMA_VERSION = "0.12.6";
 
 class SettingsView {
   constructor(kind) {
@@ -4386,7 +4386,8 @@ const STYLE = `
   .zp-list-count { color: var(--zp-dim); }
   .zp-list-empty { color: var(--zp-dim); }
   dialog.zp-sites { width: min(420px, 90vw); padding: 16px; border: 1px solid var(--zp-border); border-radius: var(--zp-radius, 10px);
-    background: var(--zp-control); color: inherit; display: none; flex-direction: column; gap: 10px; }
+    background: light-dark(rgb(250 250 252), rgb(30 30 36)); color: light-dark(rgb(29 29 31), rgb(236 236 241));
+    color-scheme: inherit; box-shadow: 0 12px 40px rgb(0 0 0 / 0.35); display: none; flex-direction: column; gap: 10px; }
   dialog.zp-sites[open] { display: flex; }
   dialog.zp-sites::backdrop { background: rgb(0 0 0 / 0.35); }
   dialog.zp-sites h3 { margin: 0; font-size: 1.05em; font-weight: 600; }
