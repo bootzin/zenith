@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.4
+// @version        0.12.5
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -2112,7 +2112,7 @@ const SCHEMA = [
       "label": "Within",
       "type": "dropdown",
       "extra": false,
-      "desc": "The screen: its edges are the screen's. The Zen window: it stays inside the window it came from, like a float, and moves with it.",
+      "desc": "The screen: its edges are the screen's, above every app. The Zen window: it stays inside the window it came from and moves with it, above that window only (not other apps), minimised with it (Windows).",
       "host": "Zenith Plus",
       "options": [
        {
@@ -3920,7 +3920,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.4";
+const SCHEMA_VERSION = "0.12.5";
 
 class SettingsView {
   constructor(kind) {

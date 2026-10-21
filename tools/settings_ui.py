@@ -432,8 +432,9 @@ DESCRIPTIONS = {
                               "it tucks away, a sliver with an arrow staying in view while it plays. Rest the pointer on "
                               "the sliver (or click it) and it comes out; a click anywhere else, or the pointer away from "
                               "it for a few seconds, tucks it again. Drag it away from the edge to keep it out.",
-    "zenith.plus.pip-within": "The screen: its edges are the screen's. The Zen window: it stays inside the window it came "
-                              "from, like a float, and moves with it.",
+    "zenith.plus.pip-within": "The screen: its edges are the screen's, above every app. The Zen window: it stays inside the "
+                              "window it came from and moves with it, above that window only (not other apps), minimised "
+                              "with it (Windows).",
     "zenith.plus.switcher-peek": "The switcher's last row is Peek: what you typed, looked up without leaving the page; "
                                  "when nothing else matches, it's the first, so Enter peeks.",
     "zenith.plus.switcher-colon": "Pressing : anywhere you aren't typing (a page, the sidebar) opens the switcher with : "

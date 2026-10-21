@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.4
+// @version        0.12.5
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -2675,6 +2675,82 @@ const FloatTab = {
   },
 };
 
+/* --- Windows' own: the pointer, a window's owner and corners ---------------------
+   For picture-in-picture: where the pointer is and whether its button is
+   down (even over other apps), a window kept above one Zen window only,
+   and its corners as Look › Corners says. Windows only; elsewhere these do
+   nothing and say nothing. */
+const Win32 = {
+  load() {
+    if (this.api !== undefined) return this.api;
+    this.api = null;
+    if (Services.appinfo.OS !== "WINNT") return null;
+    try {
+      const { ctypes } = ChromeUtils.importESModule("resource://gre/modules/ctypes.sys.mjs");
+      const u32 = ctypes.open("user32.dll");
+      let dwm = null;
+      try {
+        dwm = ctypes.open("dwmapi.dll");
+      } catch {}
+      const POINT = new ctypes.StructType("POINT", [{ x: ctypes.int32_t }, { y: ctypes.int32_t }]);
+      const api = {
+        ctypes, POINT,
+        getCursorPos: u32.declare("GetCursorPos", ctypes.winapi_abi, ctypes.int32_t, POINT.ptr),
+        keyState: u32.declare("GetAsyncKeyState", ctypes.winapi_abi, ctypes.int16_t, ctypes.int32_t),
+        setPos: u32.declare("SetWindowPos", ctypes.winapi_abi, ctypes.int32_t, ctypes.voidptr_t, ctypes.intptr_t, ctypes.int32_t, ctypes.int32_t, ctypes.int32_t, ctypes.int32_t, ctypes.uint32_t),
+        getWindow: u32.declare("GetWindow", ctypes.winapi_abi, ctypes.voidptr_t, ctypes.voidptr_t, ctypes.uint32_t),
+        setLong: u32.declare(ctypes.size_t.size === 8 ? "SetWindowLongPtrW" : "SetWindowLongW", ctypes.winapi_abi, ctypes.intptr_t, ctypes.voidptr_t, ctypes.int32_t, ctypes.intptr_t),
+        dwmSet: dwm?.declare("DwmSetWindowAttribute", ctypes.winapi_abi, ctypes.int32_t, ctypes.voidptr_t, ctypes.uint32_t, ctypes.voidptr_t, ctypes.uint32_t) ?? null,
+      };
+      window.addEventListener("unload", () => {
+        u32.close();
+        dwm?.close();
+      }, { once: true });
+      this.api = api;
+    } catch (e) {
+      console.error("[Zenith] Windows' own", e);
+    }
+    return this.api;
+  },
+
+  hwnd(win) {
+    const api = this.load();
+    return api ? api.ctypes.voidptr_t(api.ctypes.UInt64(win.docShell.treeOwner.QueryInterface(Ci.nsIBaseWindow).nativeHandle)) : null;
+  },
+
+  // The pointer, in device pixels, and whether the left button is down.
+  pointer() {
+    const api = this.load();
+    if (!api) return null;
+    const pt = new api.POINT();
+    if (!api.getCursorPos(pt.address())) return null;
+    // (Down now, or pressed since the last look: a quick click counts.)
+    return { x: pt.x, y: pt.y, down: (api.keyState(0x01) & 0x8001) !== 0 };
+  },
+
+  // Owned by another window: above it only, minimised and closed with it.
+  // (Once owned, left alone: something resets it now and then, so it's
+  // looked at again.)
+  own(win, owner) {
+    const api = this.load();
+    if (!api) return false;
+    const now = api.ctypes.cast(api.getWindow(this.hwnd(win), 4 /* GW_OWNER */), api.ctypes.uintptr_t).value.toString();
+    if (owner && now === api.ctypes.cast(this.hwnd(owner), api.ctypes.uintptr_t).value.toString()) return true;
+    api.setLong(this.hwnd(win), -8 /* GWLP_HWNDPARENT */, owner ? api.ctypes.cast(this.hwnd(owner), api.ctypes.intptr_t) : 0);
+    // (Above its owner only: not on top of other apps.)
+    if (owner) api.setPos(this.hwnd(win), -2 /* HWND_NOTOPMOST */, 0, 0, 0, 0, 0x0013 /* NOSIZE | NOMOVE | NOACTIVATE */);
+    return true;
+  },
+
+  // Windows 11's corners: square, small round or round.
+  corners(win, kind) {
+    const api = this.load();
+    if (!api?.dwmSet) return;
+    const v = new (api.ctypes.ArrayType(api.ctypes.uint32_t, 1))([{ square: 1, soft: 3, round: 2 }[kind] ?? 3]);
+    api.dwmSet(this.hwnd(win), 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, v.address(), 4);
+  },
+};
+
 /* --- Picture-in-picture: resize, edges, tucking ---------------------------------
    For Firefox's picture-in-picture window:
      - the mouse wheel over it makes it bigger or smaller (the same shape,
@@ -2729,6 +2805,7 @@ const PiPWindows = {
       window.removeEventListener("mousemove", over, true);
     });
     window.ZenithPiP = this; // for tools/checks
+    window.ZenithWin32 = Win32; // for tools/checks
   },
 
   on() {
@@ -2739,6 +2816,29 @@ const PiPWindows = {
     if (win.document.documentElement.getAttribute("windowtype") !== "Toolkit:PictureInPicture" || win.zenithPiP) return;
     if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
     const state = (win.zenithPiP = { owner: this, at: [win.screenX, win.screenY], still: 0, tucked: null, visiting: null, calmUntil: 0 });
+    // Its window's corners as Look › Corners says (Windows 11); inside Zen,
+    // above this Zen window only (not other apps) and kept inside it.
+    if (Services.prefs.getStringPref(this.WITHIN, "") === "zen") {
+      // (Once the window is up: Firefox sets it on top of everything as it
+      // shows it.)
+      const inside = () => {
+        state.inside = (state.inside ?? 0) + 1;
+        state.ticks ??= 0;
+        try {
+          win.docShell.treeOwner.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIAppWindow).zLevel = Ci.nsIAppWindow.normalZ;
+          Win32.own(win, window);
+        } catch (e) {
+          console.error("[Zenith] picture-in-picture: inside Zen", e);
+        }
+      };
+      for (const ms of [300, 1200]) win.setTimeout(inside, ms);
+      win.setTimeout(() => this.settle(win, true), 400);
+    }
+    try {
+      Win32.corners(win, Services.prefs.getStringPref("zenith.core.corners", "") || "soft");
+    } catch (e) {
+      console.error("[Zenith] picture-in-picture: corners", e);
+    }
     const wheel = e => this.on() && !state.tucked && this.resize(win, e);
     // Tucked, the pointer over the video would be the page's (another
     // process): a clear cover in the controls' layer catches it.
@@ -2811,6 +2911,20 @@ const PiPWindows = {
   // a visit became its place).
   watch(win) {
     const state = win.zenithPiP;
+    // Fullscreen: its own business (moving it would undo it).
+    if (this.full(win)) {
+      state.at = [win.screenX, win.screenY];
+      state.moved = false;
+      state.visiting = null;
+      state.awaySince = null;
+      return;
+    }
+    if (state.visiting) this.away(win);
+    if (state.inside && ++state.ticks % 7 === 0) {
+      try {
+        Win32.own(win, window);
+      } catch {}
+    }
     // Inside the Zen window: when the window moves or changes size, it
     // keeps to it.
     if (Services.prefs.getStringPref(this.WITHIN, "") === "zen" && !state.animating) {
@@ -2860,6 +2974,7 @@ const PiPWindows = {
     const y = Math.min(Math.max(win.screenY, T + this.GAP), B - h - this.GAP);
     state.tucked = { side, y };
     state.visiting = null;
+    state.awaySince = null;
     win.clearTimeout(state.awayTimer);
     state.awayTimer = null;
     state.cover.hidden = false;
@@ -2882,9 +2997,32 @@ const PiPWindows = {
     } catch {}
   },
 
+  // Out for a visit: the pointer away from it a while, or a click anywhere
+  // else (another app included), puts it back. Read from the system, as
+  // the window gets no word of a pointer or a click elsewhere.
+  away(win) {
+    const state = win.zenithPiP, p = Win32.pointer();
+    if (!p || state.animating) return;
+    const k = win.devicePixelRatio || 1;
+    const inside = p.x >= win.screenX * k && p.x < (win.screenX + win.outerWidth) * k && p.y >= win.screenY * k && p.y < (win.screenY + win.outerHeight) * k;
+    if (inside) {
+      state.awaySince = null;
+      return;
+    }
+    if (p.down) return this.tuckBack(win);
+    state.awaySince ??= Date.now();
+    if (Date.now() - state.awaySince > this.AWAY) this.tuckBack(win);
+  },
+
+  full(win) {
+    return !!(win.document.fullscreenElement || win.windowState === win.STATE_FULLSCREEN || win.fullScreen);
+  },
+
   tuckBack(win) {
     const state = win.zenithPiP;
-    if (!state?.visiting || state.animating || !this.on()) return;
+    // (Going fullscreen takes the focus away for a moment: not a click
+    // elsewhere.)
+    if (!state?.visiting || state.animating || !this.on() || this.full(win)) return;
     this.tuck(win, state.visiting.side);
   },
 
@@ -3546,33 +3684,41 @@ const CtrlTabOrder = {
     const C = window.ctrlTab;
     if (!C) return;
     this.firefox ??= Object.getOwnPropertyDescriptor(C, "tabList");
+    this.open ??= C.open;
     if (on) {
       Object.defineProperty(C, "tabList", { get: () => this.inOrder(), configurable: true, enumerable: true });
+      // (Firefox starts on the second picture: here, the one after yours.)
+      const open = this.open;
+      C.open = function (...args) {
+        const r = open.apply(this, args);
+        const i = this.tabList.indexOf(gBrowser.selectedTab);
+        if (i >= 0) this._selectedIndex = (i + 1) % this.tabPreviewCount;
+        return r;
+      };
     } else if (this.firefox) {
       Object.defineProperty(C, "tabList", this.firefox);
+      C.open = this.open;
     }
   },
 
-  // This space's tabs (essentials and pinned first, as in the sidebar),
-  // from the one you're on round to the one before it; asleep ones too;
-  // essentials always among them.
-  // With more tabs than the row holds, the ones just before this one take
-  // its end, so going back (Ctrl+Shift+Tab) lands on the previous tab.
+  // This space's tabs in the sidebar's order (essentials first; asleep
+  // ones too). With more than the row holds: the essentials, then the tabs
+  // around the one you're on. The row opens on the tab after this one.
   // (A tab with a glance open is its glance: that's what's selected and
   // shown for it.)
   inOrder() {
     const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"))
       .map(t => t.glanceTab ?? t);
-    const i = Math.max(0, tabs.indexOf(gBrowser.selectedTab));
-    const round = [...tabs.slice(i), ...tabs.slice(0, i)];
     const max = window.ctrlTab?.maxTabPreviews ?? 7;
-    if (round.length <= max) return round;
-    // Essentials always have a place in the row (after the tabs ahead).
-    const extra = round.slice(1).filter(t => (t.closest?.(".tabbrowser-tab:not([zen-glance-tab])") ?? t).hasAttribute("zen-essential")).slice(0, max - 3);
-    const rest = round.filter(t => !extra.includes(t));
-    const room = max - 1 - extra.length, back = Math.floor(room / 2), ahead = room - back;
-    return [rest[0], ...rest.slice(1, 1 + ahead), ...extra, ...rest.slice(rest.length - back)];
+    if (tabs.length <= max) return tabs;
+    const essential = t => (t.closest?.(".tabbrowser-tab:not([zen-glance-tab])") ?? t).hasAttribute("zen-essential");
+    const ess = tabs.filter(essential).slice(0, max - 3);
+    const rest = tabs.filter(t => !ess.includes(t));
+    const room = max - ess.length, here = Math.max(0, rest.indexOf(gBrowser.selectedTab));
+    const from = Math.max(0, Math.min(here - Math.floor((room - 1) / 2), rest.length - room));
+    return [...ess, ...rest.slice(from, from + room)];
   },
+
 };
 
 /* --- Groups that don't pin --------------------------------------------------
@@ -4126,73 +4272,82 @@ const Cookies = {
 };
 
 /* --- Split views: drag a tab, or the whole split --------------------------------
-   In the sidebar, dragging one of a split view's tabs moves only that tab
-   (Zen would drag the whole split): onto another tab of the same split, the
-   two swap places (in the split too); onto another split's tab, it joins
-   that split; onto any other tab, it leaves its split and goes before or
-   after that tab. A loose tab dropped on a split's tab joins the split. The
-   grip on a split's left edge (shown on hover) drags the whole split, as
-   Zen does. What a drop would do is shown while you drag: the tab it would
-   swap with outlined, the split it would join outlined, or a line where
-   it would go. */
+   In the sidebar, dragging one of a split view's tabs moves only that tab:
+   onto another tab of the same split, the two swap places (in the split
+   too); onto another split's tab, it joins that split; onto a loose tab
+   (not in a folder), it leaves its split and goes before or after it.
+   What letting go would do shows as you drag (the tab or split outlined,
+   or a line). Escape cancels. A loose tab dragged onto a split's tab
+   joins the split. Pressing on a split's left edge (it lights up on
+   hover) drags the whole split, as Zen does.
+   The tab is moved with the pointer here, not with the browser's
+   drag-and-drop: Zen's own drag would take the whole split, and nothing
+   of Zen's sidebar is touched. */
 const SplitReorder = {
   TYPE: "application/x-moz-tabbrowser-tab",
+  EDGE: 10,
 
   init() {
     const tabOf = n => (n?.nodeType === Node.TEXT_NODE ? n.parentElement : n)?.closest?.("tab.tabbrowser-tab") ?? null;
-    const press = e => {
-      const tab = e.button === 0 && tabOf(e.target);
-      this.pressed = tab ? { tab, at: Date.now() } : null;
+    const down = e => {
+      this.press = null;
+      if (e.button !== 0 || e.altKey || e.ctrlKey || e.shiftKey || e.metaKey) return;
+      const tab = tabOf(e.target), group = this.split(tab?.group);
+      if (!group || !gBrowser.tabContainer.contains(tab) || e.clientX - group.getBoundingClientRect().left < this.EDGE) return;
+      this.press = { tab, x: e.screenX, y: e.screenY };
     };
-    // A split's grip, put there the first time the pointer is over it.
-    const grip = e => {
-      const group = tabOf(e.target)?.group;
-      if (!this.split(group) || group.querySelector(":scope > .zenith-split-grip")) return;
-      const g = el("div", { class: "zenith-split-grip", draggable: "true", title: "Drag to move the whole split view" });
-      group.prepend(g);
+    const move = e => {
+      const p = this.press;
+      if (!p) return;
+      if (!(e.buttons & 1)) return this.endDrag();
+      if (!this.drag) {
+        if (Math.hypot(e.screenX - p.x, e.screenY - p.y) < 6) return;
+        this.drag = { tab: p.tab };
+        root.setAttribute("zenith-split-dragging", "true");
+        p.tab.setAttribute("zenith-split-moving", "true");
+      }
+      this.mark(this.whatDrop(this.drag.tab, tabOf(document.elementFromPoint(e.clientX, e.clientY)), e, true));
     };
+    const up = e => {
+      this.press = null;
+      if (!this.drag) return;
+      const what = this.marked;
+      this.endDrag();
+      // (The click this release makes goes nowhere.)
+      window.addEventListener("click", c => (c.preventDefault(), c.stopPropagation()), { capture: true, once: true });
+      if (what) this.apply(what);
+    };
+    const key = e => e.key === "Escape" && this.drag && (e.preventDefault(), this.endDrag());
+    // The browser's drag of a split's tab (and so Zen's of the whole split)
+    // doesn't start: the pointer moves it here.
     const start = e => {
-      this.drag = null;
-      if (e.target?.closest?.(".zenith-split-grip")) return this.dragSplit(e);
-      const tab = tabOf(e.target) ?? (Date.now() - (this.pressed?.at ?? 0) < 3000 ? this.pressed.tab : null);
-      if (!this.split(tab?.group) || !gBrowser.tabContainer.contains(tab)) return;
-      // Only this tab: Zen's start (the whole split) is skipped.
+      if (!this.press) return;
+      e.preventDefault();
       e.stopImmediatePropagation();
-      const dt = e.dataTransfer;
-      dt.mozSetDataAt(this.TYPE, tab, 0);
-      dt.setData("text/plain", tab.linkedBrowser?.currentURI?.spec ?? "");
-      dt.effectAllowed = "move";
-      const r = tab.getBoundingClientRect();
-      try {
-        dt.setDragImage(tab, Math.min(40, r.width / 2), r.height / 2);
-      } catch {}
-      this.drag = { tab };
     };
+    // Zen's drag of a loose tab, over a split's tab: it joins the split.
     const over = e => {
-      const dragged = this.drag?.tab ?? e.dataTransfer?.mozGetDataAt?.(this.TYPE, 0);
-      if (!dragged?.isConnected || !(dragged instanceof XULElement) || !gBrowser.tabContainer.contains(e.target)) return this.mark(null);
-      const target = tabOf(e.target);
-      const what = this.whatDrop(dragged, target, e, !!this.drag);
+      if (this.drag) return;
+      const dragged = e.dataTransfer?.mozGetDataAt?.(this.TYPE, 0);
+      if (!dragged?.isConnected || !(dragged instanceof XULElement)) return this.mark(null);
+      const what = this.whatDrop(dragged, tabOf(e.target), e, false);
       this.mark(what);
       if (!what) return;
-      // (Zen's own handling would move the whole split.)
       e.preventDefault();
       e.stopImmediatePropagation();
       if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
     };
     const drop = e => {
+      if (this.drag || !this.marked) return;
       const what = this.marked;
       this.mark(null);
-      if (!what) return;
       e.preventDefault();
       e.stopImmediatePropagation();
       this.apply(what);
     };
-    const end = () => {
-      this.mark(null);
-      this.drag = null;
-    };
-    const listeners = [["mousedown", press], ["mouseover", grip], ["dragstart", start], ["dragover", over], ["drop", drop], ["dragend", end]];
+    const end = () => !this.drag && this.mark(null);
+    const listeners = [["mousedown", down], ["mousemove", move], ["mouseup", up], ["keydown", key], ["dragstart", start],
+                       ["dragover", over], ["drop", drop], ["dragend", end]];
     for (const [type, fn] of listeners) window.addEventListener(type, fn, true);
     onUnload(() => {
       for (const [type, fn] of listeners) window.removeEventListener(type, fn, true);
@@ -4204,15 +4359,27 @@ const SplitReorder = {
     return group?.hasAttribute?.("split-view-group") ? group : null;
   },
 
+  endDrag() {
+    this.mark(null);
+    this.drag?.tab.removeAttribute("zenith-split-moving");
+    root.removeAttribute("zenith-split-dragging");
+    this.drag = null;
+    this.press = null;
+  },
+
   // What letting go here would do: swap (same split), join (another
-  // split), or place it before/after a tab (leaving its split); null:
-  // Zen's own drag (a loose tab over loose tabs).
+  // split; a loose tab only, or one of a split), or place it before/after
+  // a loose tab (leaving its split); null: nothing.
   whatDrop(tab, target, e, ours) {
-    if (!target || target === tab || target.hasAttribute("zen-glance-tab")) return null;
+    if (!target || target === tab || target.hasAttribute("zen-glance-tab") || target.hasAttribute("zen-empty-tab")) return null;
     const mine = this.split(tab.group), theirs = this.split(target.group);
     if (mine && mine === theirs) return { kind: "swap", tab, target, node: target };
-    if (theirs) return theirs.tabs.length >= (window.gZenViewSplitter?.MAX_TABS ?? 4) ? null : { kind: "join", tab, target, node: theirs };
-    if (!ours) return null;
+    if (theirs) {
+      const full = theirs.tabs.length >= (window.gZenViewSplitter?.MAX_TABS ?? 4);
+      const movable = mine || (!tab.group && !tab.hasAttribute("zen-essential") && tab.pinned === target.pinned);
+      return full || !movable ? null : { kind: "join", tab, target, node: theirs };
+    }
+    if (!ours || target.group || target.hasAttribute("zen-essential")) return null;
     const r = target.getBoundingClientRect();
     return { kind: e.clientY < r.top + r.height / 2 ? "before" : "after", tab, target, node: target };
   },
@@ -4227,28 +4394,17 @@ const SplitReorder = {
   apply({ kind, tab, target }) {
     const S = window.gZenViewSplitter;
     if (!S) return;
-    if (kind === "swap") return this.swap(tab, target);
-    if (this.split(tab.group)) S.removeTabFromGroup(tab);
-    if (kind === "join") return S.splitTabs([target, tab], undefined, -1, { activate: false });
-    // Beside a tab, as it is there: pinned or not, in its folder or not.
-    if (target.pinned && !tab.pinned) gBrowser.pinTab(tab);
-    else if (!target.pinned && tab.pinned) gBrowser.unpinTab(tab);
-    const folder = target.group?.isZenFolder ? target.group : null;
-    if (folder && tab.group !== folder) folder.addTabs([tab]);
-    if (kind === "before") gBrowser.moveTabBefore(tab, target);
-    else gBrowser.moveTabAfter(tab, target);
-  },
-
-  // The grip: Zen's drag of the whole split.
-  dragSplit(e) {
-    const group = this.split(e.target.closest("tab-group"));
-    const first = group?.tabs?.[0];
-    if (!first) return;
-    e.stopPropagation();
     try {
-      gBrowser.tabContainer.tabDragAndDrop?.startTabDrag?.(e, first);
-    } catch (err) {
-      console.error("[Zenith] split view: moving it", err);
+      if (kind === "swap") return this.swap(tab, target);
+      if (this.split(tab.group)) S.removeTabFromGroup(tab);
+      if (kind === "join") return S.splitTabs([target, tab], undefined, -1, { activate: false });
+      // Beside a loose tab, as it is: pinned or not.
+      if (target.pinned && !tab.pinned) gBrowser.pinTab(tab);
+      else if (!target.pinned && tab.pinned) gBrowser.unpinTab(tab);
+      if (kind === "before") gBrowser.moveTabBefore(tab, target);
+      else gBrowser.moveTabAfter(tab, target);
+    } catch (e) {
+      console.error("[Zenith] split view: moving a tab", e);
     }
   },
 

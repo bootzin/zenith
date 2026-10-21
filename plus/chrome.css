@@ -1486,7 +1486,7 @@ zenith-bookmarks-host.zen-library-section {
 
 /* The split view tab a dragged one would swap with (Zenith Plus). */
 /* Split views in the sidebar: what a drop would do (swap, join, before,
-   after), and the grip that drags the whole split. */
+   after), the left edge that drags the whole split, the tab on the move. */
 .tabbrowser-tab[zenith-split-swap],
 tab-group[zenith-split-join] {
   outline: 2px solid var(--zth-accent, AccentColor) !important;
@@ -1502,27 +1502,17 @@ tab-group[zenith-split-join] {
   box-shadow: 0 2px 0 var(--zth-accent, AccentColor) !important;
 }
 
-tab-group[split-view-group] {
-  position: relative;
+/* (The split's left edge, where a press drags the whole split.) */
+tab-group[split-view-group]:hover {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--zth-accent, AccentColor) 55%, transparent);
+}
 
-  & > .zenith-split-grip {
-    position: absolute;
-    inset-inline-start: 1px;
-    top: 50%;
-    translate: 0 -50%;
-    z-index: 2;
-    width: 5px;
-    height: min(28px, 60%);
-    border-radius: 3px;
-    background: var(--zth-ink-dim, currentColor);
-    opacity: 0;
-    cursor: grab;
-    transition: opacity 0.12s ease;
-  }
+.tabbrowser-tab[zenith-split-moving] {
+  opacity: 0.55;
+}
 
-  &:hover > .zenith-split-grip {
-    opacity: 0.55;
-  }
+:root[zenith-split-dragging] {
+  cursor: grabbing !important;
 }
 
 /* === Focus mode's pill ============================================================
