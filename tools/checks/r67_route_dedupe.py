@@ -42,7 +42,7 @@ with Scene(headless=False) as z:
       out['routed + dead: after'] = L.tabsFor(url).map(t => (t === ok ? 'ok ' : t === dd ? 'dead ' : 'other ') + desc(t).join(' '));
       await back();
 
-      // 3. Only a dead one: opened fresh there.
+      // 3. Only a dead one (handed on to an app): closed, not opened again.
       dead(); await zth.sleep(300); rule(ws.uuid);
       out['only dead'] = report(await L.route(L.tabsFor(url), url)); await zth.sleep(1500); out['only dead'].after = count();
       await back();

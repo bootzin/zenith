@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.12
+// @version        0.12.13
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -5844,16 +5844,36 @@ const ExternalLinks = {
     // (Not one the session brought back with the same page: those were
     // last used before this start. A tab never selected says 0.)
     const fresh = t => t.selected || !(t.lastAccessed > 0 && t.lastAccessed < started);
+    // A dead one: the link handed on to an app (Slack's login link opens
+    // Slack) leaves its tab with no page, sometimes no browser at all: only
+    // its title says the link. Those go, the session's too.
+    const dead = t => this.dead(t) && bare(t.label) === bare(url);
     const out = [];
     for (const w of Services.wm.getEnumerator("navigator:browser")) {
       if (w.closed || w.zenithFloatFrom) continue;
       // (Every space's: Zen's gBrowser.tabs is the space you're in.)
       for (const t of w.document.querySelectorAll("tab.tabbrowser-tab")) {
-        if (t.pinned || t.closing || t.hasAttribute("zen-essential") || t.hasAttribute("zen-empty-tab") || !fresh(t)) continue;
-        if (urlsOf(t).some(u => u && bare(u) === bare(url))) out.push(t);
+        if (t.pinned || t.closing || t.hasAttribute("zen-essential") || t.hasAttribute("zen-empty-tab")) continue;
+        if ((fresh(t) && urlsOf(t).some(u => u && bare(u) === bare(url))) || dead(t)) out.push(t);
       }
     }
     return out;
+  },
+
+  // No page in it: no browser, or a blank one that's done loading.
+  dead(t) {
+    const b = t.linkedBrowser;
+    return !b || !t.linkedPanel || (["", "about:blank"].includes(b.currentURI?.spec ?? "") && !b.webProgress?.isLoadingDocument);
+  },
+
+  close(t) {
+    try {
+      const id = t.id;
+      t.ownerDocument.defaultView.gBrowser.removeTab(t, { animate: false, skipPermitUnload: true });
+      if (id) for (const ms of [1500, 5000]) setTimeout(() => this.sweep(id, null), ms);
+    } catch (e) {
+      console.error("[Zenith] links: closing a tab", e);
+    }
   },
 
   // A link opened from another app, routed as Zen would have: the space
@@ -5880,19 +5900,43 @@ const ExternalLinks = {
     const here = t => t.ownerDocument?.defaultView === window;
     // (Only one that loaded counts: one that never did, a link handed on to
     // an app, has no page, and no space Zen can move it from.)
-    const alive = t => !!t.linkedPanel && !["", "about:blank"].includes(t.linkedBrowser?.currentURI?.spec ?? "");
+    const alive = t => !this.dead(t);
     const fits = t => alive(t) && here(t) && (!space || (t.getAttribute("zen-workspace-id") === space.uuid && (!space.containerTabId || t.userContextId === space.containerTabId)));
     const best = tabs.filter(alive).sort((a, b) => here(b) - here(a))[0] ?? null;
-    const keep = tabs.find(fits) ?? (space ? this.place(best, url, space) : best ?? gBrowser.addTrustedTab(url, { skipRoute: true }));
+    // None has a page: the link went on to an app, which has it. Not opened
+    // again (that would hand it on twice); the empty tabs close.
+    if (!best) {
+      for (const t of tabs) this.close(t);
+      return null;
+    }
+    const keep = tabs.find(fits) ?? (space ? this.place(best, url, space) : best);
     for (const t of tabs) {
       if (t === keep || !t.isConnected || t.closing || (keep.id && t.id === keep.id)) continue;
-      const id = t.id;
-      t.ownerDocument.defaultView.gBrowser.removeTab(t, { animate: false });
-      if (id) for (const ms of [1500, 5000]) setTimeout(() => this.sweep(id, keep), ms);
+      this.close(t);
     }
+    // (Opened again in its space: if that hands it on to an app too, its
+    // empty tab closes.)
+    if (keep !== best) this.closeIfHandedOn(keep);
     if (space && gZenWorkspaces.activeWorkspace !== space.uuid) await gZenWorkspaces.changeWorkspaceWithID(space.uuid);
     if (keep.ownerDocument?.defaultView === window) gBrowser.selectedTab = keep;
     return keep;
+  },
+
+  closeIfHandedOn(tab) {
+    const since = Date.now();
+    let loading = false;
+    const check = () => {
+      if (!tab.isConnected || tab.closing) return;
+      const b = tab.linkedBrowser;
+      if (b?.webProgress?.isLoadingDocument) loading = true;
+      if (b && !["", "about:blank"].includes(b.currentURI?.spec ?? "")) return; // (a page: it stays)
+      if ((loading || Date.now() - since > 6000) && this.dead(tab)) {
+        if (tab.ownerDocument.defaultView.gBrowser.visibleTabs.length > 1) this.close(tab);
+        return;
+      }
+      if (Date.now() - since < 30000) setTimeout(check, 500);
+    };
+    setTimeout(check, 1000);
   },
 
   sweep(id, keep) {

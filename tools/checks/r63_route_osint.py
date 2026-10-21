@@ -30,7 +30,20 @@ class LinkZen(Zen):
                 time.sleep(0.25)
         self.sock.settimeout(120)
         self._read()
-        self.cmd("WebDriver:NewSession", {"capabilities": {"pageLoadStrategy": "none"}})
+        # (Marionette can't start on a selected tab with no browser, the
+        # dead tab this checks for: started once Zenith has tidied; if it
+        # still can't, the dead tab stayed.)
+        time.sleep(30)
+        for i in range(3):
+            try:
+                self.cmd("WebDriver:NewSession", {"capabilities": {"pageLoadStrategy": "none"}})
+                break
+            except RuntimeError as e:
+                if "Maximum number of active sessions" in str(e):
+                    break
+                if i == 2:
+                    raise RuntimeError("Marionette can't start: a tab with no browser is still selected (the dead tab stayed)")
+                time.sleep(3)
         self.cmd("Marionette:SetContext", {"value": "chrome"})
         return self
 
