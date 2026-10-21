@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.11
+// @version        0.12.12
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -5794,82 +5794,124 @@ const ExternalLinks = {
     const urls = Date.now() - started < 120000 ? this.startupLinks() : [];
     this.startupState = urls.length ? "links" : "none"; // (for tools/checks)
     if (!urls.length) return;
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
     const wait = async (ok, tries) => {
-      for (let i = 0; i < tries && !ok(); i++) await new Promise(r => setTimeout(r, 100));
+      for (let i = 0; i < tries && !ok(); i++) await sleep(100);
     };
     await wait(() => window.gZenStartup?.isReady, 300);
     // (Zen's window sync copies a window's first tab to the other windows
     // once it's started: after that, so its copies go when it goes.)
-    await Promise.race([window.gZenStartup?.promiseInitialized, new Promise(r => setTimeout(r, 20000))]);
-    await new Promise(r => setTimeout(r, 600));
+    await Promise.race([window.gZenStartup?.promiseInitialized, sleep(20000)]);
+    await sleep(600);
     // (Zen reads its rules from disk as it starts.)
     await wait(() => this.routing()?.getAllRoutes?.().length, 30);
-    await new Promise(r => setTimeout(r, 500));
-    // (Its tab may not show the link yet: a moment to start loading.)
-    const bare = u => (u || "").replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
     for (const url of urls) {
-      // (Where it went, or the link it started from: links from other apps
-      // often redirect, a login or a tracking link.)
-      const urlsOf = t => {
-        const b = t.linkedBrowser, out = [b.currentURI?.spec, b.userTypedValue, b.documentURI?.spec];
-        try {
-          const h = b.browsingContext?.sessionHistory;
-          for (let i = 0; i < (h?.count ?? 0); i++) {
-            const e = h.getEntryAtIndex(i);
-            out.push(e.originalURI?.spec, e.URI?.spec);
-          }
-        } catch {}
-        return out;
-      };
-      const shows = t => urlsOf(t).some(u => u && bare(u) === bare(url));
-      // (Not a tab the session brought back with the same page: those were
-      // last used before this start.)
-      const fresh = t => t.selected || !(t.lastAccessed < started);
-      let tab = null;
-      for (let i = 0; i < 100 && !tab; i++) {
-        tab = gBrowser.tabs.filter(t => !t.pinned && !t.closing && !t.hasAttribute("pending") && fresh(t) && shows(t)).at(-1) ?? null;
-        if (!tab) await new Promise(r => setTimeout(r, 150));
+      let tabs = [];
+      for (let i = 0; i < 100 && !tabs.length; i++) {
+        tabs = this.tabsFor(url, started);
+        if (!tabs.length) await sleep(150);
       }
-      this.startupState = tab ? "routing" : "no tab";
-      if (tab) await this.route(tab, url).catch(e => console.error("[Zenith] links: a link that started Zen", e));
-      this.startupState = tab ? `routed (${tab.getAttribute("zen-workspace-id")})` : "no tab";
+      // (Zen may open more than one for it, a moment apart.)
+      await sleep(1500);
+      tabs = this.tabsFor(url, started);
+      this.startupState = `routing ${tabs.length}`;
+      if (tabs.length) await this.route(tabs, url).catch(e => console.error("[Zenith] links: a link that started Zen", e));
+      this.startupState = `routed ${tabs.length}`;
     }
   },
 
-  // A tab opened from another app, routed as Zen would have: the space its
-  // rule (or the default for other links) names, or the card to ask.
-  async route(tab, url) {
-    const R = this.routing();
-    if (!R || this.spaces().length < 2) return;
-    if (this.wanted(Services.io.newURI(url))) {
-      return this.ask(Services.io.newURI(url), () => this.place(tab, url, gZenWorkspaces.getWorkspaceFromId(gZenWorkspaces.activeWorkspace)));
+  // Every tab this start opened for a link, in any window: Zen may open
+  // more than one (the window's first tab, one it routes itself, or one
+  // that never loads, a link handed on to an app). Found by where it went,
+  // the link it started from (links often redirect), what its address bar
+  // shows, or the page it's waiting to load.
+  tabsFor(url, started = 0) {
+    const bare = u => (u || "").replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
+    const urlsOf = t => {
+      const b = t.linkedBrowser, out = [b?.currentURI?.spec, b?.userTypedValue, b?.documentURI?.spec];
+      try {
+        out.push(SessionStore.getLazyTabValue(t, "url"));
+      } catch {}
+      try {
+        const h = b?.browsingContext?.sessionHistory;
+        for (let i = 0; i < (h?.count ?? 0); i++) {
+          const e = h.getEntryAtIndex(i);
+          out.push(e.originalURI?.spec, e.URI?.spec);
+        }
+      } catch {}
+      return out;
+    };
+    // (Not one the session brought back with the same page: those were
+    // last used before this start. A tab never selected says 0.)
+    const fresh = t => t.selected || !(t.lastAccessed > 0 && t.lastAccessed < started);
+    const out = [];
+    for (const w of Services.wm.getEnumerator("navigator:browser")) {
+      if (w.closed || w.zenithFloatFrom) continue;
+      // (Every space's: Zen's gBrowser.tabs is the space you're in.)
+      for (const t of w.document.querySelectorAll("tab.tabbrowser-tab")) {
+        if (t.pinned || t.closing || t.hasAttribute("zen-essential") || t.hasAttribute("zen-empty-tab") || !fresh(t)) continue;
+        if (urlsOf(t).some(u => u && bare(u) === bare(url))) out.push(t);
+      }
     }
-    const space = gZenWorkspaces.getWorkspaceFromId?.(R.routeUri(url, { fromExternal: true }));
-    if (space) await this.place(tab, url, space);
+    return out;
+  },
+
+  // A link opened from another app, routed as Zen would have: the space
+  // its rule (or the default for other links) names, or the card to ask.
+  // One tab is kept for it.
+  async route(tabs, url) {
+    if (!Array.isArray(tabs)) tabs = [tabs];
+    const R = this.routing(), uri = Services.io.newURI(url);
+    const settle = space => this.settle(tabs, url, space);
+    if (R && this.spaces().length > 1 && this.wanted(uri)) {
+      return this.ask(uri, () => settle(gZenWorkspaces.getWorkspaceFromId(gZenWorkspaces.activeWorkspace)));
+    }
+    const id = R && this.spaces().length > 1 ? R.routeUri(url, { fromExternal: true }) : null;
+    return settle(gZenWorkspaces.getWorkspaceFromId?.(id) ?? null);
+  },
+
+  // One tab for the link: one already in the space (and its container), or
+  // the best of them placed there (the one that loaded, in this window);
+  // the others close, with their copies in other windows (Zen's window
+  // sync makes them).
+  async settle(tabs, url, space) {
+    tabs = tabs.filter(t => t.isConnected && !t.closing);
+    if (!tabs.length) return null;
+    const here = t => t.ownerDocument?.defaultView === window;
+    // (Only one that loaded counts: one that never did, a link handed on to
+    // an app, has no page, and no space Zen can move it from.)
+    const alive = t => !!t.linkedPanel && !["", "about:blank"].includes(t.linkedBrowser?.currentURI?.spec ?? "");
+    const fits = t => alive(t) && here(t) && (!space || (t.getAttribute("zen-workspace-id") === space.uuid && (!space.containerTabId || t.userContextId === space.containerTabId)));
+    const best = tabs.filter(alive).sort((a, b) => here(b) - here(a))[0] ?? null;
+    const keep = tabs.find(fits) ?? (space ? this.place(best, url, space) : best ?? gBrowser.addTrustedTab(url, { skipRoute: true }));
+    for (const t of tabs) {
+      if (t === keep || !t.isConnected || t.closing || (keep.id && t.id === keep.id)) continue;
+      const id = t.id;
+      t.ownerDocument.defaultView.gBrowser.removeTab(t, { animate: false });
+      if (id) for (const ms of [1500, 5000]) setTimeout(() => this.sweep(id, keep), ms);
+    }
+    if (space && gZenWorkspaces.activeWorkspace !== space.uuid) await gZenWorkspaces.changeWorkspaceWithID(space.uuid);
+    if (keep.ownerDocument?.defaultView === window) gBrowser.selectedTab = keep;
+    return keep;
   },
 
   sweep(id, keep) {
     for (const w of Services.wm.getEnumerator("navigator:browser")) {
-      for (const t of [...(w.gBrowser?.tabs ?? [])]) if (t.id === id && t !== keep && !t.closing) w.gBrowser.removeTab(t, { animate: false });
+      for (const t of [...w.document.querySelectorAll("tab.tabbrowser-tab")]) if (t.id === id && t !== keep && !t.closing) w.gBrowser.removeTab(t, { animate: false });
     }
   },
 
-  // Into a space (and its container: opened again in it), shown.
-  async place(tab, url, space) {
-    if (!space || !tab?.isConnected) return;
-    if (space.containerTabId && (tab.userContextId ?? 0) !== space.containerTabId) {
-      const fresh = gBrowser.addTrustedTab(url, { userContextId: space.containerTabId, skipRoute: true });
+  // Into a space, and its container (a tab can't change container: opened
+  // again in it; with no tab, opened there). The tab it's now in.
+  place(tab, url, space) {
+    if (!tab || (space.containerTabId && (tab.userContextId ?? 0) !== space.containerTabId)) {
+      const fresh = gBrowser.addTrustedTab(url, { userContextId: space.containerTabId || 0, skipRoute: true });
       gZenWorkspaces.moveTabToWorkspace(fresh, space.uuid);
-      const old = tab.id;
-      gBrowser.removeTab(tab, { animate: false });
-      tab = fresh;
-      // (Its copies in other windows, Zen's window sync's, go too.)
-      if (old) for (const ms of [1500, 5000]) setTimeout(() => this.sweep(old, fresh), ms);
-    } else if (tab.getAttribute("zen-workspace-id") !== space.uuid) {
-      gZenWorkspaces.moveTabToWorkspace(tab, space.uuid);
+      return fresh;
     }
-    if (gZenWorkspaces.activeWorkspace !== space.uuid) await gZenWorkspaces.changeWorkspaceWithID(space.uuid);
-    gBrowser.selectedTab = tab;
+    if (tab.ownerDocument?.defaultView !== window) tab = gBrowser.adoptTab(tab, { selectTab: false }) ?? tab;
+    if (tab.getAttribute("zen-workspace-id") !== space.uuid) gZenWorkspaces.moveTabToWorkspace(tab, space.uuid);
+    return tab;
   },
 
   // The setting and Zen's default for links no rule matches follow each
