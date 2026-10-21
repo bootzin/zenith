@@ -67,6 +67,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?")[0]
+        if path == "/redirect":
+            # (A link that goes elsewhere first, as login and tracking links do.)
+            from urllib.parse import parse_qs, urlsplit
+            self.send_response(302)
+            self.send_header("Location", parse_qs(urlsplit(self.path).query).get("to", ["/page?n=redirected"])[0])
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if path == "/slow":
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")

@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.10
+// @version        0.12.11
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -5808,7 +5808,20 @@ const ExternalLinks = {
     // (Its tab may not show the link yet: a moment to start loading.)
     const bare = u => (u || "").replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
     for (const url of urls) {
-      const shows = t => [t.linkedBrowser.currentURI?.spec, t.linkedBrowser.userTypedValue, t.linkedBrowser.documentURI?.spec].some(u => u && bare(u) === bare(url));
+      // (Where it went, or the link it started from: links from other apps
+      // often redirect, a login or a tracking link.)
+      const urlsOf = t => {
+        const b = t.linkedBrowser, out = [b.currentURI?.spec, b.userTypedValue, b.documentURI?.spec];
+        try {
+          const h = b.browsingContext?.sessionHistory;
+          for (let i = 0; i < (h?.count ?? 0); i++) {
+            const e = h.getEntryAtIndex(i);
+            out.push(e.originalURI?.spec, e.URI?.spec);
+          }
+        } catch {}
+        return out;
+      };
+      const shows = t => urlsOf(t).some(u => u && bare(u) === bare(url));
       // (Not a tab the session brought back with the same page: those were
       // last used before this start.)
       const fresh = t => t.selected || !(t.lastAccessed < started);
