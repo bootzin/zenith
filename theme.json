@@ -4,7 +4,7 @@
   "description": "A quiet, minimal look for Zen: six areas (Core, Edges, Tabs, URL bar, Panels, Motion) plus Zenith Plus (Peek, live edges, timers and more). Settings are grouped by area.",
   "homepage": "https://github.com/bootzin/zenith/tree/master",
   "author": "bootzin",
-  "version": "0.12.7",
+  "version": "0.12.8",
   "style": {
     "chrome": "chrome.css"
   },
@@ -90,5 +90,5 @@
   ],
   "ai": "yes",
   "createdAt": "2026-10-16",
-  "updatedAt": "2026-10-21T15:33:20+00:00"
+  "updatedAt": "2026-10-21T16:04:11+00:00"
 }

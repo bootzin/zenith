@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.7
+// @version        0.12.8
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -5615,7 +5615,9 @@ const ExternalLinks = {
     else window.delayedStartupPromise?.then(hook);
     // A link that starts Zen: Zen leaves tabs alone while it starts (they'd
     // be the session's), so its rules (or Ask) apply here once it's ready.
-    if (!window.gZenStartup?.isReady) this.startup();
+    // (The first window, as Zen starts: Zenith's scripts may come after
+    // Zen is ready.)
+    this.startup();
     this.patchDialog();
     const follow = () => this.followSetting();
     Services.prefs.addObserver(this.PREF, follow);
@@ -5642,14 +5644,33 @@ const ExternalLinks = {
   },
 
   async startup() {
-    const urls = this.startupLinks();
+    let age = 0;
+    try {
+      age = Date.now() - Services.startup.getStartupInfo().process.getTime();
+    } catch {}
+    const first = [...Services.wm.getEnumerator("navigator:browser")].every(w => w === window);
+    const urls = first && age < 120000 ? this.startupLinks() : [];
+    this.startupState = urls.length ? "links" : `none (first ${first}, ${Math.round(age / 1000)}s)`; // (for tools/checks)
     if (!urls.length) return;
-    for (let i = 0; i < 150 && !window.gZenStartup?.isReady; i++) await new Promise(r => setTimeout(r, 100));
+    const wait = async (ok, tries) => {
+      for (let i = 0; i < tries && !ok(); i++) await new Promise(r => setTimeout(r, 100));
+    };
+    await wait(() => window.gZenStartup?.isReady, 300);
+    // (Zen reads its rules from disk as it starts.)
+    await wait(() => this.routing()?.getAllRoutes?.().length, 30);
     await new Promise(r => setTimeout(r, 500));
+    // (Its tab may not show the link yet: a moment to start loading.)
+    const bare = u => (u || "").replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
     for (const url of urls) {
-      const same = s => !!s && s.replace(/\/$/, "") === url.replace(/\/$/, "");
-      const tab = gBrowser.tabs.filter(t => !t.pinned && !t.closing && (same(t.linkedBrowser.currentURI?.spec) || same(t.linkedBrowser.userTypedValue))).at(-1);
+      const shows = t => [t.linkedBrowser.currentURI?.spec, t.linkedBrowser.userTypedValue, t.linkedBrowser.documentURI?.spec].some(u => u && bare(u) === bare(url));
+      let tab = null;
+      for (let i = 0; i < 100 && !tab; i++) {
+        tab = gBrowser.tabs.filter(t => !t.pinned && !t.closing && shows(t)).at(-1) ?? null;
+        if (!tab) await new Promise(r => setTimeout(r, 150));
+      }
+      this.startupState = tab ? "routing" : "no tab";
       if (tab) await this.route(tab, url).catch(e => console.error("[Zenith] links: a link that started Zen", e));
+      this.startupState = tab ? `routed (${tab.getAttribute("zen-workspace-id")})` : "no tab";
     }
   },
 

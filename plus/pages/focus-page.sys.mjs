@@ -157,7 +157,7 @@ function youtubeSheet(opts) {
     html[zenith-yt-home] ytd-masthead #center { flex: none !important; width: min(640px, 88vw) !important; margin: 0 !important; }
     html[zenith-yt-home] ytd-masthead #end { position: absolute !important; top: 8px; right: 16px; }
     ytd-shorts #shorts-container { overflow: hidden !important; }
-    [zenith-yt-suggest-row] { display: block !important; width: 100% !important; padding: 6px 24px !important; border: 0 !important;
+    [zenith-yt-suggest-row] { appearance: none !important; box-sizing: border-box !important; display: block !important; width: 100% !important; padding: 6px 24px !important; border: 0 !important;
                               background: transparent !important; text-align: start !important; cursor: pointer !important;
                               color: #0f0f0f !important; font: 400 1.6rem/2.4rem Roboto, Arial, sans-serif !important; }
     html[dark] [zenith-yt-suggest-row] { color: #f1f1f1 !important; }
@@ -463,9 +463,11 @@ export class ZenithFocusChild extends JSWindowActorChild {
     const doc = this.document;
     const list = doc.querySelector(".ytSearchboxComponentSuggestionsContainer, .sbdd_a");
     if (!list || list.querySelector("[zenith-yt-suggest-row]")) return;
-    const row = doc.createElement("button");
+    // (Not a button: a page can't style away the system's button look from
+    // Zenith's sheet.)
+    const row = doc.createElement("div");
     row.setAttribute("zenith-yt-suggest-row", "");
-    row.type = "button";
+    row.setAttribute("role", "button");
     row.textContent = "Show suggestions";
     row.addEventListener("mousedown", e => e.preventDefault());
     row.addEventListener("click", () => doc.documentElement.setAttribute("zenith-yt-suggest", ""));

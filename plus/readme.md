@@ -1,6 +1,6 @@
 # Zenith Plus
 
-Version 0.12.7
+Version 0.12.8
 
 The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
 
