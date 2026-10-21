@@ -1,0 +1,426 @@
+diff --git a/VERSION b/VERSION
+index 32ffda3..d0834a7 100644
+--- a/VERSION
++++ b/VERSION
+@@ -1 +1 @@
+-0.12.13
++0.12.14
+diff --git a/core/readme.md b/core/readme.md
+index 1fc5886..13ddbb2 100644
+--- a/core/readme.md
++++ b/core/readme.md
+@@ -1,6 +1,6 @@
+ # Zenith Core
+ 
+-Version 0.12.13
++Version 0.12.14
+ 
+ Shared colours, sizes, transparency and motion timing for every Zenith mod, plus the page frame. The other Zenith mods need it.
+ 
+diff --git a/core/theme.json b/core/theme.json
+index ed75d5f..b2298fe 100644
+--- a/core/theme.json
++++ b/core/theme.json
+@@ -8,11 +8,11 @@
+   "preferences": "https://raw.githubusercontent.com/bootzin/zenith/master/core/preferences.json",
+   "image": "",
+   "author": "bootzin",
+-  "version": "0.12.13",
++  "version": "0.12.14",
+   "tags": [
+     "minimal",
+     "zenith"
+   ],
+   "createdAt": "2026-10-16",
+-  "updatedAt": "2026-10-21T19:37:06+00:00"
++  "updatedAt": "2026-10-21T20:00:00+00:00"
+ }
+diff --git a/edges/readme.md b/edges/readme.md
+index bf378f0..88dc20c 100644
+--- a/edges/readme.md
++++ b/edges/readme.md
+@@ -1,6 +1,6 @@
+ # Zenith Edges
+ 
+-Version 0.12.13
++Version 0.12.14
+ 
+ Hairline status edges, so nothing sits on screen while you read.
+ 
+diff --git a/edges/theme.json b/edges/theme.json
+index ecf85ee..6767cf0 100644
+--- a/edges/theme.json
++++ b/edges/theme.json
+@@ -8,11 +8,11 @@
+   "preferences": "https://raw.githubusercontent.com/bootzin/zenith/master/edges/preferences.json",
+   "image": "",
+   "author": "bootzin",
+-  "version": "0.12.13",
++  "version": "0.12.14",
+   "tags": [
+     "minimal",
+     "zenith"
+   ],
+   "createdAt": "2026-10-16",
+-  "updatedAt": "2026-10-21T19:37:06+00:00"
++  "updatedAt": "2026-10-21T20:00:00+00:00"
+ }
+diff --git a/motion/readme.md b/motion/readme.md
+index 877b97c..6861aee 100644
+--- a/motion/readme.md
++++ b/motion/readme.md
+@@ -1,5 +1,5 @@
+ # Zenith Motion
+ 
+-Version 0.12.13
++Version 0.12.14
+ 
+ One quick motion curve for Zenith and Zen's sidebar, an optional tab-switch crossfade, and the swipe back/forward animation. When the system asks for less motion (Windows' Animation effects, macOS's Reduce motion), Zenith keeps its own motion unless you set it to follow the system.
+diff --git a/motion/theme.json b/motion/theme.json
+index a14b488..591d234 100644
+--- a/motion/theme.json
++++ b/motion/theme.json
+@@ -8,11 +8,11 @@
+   "preferences": "https://raw.githubusercontent.com/bootzin/zenith/master/motion/preferences.json",
+   "image": "",
+   "author": "bootzin",
+-  "version": "0.12.13",
++  "version": "0.12.14",
+   "tags": [
+     "minimal",
+     "zenith"
+   ],
+   "createdAt": "2026-10-16",
+-  "updatedAt": "2026-10-21T19:37:06+00:00"
++  "updatedAt": "2026-10-21T20:00:00+00:00"
+ }
+diff --git a/panels/readme.md b/panels/readme.md
+index 988af59..49f5972 100644
+--- a/panels/readme.md
++++ b/panels/readme.md
+@@ -1,6 +1,6 @@
+ # Zenith Panels
+ 
+-Version 0.12.13
++Version 0.12.14
+ 
+ Find bar, Library card (Ctrl+H), link URL pill, Glance, split view, notifications and menus, all on the same glass and corners.
+ 
+diff --git a/panels/theme.json b/panels/theme.json
+index e71f37c..30bf328 100644
+--- a/panels/theme.json
++++ b/panels/theme.json
+@@ -8,11 +8,11 @@
+   "preferences": "https://raw.githubusercontent.com/bootzin/zenith/master/panels/preferences.json",
+   "image": "",
+   "author": "bootzin",
+-  "version": "0.12.13",
++  "version": "0.12.14",
+   "tags": [
+     "minimal",
+     "zenith"
+   ],
+   "createdAt": "2026-10-16",
+-  "updatedAt": "2026-10-21T19:37:06+00:00"
++  "updatedAt": "2026-10-21T20:00:00+00:00"
+ }
+diff --git a/plus/readme.md b/plus/readme.md
+index 8a4c370..e91aa39 100644
+--- a/plus/readme.md
++++ b/plus/readme.md
+@@ -1,6 +1,6 @@
+ # Zenith Plus
+ 
+-Version 0.12.13
++Version 0.12.14
+ 
+ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
+ 
+diff --git a/plus/scripts/zenith-ai.uc.mjs b/plus/scripts/zenith-ai.uc.mjs
+index 9a7047a..1f81c16 100644
+--- a/plus/scripts/zenith-ai.uc.mjs
++++ b/plus/scripts/zenith-ai.uc.mjs
+@@ -2,7 +2,7 @@
+ // @name           Zenith local AI
+ // @description    Zenith Plus: Firefox's own on-device AI for clearer download names and tab groups by topic. Nothing leaves your computer.
+ // @include        main
+-// @version        0.12.13
++// @version        0.12.14
+ // ==/UserScript==
+ 
+ // Zenith's local AI uses the AI built into Firefox (Zen turns it off; with
+diff --git a/plus/scripts/zenith-bookmarks.uc.mjs b/plus/scripts/zenith-bookmarks.uc.mjs
+index a770b6c..c196595 100644
+--- a/plus/scripts/zenith-bookmarks.uc.mjs
++++ b/plus/scripts/zenith-bookmarks.uc.mjs
+@@ -2,7 +2,7 @@
+ // @name           Zenith Bookmarks
+ // @description    Zenith Plus: your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.
+ // @include        main
+-// @version        0.12.13
++// @version        0.12.14
+ // ==/UserScript==
+ 
+ // Ctrl+B opens Zenith's bookmarks instead of Firefox's sidebar (unless the
+diff --git a/plus/scripts/zenith-peek.uc.mjs b/plus/scripts/zenith-peek.uc.mjs
+index f09bf28..0273ceb 100644
+--- a/plus/scripts/zenith-peek.uc.mjs
++++ b/plus/scripts/zenith-peek.uc.mjs
+@@ -2,7 +2,7 @@
+ // @name           Zenith Peek
+ // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
+ // @include        main
+-// @version        0.12.13
++// @version        0.12.14
+ // ==/UserScript==
+ 
+ // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
+diff --git a/plus/scripts/zenith-plus.uc.mjs b/plus/scripts/zenith-plus.uc.mjs
+index d902aa6..7755844 100644
+--- a/plus/scripts/zenith-plus.uc.mjs
++++ b/plus/scripts/zenith-plus.uc.mjs
+@@ -2,7 +2,7 @@
+ // @name           Zenith Plus
+ // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
+ // @include        main
+-// @version        0.12.13
++// @version        0.12.14
+ // ==/UserScript==
+ 
+ // Loaded into every browser window by the script loader (fx-autoconfig, or
+@@ -5747,6 +5747,25 @@ const ExternalLinks = {
+     };
+     if (window.browserDOMWindow) hook();
+     else window.delayedStartupPromise?.then(hook);
++    // Zen's routing of a page that's loading (a link that goes on to a site
++    // a rule sends to another space, as Slack's links do through slack.com)
++    // stops the load and opens it again in a new tab there. A tab opened just
++    // for that load is left with no page at all: it closes. (One with pages
++    // of its own keeps them.)
++    const opened = e => {
++      const tab = e.target, owner = tab.owner;
++      if (owner && owner !== tab) setTimeout(() => this.leftBehind(owner, tab), 1500);
++    };
++    gBrowser.tabContainer.addEventListener("TabOpen", opened);
++    onUnload(() => gBrowser.tabContainer.removeEventListener("TabOpen", opened));
++    // (As Zen starts, that may happen before Zenith is here: looked for once
++    // it has started, and a little later.)
++    const scan = () => {
++      for (const t of document.querySelectorAll("tab.tabbrowser-tab")) if (t.owner && t.owner !== t) this.leftBehind(t.owner, t);
++    };
++    Promise.resolve(window.gZenStartup?.promiseInitialized).then(() => {
++      for (const ms of [2000, 8000, 20000]) setTimeout(scan, ms);
++    });
+     // A link that starts Zen: Zen leaves tabs alone while it starts (they'd
+     // be the session's), so its rules (or Ask) apply here once it's ready.
+     // (A window Zen opened for them as it started: Zenith's scripts may come
+@@ -5860,6 +5879,19 @@ const ExternalLinks = {
+     return out;
+   },
+ 
++  leftBehind(owner, tab) {
++    if (!owner.isConnected || owner.closing || owner.pinned || owner.hasAttribute("zen-essential") || !tab.isConnected) return;
++    if (owner.getAttribute("zen-workspace-id") === tab.getAttribute("zen-workspace-id")) return; // (not moved: not routing)
++    const blank = u => !u || /^about:(blank|newtab|home)$/.test(u);
++    const b = owner.linkedBrowser;
++    if (b?.webProgress?.isLoadingDocument || !blank(b?.currentURI?.spec)) return;
++    try {
++      const h = b?.browsingContext?.sessionHistory;
++      for (let i = 0; i < (h?.count ?? 0); i++) if (!blank(h.getEntryAtIndex(i).URI?.spec)) return;
++    } catch {}
++    this.close(owner);
++  },
++
+   // No page in it: no browser, or a blank one that's done loading.
+   dead(t) {
+     const b = t.linkedBrowser;
+diff --git a/plus/scripts/zenith-settings-page.uc.mjs b/plus/scripts/zenith-settings-page.uc.mjs
+index 8f923a7..a1aa150 100644
+--- a/plus/scripts/zenith-settings-page.uc.mjs
++++ b/plus/scripts/zenith-settings-page.uc.mjs
+@@ -4,7 +4,7 @@
+ // @include        main
+ // @include        about:preferences*
+ // @include        about:settings*
+-// @version        0.12.13
++// @version        0.12.14
+ // ==/UserScript==
+ 
+ // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
+@@ -3996,7 +3996,7 @@ function el(tag, attrs = {}, text = "") {
+   return node;
+ }
+ 
+-const SCHEMA_VERSION = "0.12.13";
++const SCHEMA_VERSION = "0.12.14";
+ 
+ class SettingsView {
+   constructor(kind) {
+diff --git a/plus/scripts/zenith-settings.uc.mjs b/plus/scripts/zenith-settings.uc.mjs
+index fc9fd8b..3ee579f 100644
+--- a/plus/scripts/zenith-settings.uc.mjs
++++ b/plus/scripts/zenith-settings.uc.mjs
+@@ -3,7 +3,7 @@
+ // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
+ // @include        about:preferences*
+ // @include        about:settings*
+-// @version        0.12.13
++// @version        0.12.14
+ // ==/UserScript==
+ 
+ // Zen's mod settings list every option flat, with no way to show that one
+diff --git a/plus/scripts/zenith-switcher.uc.mjs b/plus/scripts/zenith-switcher.uc.mjs
+index 8dbf788..6ddb16d 100644
+--- a/plus/scripts/zenith-switcher.uc.mjs
++++ b/plus/scripts/zenith-switcher.uc.mjs
+@@ -2,7 +2,7 @@
+ // @name           Zenith Switcher
+ // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
+ // @include        main
+-// @version        0.12.13
++// @version        0.12.14
+ // ==/UserScript==
+ 
+ // A rofi-style list over the page. Alt+W opens it; type a few letters of a
+diff --git a/plus/scripts/zenith-tabs.uc.mjs b/plus/scripts/zenith-tabs.uc.mjs
+index c602f85..76ad286 100644
+--- a/plus/scripts/zenith-tabs.uc.mjs
++++ b/plus/scripts/zenith-tabs.uc.mjs
+@@ -2,7 +2,7 @@
+ // @name           Zenith Tab manager
+ // @description    Zenith Plus: every tab of every space on one page (about:zenith-tabs), tidying up, and rules for grouping, sleeping and closing.
+ // @include        main
+-// @version        0.12.13
++// @version        0.12.14
+ // ==/UserScript==
+ 
+ // The tab manager (the "tab report" in DESIGN.md). Alt+Shift+T, or ":tabs"
+diff --git a/plus/scripts/zenith-timers.uc.mjs b/plus/scripts/zenith-timers.uc.mjs
+index a3b7b3d..d1053e8 100644
+--- a/plus/scripts/zenith-timers.uc.mjs
++++ b/plus/scripts/zenith-timers.uc.mjs
+@@ -2,7 +2,7 @@
+ // @name           Zenith Timers
+ // @description    Zenith Plus: countdown timers and pomodoros, started from Peek.
+ // @include        main
+-// @version        0.12.13
++// @version        0.12.14
+ // ==/UserScript==
+ 
+ // Timers are started from the Peek prompt (Alt+Q):
+diff --git a/plus/theme.json b/plus/theme.json
+index b4c1545..1d2724c 100644
+--- a/plus/theme.json
++++ b/plus/theme.json
+@@ -4,7 +4,7 @@
+   "description": "Peek, real load and download progress, a sidebar minimap, zoom pills and more for Zenith.",
+   "homepage": "https://github.com/bootzin/zenith/tree/master/plus",
+   "author": "bootzin",
+-  "version": "0.12.13",
++  "version": "0.12.14",
+   "style": {
+     "chrome": "chrome.css"
+   },
+@@ -89,5 +89,5 @@
+   ],
+   "ai": "yes",
+   "createdAt": "2026-10-16",
+-  "updatedAt": "2026-10-21T19:37:06+00:00"
++  "updatedAt": "2026-10-21T20:00:00+00:00"
+ }
+diff --git a/tabs/readme.md b/tabs/readme.md
+index a29c3e7..d1b1fad 100644
+--- a/tabs/readme.md
++++ b/tabs/readme.md
+@@ -1,6 +1,6 @@
+ # Zenith Tabs
+ 
+-Version 0.12.13
++Version 0.12.14
+ 
+ A tight tab sidebar that only shows the signals that matter: sleeping tabs, attention dots, folder activity, container stripes, audio waves and vertical split groups.
+ 
+diff --git a/tabs/theme.json b/tabs/theme.json
+index ddcd8fd..46941a4 100644
+--- a/tabs/theme.json
++++ b/tabs/theme.json
+@@ -8,11 +8,11 @@
+   "preferences": "https://raw.githubusercontent.com/bootzin/zenith/master/tabs/preferences.json",
+   "image": "",
+   "author": "bootzin",
+-  "version": "0.12.13",
++  "version": "0.12.14",
+   "tags": [
+     "minimal",
+     "zenith"
+   ],
+   "createdAt": "2026-10-16",
+-  "updatedAt": "2026-10-21T19:37:06+00:00"
++  "updatedAt": "2026-10-21T20:00:00+00:00"
+ }
+diff --git a/theme.json b/theme.json
+index e68205e..9d278e2 100644
+--- a/theme.json
++++ b/theme.json
+@@ -4,7 +4,7 @@
+   "description": "A quiet, minimal look for Zen: six areas (Core, Edges, Tabs, URL bar, Panels, Motion) plus Zenith Plus (Peek, live edges, timers and more). Settings are grouped by area.",
+   "homepage": "https://github.com/bootzin/zenith/tree/master",
+   "author": "bootzin",
+-  "version": "0.12.13",
++  "version": "0.12.14",
+   "style": {
+     "chrome": "chrome.css"
+   },
+@@ -90,5 +90,5 @@
+   ],
+   "ai": "yes",
+   "createdAt": "2026-10-16",
+-  "updatedAt": "2026-10-21T19:37:06+00:00"
++  "updatedAt": "2026-10-21T20:00:00+00:00"
+ }
+diff --git a/tools/scenarios.py b/tools/scenarios.py
+index 51e99e2..6f28866 100644
+--- a/tools/scenarios.py
++++ b/tools/scenarios.py
+@@ -75,6 +75,11 @@ class Handler(BaseHTTPRequestHandler):
+             self.send_header("Content-Length", "0")
+             self.end_headers()
+             return
++        if path == "/jsredirect":
++            # (A page that sends you on with a script, as login pages do.)
++            from urllib.parse import parse_qs, urlsplit
++            to = parse_qs(urlsplit(self.path).query).get("to", ["/page?n=redirected"])[0]
++            return self._html(f"<!doctype html><title>Signing in</title><script>setTimeout(() => location.replace({to!r}), 300)</script>")
+         if path == "/slow":
+             self.send_response(200)
+             self.send_header("Content-Type", "text/html; charset=utf-8")
+diff --git a/urlbar/readme.md b/urlbar/readme.md
+index 3d33310..915a826 100644
+--- a/urlbar/readme.md
++++ b/urlbar/readme.md
+@@ -1,6 +1,6 @@
+ # Zenith URL bar
+ 
+-Version 0.12.13
++Version 0.12.14
+ 
+ Spotlight-style floating URL bar. It is sized for each screen, follows Core's corners, and dims the page behind it.
+ 
+diff --git a/urlbar/theme.json b/urlbar/theme.json
+index 9b1a507..0146ced 100644
+--- a/urlbar/theme.json
++++ b/urlbar/theme.json
+@@ -8,11 +8,11 @@
+   "preferences": "https://raw.githubusercontent.com/bootzin/zenith/master/urlbar/preferences.json",
+   "image": "",
+   "author": "bootzin",
+-  "version": "0.12.13",
++  "version": "0.12.14",
+   "tags": [
+     "minimal",
+     "zenith"
+   ],
+   "createdAt": "2026-10-16",
+-  "updatedAt": "2026-10-21T19:37:06+00:00"
++  "updatedAt": "2026-10-21T20:00:00+00:00"
+ }

@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.13
+// @version        0.12.14
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -5747,6 +5747,25 @@ const ExternalLinks = {
     };
     if (window.browserDOMWindow) hook();
     else window.delayedStartupPromise?.then(hook);
+    // Zen's routing of a page that's loading (a link that goes on to a site
+    // a rule sends to another space, as Slack's links do through slack.com)
+    // stops the load and opens it again in a new tab there. A tab opened just
+    // for that load is left with no page at all: it closes. (One with pages
+    // of its own keeps them.)
+    const opened = e => {
+      const tab = e.target, owner = tab.owner;
+      if (owner && owner !== tab) setTimeout(() => this.leftBehind(owner, tab), 1500);
+    };
+    gBrowser.tabContainer.addEventListener("TabOpen", opened);
+    onUnload(() => gBrowser.tabContainer.removeEventListener("TabOpen", opened));
+    // (As Zen starts, that may happen before Zenith is here: looked for once
+    // it has started, and a little later.)
+    const scan = () => {
+      for (const t of document.querySelectorAll("tab.tabbrowser-tab")) if (t.owner && t.owner !== t) this.leftBehind(t.owner, t);
+    };
+    Promise.resolve(window.gZenStartup?.promiseInitialized).then(() => {
+      for (const ms of [2000, 8000, 20000]) setTimeout(scan, ms);
+    });
     // A link that starts Zen: Zen leaves tabs alone while it starts (they'd
     // be the session's), so its rules (or Ask) apply here once it's ready.
     // (A window Zen opened for them as it started: Zenith's scripts may come
@@ -5858,6 +5877,19 @@ const ExternalLinks = {
       }
     }
     return out;
+  },
+
+  leftBehind(owner, tab) {
+    if (!owner.isConnected || owner.closing || owner.pinned || owner.hasAttribute("zen-essential") || !tab.isConnected) return;
+    if (owner.getAttribute("zen-workspace-id") === tab.getAttribute("zen-workspace-id")) return; // (not moved: not routing)
+    const blank = u => !u || /^about:(blank|newtab|home)$/.test(u);
+    const b = owner.linkedBrowser;
+    if (b?.webProgress?.isLoadingDocument || !blank(b?.currentURI?.spec)) return;
+    try {
+      const h = b?.browsingContext?.sessionHistory;
+      for (let i = 0; i < (h?.count ?? 0); i++) if (!blank(h.getEntryAtIndex(i).URI?.spec)) return;
+    } catch {}
+    this.close(owner);
   },
 
   // No page in it: no browser, or a blank one that's done loading.

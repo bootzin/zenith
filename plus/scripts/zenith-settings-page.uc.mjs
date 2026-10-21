@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.13
+// @version        0.12.14
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -3996,7 +3996,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.13";
+const SCHEMA_VERSION = "0.12.14";
 
 class SettingsView {
   constructor(kind) {

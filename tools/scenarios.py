@@ -75,6 +75,11 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
+        if path == "/jsredirect":
+            # (A page that sends you on with a script, as login pages do.)
+            from urllib.parse import parse_qs, urlsplit
+            to = parse_qs(urlsplit(self.path).query).get("to", ["/page?n=redirected"])[0]
+            return self._html(f"<!doctype html><title>Signing in</title><script>setTimeout(() => location.replace({to!r}), 300)</script>")
         if path == "/slow":
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
