@@ -1782,6 +1782,50 @@
     "zenithWhy": "The switcher is off"
   },
   {
+    "property": "zenith.plus.switcher-peek",
+    "label": "Peek in the switcher",
+    "type": "dropdown",
+    "placeholder": "Default (Last, and first when nothing else matches)",
+    "options": [
+      {
+        "label": "Last, and first when nothing else matches",
+        "value": "fallback"
+      },
+      {
+        "label": "Off",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.switcher",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The switcher is off"
+  },
+  {
+    "property": "zenith.plus.switcher-colon",
+    "label": ": anywhere you aren't typing opens the switcher for a command",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.switcher",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The switcher is off"
+  },
+  {
     "property": "zenith.plus.external-links",
     "label": "Links from other apps",
     "type": "dropdown",
@@ -2508,6 +2552,33 @@
     "type": "checkbox",
     "defaultValue": true,
     "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.pip-within",
+    "label": "Picture-in-picture moves within",
+    "type": "dropdown",
+    "placeholder": "Default (The screen)",
+    "options": [
+      {
+        "label": "The screen",
+        "value": "screen"
+      },
+      {
+        "label": "The Zen window (it follows the window)",
+        "value": "zen"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.pip-extras",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Move and tuck is off"
   },
   {
     "property": "zenith.plus.media-art",

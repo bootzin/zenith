@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.3
+// @version        0.12.4
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -106,6 +106,10 @@ function sessionStartup() {
     } catch {}
   }
   return null;
+}
+
+function PrivateBrowsingUtilsOf(win) {
+  return ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs").PrivateBrowsingUtils.isWindowPrivate(win);
 }
 
 function onUnload(fn) {
@@ -2162,8 +2166,8 @@ const ZenithKeys = {
    Its bar: the page's title (click it, or Ctrl+L, Alt+D or F4, to type
    another address), a pin (pinned, the bar stays above the page; unpinned,
    it slides down when the pointer comes into the window or to its top
-   edge), back into the window, minimise (above every app) or roll up to
-   just the bar (above Zen), and close (Ctrl+Shift+T brings it back,
+   edge), back into the window, minimise (above every app), and
+   close (Ctrl+Shift+T brings it back,
    floating). Drag the bar to move it (it settles against an edge it's let
    go near; double-click for its corner). A floating tab is kept with the
    session: as Zen quits it goes back into its window, marked, and floats
@@ -2173,6 +2177,7 @@ const FloatTab = {
   ABOVE: "zenith.plus.float-above", // zen · all
   PINNED: "zenith.internal.float.bar-pinned",
   MARK: "zenithFloat", // a tab to float again once it's back (session)
+  KEPT: "zenith.internal.float.kept", // floats kept as Zen closed its last window: [{ state, essential }]
   GAP: 16,
   NEAR: 48,
 
@@ -2238,6 +2243,17 @@ const FloatTab = {
     return this.float(gBrowser.selectedTab);
   },
 
+  // The tab itself when a glance is open in it (the glance closed first).
+  own(tab = gBrowser.selectedTab) {
+    const parent = window.gZenGlanceManager?.getTabOrGlanceParent?.(tab) ?? tab;
+    if (parent !== tab) {
+      try {
+        window.gZenGlanceManager.quickCloseGlance?.();
+      } catch {}
+    }
+    return parent;
+  },
+
   floating(tab) {
     return !!tab && !tab.hasAttribute("zen-empty-tab");
   },
@@ -2251,19 +2267,42 @@ const FloatTab = {
     const restoring = e => {
       const tab = e.target;
       if (!SessionStore.getCustomTabValue(tab, this.MARK)) return;
-      SessionStore.deleteCustomTabValue(tab, this.MARK);
       SessionStore.promiseAllWindowsRestored.then(() => setTimeout(() => {
         if (tab.isConnected && Services.prefs.getBoolPref(this.PREF, true)) this.float(tab, { focus: Services.focus.activeWindow === window });
       }, 400));
     };
     gBrowser.tabContainer.addEventListener("SSTabRestoring", restoring);
     // As Zen starts: marked tabs come back asleep, which says nothing; they
-    // float once the session is back.
+    // float once the session is back. So do the floats kept as Zen closed
+    // its last window.
     SessionStore.promiseAllWindowsRestored.then(() => setTimeout(() => {
       if (!Services.prefs.getBoolPref(this.PREF, true)) return;
+      if (Services.prefs.prefHasUserValue(this.KEPT) && Services.wm.getMostRecentWindow("navigator:browser") === window) {
+        let kept = [];
+        try {
+          kept = JSON.parse(Services.prefs.getStringPref(this.KEPT, "[]"));
+        } catch {}
+        Services.prefs.clearUserPref(this.KEPT);
+        for (const { state, essential } of kept) {
+          // (The session may have brought it back as a plain sleeping tab.)
+          let url = null;
+          try {
+            const st = typeof state === "string" ? JSON.parse(state) : state;
+            url = st?.entries?.at((st.index ?? st.entries.length) - 1)?.url ?? null;
+          } catch {}
+          const twin = gBrowser.tabs.find(t => t.hasAttribute("pending") && !SessionStore.getCustomTabValue(t, this.MARK) &&
+                                              (SessionStore.getLazyTabValue(t, "url") || t.linkedBrowser?.currentURI?.spec) === url);
+          if (twin) gBrowser.removeTab(twin, { animate: false });
+          // (Opened afresh at its page: a restored sleeping tab can't be
+          // woken here without taking the selection.)
+          if (!url) continue;
+          const tab = gBrowser.addTrustedTab(url, { inBackground: true });
+          if (essential) SessionStore.setCustomTabValue(tab, this.MARK, "essential");
+          setTimeout(() => this.float(tab, { focus: false }), 1200);
+        }
+      }
       for (const tab of gBrowser.tabs) {
         if (!tab.isConnected || !SessionStore.getCustomTabValue(tab, this.MARK)) continue;
-        SessionStore.deleteCustomTabValue(tab, this.MARK);
         this.float(tab, { focus: false });
       }
     }, 800));
@@ -2272,12 +2311,16 @@ const FloatTab = {
     // floats them again: Zen keeps no closed windows to bring back), or,
     // with no other window (Zen is quitting), home, to float again next time.
     const closing = () => {
+      window.zenithClosing = true;
       const other = [...Services.wm.getEnumerator("navigator:browser")].reverse()
         .find(w => w !== window && !w.zenithFloatFrom && !w.closed && !w.closing);
+      // (The last window: Zen is closing; each float's kept state brings
+      // it back at the next start.)
+      if (!other) return;
       for (const win of Services.wm.getEnumerator("navigator:browser")) {
-        if (win.zenithFloatFrom !== window || win.ZenithFloat?.mode !== "zen") continue;
-        const moved = win.ZenithFloat.comeHome(other ?? window);
-        if (moved && other) other.gBrowser.removeTab(moved, { animate: false });
+        if (win.zenithFloatFrom !== window || win.closed || win.ZenithFloat?.mode !== "zen") continue;
+        const moved = win.ZenithFloat.comeHome(other);
+        if (moved) other.gBrowser.removeTab(moved, { animate: false });
       }
     };
     window.addEventListener("SSWindowClosing", closing);
@@ -2288,6 +2331,7 @@ const FloatTab = {
   },
 
   float(tab, { focus = true } = {}) {
+    tab = tab && this.own(tab);
     if (!this.floating(tab)) return null;
     // Your only tab: a new one keeps this window (Firefox closes a window
     // whose last tab leaves, and Zen's empty tab doesn't count).
@@ -2311,19 +2355,32 @@ const FloatTab = {
         return win;
       });
     }
+    // An essential floats too, and is an essential again when it's back.
+    const essential = tab.hasAttribute("zen-essential") || SessionStore.getCustomTabValue(tab, this.MARK) === "essential";
     SessionStore.deleteCustomTabValue(tab, this.MARK);
     const { w, h, x, y } = this.box(), mode = this.above;
     // Above Zen: a window owned by this one (the system keeps it above this
     // window only, minimises it with it, and closes it with it).
     const features = { popup: "yes", resizable: "yes", outerWidth: w, outerHeight: h, left: x, top: y,
                        ...(mode === "zen" ? { dependent: "yes" } : { alwaysontop: "yes" }) };
-    const win = gBrowser.replaceTabWithWindow(tab, features);
+    // Zen's own pages (Settings, the tab manager, the start page) run in the
+    // browser itself and come out blank when moved: they open there afresh.
+    let win;
+    if (!tab.linkedBrowser?.isRemoteBrowser) {
+      const url = tab.linkedBrowser?.currentURI?.spec ?? "about:blank";
+      win = window.openDialog(AppConstants.BROWSER_CHROME_URL, "_blank",
+                              "chrome,dialog=no,all," + Object.entries(features).map(([k, v]) => `${k}=${v}`).join(","), url);
+      win?.addEventListener("load", () => gBrowser.removeTab(tab, { animate: false }), { once: true });
+    } else {
+      win = gBrowser.replaceTabWithWindow(tab, features);
+    }
     if (!win) return null;
     // Only this tab: with Zen's window sync a new window would otherwise
     // take every tab (and leave this window empty).
     win._zenStartupSyncFlag = "unsynced";
     win.zenithFloatFrom = window;
     win.zenithFloatMode = mode;
+    win.zenithFloatEssential = essential;
     if (focus) win.addEventListener("load", () => win.setTimeout(() => win.focus(), 0), { once: true });
     return win;
   },
@@ -2371,6 +2428,16 @@ const FloatTab = {
       e.preventDefault();
       this.closeFromWindow();
     });
+    // Its tab as it is, kept up to date while it floats: if Zen closes
+    // without taking it home (its last window closed), it floats again at
+    // the next start. Put back or closed, it's forgotten.
+    this.keepId = `${Date.now()}-${Math.random()}`;
+    const keep = () => {
+      clearTimeout(this.keepTimer);
+      this.keepTimer = setTimeout(() => this.keep(), 500);
+    };
+    gBrowser.addTabsProgressListener({ onLocationChange: keep });
+    keep();
     // Zen quitting: the tab goes home first, marked, so it floats again
     // when Zen starts.
     const quitting = () => !this.closing && this.comeHome();
@@ -2398,8 +2465,7 @@ const FloatTab = {
     tipPin();
     bar.append(title, pin,
       button("back", "Put back in the window (Alt+Shift+F)", () => this.back()),
-      this.mode === "all" ? button("minimise", "Minimise", () => window.minimize())
-                          : button("roll", "Roll up to the bar", () => this.roll()),
+      ...(this.mode === "all" ? [button("minimise", "Minimise", () => window.minimize())] : []),
       button("close", "Close the tab (Ctrl+Shift+T brings it back)", () => this.closeFromWindow()));
     // (Unpinned: a strip along the top edge to bring it down.)
     const edge = el("div", { class: "zenith-float-edge" });
@@ -2428,10 +2494,7 @@ const FloatTab = {
                                    s.availLeft, s.availTop, s.availLeft + s.availWidth, s.availTop + s.availHeight);
         window.moveTo(x, y);
       },
-      target => {
-        if (this.rolled) this.roll();
-        else if (target === title) this.edit();
-      });
+      target => target === title && this.edit());
     bar.addEventListener("dblclick", e => !e.target.closest("button, input") && this.place());
   },
 
@@ -2475,26 +2538,10 @@ const FloatTab = {
   // (Zen keeps windows fairly tall unless told otherwise: placed by the
   // size it got.)
   place() {
-    if (this.rolled) this.roll();
     const { w, h } = this.box(), s = screen;
     window.resizeTo(w, h);
     requestAnimationFrame(() => window.moveTo(s.availLeft + s.availWidth - window.outerWidth - this.GAP,
                                               Math.max(s.availTop, s.availTop + s.availHeight - window.outerHeight - this.GAP)));
-  },
-
-  // Rolled up: only the bar (a click on it, or its button, unrolls it).
-  roll() {
-    if (this.rolled) {
-      const [w, h] = this.rolled;
-      this.rolled = null;
-      root.removeAttribute("zenith-float-rolled");
-      window.resizeTo(w, h);
-      return;
-    }
-    this.rolled = [window.outerWidth, window.outerHeight];
-    root.setAttribute("zenith-float-rolled", "true");
-    const chrome = window.outerHeight - window.innerHeight;
-    window.resizeTo(window.outerWidth, Math.ceil(this.bar.getBoundingClientRect().height) + chrome);
   },
 
   // The title becomes an address field: Enter goes there (an address, or a
@@ -2502,7 +2549,6 @@ const FloatTab = {
   edit() {
     const bar = this.bar;
     if (!bar || bar.hasAttribute("editing")) return bar?.querySelector("input")?.select();
-    if (this.rolled) this.roll();
     bar.setAttribute("editing", "true");
     const input = el("input", { class: "zenith-float-address", type: "text", spellcheck: "false" });
     input.value = gBrowser.selectedBrowser.currentURI?.displaySpec ?? "";
@@ -2536,42 +2582,93 @@ const FloatTab = {
     input.select();
   },
 
+  // The window it came from (else the last browser window); none while
+  // that's closing (its floats go with it, kept for the next start).
   home() {
+    const closing = w => !w || w.closed || w.zenithClosing || w.gBrowser?._windowIsClosing;
     let home = window.zenithFloatFrom;
+    if (closing(home) && home && !home.closed) return null;
     if (!home || home.closed) home = [...Services.wm.getEnumerator("navigator:browser")].reverse().find(w => w !== window && !w.zenithFloatFrom && !w.closed);
     return home ?? null;
   },
 
   // Back to the window it came from (or the last browser window), selected.
+  keep(forget = false) {
+    let kept = [];
+    try {
+      kept = JSON.parse(Services.prefs.getStringPref(FloatTab.KEPT, "[]")).filter(k => k.id !== this.keepId);
+    } catch {}
+    const tab = !forget && !this.closing && gBrowser.selectedTab;
+    if (tab && !PrivateBrowsingUtilsOf(window)) {
+      try {
+        kept.push({ id: this.keepId, state: SessionStore.getTabState(tab), essential: !!window.zenithFloatEssential });
+      } catch {}
+    }
+    if (kept.length) Services.prefs.setStringPref(FloatTab.KEPT, JSON.stringify(kept));
+    else Services.prefs.clearUserPref(FloatTab.KEPT);
+  },
+
+  // Into the home window: moved (nothing reloads), or, for Zen's own pages,
+  // opened there afresh (this window, with nothing left, closes).
+  moveTo(home, tab, select) {
+    clearTimeout(this.keepTimer);
+    this.keep(true);
+    // (Whatever's left, a closed glance say, doesn't keep this window open.)
+    setTimeout(() => !window.closed && window.close(), 100);
+    if (tab.linkedBrowser?.isRemoteBrowser) return home.gBrowser.adoptTab(tab, { selectTab: select });
+    const moved = home.gBrowser.addTrustedTab(tab.linkedBrowser?.currentURI?.spec ?? "about:blank", { inBackground: !select });
+    if (select) home.gBrowser.selectedTab = moved;
+    return moved;
+  },
+
   back(tab = gBrowser.selectedTab) {
     const home = this.home();
+    tab = tab && this.own(tab);
     if (!home || !tab) return null;
     this.closing = true;
-    const moved = home.gBrowser.adoptTab(tab, { selectTab: true });
+    const moved = this.moveTo(home, tab, true);
+    this.essentialAgain(home, moved);
     home.focus();
     return moved;
   },
 
+  // Run by the home window's own Zenith (this window is closing: what it
+  // schedules wouldn't run).
+  essentialAgain(home, tab) {
+    if (tab && window.zenithFloatEssential) home.ZenithFloat?.makeEssential(tab);
+  },
+
+  makeEssential(tab) {
+    setTimeout(() => {
+      try {
+        if (tab.isConnected && !tab.hasAttribute("zen-essential")) gZenPinnedTabManager?.addToEssentials?.(tab);
+      } catch (e) {
+        console.error("[Zenith] float: essential again", e);
+      }
+    }, 300);
+  },
+
+
   // Home (marked, not selected) without a fuss: Zen quitting, or the window
   // it floats above closing (that window: `to`).
   comeHome(to = this.home()) {
-    const tab = gBrowser.selectedTab;
+    const tab = this.own();
     if (!to || !tab || this.closing) return null;
     this.closing = true;
-    const moved = to.gBrowser.adoptTab(tab, { selectTab: false });
-    if (moved) to.SessionStore.setCustomTabValue(moved, this.MARK, "1");
+    const moved = this.moveTo(to, tab, false);
+    if (moved) to.SessionStore.setCustomTabValue(moved, this.MARK, window.zenithFloatEssential ? "essential" : "1");
     return moved;
   },
 
   // Closed from the float window: back to the main window first, closed
   // there (so it's among that window's closed tabs, marked to float).
   closeFromWindow() {
-    const home = this.home(), tab = gBrowser.selectedTab;
+    const home = this.home(), tab = this.own();
     this.closing = true;
     if (!home || !tab) return window.close();
-    const moved = home.gBrowser.adoptTab(tab, { selectTab: false });
+    const moved = this.moveTo(home, tab, false);
     if (moved) {
-      home.SessionStore.setCustomTabValue(moved, this.MARK, "1");
+      home.SessionStore.setCustomTabValue(moved, this.MARK, window.zenithFloatEssential ? "essential" : "1");
       home.gBrowser.removeTab(moved, { animate: false });
     }
     return moved;
@@ -2598,7 +2695,9 @@ const PiPWindows = {
   GAP: 12,
   NEAR: 56,
   SLIVER: 40, // (the outer 14px are the window's resize edge, which the pointer can't hover)
-  REST: 500,
+  REST: 300,
+  AWAY: 2500, // out for a visit, the pointer away this long: back it goes
+  WITHIN: "zenith.plus.pip-within", // "" the screen · zen: inside the Zen window
 
   init() {
     this.listener = {
@@ -2616,9 +2715,18 @@ const PiPWindows = {
       for (const win of Services.wm.getEnumerator("Toolkit:PictureInPicture")) win.zenithPiP?.owner.tuckBack(win);
     };
     window.addEventListener("mousedown", elsewhere, true);
+    // The pointer over this window: away from any picture-in-picture that's
+    // out for a visit (it goes back after a while).
+    const over = e => {
+      if (this.lastOver && e.timeStamp - this.lastOver < 250) return;
+      this.lastOver = e.timeStamp;
+      for (const win of Services.wm.getEnumerator("Toolkit:PictureInPicture")) win.zenithPiP?.away?.(e);
+    };
+    window.addEventListener("mousemove", over, true);
     onUnload(() => {
       Services.wm.removeListener(this.listener);
       window.removeEventListener("mousedown", elsewhere, true);
+      window.removeEventListener("mousemove", over, true);
     });
     window.ZenithPiP = this; // for tools/checks
   },
@@ -2663,14 +2771,38 @@ const PiPWindows = {
     cover.addEventListener("mouseenter", rest);
     cover.addEventListener("mouseleave", cancel);
     // Out for a visit: clicking anywhere else puts it back (another app
-    // included, once the window has had the focus).
+    // included, once the window has had the focus), and so does the
+    // pointer staying away a while. (Away means outside the window: the
+    // system reports a leave when the window moves under a still pointer.)
     win.addEventListener("deactivate", () => this.tuckBack(win));
+    const layer = doc.getElementById("controls") ?? doc.documentElement;
+    const stay = () => {
+      win.clearTimeout(state.awayTimer);
+      state.awayTimer = null;
+    };
+    layer.addEventListener("mousemove", stay);
+    layer.addEventListener("mouseenter", stay);
+    state.away = e => {
+      const inside = e.screenX >= win.screenX && e.screenX < win.screenX + win.outerWidth && e.screenY >= win.screenY && e.screenY < win.screenY + win.outerHeight;
+      if (!state.visiting || inside || state.awayTimer) return;
+      state.awayTimer = win.setTimeout(() => {
+        state.awayTimer = null;
+        this.tuckBack(win);
+      }, this.AWAY);
+    };
+    layer.addEventListener("mouseleave", state.away);
+    win.addEventListener("mouseout", e => !e.relatedTarget && state.away(e));
     win.addEventListener("wheel", wheel, { passive: false });
     const watch = win.setInterval(() => this.watch(win), 150);
     win.addEventListener("unload", () => win.clearInterval(watch), { once: true });
   },
 
+  // Where it lives: the screen, or (Panels › Media › Within) the Zen
+  // window it came from, like a float.
   screen(win) {
+    if (Services.prefs.getStringPref(this.WITHIN, "") === "zen" && !window.closed && window.windowState !== window.STATE_MINIMIZED) {
+      return { L: window.screenX, T: window.screenY, R: window.screenX + window.outerWidth, B: window.screenY + window.outerHeight };
+    }
     const s = win.screen;
     return { L: s.availLeft, T: s.availTop, R: s.availLeft + s.availWidth, B: s.availTop + s.availHeight };
   },
@@ -2679,6 +2811,18 @@ const PiPWindows = {
   // a visit became its place).
   watch(win) {
     const state = win.zenithPiP;
+    // Inside the Zen window: when the window moves or changes size, it
+    // keeps to it.
+    if (Services.prefs.getStringPref(this.WITHIN, "") === "zen" && !state.animating) {
+      const box = [window.screenX, window.screenY, window.outerWidth, window.outerHeight].join();
+      if (state.box && state.box !== box) {
+        state.box = box;
+        if (state.tucked) this.tuck(win, state.tucked.side);
+        else this.settle(win, true);
+        return;
+      }
+      state.box = box;
+    }
     const at = [win.screenX, win.screenY];
     if (at[0] !== state.at[0] || at[1] !== state.at[1]) {
       state.at = at;
@@ -2692,18 +2836,20 @@ const PiPWindows = {
     if (this.on() && !state.tucked) this.settle(win);
   },
 
-  // Near an edge: against it. Mostly past a side edge: tucked.
-  settle(win) {
+  // Near an edge: against it. Mostly past a side edge: tucked. (Inside
+  // the Zen window, never past its edges.)
+  settle(win, keep = false) {
     const { L, T, R, B } = this.screen(win);
     const x = win.screenX, y = win.screenY, w = win.outerWidth, h = win.outerHeight;
-    if (x + w / 2 < L) return this.tuck(win, "left");
-    if (x + w / 2 > R) return this.tuck(win, "right");
+    if (!keep && x + w / 2 < L) return this.tuck(win, "left");
+    if (!keep && x + w / 2 > R) return this.tuck(win, "right");
     let nx = x, ny = y;
     if (x - L < this.NEAR) nx = L + this.GAP;
     else if (R - (x + w) < this.NEAR) nx = R - w - this.GAP;
     if (y - T < this.NEAR) ny = T + this.GAP;
     else if (B - (y + h) < this.NEAR) ny = B - h - this.GAP;
     ny = Math.min(Math.max(ny, T), B - h);
+    if (Services.prefs.getStringPref(this.WITHIN, "") === "zen") nx = Math.min(Math.max(nx, L + this.GAP), R - w - this.GAP);
     if (nx !== x || ny !== y) this.glide(win, nx, ny);
   },
 
@@ -2714,6 +2860,8 @@ const PiPWindows = {
     const y = Math.min(Math.max(win.screenY, T + this.GAP), B - h - this.GAP);
     state.tucked = { side, y };
     state.visiting = null;
+    win.clearTimeout(state.awayTimer);
+    state.awayTimer = null;
     state.cover.hidden = false;
     win.document.documentElement.setAttribute("zenith-pip-tucked", side);
     this.glide(win, side === "left" ? L - w + this.SLIVER : R - this.SLIVER, y, () => (state.calmUntil = Date.now() + 400));
@@ -3406,7 +3554,8 @@ const CtrlTabOrder = {
   },
 
   // This space's tabs (essentials and pinned first, as in the sidebar),
-  // from the one you're on round to the one before it; asleep ones too.
+  // from the one you're on round to the one before it; asleep ones too;
+  // essentials always among them.
   // With more tabs than the row holds, the ones just before this one take
   // its end, so going back (Ctrl+Shift+Tab) lands on the previous tab.
   // (A tab with a glance open is its glance: that's what's selected and
@@ -3418,8 +3567,11 @@ const CtrlTabOrder = {
     const round = [...tabs.slice(i), ...tabs.slice(0, i)];
     const max = window.ctrlTab?.maxTabPreviews ?? 7;
     if (round.length <= max) return round;
-    const back = Math.floor((max - 1) / 2), ahead = max - 1 - back;
-    return [round[0], ...round.slice(1, 1 + ahead), ...round.slice(round.length - back)];
+    // Essentials always have a place in the row (after the tabs ahead).
+    const extra = round.slice(1).filter(t => (t.closest?.(".tabbrowser-tab:not([zen-glance-tab])") ?? t).hasAttribute("zen-essential")).slice(0, max - 3);
+    const rest = round.filter(t => !extra.includes(t));
+    const room = max - 1 - extra.length, back = Math.floor(room / 2), ahead = room - back;
+    return [rest[0], ...rest.slice(1, 1 + ahead), ...extra, ...rest.slice(rest.length - back)];
   },
 };
 
@@ -3815,16 +3967,18 @@ const Cookies = {
   // Firefox told the tab cookies were blocked: beyond its own blocking (a
   // stricter policy of Zenith's), the first time on this site.
   async blocked(browser, event) {
-    const F = Ci.nsIWebProgressListener, policy = Services.prefs.getStringPref(this.POLICY, "");
-    if (!["cross", "all"].includes(policy) || !this.noticesOn()) return;
-    const kind = event & F.STATE_COOKIES_BLOCKED_ALL ? "all" : event & F.STATE_COOKIES_BLOCKED_FOREIGN ? "cross" : null;
+    const F = Ci.nsIWebProgressListener;
+    if (!this.noticesOn()) return;
+    const kind = event & F.STATE_COOKIES_BLOCKED_ALL ? "all" : event & F.STATE_COOKIES_BLOCKED_FOREIGN ? "cross"
+      : event & (F.STATE_COOKIES_BLOCKED_TRACKER | F.STATE_COOKIES_BLOCKED_SOCIALTRACKER) ? "trackers" : null;
     if (!kind) return;
     const site = this.site(browser?.currentURI?.host);
     if (!site || this.rules().get(site) === "allow" || !(await this.firstTime(site, kind))) return;
     notice({
       title: `Cookies blocked on ${site}`,
-      body: kind === "all" ? "Zenith blocks every cookie except the sites you allow. If this site doesn't work as it should, allow it."
-                           : "Zenith blocks cookies from other sites here. If something on this site doesn't work (a login, a video), allow them.",
+      body: kind === "all" ? "Every cookie is blocked except on the sites you allow. If this site doesn't work as it should, allow it."
+        : kind === "cross" ? "Cookies from other sites are blocked here. If something on this site doesn't work (a login, a video), allow them."
+        : "Trackers' cookies are blocked here. If something on this site doesn't work, allow them.",
       actions: [
         { label: "Allow on this site", run: () => this.allowHere(browser, site, kind) },
         { label: "Cookies…", run: () => this.open(site) },
@@ -3971,55 +4125,74 @@ const Cookies = {
   },
 };
 
-/* --- Split views: reorder from the sidebar ----------------------------------------
-   Zen drags a whole split view by any of its tabs. Here, while you drag one
-   of its tabs and the pointer stays within the split view's box in the
-   sidebar, the split view stays put and the tab under the pointer is
-   outlined: let go there and the two swap (their places in the split and
-   in the sidebar). Leave the box and it's Zen's drag of the whole split
-   view, as before. */
+/* --- Split views: drag a tab, or the whole split --------------------------------
+   In the sidebar, dragging one of a split view's tabs moves only that tab
+   (Zen would drag the whole split): onto another tab of the same split, the
+   two swap places (in the split too); onto another split's tab, it joins
+   that split; onto any other tab, it leaves its split and goes before or
+   after that tab. A loose tab dropped on a split's tab joins the split. The
+   grip on a split's left edge (shown on hover) drags the whole split, as
+   Zen does. What a drop would do is shown while you drag: the tab it would
+   swap with outlined, the split it would join outlined, or a line where
+   it would go. */
 const SplitReorder = {
+  TYPE: "application/x-moz-tabbrowser-tab",
+
   init() {
+    const tabOf = n => (n?.nodeType === Node.TEXT_NODE ? n.parentElement : n)?.closest?.("tab.tabbrowser-tab") ?? null;
+    const press = e => {
+      const tab = e.button === 0 && tabOf(e.target);
+      this.pressed = tab ? { tab, at: Date.now() } : null;
+    };
+    // A split's grip, put there the first time the pointer is over it.
+    const grip = e => {
+      const group = tabOf(e.target)?.group;
+      if (!this.split(group) || group.querySelector(":scope > .zenith-split-grip")) return;
+      const g = el("div", { class: "zenith-split-grip", draggable: "true", title: "Drag to move the whole split view" });
+      group.prepend(g);
+    };
     const start = e => {
       this.drag = null;
-      // (A drag that starts on the tab's title starts on its text, or
-      // further out: then it's the tab the button went down on.)
-      const node = e.target?.nodeType === Node.TEXT_NODE ? e.target.parentElement : e.target;
-      const tab = node?.closest?.("tab.tabbrowser-tab") ?? (Date.now() - (this.pressed?.at ?? 0) < 3000 ? this.pressed.tab : null);
-      const group = tab?.group;
-      if (!group?.hasAttribute("split-view-group") || !gBrowser.tabContainer.contains(tab)) return;
-      const tabs = (group.tabs ?? [...group.querySelectorAll("tab.tabbrowser-tab")]).filter(t => t.isConnected);
-      if (tabs.length < 2) return;
-      this.drag = { tab, group, box: group.getBoundingClientRect(), places: tabs.map(t => [t, t.getBoundingClientRect()]) };
+      if (e.target?.closest?.(".zenith-split-grip")) return this.dragSplit(e);
+      const tab = tabOf(e.target) ?? (Date.now() - (this.pressed?.at ?? 0) < 3000 ? this.pressed.tab : null);
+      if (!this.split(tab?.group) || !gBrowser.tabContainer.contains(tab)) return;
+      // Only this tab: Zen's start (the whole split) is skipped.
+      e.stopImmediatePropagation();
+      const dt = e.dataTransfer;
+      dt.mozSetDataAt(this.TYPE, tab, 0);
+      dt.setData("text/plain", tab.linkedBrowser?.currentURI?.spec ?? "");
+      dt.effectAllowed = "move";
+      const r = tab.getBoundingClientRect();
+      try {
+        dt.setDragImage(tab, Math.min(40, r.width / 2), r.height / 2);
+      } catch {}
+      this.drag = { tab };
     };
-    const within = (r, e) => e.clientX >= r.left && e.clientX < r.right && e.clientY >= r.top && e.clientY < r.bottom;
     const over = e => {
-      if (!this.drag) return;
-      if (!within(this.drag.box, e)) return this.mark(null);
-      // (Zen's own handling would move the whole split view.)
+      const dragged = this.drag?.tab ?? e.dataTransfer?.mozGetDataAt?.(this.TYPE, 0);
+      if (!dragged?.isConnected || !(dragged instanceof XULElement) || !gBrowser.tabContainer.contains(e.target)) return this.mark(null);
+      const target = tabOf(e.target);
+      const what = this.whatDrop(dragged, target, e, !!this.drag);
+      this.mark(what);
+      if (!what) return;
+      // (Zen's own handling would move the whole split.)
       e.preventDefault();
       e.stopImmediatePropagation();
       if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-      const t = this.drag.places.find(([, r]) => within(r, e))?.[0];
-      this.mark(t && t !== this.drag.tab ? t : null);
     };
     const drop = e => {
-      if (!this.drag || !within(this.drag.box, e)) return;
+      const what = this.marked;
+      this.mark(null);
+      if (!what) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      const target = this.marked;
-      this.mark(null);
-      if (target) this.swap(this.drag.tab, target);
+      this.apply(what);
     };
     const end = () => {
       this.mark(null);
       this.drag = null;
     };
-    const press = e => {
-      const tab = e.button === 0 && e.target?.closest?.("tab.tabbrowser-tab");
-      this.pressed = tab?.group?.hasAttribute("split-view-group") ? { tab, at: Date.now() } : null;
-    };
-    const listeners = [["mousedown", press], ["dragstart", start], ["dragover", over], ["drop", drop], ["dragend", end]];
+    const listeners = [["mousedown", press], ["mouseover", grip], ["dragstart", start], ["dragover", over], ["drop", drop], ["dragend", end]];
     for (const [type, fn] of listeners) window.addEventListener(type, fn, true);
     onUnload(() => {
       for (const [type, fn] of listeners) window.removeEventListener(type, fn, true);
@@ -4027,11 +4200,56 @@ const SplitReorder = {
     window.ZenithSplitReorder = this; // for tools/checks
   },
 
-  mark(tab) {
-    if (this.marked === tab) return;
-    this.marked?.removeAttribute("zenith-split-swap");
-    this.marked = tab;
-    tab?.setAttribute("zenith-split-swap", "true");
+  split(group) {
+    return group?.hasAttribute?.("split-view-group") ? group : null;
+  },
+
+  // What letting go here would do: swap (same split), join (another
+  // split), or place it before/after a tab (leaving its split); null:
+  // Zen's own drag (a loose tab over loose tabs).
+  whatDrop(tab, target, e, ours) {
+    if (!target || target === tab || target.hasAttribute("zen-glance-tab")) return null;
+    const mine = this.split(tab.group), theirs = this.split(target.group);
+    if (mine && mine === theirs) return { kind: "swap", tab, target, node: target };
+    if (theirs) return theirs.tabs.length >= (window.gZenViewSplitter?.MAX_TABS ?? 4) ? null : { kind: "join", tab, target, node: theirs };
+    if (!ours) return null;
+    const r = target.getBoundingClientRect();
+    return { kind: e.clientY < r.top + r.height / 2 ? "before" : "after", tab, target, node: target };
+  },
+
+  mark(what) {
+    if (this.marked?.node === what?.node && this.marked?.kind === what?.kind) return;
+    this.marked?.node.removeAttribute(`zenith-split-${this.marked.kind}`);
+    this.marked = what;
+    what?.node.setAttribute(`zenith-split-${what.kind}`, "true");
+  },
+
+  apply({ kind, tab, target }) {
+    const S = window.gZenViewSplitter;
+    if (!S) return;
+    if (kind === "swap") return this.swap(tab, target);
+    if (this.split(tab.group)) S.removeTabFromGroup(tab);
+    if (kind === "join") return S.splitTabs([target, tab], undefined, -1, { activate: false });
+    // Beside a tab, as it is there: pinned or not, in its folder or not.
+    if (target.pinned && !tab.pinned) gBrowser.pinTab(tab);
+    else if (!target.pinned && tab.pinned) gBrowser.unpinTab(tab);
+    const folder = target.group?.isZenFolder ? target.group : null;
+    if (folder && tab.group !== folder) folder.addTabs([tab]);
+    if (kind === "before") gBrowser.moveTabBefore(tab, target);
+    else gBrowser.moveTabAfter(tab, target);
+  },
+
+  // The grip: Zen's drag of the whole split.
+  dragSplit(e) {
+    const group = this.split(e.target.closest("tab-group"));
+    const first = group?.tabs?.[0];
+    if (!first) return;
+    e.stopPropagation();
+    try {
+      gBrowser.tabContainer.tabDragAndDrop?.startTabDrag?.(e, first);
+    } catch (err) {
+      console.error("[Zenith] split view: moving it", err);
+    }
   },
 
   swap(a, b) {
@@ -5379,7 +5597,12 @@ const MediaArt = {
   async update(bar) {
     const on = Services.prefs.getBoolPref(this.PREF, true);
     for (const card of bar.querySelectorAll(".zen-media-card")) {
-      const src = on ? this.artFor(card) : null;
+      // (In another space the card can't always be matched to its tab: the
+      // art it had for the same title stays.)
+      const title = this.text(card, ".zen-media-title");
+      let src = on ? this.artFor(card) : null;
+      if (on && !src && title && this.lastArt?.title === title) src = this.lastArt.src;
+      if (src) this.lastArt = { title, src };
       if (src === card.zenithArtSrc) continue;
       card.zenithArtSrc = src;
       const copy = src ? await this.copy(src) : null;

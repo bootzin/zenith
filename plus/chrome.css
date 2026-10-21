@@ -1485,9 +1485,44 @@ zenith-bookmarks-host.zen-library-section {
 }
 
 /* The split view tab a dragged one would swap with (Zenith Plus). */
-.tabbrowser-tab[zenith-split-swap] > .tab-stack > .tab-background {
-  outline: 2px dashed var(--zth-accent) !important;
+/* Split views in the sidebar: what a drop would do (swap, join, before,
+   after), and the grip that drags the whole split. */
+.tabbrowser-tab[zenith-split-swap],
+tab-group[zenith-split-join] {
+  outline: 2px solid var(--zth-accent, AccentColor) !important;
   outline-offset: -2px;
+  border-radius: var(--zth-tab-radius, 8px);
+}
+
+.tabbrowser-tab[zenith-split-before] {
+  box-shadow: 0 -2px 0 var(--zth-accent, AccentColor) !important;
+}
+
+.tabbrowser-tab[zenith-split-after] {
+  box-shadow: 0 2px 0 var(--zth-accent, AccentColor) !important;
+}
+
+tab-group[split-view-group] {
+  position: relative;
+
+  & > .zenith-split-grip {
+    position: absolute;
+    inset-inline-start: 1px;
+    top: 50%;
+    translate: 0 -50%;
+    z-index: 2;
+    width: 5px;
+    height: min(28px, 60%);
+    border-radius: 3px;
+    background: var(--zth-ink-dim, currentColor);
+    opacity: 0;
+    cursor: grab;
+    transition: opacity 0.12s ease;
+  }
+
+  &:hover > .zenith-split-grip {
+    opacity: 0.55;
+  }
 }
 
 /* === Focus mode's pill ============================================================
@@ -1620,16 +1655,12 @@ zenith-bookmarks-host.zen-library-section {
    A small window of its own: just the page (it holds one tab), no toolbars,
    no window buttons (its own bar has them), and small if you like. The
    bar: the title (click to type an address), pin, back into the window,
-   minimise or roll up, close. Pinned, it sits above the page; unpinned,
-   it slides down over it when the pointer comes into the window or to the
-   top edge (Zenith Plus). Rolled up, the window is only the bar. */
+   minimise (above every app), close. Pinned, it sits above the page;
+   unpinned, it slides down over it when the pointer comes into the window
+   or to the top edge (Zenith Plus). */
 :root[zenith-float] {
   min-width: 240px !important;
   min-height: 150px !important;
-
-  &[zenith-float-rolled] {
-    min-height: 0 !important;
-  }
 
   & #navigator-toolbox {
     display: none !important;
@@ -1655,8 +1686,7 @@ zenith-bookmarks-host.zen-library-section {
     position: relative;
   }
 
-  &[zenith-float-pinned] #zen-appcontent-wrapper,
-  &[zenith-float-rolled] #zen-appcontent-wrapper {
+  &[zenith-float-pinned] #zen-appcontent-wrapper {
     padding-top: 30px !important;
   }
 }
@@ -1692,7 +1722,7 @@ zenith-bookmarks-host.zen-library-section {
   -moz-window-dragging: no-drag;
   transition: opacity 0.15s var(--zth-ease), translate 0.15s var(--zth-ease);
 
-  :root:not([zenith-float-pinned], [zenith-float-rolled], [zenith-float-peek]) &:not(:hover, [moving], [editing]) {
+  :root:not([zenith-float-pinned], [zenith-float-peek]) &:not(:hover, [moving], [editing]) {
     opacity: 0;
     translate: 0 -24px;
   }
@@ -1750,12 +1780,13 @@ zenith-bookmarks-host.zen-library-section {
       color: var(--zth-ink);
     }
 
+    /* The button says what it does: pinned, unpin (a pin struck through);
+       unpinned, pin. */
     &[kind="pin"] {
-      --zth-icon: url("chrome://browser/skin/zen-icons/unpin.svg");
+      --zth-icon: url("chrome://browser/skin/zen-icons/pin.svg");
 
       :root[zenith-float-pinned] & {
-        --zth-icon: url("chrome://browser/skin/zen-icons/pin.svg");
-        color: var(--zth-accent, AccentColor);
+        --zth-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 2.5h4M6.6 2.5v3.6L4.5 8.6v1.2h7V8.6L9.4 6.1V2.5M8 9.8v3.7M2.5 2.5l11 11'/%3E%3C/svg%3E");
       }
     }
 
@@ -1766,14 +1797,6 @@ zenith-bookmarks-host.zen-library-section {
 
     &[kind="minimise"] {
       --zth-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h10' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
-    }
-
-    &[kind="roll"] {
-      --zth-icon: url("chrome://browser/skin/zen-icons/arrow-up.svg");
-
-      :root[zenith-float-rolled] & {
-        rotate: 180deg;
-      }
     }
 
     &[kind="close"] {

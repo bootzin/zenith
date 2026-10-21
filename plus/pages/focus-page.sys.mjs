@@ -5,10 +5,13 @@
 //     (Firefox's own article parser, a calm column of text); the page
 //     itself stays underneath, untouched;
 //   - watch: a video site becomes a place to watch rather than a feed:
-//     on YouTube the home feed, recommendations, Shorts, end screens,
-//     autoplay and notifications go, the video gets the room (theatre),
-//     and what you chose stays (search, description and chapters, the
-//     playlist you're in under the video, comments folded, subscriptions);
+//     on YouTube the home page is a search page (the logo and the search
+//     box, past searches only on request), recommendations, Shorts (a
+//     Short opens as an ordinary video), end screens, autoplay, the
+//     channel, likes and counts go, the video gets the room (theatre, as
+//     tall as the window), and what you chose stays (search, description
+//     and chapters, the playlist under the video, comments folded, your
+//     subscriptions);
 //     on other sites, blocks of recommended videos go;
 //   - tidy: any other page that's mostly reading loses what annoyance lists
 //     and distraction-free extensions take away (cookie and consent
@@ -69,26 +72,40 @@ const RECOMMENDED = /(recommend|related|up.?next|watch.?next|more.?videos|sugges
 
 function youtubeSheet(opts) {
   const hide = [
-    // more to watch, beside and after the video
+    // more to watch, beside and after the video, and in the player
     "ytd-watch-flexy #related", "ytd-watch-next-secondary-results-renderer",
     ".ytp-endscreen-content", ".html5-endscreen", ".ytp-ce-element", ".ytp-cards-teaser", ".ytp-pause-overlay",
     ".ytp-autonav-endscreen-countdown-overlay", ".ytp-suggested-action", ".ytp-featured-product", ".ytp-paid-content-overlay",
+    ".ytp-title-channel", ".ytp-chrome-top-buttons", ".ytp-cards-button", ".annotation.iv-branding", ".ytp-ce-covering-overlay",
+    // the channel, subscribe, likes, share and the rest under the video;
+    // the counts and tags; what the description adds around its text
+    "ytd-watch-metadata #owner", "ytd-watch-metadata #actions", "ytd-watch-metadata #info-container",
+    "ytd-watch-metadata #description a[href^='/hashtag/']",
+    "ytd-structured-description-content-renderer #items > :not(ytd-expandable-video-description-body-renderer):not(:has(ytd-macro-markers-list-item-renderer))",
     // the home feed and its topic chips; shelves in search results
-    "ytd-browse[page-subtype='home'] ytd-rich-grid-renderer", "ytd-browse[page-subtype='home'] #chips-wrapper",
+    "ytd-browse[page-subtype='home'] #primary", "ytd-browse[page-subtype='home'] #chips-wrapper",
     "ytd-browse[page-subtype='home'] ytd-feed-filter-chip-bar-renderer",
     "ytd-search ytd-shelf-renderer", "ytd-search ytd-horizontal-card-list-renderer", "ytd-search ytd-reel-shelf-renderer",
     // Shorts, everywhere
     "ytd-reel-shelf-renderer", "ytd-rich-shelf-renderer[is-shorts]", "ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts])",
     "grid-shelf-view-model:has(ytm-shorts-lockup-view-model)", "ytd-video-renderer:has(a[href^='/shorts/'])",
     "ytd-guide-entry-renderer:has(a[title='Shorts'])", "ytd-mini-guide-entry-renderer[aria-label='Shorts']",
-    // the bell, and what YouTube adds to pull you elsewhere
+    // the bell, Create and what else YouTube adds to pull you elsewhere
+    // (your picture or Sign in stay)
+    "ytd-masthead #buttons > :not(ytd-topbar-menu-button-renderer):not(:has(a[href*='ServiceLogin'], a[href*='accounts.google']))",
     "ytd-notification-topbar-button-renderer", "ytd-merch-shelf-renderer", "ytd-statement-banner-renderer", "ytd-ad-slot-renderer",
     "#masthead-ad", "ytd-banner-promo-renderer",
+    // past searches, until you ask for them
+    "html:not([zenith-yt-history])[zenith-yt-empty] :is(.ytSearchboxComponentSuggestionsContainer, .sbdd_a, .gstl_50)",
   ];
-  // (Subscriptions live in the side menu, with Home and Shorts: the whole
-  // menu goes unless they stay.)
-  if (!opts.subscriptions) hide.push("#guide", "ytd-mini-guide-renderer", "#guide-button", "ytd-browse[page-subtype='subscriptions'] #contents");
-  if (!opts.search) hide.push("ytd-masthead #center");
+  // Subscriptions: only that part of the side menu (and its feed).
+  if (opts.subscriptions) {
+    hide.push("#guide ytd-guide-section-renderer:not(:has(a[href^='/@'], a[href^='/channel/'], a[href='/feed/subscriptions']))",
+              "ytd-mini-guide-entry-renderer:not(:has(a[href='/feed/subscriptions']))");
+  } else {
+    hide.push("#guide", "ytd-mini-guide-renderer", "#guide-button", "ytd-browse[page-subtype='subscriptions'] #contents");
+  }
+  if (!opts.search) hide.push("ytd-masthead #center", "[zenith-yt-history-button]");
   if (!opts.description) hide.push("ytd-watch-metadata #description", "ytd-watch-flexy #description",
                                    "ytd-engagement-panel-section-list-renderer[target-id*='macro-markers']");
   if (!opts.playlist) hide.push("ytd-playlist-panel-renderer");
@@ -96,19 +113,32 @@ function youtubeSheet(opts) {
   return `
     ${hide.join(",\n    ")} { display: none !important; }
     [zenith-folded] { display: none !important; }
-    /* The video first: the rest under it, in one column (a playlist under
-       the video, never beside it) */
+    /* The video first, as big as the window allows; the rest under it, in
+       one column (a playlist under the video, never beside it) */
+    ytd-watch-flexy[theater] #full-bleed-container { height: calc(100vh - var(--ytd-masthead-height, 56px)) !important;
+                                                      max-height: none !important; }
     ytd-watch-flexy[theater] #columns { flex-direction: column !important; align-items: center !important; }
     ytd-watch-flexy[theater] #secondary { width: 100% !important; max-width: var(--ytd-watch-flexy-max-player-width, 1280px) !important;
                                           padding: 0 !important; margin: 0 auto !important; }
     ytd-watch-flexy[theater] #primary { width: 100% !important; max-width: var(--ytd-watch-flexy-max-player-width, 1280px) !important;
                                         margin: 0 auto !important; }
-    /* The home page: just the search */
-    ytd-browse[page-subtype='home'] #primary::before {
-      content: ${opts.search ? '"Search for what you came to watch."' : '"Focus mode: no feed here."'};
-      display: block; margin: 22vh auto 0; text-align: center;
-      font: 400 2rem/1.3 "YouTube Sans", Roboto, system-ui, sans-serif; color: var(--yt-spec-text-secondary, #888);
+    /* The home page, like a search engine's: the logo, the search box (and
+       its microphone), your picture or Sign in */
+    html[zenith-yt-home] #masthead-container { position: fixed !important; inset: 0 !important; height: auto !important;
+                                               background: var(--yt-spec-base-background, #fff) !important; z-index: 2020 !important; }
+    html[zenith-yt-home] ytd-masthead { height: 100% !important; background: transparent !important; }
+    html[zenith-yt-home] ytd-masthead #container { height: 100% !important; flex-direction: column !important; justify-content: center !important;
+                                                   align-items: center !important; gap: 34px !important; padding-bottom: 16vh !important; }
+    html[zenith-yt-home] ytd-masthead #start { transform: scale(2.4); transform-origin: center; }
+    html[zenith-yt-home] ytd-masthead #guide-button { display: none !important; }
+    html[zenith-yt-home] ytd-masthead #center { flex: none !important; width: min(640px, 88vw) !important; margin: 0 !important; }
+    html[zenith-yt-home] ytd-masthead #end { position: absolute !important; top: 8px; right: 16px; }
+    [zenith-yt-history-button] {
+      margin: 6px auto 0; padding: 3px 10px; border: 0; border-radius: 12px; cursor: pointer; display: block;
+      background: var(--yt-spec-badge-chip-background, rgb(128 128 128 / 0.15)); color: var(--yt-spec-text-secondary, inherit);
+      font: 400 1.2rem/1.4 Roboto, system-ui, sans-serif;
     }
+    html:not([zenith-yt-empty]) [zenith-yt-history-button], html[zenith-yt-history] [zenith-yt-history-button] { visibility: hidden; }
     [zenith-show-comments] {
       display: block; margin: 16px 0; padding: 10px 16px; border: 0; border-radius: 18px; cursor: pointer;
       background: var(--yt-spec-badge-chip-background, rgb(128 128 128 / 0.15)); color: var(--yt-spec-text-primary, inherit);
@@ -310,14 +340,22 @@ export class ZenithFocusChild extends JSWindowActorChild {
   // off, comments folded behind a button (if kept), the search box ready on
   // the home page.
   settleWatch() {
-    const w = this.watching, doc = this.document;
+    const w = this.watching, doc = this.document, win = this.contentWindow;
     if (!w || !doc) return;
+    // A Short opens as an ordinary video: no feed to scroll on to.
+    const short = doc.location?.pathname.match(/^\/shorts\/([\w-]+)/);
+    if (short) return void doc.location.replace(`/watch?v=${short[1]}`);
+    const home = doc.location?.pathname === "/";
+    doc.documentElement.toggleAttribute("zenith-yt-home", home);
+    this.searchBox(w);
     const flexy = doc.querySelector("ytd-watch-flexy:not([hidden])");
     if (flexy && !flexy.hasAttribute("theater") && !flexy.hasAttribute("fullscreen") && !w.theatreAsked) {
       const size = doc.querySelector(".ytp-size-button");
       if (size) {
         size.click();
         w.theatre = w.theatreAsked = true;
+        // (The player sizes itself on a resize: to the room it now has.)
+        setTimeout(() => win?.dispatchEvent(new win.Event("resize")), 400);
       }
     }
     const auto = doc.querySelector(".ytp-autonav-toggle-button[aria-checked='true']");
@@ -340,10 +378,41 @@ export class ZenithFocusChild extends JSWindowActorChild {
         comments.before(show);
       }
     }
-    if (w.opts.search && doc.location?.pathname === "/") {
+    // The home page: the cursor in the search box, once per visit.
+    if (w.opts.search && home && w.focused !== doc.location.href) {
       const box = doc.querySelector("input[name='search_query']");
-      if (box && doc.activeElement !== box) box.focus();
+      if (box) {
+        w.focused = doc.location.href;
+        box.focus();
+      }
+    } else if (!home) {
+      w.focused = null;
     }
+  }
+
+  // Past searches only when asked: the dropdown stays shut while the box is
+  // empty, and a small Show history under it opens it.
+  searchBox(w) {
+    const doc = this.document, box = doc.querySelector("input[name='search_query']");
+    if (!box || box.zenithWatched) return;
+    box.zenithWatched = true;
+    const empty = () => doc.documentElement.toggleAttribute("zenith-yt-empty", !box.value.trim());
+    box.addEventListener("input", empty);
+    box.addEventListener("focus", empty);
+    empty();
+    const show = doc.createElement("button");
+    show.setAttribute("zenith-yt-history-button", "");
+    show.type = "button";
+    show.textContent = "Show history";
+    show.addEventListener("mousedown", e => e.preventDefault());
+    show.addEventListener("click", () => {
+      doc.documentElement.setAttribute("zenith-yt-history", "");
+      box.blur();
+      box.focus();
+    });
+    box.addEventListener("blur", () => doc.documentElement.removeAttribute("zenith-yt-history"));
+    (box.closest("yt-searchbox, ytd-searchbox, #search-form, form") ?? box.parentElement).after(show);
+    w.added = [...(w.added ?? []), show];
   }
 
   // What watching changed, as the page shows it (for tools/checks).
@@ -356,7 +425,11 @@ export class ZenithFocusChild extends JSWindowActorChild {
     return { on: !!this.watching, theatre: !!doc.querySelector("ytd-watch-flexy[theater]"),
              autoplay: doc.querySelector(".ytp-autonav-toggle-button")?.getAttribute("aria-checked") ?? null,
              related: shown("ytd-watch-flexy #related"), comments: shown("ytd-watch-flexy #comments"),
-             description: shown("ytd-watch-metadata #description"), recs: shown("#recs") };
+             description: shown("ytd-watch-metadata #description"), recs: shown("#recs"),
+             home: doc.documentElement.hasAttribute("zenith-yt-home"), mastheadFixed: win.getComputedStyle(doc.querySelector("#masthead-container") ?? doc.body).position,
+             historyHidden: doc.documentElement.hasAttribute("zenith-yt-empty"), owner: shown("ytd-watch-metadata #owner"),
+             actions: shown("ytd-watch-metadata #actions"), playerHeight: Math.round(doc.querySelector("#full-bleed-container")?.getBoundingClientRect().height ?? 0),
+             videoHeight: Math.round(doc.querySelector("video")?.getBoundingClientRect().height ?? 0), window: win.innerHeight };
   }
 
   // Elsewhere: blocks of recommended videos (a heading or name that says
@@ -388,6 +461,10 @@ export class ZenithFocusChild extends JSWindowActorChild {
     if (w.theatre && doc.querySelector("ytd-watch-flexy[theater]")) doc.querySelector(".ytp-size-button")?.click();
     if (w.autoplay) doc.querySelector(".ytp-autonav-toggle-button[aria-checked='false']")?.click();
     for (const b of doc.querySelectorAll("[zenith-show-comments]")) b.remove();
+    for (const n of w.added ?? []) n.remove();
+    for (const a of ["zenith-yt-home", "zenith-yt-empty", "zenith-yt-history"]) doc.documentElement.removeAttribute(a);
+    const box = doc.querySelector("input[name='search_query']");
+    if (box) box.zenithWatched = false;
     for (const c of doc.querySelectorAll("[zenith-folded], [zenith-unfolded]")) {
       c.removeAttribute("zenith-folded");
       c.removeAttribute("zenith-unfolded");

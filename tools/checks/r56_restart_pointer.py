@@ -27,15 +27,20 @@ with Zen(headless=False) as z:
 time.sleep(2)
 with KeptZen(headless=False) as z:
     time.sleep(7)
-    js(z, """
+    res["kept while floating"] = js(z, """
       const a = gBrowser.addTrustedTab('about:zenith-tabs', { inBackground: false }); gBrowser.selectedTab = a;
       await new Promise(r => setTimeout(r, 2000));
       const f = gBrowser.addTrustedTab('https://example.org/', { inBackground: true }); await new Promise(r => setTimeout(r, 2500));
       const w = window.ZenithFloat.float(f, { focus: false }); await new Promise(r => w.addEventListener('load', r, { once: true }));
       await new Promise(r => setTimeout(r, 2000));
       gBrowser.selectedTab = a; window.focus(); await new Promise(r => setTimeout(r, 500));
-      return 1""")
-    z.quit()
+      return Services.prefs.getStringPref('zenith.internal.float.kept', 'none').slice(0, 80)""")
+    # Closed the way you would: the window's close command (a float is open).
+    js(z, "setTimeout(() => document.getElementById('cmd_closeWindow').doCommand(), 300); return 1")
+    try:
+        z.proc.wait(timeout=40)
+    except Exception:
+        z.quit()
 time.sleep(2)
 with KeptZen(headless=False) as z:
     time.sleep(7)
@@ -46,6 +51,7 @@ with KeptZen(headless=False) as z:
       const floats = [...Services.wm.getEnumerator('navigator:browser')].filter(x => x.zenithFloatFrom && !x.closed);
       return { selected: b.currentURI.spec, 'in the browser itself': !b.isRemoteBrowser, title: b.contentDocument?.title ?? null,
                'the float is back after the restart': floats.map(x => x.gBrowser.selectedBrowser.currentURI.spec),
+               kept: Services.prefs.getStringPref('zenith.internal.float.kept', 'none').slice(0, 60), errs: Services.console.getMessageArray().map(m => m.message || String(m)).filter(m => /Zenith|float/i.test(m)).slice(-4),
                'its tab here': gBrowser.tabs.filter(t => /example[.]org[/]$/.test((SessionStore.getLazyTabValue(t, 'url') || '') + (t.linkedBrowser?.currentURI?.spec ?? ''))).map(t => [SessionStore.getCustomTabValue(t, 'zenithFloat'), t.hasAttribute('pending'), !!t.linkedPanel]) };""")
     z.quit()
 

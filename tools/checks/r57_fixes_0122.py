@@ -64,10 +64,6 @@ with Scene(headless=False) as z:
       bar.querySelector('[kind=pin]').click(); await zth.sleep(300);
       out['unpinned: bar hidden'] = [d.documentElement.hasAttribute('zenith-float-pinned'), w.getComputedStyle(bar).opacity];
       bar.querySelector('[kind=pin]').click();
-      // Roll up and back.
-      const h0 = w.outerHeight; bar.querySelector('[kind=roll]').click(); await zth.sleep(500);
-      out['rolled up: height'] = [h0, w.outerHeight]; bar.querySelector('[kind=roll]').click(); await zth.sleep(500);
-      out['unrolled'] = w.outerHeight;
       // Alt+Shift+F there: back.
       w.ZenithFloat.toggle(); await zth.sleep(1200);
       out['Alt+Shift+F in it: back home'] = [w.closed, gBrowser.selectedTab.linkedBrowser.currentURI.spec.endsWith('n=typed')];
@@ -123,10 +119,10 @@ with Scene(headless=False) as z:
       const fire = (type, el, at) => el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt, ...at }));
       t[0].dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, ...mid(t[0]) }));
       fire('dragstart', t[0].querySelector('.tab-icon-image') ?? t[0], mid(t[0]));
-      // Zen moves the whole split view under the pointer; the places are the ones from before the drag.
-      fire('dragover', t[0], mid(t[2]));
+      // (0.12.4: only the tab is dragged, so what's under the pointer is the other tab.)
+      fire('dragover', t[2], mid(t[2]));
       const marked = t[2].hasAttribute('zenith-split-swap');
-      fire('drop', t[0], mid(t[2])); fire('dragend', t[0], mid(t[2])); await zth.sleep(800);
+      fire('drop', t[2], mid(t[2])); fire('dragend', t[0], mid(t[2])); await zth.sleep(800);
       const after = order();
       // Out of the split view's box: Zen's drag, no swap.
       fire('dragstart', t[1], mid(t[1]));

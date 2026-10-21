@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.12.3
+// @version        0.12.4
 // ==/UserScript==
 
 // A rofi-style list over the page. Alt+W opens it; type a few letters of a
@@ -336,6 +336,12 @@ const Switcher = {
   update() {
     const text = this.input.value;
     this.items = text.trimStart().startsWith(":") ? Commands.find(text.trimStart()) : Items.find(text);
+    // Peek, last (first when nothing else matches): what you typed, looked
+    // up without leaving the page (Keys › Switcher › Peek in the switcher).
+    const q = text.trim();
+    if (q && !q.startsWith(":") && Services.prefs.getStringPref("zenith.plus.switcher-peek", "") !== "off" && window.ZenithPeek) {
+      this.items.push({ kind: "peek", title: `Peek: ${q}`, sub: "Look it up without leaving the page", text: q, icon: "" });
+    }
     this.selected = 0;
     this.render();
   },
@@ -399,6 +405,7 @@ const Switcher = {
       return;
     }
     this.hide();
+    if (item.kind === "peek") return window.ZenithPeek?.lookup(item.text);
     await Items.go(item);
   },
 
@@ -448,6 +455,18 @@ function addKeys() {
   Services.prefs.addObserver(PREF, watch);
   window.addEventListener("unload", () => Services.prefs.removeObserver(PREF, watch), { once: true });
   watch();
+  // ":" anywhere you aren't typing: the switcher, ready for a command.
+  // (Typing anywhere, in the page or Zen, the system's input is on.)
+  const colon = e => {
+    if (e.charCode !== 58 || e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented || !Services.prefs.getBoolPref(PREF, true)) return;
+    if (Services.prefs.getBoolPref("zenith.plus.switcher-colon", true) === false) return;
+    if (window.windowUtils.IMEStatus === Ci.nsIDOMWindowUtils.IME_STATUS_ENABLED || Switcher.open) return;
+    e.preventDefault();
+    e.stopPropagation();
+    Switcher.show(":");
+  };
+  window.addEventListener("keypress", colon, { mozSystemGroup: true });
+  window.addEventListener("unload", () => window.removeEventListener("keypress", colon, { mozSystemGroup: true }), { once: true });
   window.ZenithSwitcher = Switcher; // for tools/checks
   Switcher.go = item => Items.go(item);
   Switcher.Items = Items;

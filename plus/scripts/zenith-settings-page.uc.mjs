@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.3
+// @version        0.12.4
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -2103,9 +2103,39 @@ const SCHEMA = [
       "label": "Move and tuck",
       "type": "checkbox",
       "extra": false,
-      "desc": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near a screen edge and it settles against it; drop it more than halfway past the left or right edge and it tucks away, a sliver with an arrow staying on screen while it plays. Rest the pointer on the sliver for half a second (or click it) and it comes out; it goes back when you click anywhere else. Drag it away from the edge to keep it out.",
+      "desc": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near an edge and it settles against it; drop it more than halfway past the left or right edge and it tucks away, a sliver with an arrow staying in view while it plays. Rest the pointer on the sliver (or click it) and it comes out; a click anywhere else, or the pointer away from it for a few seconds, tucks it again. Drag it away from the edge to keep it out.",
       "host": "Zenith Plus",
       "default": true
+     },
+     {
+      "property": "zenith.plus.pip-within",
+      "label": "Within",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The screen: its edges are the screen's. The Zen window: it stays inside the window it came from, like a float, and moves with it.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The screen",
+        "value": "screen"
+       },
+       {
+        "label": "The Zen window (it follows the window)",
+        "value": "zen"
+       }
+      ],
+      "default": "screen",
+      "rule": {
+       "why": "Move and tuck is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.pip-extras",
+          "value": true
+         }
+        }
+       ]
+      }
      }
     ]
    },
@@ -2611,6 +2641,56 @@ const SCHEMA = [
       ],
       "default": "all",
       "parent": "zenith.plus.switcher",
+      "rule": {
+       "why": "The switcher is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.switcher",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.switcher-peek",
+      "label": "Peek in the switcher",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The switcher's last row is Peek: what you typed, looked up without leaving the page; when nothing else matches, it's the first, so Enter peeks.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Last, and first when nothing else matches",
+        "value": "fallback"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": "fallback",
+      "rule": {
+       "why": "The switcher is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.switcher",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.switcher-colon",
+      "label": ": opens it",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Pressing : anywhere you aren't typing (a page, the sidebar) opens the switcher with : already there, ready for a command.",
+      "host": "Zenith Plus",
+      "default": true,
       "rule": {
        "why": "The switcher is off",
        "conditions": [
@@ -3840,7 +3920,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.3";
+const SCHEMA_VERSION = "0.12.4";
 
 class SettingsView {
   constructor(kind) {
@@ -4077,12 +4157,20 @@ class SettingsView {
       });
       return { node: sw, update: v => sw.setAttribute("aria-checked", String(v === true || v === "on")) };
     }
-    // A list of sites (kept as one comma-separated setting): each with its
-    // ✕, and a field to add one.
+    // A list of sites (kept as one comma-separated setting): how many, and
+    // a button for a small popup where each has its ✕ and a field adds one.
     if (s.type === "string" && s.zenithList) {
+      const doc = this.root?.ownerDocument ?? document;
       const box = el("div", { class: "zp-list" });
+      const count = el("span", { class: "zp-list-count" });
+      const open = el("button", { class: "zp-chip zp-action", type: "button" }, "Edit…");
+      const dialog = el("dialog", { class: "zp-sites", "aria-label": s.label });
       const items = el("div", { class: "zp-list-items" });
       const add = el("input", { type: "text", class: "zp-input", placeholder: s.zenithList, spellcheck: "false", "aria-label": s.label });
+      const done = el("button", { class: "zp-chip zp-action", type: "button" }, "Done");
+      dialog.append(el("h3", {}, s.label), items, add, el("div", { class: "zp-sites-foot" }, done));
+      box.append(count, open);
+      (doc.body ?? doc.documentElement).append(dialog);
       const parse = v => String(v ?? "").split(/[\s,]+/).map(x => x.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "")).filter(Boolean);
       let current = [];
       const save = list => write(s, [...new Set(list)].join(", "));
@@ -4094,19 +4182,23 @@ class SettingsView {
         add.value = "";
         save([...current, ...more]);
       });
-      box.append(items, add);
+      open.addEventListener("click", () => {
+        dialog.showModal();
+        add.focus();
+      });
+      done.addEventListener("click", () => dialog.close());
       return {
         node: box,
         update: v => {
           current = parse(v);
-          items.replaceChildren(...current.map(site => {
+          count.textContent = current.length ? `${current.length} site${current.length === 1 ? "" : "s"}` : "None";
+          items.replaceChildren(...(current.length ? current.map(site => {
             const row = el("span", { class: "zp-list-item" }, site);
             const x = el("button", { type: "button", class: "zp-list-remove", title: `Remove ${site}`, "aria-label": `Remove ${site}` }, "✕");
             x.addEventListener("click", () => save(current.filter(c => c !== site)));
             row.append(x);
             return row;
-          }));
-          items.hidden = !current.length;
+          }) : [el("span", { class: "zp-list-empty" }, "No sites yet.")]));
         },
       };
     }
@@ -4290,7 +4382,16 @@ const STYLE = `
   .zp-select { background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
     background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
   .zp-input { min-width: 260px; padding-inline-end: 10px; cursor: text; }
-  .zp-list { display: flex; flex-direction: column; gap: 6px; max-width: 300px; min-width: 260px; }
+  .zp-list { display: flex; align-items: center; gap: 10px; }
+  .zp-list-count { color: var(--zp-dim); }
+  .zp-list-empty { color: var(--zp-dim); }
+  dialog.zp-sites { width: min(420px, 90vw); padding: 16px; border: 1px solid var(--zp-border); border-radius: var(--zp-radius, 10px);
+    background: var(--zp-control); color: inherit; display: none; flex-direction: column; gap: 10px; }
+  dialog.zp-sites[open] { display: flex; }
+  dialog.zp-sites::backdrop { background: rgb(0 0 0 / 0.35); }
+  dialog.zp-sites h3 { margin: 0; font-size: 1.05em; font-weight: 600; }
+  dialog.zp-sites .zp-input { min-width: 0; width: 100%; }
+  .zp-sites-foot { display: flex; justify-content: flex-end; }
   .zp-list-items { display: flex; flex-wrap: wrap; gap: 4px; }
   .zp-list-item { display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 9px; border-radius: 999px;
     border: 1px solid var(--zp-border); background: var(--zp-control); font-size: 0.92em; }

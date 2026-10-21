@@ -183,7 +183,7 @@ SECTIONS = [
             ("Find and history", ["zenith.panels.findbar", "zenith.panels.history"]),
             ("Split view", ["zenith.panels.split", "zenith.panels.gap"]),
             ("Notices and links", ["zenith.panels.notifications", "zenith.panels.status-delay"]),
-            ("Media", ["zenith.panels.pip", "zenith.plus.pip-extras"]),
+            ("Media", ["zenith.panels.pip", "zenith.plus.pip-extras", "zenith.plus.pip-within"]),
             ("Downloads", ["zenith.plus.download-delete"]),
             ("Menus", ["zenith.panels.compact-menus", "zenith.plus.more-menu", "zenith.panels.menu-icons"]),
             ("Tab previews", ["zenith.panels.tab-preview"]),
@@ -206,7 +206,7 @@ SECTIONS = [
         "id": "keys", "title": "Keys", "icon": "keys",
         "blurb": "Jump anywhere with Alt+W, follow links with Alt+J, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
         "groups": [
-            ("Switcher", ["zenith.plus.switcher", "zenith.plus.switcher-scope"]),
+            ("Switcher", ["zenith.plus.switcher", "zenith.plus.switcher-scope", "zenith.plus.switcher-peek", "zenith.plus.switcher-colon"]),
             ("Ctrl+Tab", ["zenith.plus.ctrl-tab"]),
             ("Tab manager", ["zenith.plus.tab-manager", "zenith.plus.tabs-auto-sleep",
                              "zenith.plus.tabs-auto-close"]),
@@ -427,11 +427,17 @@ DESCRIPTIONS = {
     "zenith.plus.float-above": "Its Zen window only: the float stays above that window but not above other apps; it "
                                "closes with the window (Ctrl+Shift+T floats it again; after Zen quits, it floats again at start). Every app: it stays "
                                "on top of everything (a call while you work elsewhere), and can be minimised.",
-    "zenith.plus.pip-extras": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near a "
-                              "screen edge and it settles against it; drop it more than halfway past the left or right "
-                              "edge and it tucks away, a sliver with an arrow staying on screen while it plays. Rest the "
-                              "pointer on the sliver for half a second (or click it) and it comes out; it goes back when "
-                              "you click anywhere else. Drag it away from the edge to keep it out.",
+    "zenith.plus.pip-extras": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near an "
+                              "edge and it settles against it; drop it more than halfway past the left or right edge and "
+                              "it tucks away, a sliver with an arrow staying in view while it plays. Rest the pointer on "
+                              "the sliver (or click it) and it comes out; a click anywhere else, or the pointer away from "
+                              "it for a few seconds, tucks it again. Drag it away from the edge to keep it out.",
+    "zenith.plus.pip-within": "The screen: its edges are the screen's. The Zen window: it stays inside the window it came "
+                              "from, like a float, and moves with it.",
+    "zenith.plus.switcher-peek": "The switcher's last row is Peek: what you typed, looked up without leaving the page; "
+                                 "when nothing else matches, it's the first, so Enter peeks.",
+    "zenith.plus.switcher-colon": "Pressing : anywhere you aren't typing (a page, the sidebar) opens the switcher with : "
+                                  "already there, ready for a command.",
     "zenith.plus.extension-copies": "Right-click an extension › Copy for other spaces: a second copy with its own storage "
                                     "(another account in the same password manager), running in your other spaces while the "
                                     "original runs in this one (Runs in spaces, as with any extension). Zenith loads copies as "
@@ -658,6 +664,9 @@ LABELS = {
     "zenith.plus.startpage-bookmarks": "Bookmarks",
     "zenith.plus.startpage-top": "Most visited",
     "zenith.plus.pip-extras": "Move and tuck",
+    "zenith.plus.pip-within": "Within",
+    "zenith.plus.switcher-peek": "Peek in the switcher",
+    "zenith.plus.switcher-colon": ": opens it",
     "zenith.plus.download-delete": "Delete button",
     "zenith.plus.extension-copies": "Extension copies",
     "zenith.plus.cookie-banners": "Banners",
