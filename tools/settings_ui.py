@@ -216,6 +216,7 @@ SECTIONS = [
                                           "zenith.plus.focus-video-playlist", "zenith.plus.focus-video-comments",
                                           "zenith.plus.focus-video-subscriptions"]),
             ("Link hints", ["zenith.plus.link-hints"]),
+            ("Split views", ["zenith.plus.split-solo"]),
             ("Float a tab", ["zenith.plus.float-tab", "zenith.plus.float-above"]),
         ],
     },
@@ -501,6 +502,8 @@ DESCRIPTIONS = {
                                   "windows is kept.",
     "zenith.tabs.attention-for": "Alerts: a tab waiting on a dialog. Changed titles: a background tab whose title changed "
                                  "(a pinned mail or chat tab with something new).",
+    "zenith.plus.split-solo": "For a moment's attention: the pane of the tab you're on fills the split view, the others wait "
+                              "behind it (nothing moves or reloads). Alt+F again, or a tab outside the split, and it's as it was.",
     "zenith.plus.link-hints": "Alt+J puts a few letters on every link, button and field you can see; type them to "
                               "follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+J opens a link in a "
                               "new tab in the background.",
@@ -652,6 +655,7 @@ LABELS = {
     "zenith.plus.sine-mods-first": "Tidy Sine's mods page",
     "zenith.plus.fast-start": "Fast start",
     "zenith.plus.link-hints": "Link hints",
+    "zenith.plus.split-solo": "One pane of a split",
     "zenith.plus.focus-pages": "Pages in focus mode",
     "zenith.plus.focus-skip": "Sites left alone",
     "zenith.plus.focus-video": "Video sites",

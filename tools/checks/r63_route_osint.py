@@ -87,7 +87,10 @@ z = LinkZen(headless=False).__enter__()
 say("started by the link", js(z, f"""
   await sleep(7000);
   const h = hits(), [w, tab] = h[0] ?? [];
+  await sleep(4000);
+  const copies = wins().flatMap(x => [...x.gBrowser.tabs]).filter(t => [t.linkedBrowser.currentURI?.spec, SessionStore.getLazyTabValue?.(t, 'url')].some(u => (u ?? '').includes('zenith-route-test')));
   const out = {{ windows: wins().length, tabs: h.length, states: wins().map(x => x.ZenithLinks?.startupState),
+                'copies in all windows': copies.length, 'copies outside its container': copies.filter(t => t.userContextId !== {C}).length,
                 'in its space': tab?.getAttribute('zen-workspace-id') === {S}, 'in its container': tab?.userContextId === {C},
                 'that space shown': w?.gZenWorkspaces.activeWorkspace === {S}, selected: !!tab?.selected }};
   // (The tab stays, for the next start to restore; the rule asks next time.)

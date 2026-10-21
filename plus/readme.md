@@ -1,10 +1,10 @@
 # Zenith Plus
 
-Version 0.12.9
+Version 0.12.10
 
 The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
 
-**Peek**: quick lookups that leave nothing behind. Alt+Shift+click a link to peek it (Keys › Peek: Ctrl+Alt, or Alt instead of Zen's Glance), or Open Link in Peek from its right-click menu.
+**Peek**: quick lookups that leave nothing behind. Alt+Shift+click a link to peek it (Keys › Peek: Ctrl+Alt, Alt instead of Zen's Glance, or swapped: Alt peeks and Alt+Shift Glances), or Open Link in Peek from its right-click menu.
 
 - **Alt+Q** looks up the text you've selected. With nothing selected, it opens a small prompt.
 - **Shift+Enter** in the URL bar peeks what you typed instead of going there.
@@ -55,7 +55,7 @@ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus a
 - Folders that don't pin: right-click a Zen folder › Tabs act unpinned (Ctrl+W closes them, they keep their page); the folder sits below the pinned tabs' line
 - A bin beside "Show in folder" on each finished download (the sidebar's downloads, Zen's Library, Firefox's Library window): one click deletes the file (Panels › Downloads: two clicks, the first asking; or no bin)
 - Extension copies (experimental, Tabs › Extensions, off by default): right-click an extension › Copy for other spaces makes a second copy with its own storage (another account), running in your other spaces while the original runs in this one; loaded as a temporary add-on at each start; refresh it from the original when that updates
-- Split views: drag a split's tab on its own (swap, join another split, or leave it), or the whole split from its left edge; the tab or split follows the pointer as a chip
+- Split views: drag a split's tab on its own (swap, join another split, or leave it), or the whole split from its left edge; the tab or split follows the pointer as a chip; Alt+F fills the view with the pane you're on and back (nothing moves or reloads); Zen's layout keys (Ctrl+Alt+G/V/H) only change a split's layout; a tab floated out of a split comes back into it
 - Folders that don't pin: a tab closed from one comes back into it with Ctrl+Shift+T
 - The page you were on when Zen starts: Zenith connects to its site straight away (measured with 200 tabs: Zenith doesn't delay it)
 - Pin marks on pinned tabs and folders; notices over everything, Zen's own included

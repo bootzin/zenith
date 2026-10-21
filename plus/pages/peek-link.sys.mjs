@@ -2,7 +2,8 @@
 // clicking it with), as Zen's Glance does with Alt+click: the page asks
 // its window to Peek it. Alt means instead of Glance: this sees the click
 // first, and Glance leaves a click already taken alone. (Alt+Shift and
-// Ctrl+Alt never reach Glance: it only takes one key.)
+// Ctrl+Alt never reach Glance: it only takes one key.) Swapped: Alt peeks
+// and Alt+Shift opens Glance.
 
 const SHARED = "zenith-peek-click"; // { mode: zenith.plus.peek-click, on: zenith.peek.enabled }
 
@@ -11,6 +12,7 @@ const KEYS = {
   "ctrl-alt": e => e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey,
   alt: e => e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey,
 };
+KEYS["alt-swap"] = KEYS.alt;
 
 export class ZenithPeekLinkChild extends JSWindowActorChild {
   handleEvent(e) {
@@ -20,8 +22,9 @@ export class ZenithPeekLinkChild extends JSWindowActorChild {
     }
     if (e.button !== 0 || e.defaultPrevented || !e.isTrusted) return;
     // (Pages don't see Zenith's settings: the window shares these.)
-    const conf = Services.cpmm.sharedData.get(SHARED);
-    if (conf?.on === false || !KEYS[conf?.mode || "alt-shift"]?.(e)) return;
+    const conf = Services.cpmm.sharedData.get(SHARED), mode = conf?.mode || "alt-shift";
+    const what = KEYS[mode]?.(e) ? "peek" : mode === "alt-swap" && KEYS["alt-shift"](e) ? "glance" : null;
+    if (conf?.on === false || !what) return;
     // (A drag to select a link's text isn't a click.)
     if (this.down && Math.hypot(e.clientX - this.down[0], e.clientY - this.down[1]) > 4) return;
     let node = e.originalTarget ?? e.target;
@@ -30,15 +33,18 @@ export class ZenithPeekLinkChild extends JSWindowActorChild {
     if (!url || !/^https?:/i.test(url)) return;
     e.preventDefault();
     e.stopPropagation();
-    this.sendAsyncMessage("peek", { url, x: e.screenX, y: e.screenY });
+    this.sendAsyncMessage(what, { url, x: e.screenX, y: e.screenY, principal: node.ownerDocument?.nodePrincipal ?? null });
   }
 }
 
 export class ZenithPeekLinkParent extends JSWindowActorParent {
   receiveMessage(msg) {
-    const { url, x, y } = msg.data ?? {};
-    if (msg.name !== "peek" || !/^https?:/i.test(url ?? "")) return;
+    const { url, x, y, principal } = msg.data ?? {};
+    if (!/^https?:/i.test(url ?? "")) return;
     const win = this.browsingContext.topChromeWindow;
+    // (Swapped: Alt+Shift opens Zen's Glance, as its Alt+click would.)
+    if (msg.name === "glance") return void win?.gZenGlanceManager?.openGlance({ url, triggeringPrincipal: principal });
+    if (msg.name !== "peek") return;
     win?.ZenithPeek?.open?.(url, { x: x - win.mozInnerScreenX, y: y - win.mozInnerScreenY });
   }
 }

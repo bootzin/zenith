@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.9
+// @version        0.12.10
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -2421,6 +2421,9 @@ const FloatTab = {
         return win;
       });
     }
+    // In a split: back into it when it comes back (its partners, its place).
+    const split = tab.group?.hasAttribute?.("split-view-group") ? tab.group : null;
+    const splitInfo = split ? { partners: split.tabs.filter(t => t !== tab), index: split.tabs.indexOf(tab) } : null;
     // An essential floats too, and is an essential again when it's back.
     const essential = tab.hasAttribute("zen-essential") || SessionStore.getCustomTabValue(tab, this.MARK) === "essential";
     SessionStore.deleteCustomTabValue(tab, this.MARK);
@@ -2447,6 +2450,7 @@ const FloatTab = {
     win.zenithFloatFrom = window;
     win.zenithFloatMode = mode;
     win.zenithFloatEssential = essential;
+    win.zenithFloatSplit = splitInfo;
     if (focus) win.addEventListener("load", () => win.setTimeout(() => win.focus(), 0), { once: true });
     return win;
   },
@@ -2681,9 +2685,14 @@ const FloatTab = {
     this.keep(true);
     // (Whatever's left, a closed glance say, doesn't keep this window open.)
     setTimeout(() => !window.closed && window.close(), 100);
-    if (tab.linkedBrowser?.isRemoteBrowser) return home.gBrowser.adoptTab(tab, { selectTab: select });
-    const moved = home.gBrowser.addTrustedTab(tab.linkedBrowser?.currentURI?.spec ?? "about:blank", { inBackground: !select });
-    if (select) home.gBrowser.selectedTab = moved;
+    let moved;
+    if (tab.linkedBrowser?.isRemoteBrowser) {
+      moved = home.gBrowser.adoptTab(tab, { selectTab: select });
+    } else {
+      moved = home.gBrowser.addTrustedTab(tab.linkedBrowser?.currentURI?.spec ?? "about:blank", { inBackground: !select });
+      if (select) home.gBrowser.selectedTab = moved;
+    }
+    if (moved && window.zenithFloatSplit) home.ZenithFloat?.joinSplit(moved, window.zenithFloatSplit, select);
     return moved;
   },
 
@@ -2702,6 +2711,33 @@ const FloatTab = {
   // schedules wouldn't run).
   essentialAgain(home, tab) {
     if (tab && window.zenithFloatEssential) home.ZenithFloat?.makeEssential(tab);
+  },
+
+  // Back into the split it floated out of (run by the home window's own
+  // Zenith): beside its partners, in its place.
+  joinSplit(tab, info, select) {
+    setTimeout(() => {
+      try {
+        const S = window.gZenViewSplitter, partners = info.partners.filter(t => t.isConnected && !t.closing);
+        if (!S || !tab.isConnected || !partners.length) return;
+        const into = partners.find(t => t.group?.hasAttribute("split-view-group"));
+        if (into) {
+          S.splitTabs([into, tab], undefined, -1, { activate: !!select });
+          // (Joined at the end: moved back to its place.)
+          setTimeout(() => {
+            const tabs = () => tab.group?.tabs ?? [];
+            for (let i = tabs().indexOf(tab); i > info.index && i > 0; i = tabs().indexOf(tab)) {
+              if (!SplitReorder.swap(tab, tabs()[i - 1])) break;
+            }
+          }, 300);
+        } else {
+          S.splitTabs([...partners.slice(0, info.index), tab, ...partners.slice(info.index)], undefined, info.index, { activate: !!select });
+        }
+        if (select) gBrowser.selectedTab = tab;
+      } catch (e) {
+        console.error("[Zenith] float: back into its split", e);
+      }
+    }, 400);
   },
 
   makeEssential(tab) {
@@ -4618,6 +4654,104 @@ const SplitReorder = {
   },
 };
 
+/* --- Split views: one pane fills the view (Alt+F), and back -------------------
+   For a moment's attention, as a tiling window manager's monocle: the pane
+   of the tab you're on fills the split's room, the others wait behind it.
+   Only how it looks: the tabs stay in their split, nothing moves or
+   reloads. Alt+F again, or a tab outside the split, and the split is as
+   it was; another tab of the split takes the room instead. */
+const SplitSolo = {
+  PREF: "zenith.plus.split-solo",
+
+  init() {
+    const commandset = document.createXULElement("commandset");
+    const command = document.createXULElement("command");
+    command.id = "zenith-split-solo-command";
+    command.addEventListener("command", () => this.toggle());
+    commandset.append(command);
+    const keyset = document.createXULElement("keyset");
+    const key = document.createXULElement("key");
+    key.id = "zenith-split-solo-key";
+    key.setAttribute("modifiers", "alt");
+    key.setAttribute("key", "F");
+    key.setAttribute("reserved", "true");
+    key.setAttribute("command", "zenith-split-solo-command");
+    keyset.append(key);
+    root.append(commandset, keyset);
+    const watch = () => {
+      const on = Services.prefs.getBoolPref(this.PREF, true);
+      key.toggleAttribute("disabled", !on);
+      if (!on) this.off();
+    };
+    const select = () => this.follow();
+    Services.prefs.addObserver(this.PREF, watch);
+    gBrowser.tabContainer.addEventListener("TabSelect", select);
+    // Zen's layout keys (Ctrl+Alt+G/V/H) on a split: its layout only. Zen's
+    // own also takes the next tab in the sidebar into the split (past the
+    // end, the first one: an essential).
+    const S = window.gZenViewSplitter, layout = S?.toggleShortcut;
+    if (layout) {
+      S.toggleShortcut = function (gridType) {
+        const tab = gBrowser.selectedTab, data = gridType !== "unsplit" && !tab?.multiselected ? this._data?.find(d => d.tabs.includes(tab)) : null;
+        if (!data) return layout.call(this, gridType);
+        try {
+          data.gridType = gridType;
+          data.layoutTree = this.calculateLayoutTree(data.tabs, gridType);
+          this.applyGridLayout(data.layoutTree);
+          this.saveState?.();
+        } catch (e) {
+          console.error("[Zenith] split view: layout", e);
+        }
+      };
+    }
+    onUnload(() => {
+      if (layout) S.toggleShortcut = layout;
+      Services.prefs.removeObserver(this.PREF, watch);
+      gBrowser.tabContainer.removeEventListener("TabSelect", select);
+      this.off();
+      commandset.remove();
+      keyset.remove();
+    });
+    watch();
+    window.ZenithSplitSolo = this; // for tools/checks
+  },
+
+  split(tab) {
+    const g = tab?.group;
+    return g?.hasAttribute?.("split-view-group") ? g : null;
+  },
+
+  toggle(on = !this.group) {
+    if (!on) return this.off();
+    const tab = gBrowser.selectedTab, group = this.split(tab);
+    if (!group) return hint("Alt+F fills the view with one pane of a split view");
+    this.group = group;
+    this.mark(tab);
+  },
+
+  mark(tab) {
+    const panels = gBrowser.tabpanels;
+    for (const n of panels.querySelectorAll("[zenith-split-solo]")) n.removeAttribute("zenith-split-solo");
+    tab.linkedBrowser?.closest(".browserSidebarContainer")?.setAttribute("zenith-split-solo", "true");
+    panels.setAttribute("zenith-solo", "true");
+    tab.linkedBrowser?.focus();
+  },
+
+  off() {
+    this.group = null;
+    const panels = gBrowser.tabpanels;
+    panels?.removeAttribute("zenith-solo");
+    for (const n of panels?.querySelectorAll("[zenith-split-solo]") ?? []) n.removeAttribute("zenith-split-solo");
+  },
+
+  follow() {
+    if (!this.group) return;
+    const tab = gBrowser.selectedTab;
+    if (this.split(tab) === this.group) this.mark(tab);
+    else this.off();
+  },
+};
+
 /* --- Bookmarks bar: its own strip ------------------------------------------
    Zen puts the bookmarks bar in the strip above the page that also holds
    the window buttons, and Zenith floats that strip in the top-right corner:
@@ -5664,6 +5798,10 @@ const ExternalLinks = {
       for (let i = 0; i < tries && !ok(); i++) await new Promise(r => setTimeout(r, 100));
     };
     await wait(() => window.gZenStartup?.isReady, 300);
+    // (Zen's window sync copies a window's first tab to the other windows
+    // once it's started: after that, so its copies go when it goes.)
+    await Promise.race([window.gZenStartup?.promiseInitialized, new Promise(r => setTimeout(r, 20000))]);
+    await new Promise(r => setTimeout(r, 600));
     // (Zen reads its rules from disk as it starts.)
     await wait(() => this.routing()?.getAllRoutes?.().length, 30);
     await new Promise(r => setTimeout(r, 500));
@@ -5697,14 +5835,23 @@ const ExternalLinks = {
     if (space) await this.place(tab, url, space);
   },
 
+  sweep(id, keep) {
+    for (const w of Services.wm.getEnumerator("navigator:browser")) {
+      for (const t of [...(w.gBrowser?.tabs ?? [])]) if (t.id === id && t !== keep && !t.closing) w.gBrowser.removeTab(t, { animate: false });
+    }
+  },
+
   // Into a space (and its container: opened again in it), shown.
   async place(tab, url, space) {
     if (!space || !tab?.isConnected) return;
     if (space.containerTabId && (tab.userContextId ?? 0) !== space.containerTabId) {
       const fresh = gBrowser.addTrustedTab(url, { userContextId: space.containerTabId, skipRoute: true });
       gZenWorkspaces.moveTabToWorkspace(fresh, space.uuid);
-      gBrowser.removeTab(tab);
+      const old = tab.id;
+      gBrowser.removeTab(tab, { animate: false });
       tab = fresh;
+      // (Its copies in other windows, Zen's window sync's, go too.)
+      if (old) for (const ms of [1500, 5000]) setTimeout(() => this.sweep(old, fresh), ms);
     } else if (tab.getAttribute("zen-workspace-id") !== space.uuid) {
       gZenWorkspaces.moveTabToWorkspace(tab, space.uuid);
     }
@@ -6361,6 +6508,7 @@ start("key switch flash", () => KeySwitchFlash.init());
 start("ready pulse", () => ReadyPulse.init());
 start("sidebar width", () => SidebarWidth.init(), true);
 start("ctrl+tab order", () => CtrlTabOrder.init(), true);
+start("split solo", () => SplitSolo.init(), true);
 start("groups that don't pin", () => UnpinnedGroups.init(), true);
 start("bookmarks bar", () => BookmarksBar.init(), true);
 start("colours from an image", () => ImageColours.init());

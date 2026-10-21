@@ -1428,6 +1428,10 @@
         "value": "alt"
       },
       {
+        "label": "Alt, and Alt+Shift for Zen's Glance (swapped)",
+        "value": "alt-swap"
+      },
+      {
         "label": "Nothing (its right-click menu only)",
         "value": "off"
       }
@@ -2361,6 +2365,13 @@
     ],
     "operator": "AND",
     "zenithWhy": "Float a tab is off"
+  },
+  {
+    "property": "zenith.plus.split-solo",
+    "label": "Alt+F: the pane you're on fills a split view; Alt+F again, the split as it was",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
   },
   {
     "property": "zenith.plus.link-hints",

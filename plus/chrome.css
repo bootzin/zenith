@@ -1517,6 +1517,17 @@ tab-group[split-view-group]:hover {
   cursor: grabbing !important;
 }
 
+/* Split views: one pane fills the view (Alt+F); the others wait behind it. */
+#tabbrowser-tabpanels[zenith-solo] > [zen-split][zenith-split-solo] {
+  inset: 0 !important;
+  z-index: 2 !important;
+}
+
+#tabbrowser-tabpanels[zenith-solo] > [zen-split]:not([zenith-split-solo]),
+#tabbrowser-tabpanels[zenith-solo] > .zen-split-view-splitter {
+  visibility: hidden !important;
+}
+
 /* What's on the move, under the pointer: the tab, or the split's tabs. */
 #zenith-split-ghost {
   position: fixed;

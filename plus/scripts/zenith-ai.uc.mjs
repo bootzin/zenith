@@ -2,7 +2,7 @@
 // @name           Zenith local AI
 // @description    Zenith Plus: Firefox's own on-device AI for clearer download names and tab groups by topic. Nothing leaves your computer.
 // @include        main
-// @version        0.12.9
+// @version        0.12.10
 // ==/UserScript==
 
 // Zenith's local AI uses the AI built into Firefox (Zen turns it off; with

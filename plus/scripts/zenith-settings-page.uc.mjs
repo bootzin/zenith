@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.9
+// @version        0.12.10
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -3034,6 +3034,20 @@ const SCHEMA = [
     ]
    },
    {
+    "title": "Split views",
+    "settings": [
+     {
+      "property": "zenith.plus.split-solo",
+      "label": "One pane of a split",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "For a moment's attention: the pane of the tab you're on fills the split view, the others wait behind it (nothing moves or reloads). Alt+F again, or a tab outside the split, and it's as it was.",
+      "host": "Zenith Plus",
+      "default": true
+     }
+    ]
+   },
+   {
     "title": "Float a tab",
     "settings": [
      {
@@ -3116,6 +3130,10 @@ const SCHEMA = [
        {
         "label": "Alt (instead of Zen's Glance)",
         "value": "alt"
+       },
+       {
+        "label": "Alt, and Alt+Shift for Zen's Glance (swapped)",
+        "value": "alt-swap"
        },
        {
         "label": "Nothing (its right-click menu only)",
@@ -3978,7 +3996,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.9";
+const SCHEMA_VERSION = "0.12.10";
 
 class SettingsView {
   constructor(kind) {

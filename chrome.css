@@ -3312,6 +3312,13 @@ opacity: 0.55;
 :root[zenith-split-dragging], :root[zenith-split-dragging] * {
 cursor: grabbing !important;
 }
+#tabbrowser-tabpanels[zenith-solo] > [zen-split][zenith-split-solo] {
+inset: 0 !important;
+z-index: 2 !important;
+}
+#tabbrowser-tabpanels[zenith-solo] > [zen-split]:not([zenith-split-solo]), #tabbrowser-tabpanels[zenith-solo] > .zen-split-view-splitter {
+visibility: hidden !important;
+}
 #zenith-split-ghost {
 position: fixed;
 left: 0;

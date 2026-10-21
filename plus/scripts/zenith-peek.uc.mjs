@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.12.9
+// @version        0.12.10
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -10,8 +10,9 @@
 //   Alt+Q               looks up the selected text, or opens the Peek prompt
 //   Shift+Enter         in the URL bar, peeks what you typed (or the
 //                       highlighted result) instead of navigating
-//   Alt+Shift+click     a link peeks it (Keys › Peek: Ctrl+Alt, or Alt instead
-//                       of Zen's Glance); any link's right-click menu too
+//   Alt+Shift+click     a link peeks it (Keys › Peek: Ctrl+Alt, Alt instead
+//                       of Zen's Glance, or swapped: Alt peeks, Alt+Shift
+//                       Glances); any link's right-click menu too
 // Inside a Peek: Escape closes it, Ctrl+Enter keeps it as a real tab.
 // The prompt shows instant answers (maths, units, time zones) computed by
 // Firefox's own calculator and converters, offline; Enter copies them.
@@ -525,7 +526,7 @@ async function watchPeekLinks() {
     const mode = Services.prefs.getStringPref("zenith.plus.peek-click", "") || "alt-shift", on = prefs.bool("zenith.peek.enabled", true);
     Services.ppmm.sharedData.set("zenith-peek-click", { mode, on });
     Services.ppmm.sharedData.flush();
-    const take = mode === "alt" && on;
+    const take = (mode === "alt" || mode === "alt-swap") && on;
     const zen = Services.prefs.getStringPref("zen.glance.activation-method", "alt");
     if (take && zen === "alt") window.ZenithBridge?.apply("peek-click", { "zen.glance.activation-method": "meta" });
     else if (!take) window.ZenithBridge?.apply("peek-click", { "zen.glance.activation-method": null });
