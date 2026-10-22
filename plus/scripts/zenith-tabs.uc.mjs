@@ -2,7 +2,7 @@
 // @name           Zenith Tab manager
 // @description    Zenith Plus: every tab of every space on one page (about:zenith-tabs), tidying up, and rules for grouping, sleeping and closing.
 // @include        main
-// @version        0.12.15
+// @version        0.12.16
 // ==/UserScript==
 
 // The tab manager (the "tab report" in DESIGN.md). Alt+Shift+T, or ":tabs"

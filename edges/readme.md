@@ -1,6 +1,6 @@
 # Zenith Edges
 
-Version 0.12.15
+Version 0.12.16
 
 Hairline status edges, so nothing sits on screen while you read.
 

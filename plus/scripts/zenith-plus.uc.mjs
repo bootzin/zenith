@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.15
+// @version        0.12.16
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -4625,8 +4625,7 @@ const SplitReorder = {
         S.splitTabs([target, tab], undefined, -1, { activate: false });
         // (Zen adds it to the layout but only draws it when the split is
         // shown again: drawn now, or the panes overlap.)
-        const data = S._data?.find(d => d.tabs.includes(target));
-        if (data) S.applyGridLayout(data.layoutTree);
+        NewTabBelow.redraw(target);
         return;
       }
       // Beside a loose tab, as it is: pinned or not.
@@ -4759,32 +4758,94 @@ const SplitSolo = {
   },
 };
 
-/* --- New Tab Below (a tab's right-click menu) ------------------------------------
-   Firefox puts the new tab right after the tab: in a split, that's in the
-   split (a fourth pane), so it seemed to do nothing. Below a split it now
-   goes after the whole split. And it opens as Zen's own new tab does (the
-   address bar, as Ctrl+T, when Zen's "replace the new tab page" is on),
-   not a new-tab page; the tab you open from it goes below. */
+/* --- New Tab Below and a new pane in a split ------------------------------------
+   New Tab Below (a tab's right-click menu) opens as Zen's own new tab does
+   (the address bar, as Ctrl+T, when Zen replaces the new-tab page) and the
+   tab you open goes right below; on a split's tab it joins the split, next
+   to it (if the split has room; else below the split). Zen's "New empty
+   split" (Alt+T, say) is turned off on a split's tab: here it adds a pane
+   to that split the same way. Either way the split is drawn at once. */
 const NewTabBelow = {
   init() {
+    const S = window.gZenViewSplitter;
     const orig = gBrowser.addAdjacentNewTab;
-    if (!orig) return;
     const self = this;
-    gBrowser.addAdjacentNewTab = function (tab) {
-      const split = tab?.group?.hasAttribute?.("split-view-group") ? tab.group : null;
-      const after = split ?? tab;
-      if (Services.prefs.getBoolPref("zen.urlbar.replace-newtab", true) && window.BrowserCommands?.openTab) {
-        self.watch(after);
+    if (orig) {
+      gBrowser.addAdjacentNewTab = function (tab) {
+        const data = self.splitOf(tab), room = data && data.tabs.length < (S?.MAX_TABS ?? 4);
+        if (Services.prefs.getBoolPref("zen.urlbar.replace-newtab", true) && window.BrowserCommands?.openTab) {
+          self.watch(made => (room ? self.join(made, tab) : self.place(made, data ? tab.group : tab)));
+          return BrowserCommands.openTab();
+        }
+        if (!data) return orig.call(this, tab);
+        const t = this.addTrustedTab(window.BROWSER_NEW_TAB_URL, { userContextId: tab.userContextId, focusUrlBar: true });
+        if (room) self.join(t, tab);
+        else self.place(t, tab.group);
+        return t;
+      };
+      onUnload(() => (gBrowser.addAdjacentNewTab = orig));
+    }
+    // Zen's new empty split, on a split's tab: a new pane in it.
+    const empty = S?.createEmptySplit, cmd = document.getElementById("cmd_zenNewEmptySplit");
+    if (empty && cmd) {
+      S.createEmptySplit = function (side) {
+        const tab = gBrowser.selectedTab, data = self.splitOf(tab);
+        if (!data) return empty.call(this, side);
+        if (data.tabs.length >= (this.MAX_TABS ?? 4)) return window.gZenUIManager?.showToast?.("zen-split-view-limit-toast");
+        self.watch(made => self.join(made, tab));
         return BrowserCommands.openTab();
-      }
-      if (!split) return orig.call(this, tab);
-      const t = this.addTrustedTab(window.BROWSER_NEW_TAB_URL, { userContextId: tab.userContextId, focusUrlBar: true });
-      self.place(t, after);
-      this.selectedTab = t;
-      return t;
-    };
-    onUnload(() => (gBrowser.addAdjacentNewTab = orig));
+      };
+      const enable = () => {
+        const t = gBrowser.selectedTab;
+        if (cmd.hasAttribute("disabled") && t?.splitView && !t.hasAttribute("zen-empty-tab") && (self.splitOf(t)?.tabs.length ?? 4) < (S.MAX_TABS ?? 4)) cmd.removeAttribute("disabled");
+      };
+      const observer = new MutationObserver(enable);
+      observer.observe(cmd, { attributes: true, attributeFilter: ["disabled"] });
+      enable();
+      onUnload(() => {
+        observer.disconnect();
+        S.createEmptySplit = empty;
+      });
+    }
     window.ZenithNewTabBelow = this; // for tools/checks
+  },
+
+  splitOf(tab) {
+    return tab ? window.gZenViewSplitter?._data?.find(d => d.tabs.includes(tab)) ?? null : null;
+  },
+
+  // Drawn now (Zen only redraws a split when it's shown again).
+  redraw(tab) {
+    const S = window.gZenViewSplitter, data = this.splitOf(tab);
+    if (!S || !data) return;
+    if (data.tabs.includes(gBrowser.selectedTab)) S.activateSplitView(data, true);
+    else S.applyGridLayout(data.layoutTree);
+  },
+
+  // Into the split of `anchor`, right after it, and shown.
+  join(tab, anchor) {
+    const S = window.gZenViewSplitter;
+    try {
+      if (!tab?.isConnected || !anchor?.isConnected || !S) return;
+      if (!this.splitOf(tab) || this.splitOf(tab) !== this.splitOf(anchor)) {
+        if (this.splitOf(tab)) S.removeTabFromGroup(tab);
+        S.splitTabs([anchor, tab], undefined, -1, { activate: true });
+      }
+      // (Next to it: once Zen has laid the new pane out, or the swap can't.)
+      let tries = 0;
+      const order = () => {
+        const tabs = () => this.splitOf(anchor)?.tabs ?? [];
+        for (let i = tabs().indexOf(tab); i > tabs().indexOf(anchor) + 1; i = tabs().indexOf(tab)) {
+          if (!SplitReorder.swap(tab, tabs()[i - 1])) break;
+        }
+        if (tabs().indexOf(tab) > tabs().indexOf(anchor) + 1 && ++tries < 8) return void setTimeout(order, 250);
+        gBrowser.selectedTab = tab;
+        this.redraw(tab);
+      };
+      setTimeout(order, 300);
+    } catch (e) {
+      console.error("[Zenith] new tab into a split", e);
+    }
   },
 
   place(tab, after) {
@@ -4799,15 +4860,15 @@ const NewTabBelow = {
   },
 
   // The address bar is up: the tab it opens (a new one, or Zen's empty tab
-  // made a real one) goes below; nothing opened, nothing moves.
-  watch(after) {
+  // made a real one) goes where `done` puts it; nothing opened, nothing moves.
+  watch(done) {
     clearInterval(this.timer);
     const before = new Set(document.querySelectorAll("tab.tabbrowser-tab")), empty = document.querySelector("tab[zen-empty-tab]");
     const since = Date.now();
     this.timer = setInterval(() => {
       const typing = gURLBar.focused || gURLBar.view?.isOpen;
       const made = [...document.querySelectorAll("tab.tabbrowser-tab")].find(t => !t.hasAttribute("zen-empty-tab") && !t.closing && (!before.has(t) || t === empty));
-      if (made) this.place(made, after);
+      if (made) done(made);
       if (made || (!typing && Date.now() - since > 800) || Date.now() - since > 120000) clearInterval(this.timer);
     }, 250);
   },
@@ -5825,8 +5886,17 @@ const ExternalLinks = {
     const scan = () => {
       for (const t of document.querySelectorAll("tab.tabbrowser-tab")) if (t.owner && t.owner !== t) this.leftBehind(t.owner, t);
     };
+    let started = Date.now();
+    try {
+      started = Services.startup.getStartupInfo().process.getTime();
+    } catch {}
     Promise.resolve(window.gZenStartup?.promiseInitialized).then(() => {
-      for (const ms of [2000, 8000, 20000]) setTimeout(scan, ms);
+      for (const ms of [2000, 5000, 9000, 15000, 25000]) {
+        setTimeout(() => {
+          scan();
+          if (Date.now() - started < 180000) this.closeStrays(started);
+        }, ms);
+      }
     });
     // A link that starts Zen: Zen leaves tabs alone while it starts (they'd
     // be the session's), so its rules (or Ask) apply here once it's ready.
@@ -5962,8 +6032,49 @@ const ExternalLinks = {
     for (const ms of [2500, 6000, 15000]) {
       setTimeout(() => {
         for (const t of this.tabsFor(url, since)) if (this.dead(t)) this.close(t);
+        this.closeStrays(since);
       }, ms);
     }
+  },
+
+  // A link from Slack (and others) reaches the browser twice as Zen starts
+  // or routes it: one tab goes on (slack.com, then Jira) in the space and
+  // container its rule says; the other stays at the link itself with nothing
+  // in it, in the space you were in. That one: a tab still at the address
+  // another tab started from and went on from, with nothing else in its
+  // history, opened since `since`. (Found in a real session: the left tab's
+  // one entry is the Slack link; the good one's first entry came from it.)
+  strays(since = 0) {
+    const bare = u => (u || "").replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
+    const tabs = [];
+    for (const w of Services.wm.getEnumerator("navigator:browser")) {
+      if (!w.closed && !w.zenithFloatFrom) tabs.push(...w.document.querySelectorAll("tab.tabbrowser-tab"));
+    }
+    const history = t => {
+      const out = [];
+      try {
+        const h = t.linkedBrowser?.browsingContext?.sessionHistory;
+        for (let i = 0; i < (h?.count ?? 0); i++) out.push(h.getEntryAtIndex(i));
+      } catch {}
+      return out;
+    };
+    const wentOn = new Map();
+    for (const t of tabs) {
+      const first = history(t)[0], from = first?.originalURI?.spec;
+      if (from && bare(from) !== bare(first.URI?.spec)) wentOn.set(bare(from), t);
+    }
+    if (!wentOn.size) return [];
+    return tabs.filter(t => {
+      if (t.pinned || t.closing || t.hasAttribute("zen-essential") || t.hasAttribute("zen-empty-tab") || !t.linkedBrowser) return false;
+      if (t.lastAccessed > 0 && t.lastAccessed < since) return false;
+      if (t.linkedBrowser.webProgress?.isLoadingDocument || history(t).length > 1) return false;
+      const other = wentOn.get(bare(t.linkedBrowser.currentURI?.spec));
+      return !!other && other !== t;
+    });
+  },
+
+  closeStrays(since) {
+    for (const t of this.strays(since)) this.close(t);
   },
 
   // No page in it: no browser, or a blank one that's done loading.

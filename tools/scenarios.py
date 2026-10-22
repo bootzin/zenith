@@ -75,6 +75,21 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
+        if path == "/once":
+            # (The first time: a page with nothing in it, staying at this
+            # address; after that, sent on, as a link that went on elsewhere.)
+            from urllib.parse import parse_qs, urlsplit
+            q = parse_qs(urlsplit(self.path).query)
+            seen = Handler.__dict__.get("_once", set())
+            Handler._once = seen
+            if self.path not in seen:
+                seen.add(self.path)
+                return self._html("<!doctype html><title></title>")
+            self.send_response(302)
+            self.send_header("Location", q.get("to", ["/page?n=onward"])[0])
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if path == "/jsredirect":
             # (A page that sends you on with a script, as login pages do.)
             from urllib.parse import parse_qs, urlsplit

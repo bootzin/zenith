@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.12.15
+// @version        0.12.16
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -553,6 +553,25 @@ async function watchPeekLinks() {
       if (d.canGoForward) d.goForward();
     };
     B.zenithPeek = true;
+    // (Firefox's Back is turned off while the tab behind can't go back, so
+    // its keys never reach the above: taken here first.)
+    const go = (e, back) => {
+      const d = gZenGlanceManager?.detachedBrowser;
+      if (!d) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (back && d.canGoBack) d.goBack();
+      else if (!back && d.canGoForward) d.goForward();
+    };
+    window.addEventListener("keydown", e => {
+      const altOnly = e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey;
+      if ((altOnly && e.key === "ArrowLeft") || e.key === "BrowserBack") go(e, true);
+      else if ((altOnly && e.key === "ArrowRight") || e.key === "BrowserForward") go(e, false);
+    }, true);
+    window.addEventListener("AppCommand", e => {
+      if (e.command === "Back") go(e, true);
+      else if (e.command === "Forward") go(e, false);
+    }, true);
   }
   const menu = document.getElementById("contentAreaContextMenu");
   if (!menu || document.getElementById("context-zenith-peek")) return;
