@@ -1,6 +1,6 @@
 # Zenith URL bar
 
-Version 0.12.14
+Version 0.12.15
 
 Spotlight-style floating URL bar. It is sized for each screen, follows Core's corners, and dims the page behind it.
 

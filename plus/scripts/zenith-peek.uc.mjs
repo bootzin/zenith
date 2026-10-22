@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.12.14
+// @version        0.12.15
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -537,6 +537,23 @@ async function watchPeekLinks() {
   }, { once: true });
   glance();
   setTimeout(glance, 1000); // (Zenith's Bridge starts with the other scripts)
+  // Back and forward (Alt+Left/Right, the mouse's side buttons) in a Peek:
+  // its page's, not the tab's behind it.
+  const B = window.BrowserCommands;
+  if (B && !B.zenithPeek) {
+    const back = B.back, forward = B.forward;
+    B.back = function (...args) {
+      const d = gZenGlanceManager?.detachedBrowser;
+      if (!d) return back.apply(this, args);
+      if (d.canGoBack) d.goBack();
+    };
+    B.forward = function (...args) {
+      const d = gZenGlanceManager?.detachedBrowser;
+      if (!d) return forward.apply(this, args);
+      if (d.canGoForward) d.goForward();
+    };
+    B.zenithPeek = true;
+  }
   const menu = document.getElementById("contentAreaContextMenu");
   if (!menu || document.getElementById("context-zenith-peek")) return;
   const item = document.createXULElement("menuitem");

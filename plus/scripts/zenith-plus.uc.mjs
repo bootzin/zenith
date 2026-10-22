@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.14
+// @version        0.12.15
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -4621,7 +4621,14 @@ const SplitReorder = {
       }
       if (kind === "swap") return this.swap(tab, target);
       if (this.split(tab.group)) S.removeTabFromGroup(tab);
-      if (kind === "join") return S.splitTabs([target, tab], undefined, -1, { activate: false });
+      if (kind === "join") {
+        S.splitTabs([target, tab], undefined, -1, { activate: false });
+        // (Zen adds it to the layout but only draws it when the split is
+        // shown again: drawn now, or the panes overlap.)
+        const data = S._data?.find(d => d.tabs.includes(target));
+        if (data) S.applyGridLayout(data.layoutTree);
+        return;
+      }
       // Beside a loose tab, as it is: pinned or not.
       if (target.pinned && !tab.pinned) gBrowser.pinTab(tab);
       else if (!target.pinned && tab.pinned) gBrowser.unpinTab(tab);
@@ -4749,6 +4756,60 @@ const SplitSolo = {
     const tab = gBrowser.selectedTab;
     if (this.split(tab) === this.group) this.mark(tab);
     else this.off();
+  },
+};
+
+/* --- New Tab Below (a tab's right-click menu) ------------------------------------
+   Firefox puts the new tab right after the tab: in a split, that's in the
+   split (a fourth pane), so it seemed to do nothing. Below a split it now
+   goes after the whole split. And it opens as Zen's own new tab does (the
+   address bar, as Ctrl+T, when Zen's "replace the new tab page" is on),
+   not a new-tab page; the tab you open from it goes below. */
+const NewTabBelow = {
+  init() {
+    const orig = gBrowser.addAdjacentNewTab;
+    if (!orig) return;
+    const self = this;
+    gBrowser.addAdjacentNewTab = function (tab) {
+      const split = tab?.group?.hasAttribute?.("split-view-group") ? tab.group : null;
+      const after = split ?? tab;
+      if (Services.prefs.getBoolPref("zen.urlbar.replace-newtab", true) && window.BrowserCommands?.openTab) {
+        self.watch(after);
+        return BrowserCommands.openTab();
+      }
+      if (!split) return orig.call(this, tab);
+      const t = this.addTrustedTab(window.BROWSER_NEW_TAB_URL, { userContextId: tab.userContextId, focusUrlBar: true });
+      self.place(t, after);
+      this.selectedTab = t;
+      return t;
+    };
+    onUnload(() => (gBrowser.addAdjacentNewTab = orig));
+    window.ZenithNewTabBelow = this; // for tools/checks
+  },
+
+  place(tab, after) {
+    try {
+      if (!after?.isConnected || !tab?.isConnected) return;
+      // (Zen opens a new tab next to yours: in a split, into the split.)
+      if (tab.group?.hasAttribute?.("split-view-group") && tab.group !== after) window.gZenViewSplitter?.removeTabFromGroup?.(tab);
+      gBrowser.moveTabAfter(tab, after);
+    } catch (e) {
+      console.error("[Zenith] new tab below", e);
+    }
+  },
+
+  // The address bar is up: the tab it opens (a new one, or Zen's empty tab
+  // made a real one) goes below; nothing opened, nothing moves.
+  watch(after) {
+    clearInterval(this.timer);
+    const before = new Set(document.querySelectorAll("tab.tabbrowser-tab")), empty = document.querySelector("tab[zen-empty-tab]");
+    const since = Date.now();
+    this.timer = setInterval(() => {
+      const typing = gURLBar.focused || gURLBar.view?.isOpen;
+      const made = [...document.querySelectorAll("tab.tabbrowser-tab")].find(t => !t.hasAttribute("zen-empty-tab") && !t.closing && (!before.has(t) || t === empty));
+      if (made) this.place(made, after);
+      if (made || (!typing && Date.now() - since > 800) || Date.now() - since > 120000) clearInterval(this.timer);
+    }, 250);
   },
 };
 
@@ -5734,6 +5795,7 @@ const ExternalLinks = {
       bdw.zenithAsks = true;
       bdw.openURI = (...args) => {
         const [uri, , , context] = args;
+        if (context === Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL && uri?.spec) this.tidyLater(uri.spec);
         if (context === Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL && this.wanted(uri)) {
           this.ask(uri, () => orig.apply(bdw, args));
           return null;
@@ -5892,6 +5954,18 @@ const ExternalLinks = {
     this.close(owner);
   },
 
+  // A link from another app while Zen runs: any tab it leaves with no page
+  // (handed on to an app, or stopped and opened again elsewhere, in this
+  // space or another), closes in the seconds after.
+  tidyLater(url) {
+    const since = Date.now() - 1000;
+    for (const ms of [2500, 6000, 15000]) {
+      setTimeout(() => {
+        for (const t of this.tabsFor(url, since)) if (this.dead(t)) this.close(t);
+      }, ms);
+    }
+  },
+
   // No page in it: no browser, or a blank one that's done loading.
   dead(t) {
     const b = t.linkedBrowser;
@@ -5901,6 +5975,7 @@ const ExternalLinks = {
   close(t) {
     try {
       const id = t.id;
+      if (t.ownerDocument.defaultView.gBrowser.tabs.length <= 1) return; // (a window's last tab: its window would go)
       t.ownerDocument.defaultView.gBrowser.removeTab(t, { animate: false, skipPermitUnload: true });
       if (id) for (const ms of [1500, 5000]) setTimeout(() => this.sweep(id, null), ms);
     } catch (e) {
@@ -6640,6 +6715,7 @@ start("ready pulse", () => ReadyPulse.init());
 start("sidebar width", () => SidebarWidth.init(), true);
 start("ctrl+tab order", () => CtrlTabOrder.init(), true);
 start("split solo", () => SplitSolo.init(), true);
+start("new tab below", () => NewTabBelow.init(), true);
 start("groups that don't pin", () => UnpinnedGroups.init(), true);
 start("bookmarks bar", () => BookmarksBar.init(), true);
 start("colours from an image", () => ImageColours.init());
