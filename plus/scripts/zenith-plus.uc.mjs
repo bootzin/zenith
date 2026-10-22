@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.16
+// @version        0.12.17
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -4633,6 +4633,7 @@ const SplitReorder = {
       else if (!target.pinned && tab.pinned) gBrowser.unpinTab(tab);
       if (kind === "before") gBrowser.moveTabBefore(tab, target);
       else gBrowser.moveTabAfter(tab, target);
+      gBrowser.selectedTab = tab;
     } catch (e) {
       console.error("[Zenith] split view: moving a tab", e);
     }
@@ -4806,6 +4807,20 @@ const NewTabBelow = {
         observer.disconnect();
         S.createEmptySplit = empty;
       });
+    }
+    // Closing a split's tab you're on (Ctrl+W): another tab of that split is
+    // selected, so the split stays on screen.
+    const blur = gBrowser._findTabToBlurTo;
+    if (blur) {
+      gBrowser._findTabToBlurTo = function (tab, ...rest) {
+        const data = self.splitOf(tab), others = data?.tabs.filter(t => t !== tab && !t.closing) ?? [];
+        if (others.length) {
+          const i = data.tabs.indexOf(tab);
+          return data.tabs.slice(i + 1).find(t => others.includes(t)) ?? others.at(-1);
+        }
+        return blur.call(this, tab, ...rest);
+      };
+      onUnload(() => (gBrowser._findTabToBlurTo = blur));
     }
     window.ZenithNewTabBelow = this; // for tools/checks
   },
@@ -5876,8 +5891,13 @@ const ExternalLinks = {
     // for that load is left with no page at all: it closes. (One with pages
     // of its own keeps them.)
     const opened = e => {
-      const tab = e.target, owner = tab.owner;
+      const tab = e.target, owner = tab.owner, since = Date.now() - 60000;
       if (owner && owner !== tab) setTimeout(() => this.leftBehind(owner, tab), 1500);
+      clearTimeout(this.strayTimer);
+      this.strayTimer = setTimeout(() => {
+        this.closeStrays(since);
+        for (const ms of [4000, 12000]) setTimeout(() => this.closeStrays(since), ms);
+      }, 2500);
     };
     gBrowser.tabContainer.addEventListener("TabOpen", opened);
     onUnload(() => gBrowser.tabContainer.removeEventListener("TabOpen", opened));
@@ -6067,7 +6087,9 @@ const ExternalLinks = {
     return tabs.filter(t => {
       if (t.pinned || t.closing || t.hasAttribute("zen-essential") || t.hasAttribute("zen-empty-tab") || !t.linkedBrowser) return false;
       if (t.lastAccessed > 0 && t.lastAccessed < since) return false;
-      if (t.linkedBrowser.webProgress?.isLoadingDocument || history(t).length > 1) return false;
+      // (Still "loading" doesn't count: a page that hands its link on to an
+      // app can stay that way.)
+      if (history(t).length > 1) return false;
       const other = wentOn.get(bare(t.linkedBrowser.currentURI?.spec));
       return !!other && other !== t;
     });

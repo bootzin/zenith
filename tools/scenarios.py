@@ -84,6 +84,16 @@ class Handler(BaseHTTPRequestHandler):
             Handler._once = seen
             if self.path not in seen:
                 seen.add(self.path)
+                if "hang" in q:
+                    # (and never finishes: a page that hands its link on to an app)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write(b"<!doctype html><title></title>")
+                    self.wfile.flush()
+                    import time
+                    time.sleep(40)
+                    return
                 return self._html("<!doctype html><title></title>")
             self.send_response(302)
             self.send_header("Location", q.get("to", ["/page?n=onward"])[0])

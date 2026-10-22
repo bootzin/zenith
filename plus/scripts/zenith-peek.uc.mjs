@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.12.16
+// @version        0.12.17
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -568,6 +568,26 @@ async function watchPeekLinks() {
       if ((altOnly && e.key === "ArrowLeft") || e.key === "BrowserBack") go(e, true);
       else if ((altOnly && e.key === "ArrowRight") || e.key === "BrowserForward") go(e, false);
     }, true);
+    // A trackpad swipe: Firefox asks whether the tab behind can go back,
+    // and goes back in it; while a Peek is open, the Peek's page instead.
+    const H = window.gHistorySwipeAnimation, G = window.gGestureSupport;
+    if (H && G) {
+      const canBack = H.canGoBack, canForward = H.canGoForward, doCommand = G._doCommand;
+      H.canGoBack = function () {
+        const d = gZenGlanceManager?.detachedBrowser;
+        return d ? d.canGoBack : canBack.call(this);
+      };
+      H.canGoForward = function () {
+        const d = gZenGlanceManager?.detachedBrowser;
+        return d ? d.canGoForward : canForward.call(this);
+      };
+      G._doCommand = function (event, command) {
+        const d = gZenGlanceManager?.detachedBrowser;
+        if (d && /Back/.test(command)) return void (d.canGoBack && d.goBack());
+        if (d && /Forward/.test(command)) return void (d.canGoForward && d.goForward());
+        return doCommand.call(this, event, command);
+      };
+    }
     window.addEventListener("AppCommand", e => {
       if (e.command === "Back") go(e, true);
       else if (e.command === "Forward") go(e, false);
