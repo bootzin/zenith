@@ -1293,6 +1293,18 @@ menuseparator[zenith-collapse] {
   }
 }
 
+/* The page behind a Peek, with "Faded, like Glance": shrunk and faded as
+   Zen's Glance does to the tab it opens from (0.97, 0.3). The Peek itself
+   lives outside the tab panels, so it stays as it is. */
+#tabbrowser-tabpanels {
+  transition: scale 0.3s var(--zth-ease), opacity 0.3s var(--zth-ease);
+
+  :root[zenith-peek-fade] & {
+    scale: 0.97;
+    opacity: 0.3;
+  }
+}
+
 /* The inner edge, to drag wider or narrower. */
 .zth-bm-grip {
   position: absolute;

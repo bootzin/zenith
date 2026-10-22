@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.12.21
+// @version        0.12.22
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -474,8 +474,14 @@ const Peek = {
       userContextId,
     });
     if (!result) return;
-    document.documentElement.setAttribute("zenith-peek-open", "true");
-    result.closed.then(() => document.documentElement.removeAttribute("zenith-peek-open"));
+    const root = document.documentElement;
+    root.setAttribute("zenith-peek-open", "true");
+    // The page behind: as it is, or faded the way Zen's Glance fades it.
+    root.toggleAttribute("zenith-peek-fade", Services.prefs.getStringPref("zenith.peek.behind", "") === "fade");
+    result.closed.then(() => {
+      root.removeAttribute("zenith-peek-open");
+      root.removeAttribute("zenith-peek-fade");
+    });
     result.browser.focus();
   },
 

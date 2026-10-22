@@ -2,7 +2,7 @@
 // @name           Zenith Bookmarks
 // @description    Zenith Plus: your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.
 // @include        main
-// @version        0.12.21
+// @version        0.12.22
 // ==/UserScript==
 
 // Ctrl+B opens Zenith's bookmarks instead of Firefox's sidebar (unless the

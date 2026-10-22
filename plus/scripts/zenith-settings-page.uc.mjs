@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.21
+// @version        0.12.22
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -3164,6 +3164,37 @@ const SCHEMA = [
       }
      },
      {
+      "property": "zenith.peek.behind",
+      "label": "The page behind a Peek",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "While a Peek is open, the page behind stays as it is, or shrinks a little and fades the way Zen's Glance fades the tab it opens from.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As it is",
+        "value": "keep"
+       },
+       {
+        "label": "Faded, like Glance",
+        "value": "fade"
+       }
+      ],
+      "default": "keep",
+      "parent": "zenith.peek.enabled",
+      "rule": {
+       "why": "Peek is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
       "property": "zenith.peek.engine",
       "label": "Search engine",
       "type": "dropdown",
@@ -4005,7 +4036,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.21";
+const SCHEMA_VERSION = "0.12.22";
 
 class SettingsView {
   constructor(kind) {
@@ -4139,7 +4170,10 @@ class SettingsView {
         this.refresh();
       }, 30);
     };
-    const branches = ["zenith.", "zen.view.hide-window-controls", "zen.tabs.open-pinned-in-new-tab"];
+    // (Zen's own settings shown here are watched one by one: a switch flips
+    // from what it shows, so one that isn't redrawn would only ever turn on.)
+    const zens = SCHEMA.flatMap(sec => sec.groups.flatMap(g => g.settings.map(s => s.property))).filter(p => p && !p.startsWith("zenith."));
+    const branches = ["zenith.", ...new Set(zens)];
     branches.forEach(b => P.addObserver(b, observer));
     window.addEventListener("unload", () => branches.forEach(b => P.removeObserver(b, observer)), { once: true });
   }

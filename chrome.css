@@ -3149,6 +3149,13 @@ flex: 1;
 min-height: 0;
 }
 }
+#tabbrowser-tabpanels {
+transition: scale 0.3s var(--zth-ease), opacity 0.3s var(--zth-ease);
+:root[zenith-peek-fade] & {
+scale: 0.97;
+opacity: 0.3;
+}
+}
 .zth-bm-grip {
 position: absolute;
 top: 0;

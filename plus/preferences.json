@@ -46,6 +46,33 @@
     "zenithWhy": "Peek is off"
   },
   {
+    "property": "zenith.peek.behind",
+    "label": "The page behind a Peek",
+    "type": "dropdown",
+    "placeholder": "Default (As it is)",
+    "options": [
+      {
+        "label": "As it is",
+        "value": "keep"
+      },
+      {
+        "label": "Faded, like Glance",
+        "value": "fade"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.peek.enabled",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Peek is off"
+  },
+  {
     "property": "zenith.peek.engine",
     "label": "Peek search engine",
     "type": "dropdown",
