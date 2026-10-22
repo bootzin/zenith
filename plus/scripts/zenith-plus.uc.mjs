@@ -5896,7 +5896,7 @@ const ExternalLinks = {
       clearTimeout(this.strayTimer);
       this.strayTimer = setTimeout(() => {
         this.closeStrays(since);
-        for (const ms of [4000, 12000]) setTimeout(() => this.closeStrays(since), ms);
+        for (const ms of [4000, 12000, 30000, 57000]) setTimeout(() => this.closeStrays(since), ms);
       }, 2500);
     };
     gBrowser.tabContainer.addEventListener("TabOpen", opened);
@@ -6033,6 +6033,12 @@ const ExternalLinks = {
 
   leftBehind(owner, tab) {
     if (!owner.isConnected || owner.closing || owner.pinned || owner.hasAttribute("zen-essential") || !tab.isConnected) return;
+    // A routed tab can prove that its still-loading owner is only the copy
+    // left at the link, even when Zen kept both tabs in the same workspace.
+    if (this.strays(Date.now() - 60000).includes(owner)) {
+      this.close(owner);
+      return;
+    }
     if (owner.getAttribute("zen-workspace-id") === tab.getAttribute("zen-workspace-id")) return; // (not moved: not routing)
     const blank = u => !u || /^about:(blank|newtab|home)$/.test(u);
     const b = owner.linkedBrowser;
@@ -6078,10 +6084,31 @@ const ExternalLinks = {
       } catch {}
       return out;
     };
+    // Session restore keeps the address a tab started from even when the
+    // live session-history entry doesn't expose it as originalURI.
+    const startedAt = t => {
+      const b = t.linkedBrowser, current = bare(b?.currentURI?.spec);
+      const entries = history(t), first = entries[0];
+      const original = first?.originalURI?.spec;
+      if (original && bare(original) !== bare(first.URI?.spec)) return original;
+      // A redirect or replace navigation can leave one live history entry
+      // whose URI is still the starting address while currentURI has moved on.
+      if (entries.length === 1 && first?.URI?.spec && bare(first.URI.spec) !== current) return first.URI.spec;
+      try {
+        const state = JSON.parse(SessionStore.getTabState(t));
+        const saved = state.entries ?? [], savedFirst = saved[0];
+        const savedOriginal = savedFirst?.originalURI;
+        if (savedOriginal && bare(savedOriginal) !== bare(savedFirst?.url)) return savedOriginal;
+        const savedStart = savedFirst?.url;
+        if (saved.length === 1 && savedStart && bare(savedStart) !== current) return savedStart;
+      } catch {}
+      return null;
+    };
     const wentOn = new Map();
     for (const t of tabs) {
-      const first = history(t)[0], from = first?.originalURI?.spec;
-      if (from && bare(from) !== bare(first.URI?.spec)) wentOn.set(bare(from), t);
+      if (t.lastAccessed > 0 && t.lastAccessed < since) continue;
+      const from = startedAt(t);
+      if (from) wentOn.set(bare(from), t);
     }
     if (!wentOn.size) return [];
     return tabs.filter(t => {
