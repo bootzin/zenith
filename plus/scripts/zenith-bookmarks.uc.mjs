@@ -2,7 +2,7 @@
 // @name           Zenith Bookmarks
 // @description    Zenith Plus: your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.
 // @include        main
-// @version        0.12.20
+// @version        0.12.21
 // ==/UserScript==
 
 // Ctrl+B opens Zenith's bookmarks instead of Firefox's sidebar (unless the
@@ -101,7 +101,7 @@ function make(tag, attrs = {}, text = "") {
 
 const PREFS = {
   look: "zenith.plus.bookmarks-look", // "" list · tiles · firefox
-  place: "zenith.plus.bookmarks-place", // "" float · right · left
+  place: "zenith.plus.bookmarks-place", // "" float · far · near (across from or beside the sidebar)
   spaceFirst: "zenith.plus.bookmarks-space-first",
   library: "zenith.plus.bookmarks-library",
   width: "zenith.internal.bookmarks.width",
@@ -113,7 +113,15 @@ const OURS = "application/x-zenith-bookmark";
 const SPACES_FOLDER = "Spaces";
 
 const look = () => Services.prefs.getStringPref(PREFS.look, "") || "list";
-const place = () => Services.prefs.getStringPref(PREFS.place, "") || "float";
+const place = () => {
+  const v = Services.prefs.getStringPref(PREFS.place, "");
+  return { right: "far", left: "near" }[v] ?? (v || "float"); // (before 0.12.18)
+};
+// The page's side beside the sidebar (Zenith Plus's Dock; Zen's own mark
+// until Plus has started), and the side the panel goes: floating and "far"
+// across from the sidebar, "near" beside it.
+const near = () => window.ZenithDock?.near ?? (document.documentElement.getAttribute("zen-right-side") === "true" ? "right" : "left");
+const side = () => (place() === "near") === (near() === "left") ? "left" : "right";
 const spaceFirst = () => Services.prefs.getBoolPref(PREFS.spaceFirst, true);
 
 function readJSON(pref, fallback) {
@@ -799,9 +807,10 @@ const Panel = {
   placeIt() {
     const wrapper = document.getElementById("zen-tabbox-wrapper");
     if (!wrapper || !this.node) return;
-    const where = place();
-    this.node.setAttribute("place", where);
-    if (where === "left") wrapper.prepend(this.node);
+    const where = place(), at = side();
+    this.node.setAttribute("place", where === "float" ? "float" : at);
+    this.node.setAttribute("side", at);
+    if (where !== "float" && at === "left") wrapper.prepend(this.node);
     else wrapper.append(this.node);
   },
 
@@ -812,7 +821,7 @@ const Panel = {
 
   resize(e) {
     e.preventDefault();
-    const start = e.clientX, from = this.node.getBoundingClientRect().width, left = place() === "left";
+    const start = e.clientX, from = this.node.getBoundingClientRect().width, left = side() === "left";
     const move = ev => {
       const w = Math.round(Math.min(560, Math.max(220, from + (left ? ev.clientX - start : start - ev.clientX))));
       this.node.style.setProperty("--zth-bm-width", `${w}px`);
@@ -1016,11 +1025,18 @@ function init() {
     if (name === PREFS.place && Panel.node) Panel.placeIt();
     if (name === PREFS.look) swapLook();
     document.documentElement.setAttribute("zenith-bm-place", place());
+    document.documentElement.setAttribute("zenith-bm-side", side());
     document.documentElement.setAttribute("zenith-bm-look", look());
     refreshAll();
   };
   for (const p of [PREFS.look, PREFS.place, PREFS.spaceFirst]) Services.prefs.addObserver(p, onPref);
   onPref(null, null, "");
+  // The sidebar moved sides: so does the panel.
+  const onDock = () => {
+    if (Panel.node) Panel.placeIt();
+    document.documentElement.setAttribute("zenith-bm-side", side());
+  };
+  window.addEventListener("ZenithDock", onDock);
   const onSpace = () => refreshAll();
   window.addEventListener("ZenWorkspacesUIUpdate", onSpace);
   window.gZenWorkspaces?.addChangeListeners?.(onSpace);
@@ -1030,6 +1046,7 @@ function init() {
   window.addEventListener("unload", () => {
     window.PlacesUtils.observers.removeListener(places, onPlaces);
     for (const p of [PREFS.look, PREFS.place, PREFS.spaceFirst]) Services.prefs.removeObserver(p, onPref);
+    window.removeEventListener("ZenithDock", onDock);
     window.removeEventListener("ZenWorkspacesUIUpdate", onSpace);
     window.gZenWorkspaces?.removeChangeListeners?.(onSpace);
     Services.obs.removeObserver(zenObs, "workspace-bookmarks-updated");

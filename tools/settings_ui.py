@@ -134,7 +134,7 @@ SECTIONS = [
             ("Glass", ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
                        "zenith.core.floating-sidebar", "zenith.plus.material-windows", "zenith.plus.material-macos",
                        "zenith.plus.material-linux", "zenith.plus.see-through-pages", "zenith.plus.blend"]),
-            ("Window", ["zenith.core.page", "zen.view.hide-window-controls"]),
+            ("Window", ["zenith.core.page", "zen.tabs.vertical.right-side", "zen.view.hide-window-controls"]),
         ],
     },
     {
@@ -285,6 +285,7 @@ DESCRIPTIONS = {
     "zenith.plus.see-through-pages": "Zen's own pages (Settings, Add-ons, about:config, Downloads) show the window's "
                                      "glass behind them, like the docked sidebar. Web pages stay as they are.",
     "zenith.core.page": "The page flush against the window, rounded with a small gap, or Zen's own frame.",
+    "zen.tabs.vertical.right-side": "The sidebar sits on the right edge; the window buttons stay top right, at the top of the sidebar. Zenith's pieces that sit beside or across from the sidebar follow it.",
     "zen.view.hide-window-controls": "Minimise, maximise and close appear only when you hover the top edge.",
     # Edges
     "zenith.edges.load": "A line across the top grows as the page loads.",
@@ -335,8 +336,9 @@ DESCRIPTIONS = {
     "zenith.plus.bookmarks-look": "Ctrl+B opens your bookmarks in Zenith's look: rows like the tab list, with folders that "
                                   "open in place, or a grid of tiles. Drop a tab on it to bookmark it. \"Firefox's tree\" "
                                   "keeps Firefox's own sidebar, in Zenith's colours.",
-    "zenith.plus.bookmarks-place": "Floating over the right of the page, docked on the right (the page gets narrower), "
-                                   "or on the left beside the tabs. Drag its inner edge to make it wider.",
+    "zenith.plus.bookmarks-place": "Floating over the page on the side across from the sidebar, docked there (the page "
+                                   "gets narrower), or docked beside the sidebar. It follows the sidebar when that changes "
+                                   "sides. Drag its inner edge to make it wider.",
     "zenith.plus.bookmarks-space-first": "A section for the space you're in: its own folder (made when you first drop "
                                          "something there) and the bookmarks Zen's edit dialog gives to this space. "
                                          "Bookmarks given only to other spaces are left out, as in Zen's menus.",
@@ -579,6 +581,7 @@ LABELS = {
     "zenith.plus.material-windows": "Window material",
     "zenith.plus.material-macos": "Window material",
     "zenith.plus.material-linux": "See-through window",
+    "zen.tabs.vertical.right-side": "Sidebar on the right",
     "zen.view.hide-window-controls": "Window buttons on hover",
     "zenith.plus.see-through-pages": "See-through Zen pages",
     "zenith.edges.load": "Load line",

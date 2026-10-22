@@ -240,6 +240,11 @@
     ]
   },
   {
+    "property": "zen.tabs.vertical.right-side",
+    "label": "Sidebar on the right (Zen setting)",
+    "type": "checkbox"
+  },
+  {
     "property": "zen.view.hide-window-controls",
     "label": "Window buttons only when hovering the top edge (Zen setting)",
     "type": "checkbox"

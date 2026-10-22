@@ -1268,6 +1268,12 @@ menuseparator[zenith-collapse] {
     bottom: var(--zen-element-separation, 8px);
     right: var(--zen-element-separation, 8px);
     box-shadow: var(--zth-shadow);
+
+    &[side="left"] {
+      right: auto;
+      left: var(--zen-element-separation, 8px);
+      --zth-bm-from: -12px;
+    }
   }
 
   &[place="right"] {
@@ -1296,7 +1302,7 @@ menuseparator[zenith-collapse] {
   width: 6px;
   cursor: ew-resize;
 
-  [place="left"] > & {
+  [side="left"] > & {
     inset-inline: auto 0;
   }
 }
@@ -1355,7 +1361,7 @@ zenith-bookmarks-host.zen-library-section {
 
 /* (!important: Zen orders these itself, and Zenith's sheet is a user sheet,
    which loses to Zen's otherwise.) */
-:root[zenith-bm-look="firefox"]:is([zenith-bm-place="float"], [zenith-bm-place="right"]) {
+:root[zenith-bm-look="firefox"][zenith-bm-side="right"] {
   & #tabbrowser-tabpanels {
     order: 1 !important;
   }
@@ -1376,6 +1382,11 @@ zenith-bookmarks-host.zen-library-section {
   right: 0;
   z-index: 6;
   box-shadow: var(--zth-shadow);
+
+  :root[zenith-bm-side="left"] & {
+    right: auto;
+    left: 0;
+  }
 }
 
 /* === Extension buttons per space =================================================== */

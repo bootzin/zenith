@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.20
+// @version        0.12.21
 // ==/UserScript==
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
@@ -616,6 +616,15 @@ const SCHEMA = [
       ],
       "default": "flush",
       "picture": true
+     },
+     {
+      "property": "zen.tabs.vertical.right-side",
+      "label": "Sidebar on the right",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The sidebar sits on the right edge; the window buttons stay top right, at the top of the sidebar. Zenith's pieces that sit beside or across from the sidebar follow it.",
+      "host": "Zenith Core",
+      "default": null
      },
      {
       "property": "zen.view.hide-window-controls",
@@ -2274,20 +2283,20 @@ const SCHEMA = [
       "label": "Where they open",
       "type": "dropdown",
       "extra": false,
-      "desc": "Floating over the right of the page, docked on the right (the page gets narrower), or on the left beside the tabs. Drag its inner edge to make it wider.",
+      "desc": "Floating over the page on the side across from the sidebar, docked there (the page gets narrower), or docked beside the sidebar. It follows the sidebar when that changes sides. Drag its inner edge to make it wider.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Right, over the page",
+        "label": "Over the page, across from the sidebar",
         "value": "float"
        },
        {
-        "label": "Right, the page makes room",
-        "value": "right"
+        "label": "Across from the sidebar, the page makes room",
+        "value": "far"
        },
        {
-        "label": "Left, beside the tabs",
-        "value": "left"
+        "label": "Beside the sidebar",
+        "value": "near"
        }
       ],
       "default": "float"
@@ -3996,7 +4005,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.20";
+const SCHEMA_VERSION = "0.12.21";
 
 class SettingsView {
   constructor(kind) {

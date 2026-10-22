@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.12.20
+// @version        0.12.21
 // ==/UserScript==
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
@@ -586,6 +586,14 @@ async function watchPeekLinks() {
         if (d && /Back/.test(command)) return void (d.canGoBack && d.goBack());
         if (d && /Forward/.test(command)) return void (d.canGoForward && d.goForward());
         return doCommand.call(this, event, command);
+      };
+      // Firefox draws the swipe's arrow on the tab behind (and Motion moves
+      // the page the arrow is on): on the Peek instead.
+      const addBoxes = H._addBoxes;
+      H._addBoxes = function () {
+        addBoxes.call(this);
+        const stack = gZenGlanceManager?.detachedBrowser?.closest(".browserStack");
+        if (stack && this._container) stack.append(this._container);
       };
       // Firefox listens for swipes only in the tab area, and Zen puts the
       // Peek outside it: a swipe over the Peek is handed to Firefox here.

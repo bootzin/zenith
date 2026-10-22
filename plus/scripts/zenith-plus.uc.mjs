@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.20
+// @version        0.12.21
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -3689,6 +3689,45 @@ const WindowState = {
   },
 };
 
+/* --- Dock: the edge the sidebar sits on ----------------------------------------
+   One answer, for every script, to "which edge is the bar on" (left, right;
+   top when Zen's tabs aren't vertical), and one way to move it: Zen's own
+   setting, so Zen lays out the window around it (window buttons included).
+   Scripts ask ZenithDock.edge, .near (the page's side beside the bar) and
+   .far, and hear "ZenithDock" on the window when it moves. Zenith's CSS
+   reads Zen's [zen-right-side] itself (nothing to wait for at start).
+   Groundwork for a tiling layout, where the bar can sit on any edge. */
+const Dock = {
+  init() {
+    this.last = this.edge;
+    const moved = new MutationObserver(() => {
+      if (this.edge === this.last) return;
+      this.last = this.edge;
+      window.dispatchEvent(new CustomEvent("ZenithDock", { detail: { edge: this.last } }));
+    });
+    moved.observe(root, { attributeFilter: ["zen-right-side"] });
+    onUnload(() => moved.disconnect());
+    window.ZenithDock = this;
+  },
+
+  get edge() {
+    if (!Services.prefs.getBoolPref("zen.tabs.vertical", true)) return "top";
+    return root.getAttribute("zen-right-side") === "true" ? "right" : "left";
+  },
+
+  get near() {
+    return this.edge === "right" ? "right" : "left";
+  },
+
+  get far() {
+    return this.near === "left" ? "right" : "left";
+  },
+
+  set(edge) {
+    Services.prefs.setBoolPref("zen.tabs.vertical.right-side", edge === "right");
+  },
+};
+
 const SidebarWidth = {
   init() {
     const tb = gNavToolbox;
@@ -3699,8 +3738,7 @@ const SidebarWidth = {
     // for sizes straight away would make the window lay itself out early,
     // before its first picture.
     const measure = () => {
-      const right = root.getAttribute("zen-right-side") === "true";
-      const push = right ? window.innerWidth - tb.offsetLeft : tb.offsetLeft + tb.offsetWidth;
+      const push = Dock.edge === "right" ? window.innerWidth - tb.offsetLeft : tb.offsetLeft + tb.offsetWidth;
       root.style.setProperty("--zth-sidebar-push", `${Math.max(0, Math.round(push))}px`);
     };
     let frame = 0;
@@ -6851,6 +6889,13 @@ function migrateGlassEdge() {
   Services.prefs.clearUserPref(OLD);
 }
 
+// 0.12.18: the bookmarks panel's place is beside or across from the
+// sidebar (which can sit on either side), no longer left or right.
+function migrateBookmarksPlace() {
+  const PREF = "zenith.plus.bookmarks-place", was = Services.prefs.getStringPref(PREF, "");
+  if (was === "right" || was === "left") Services.prefs.setStringPref(PREF, was === "right" ? "far" : "near");
+}
+
 // 0.6.3: "Numbered tabs only while holding Ctrl" moved into Zenith Tabs'
 // Numbered tabs setting.
 function migrateCtrlNumbers() {
@@ -6865,8 +6910,10 @@ start("settings", () => {
   migrateSettings();
   migrateCtrlNumbers();
   migrateGlassEdge();
+  migrateBookmarksPlace();
   watchRealProgress();
 }, true);
+start("dock", () => Dock.init(), true);
 start("motion bridge", () => MotionBridge.init(), true);
 start("window state", () => WindowState.init(), true);
 start("sidebar hover", () => SidebarHover.init());

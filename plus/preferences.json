@@ -776,19 +776,19 @@
     "property": "zenith.plus.bookmarks-place",
     "label": "Where Ctrl+B opens them",
     "type": "dropdown",
-    "placeholder": "Default (Right, over the page)",
+    "placeholder": "Default (Over the page, across from the sidebar)",
     "options": [
       {
-        "label": "Right, over the page",
+        "label": "Over the page, across from the sidebar",
         "value": "float"
       },
       {
-        "label": "Right, the page makes room",
-        "value": "right"
+        "label": "Across from the sidebar, the page makes room",
+        "value": "far"
       },
       {
-        "label": "Left, beside the tabs",
-        "value": "left"
+        "label": "Beside the sidebar",
+        "value": "near"
       }
     ],
     "usedBy": "zenith-plus"
