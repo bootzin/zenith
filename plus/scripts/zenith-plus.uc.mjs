@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.18
+// @version        0.12.19
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
