@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.19
+// @version        0.12.20
 // ==/UserScript==
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
@@ -6033,6 +6033,19 @@ const ExternalLinks = {
 
   leftBehind(owner, tab) {
     if (!owner.isConnected || owner.closing || owner.pinned || owner.hasAttribute("zen-essential") || !tab.isConnected) return;
+    // Zen can leave the source tab at about:blank after routing within the
+    // current workspace. Its label still names the source URL, and the new
+    // tab's first history entry identifies that same URL. Check this before
+    // the same-workspace fast path and before treating a never-ending load as
+    // proof that the tab is alive.
+    const from = this.startedAt(tab);
+    const ownerURL = owner.linkedBrowser?.currentURI?.spec ?? "";
+    const blank = u => !u || /^about:(blank|newtab|home)$/.test(u);
+    const key = u => (u || "").replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
+    if (from && blank(ownerURL) && key(owner.label) === key(from)) {
+      this.close(owner);
+      return;
+    }
     // A routed tab can prove that its still-loading owner is only the copy
     // left at the link, even when Zen kept both tabs in the same workspace.
     if (this.strays(Date.now() - 60000).includes(owner)) {
@@ -6040,7 +6053,6 @@ const ExternalLinks = {
       return;
     }
     if (owner.getAttribute("zen-workspace-id") === tab.getAttribute("zen-workspace-id")) return; // (not moved: not routing)
-    const blank = u => !u || /^about:(blank|newtab|home)$/.test(u);
     const b = owner.linkedBrowser;
     if (b?.webProgress?.isLoadingDocument || !blank(b?.currentURI?.spec)) return;
     try {
@@ -6084,46 +6096,58 @@ const ExternalLinks = {
       } catch {}
       return out;
     };
-    // Session restore keeps the address a tab started from even when the
-    // live session-history entry doesn't expose it as originalURI.
-    const startedAt = t => {
-      const b = t.linkedBrowser, current = bare(b?.currentURI?.spec);
-      const entries = history(t), first = entries[0];
-      const original = first?.originalURI?.spec;
-      if (original && bare(original) !== bare(first.URI?.spec)) return original;
-      // A redirect or replace navigation can leave one live history entry
-      // whose URI is still the starting address while currentURI has moved on.
-      if (entries.length === 1 && first?.URI?.spec && bare(first.URI.spec) !== current) return first.URI.spec;
-      try {
-        const state = JSON.parse(SessionStore.getTabState(t));
-        const saved = state.entries ?? [], savedFirst = saved[0];
-        const savedOriginal = savedFirst?.originalURI;
-        if (savedOriginal && bare(savedOriginal) !== bare(savedFirst?.url)) return savedOriginal;
-        const savedStart = savedFirst?.url;
-        if (saved.length === 1 && savedStart && bare(savedStart) !== current) return savedStart;
-      } catch {}
-      return null;
-    };
     const wentOn = new Map();
     for (const t of tabs) {
-      if (t.lastAccessed > 0 && t.lastAccessed < since) continue;
-      const from = startedAt(t);
-      if (from) wentOn.set(bare(from), t);
+      const from = this.startedAt(t);
+      if (from) {
+        const key = bare(from), copies = wentOn.get(key) ?? [];
+        copies.push(t);
+        wentOn.set(key, copies);
+      }
     }
     if (!wentOn.size) return [];
     return tabs.filter(t => {
       if (t.pinned || t.closing || t.hasAttribute("zen-essential") || t.hasAttribute("zen-empty-tab") || !t.linkedBrowser) return false;
-      if (t.lastAccessed > 0 && t.lastAccessed < since) return false;
-      // (Still "loading" doesn't count: a page that hands its link on to an
-      // app can stay that way.)
       if (history(t).length > 1) return false;
-      const other = wentOn.get(bare(t.linkedBrowser.currentURI?.spec));
-      return !!other && other !== t;
+      const current = t.linkedBrowser.currentURI?.spec ?? "";
+      const blank = !current || /^about:(blank|newtab|home)$/.test(current);
+      const label = blank ? bare(t.label) : "";
+      const source = label && wentOn.has(label) ? label : bare(current);
+      const namedDangling = blank && source === label && !!label;
+      if (!namedDangling && t.lastAccessed > 0 && t.lastAccessed < since) return false;
+      // The app handoff can leave a blank, still-loading tab whose label is
+      // the source URL. Session restore may make that tab old by lastAccessed,
+      // so an exact label match to another tab's starting URL is sufficient.
+      return (wentOn.get(source) ?? []).some(other => other !== t);
     });
   },
 
   closeStrays(since) {
     for (const t of this.strays(since)) this.close(t);
+  },
+
+  // The URL this tab was opened from, including redirects that leave only
+  // one live history entry and the copy retained in session restore data.
+  startedAt(t) {
+    const bare = u => (u || "").replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
+    const b = t.linkedBrowser, current = bare(b?.currentURI?.spec);
+    const entries = [];
+    try {
+      const h = b?.browsingContext?.sessionHistory;
+      for (let i = 0; i < (h?.count ?? 0); i++) entries.push(h.getEntryAtIndex(i));
+    } catch {}
+    const first = entries[0], original = first?.originalURI?.spec;
+    if (original && bare(original) !== bare(first.URI?.spec)) return original;
+    if (entries.length === 1 && first?.URI?.spec && bare(first.URI.spec) !== current) return first.URI.spec;
+    try {
+      const state = JSON.parse(SessionStore.getTabState(t));
+      const saved = state.entries ?? [], savedFirst = saved[0];
+      const savedOriginal = savedFirst?.originalURI;
+      if (savedOriginal && bare(savedOriginal) !== bare(savedFirst?.url)) return savedOriginal;
+      const savedStart = savedFirst?.url;
+      if (saved.length === 1 && savedStart && bare(savedStart) !== current) return savedStart;
+    } catch {}
+    return null;
   },
 
   // No page in it: no browser, or a blank one that's done loading.
