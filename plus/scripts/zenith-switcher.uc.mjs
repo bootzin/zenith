@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.14.0
+// @version        0.15.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -239,6 +239,11 @@ const Items = {
 const peek = () => window.ZenithPeek ?? null;
 
 const COMMANDS = [
+  { name: "help", arg: "", text: "What Zenith can do, and how (for a start)", ok: () => true },
+  { name: "appearance", arg: "dark, light or auto", text: "How pages look: dark, light or automatic", ok: () => !!window.ZenithAppearance,
+    run: a => (/^d/i.test(a) ? window.ZenithAppearance.set("dark") : /^l/i.test(a) ? window.ZenithAppearance.set("light")
+             : /^a/i.test(a) ? window.ZenithAppearance.set("auto") : window.ZenithAppearance.toggle()) },
+  { name: "dash", text: "The Dash: calendar, weather, media, timers, toggles (Alt+N)", ok: () => !!window.ZenithDash, run: () => window.ZenithDash.toggle() },
   { name: "focus", text: "Focus mode on or off (Alt+Z)", ok: () => !!window.ZenithFocus, run: () => window.ZenithFocus.toggle() },
   { name: "compact", text: "Compact mode on or off", ok: () => !!window.gZenCompactModeManager,
     run: () => (gZenCompactModeManager.preference = !gZenCompactModeManager.preference) },
@@ -268,6 +273,7 @@ const Commands = {
     const name = m[1].toLowerCase(), arg = m[2].trim();
     const usable = COMMANDS.filter(c => c.ok());
     const exact = usable.find(c => c.name === name);
+    if (exact?.name === "help" && (arg || text.endsWith(" ") || name === "help")) return Help.find(arg);
     if (exact && (arg || text.endsWith(" "))) return [this.item(exact, arg, true)];
     return usable.map(c => [name ? score(name, c.name) : 1, c]).filter(([s]) => s >= 0)
       .sort((a, b) => b[0] - a[0]).map(([, c]) => this.item(c, "", false));
@@ -285,6 +291,129 @@ const Commands = {
   },
 };
 
+/* --- The launcher's other modes (Alt+D opens "open"; Ctrl+Tab steps) ----------------
+   As rofi's: tabs (the switcher as it was), open (a site, a search with your
+   engine, your bookmarks, a tab you have open), spaces, commands (":"), calc
+   ("=", Firefox's own calculator and converters, through Peek) and emoji
+   (Zen's own list; Enter copies one). */
+const MODES = [
+  ["tabs", "Tabs", "Go to a tab, folder or space · : for commands · :help"],
+  ["open", "Open", "A site, a search or a bookmark (Enter: a new tab · Shift+Enter: this one)"],
+  ["spaces", "Spaces", "Go to a space"],
+  ["commands", "Commands", "Run a command (help shows what Zenith can do)"],
+  ["calc", "Calc", "2+2*3 · 10 km to mi · 30 usd to eur (Enter copies)"],
+  ["emoji", "Emoji", "Find an emoji by name (Enter copies it)"],
+];
+
+function copy(text) {
+  try {
+    Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(text);
+    window.ZenithHint?.(`Copied ${text}`);
+  } catch {}
+}
+
+function searchService() {
+  if (Services.search) return Services.search;
+  try {
+    return ChromeUtils.importESModule("moz-src:///toolkit/components/search/SearchService.sys.mjs").SearchService;
+  } catch {
+    return null;
+  }
+}
+
+const Open = {
+  url(text) {
+    const t = text.trim();
+    if (!t || /\s/.test(t)) return null;
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(t) && !/^(localhost|[\w-]+(\.[\w-]+)+)(:\d+)?([/?#]\S*)?$/i.test(t)) return null;
+    try {
+      return Services.uriFixup.getFixupURIInfo(t, Ci.nsIURIFixup.FIXUP_FLAG_FIX_SCHEME_TYPOS).preferredURI?.spec ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  // What it can say at once: the address, a search, open tabs.
+  find(text) {
+    const q = text.trim(), out = [];
+    if (!q) return Items.find("").slice(0, 6);
+    const url = this.url(q);
+    if (url) out.push({ kind: "open", title: url, sub: "Open this site", url, icon: `page-icon:${url}` });
+    out.push({ kind: "search", title: q, sub: `Search with ${searchService()?.defaultEngine?.name ?? "your search engine"}`, text: q });
+    out.push(...Items.find(q).filter(i => i.kind === "tab").slice(0, 3).map(i => ({ ...i, sub: `${i.sub ? `${i.sub} · ` : ""}an open tab` })));
+    return out;
+  },
+
+  // Bookmarks, which take a moment (Firefox's own search of them).
+  async bookmarks(text) {
+    try {
+      const found = await PlacesUtils.bookmarks.search({ query: text.trim() });
+      return found.filter(b => b.url).slice(0, 6).map(b => ({ kind: "open", title: b.title || b.url.href, sub: `Bookmark · ${b.url.host || b.url.href}`,
+                                                             url: b.url.href, icon: `page-icon:${b.url.href}` }));
+    } catch {
+      return [];
+    }
+  },
+
+  async go(item, here) {
+    let url = item.url;
+    if (item.kind === "search") {
+      const S = searchService(), engine = S?.getDefault ? await S.getDefault() : S?.defaultEngine;
+      if (!engine) return;
+      url = engine.getSubmission(item.text).uri.spec;
+    }
+    if (url) openTrustedLinkIn(url, here ? "current" : "tab");
+  },
+};
+
+const Emoji = {
+  list() {
+    if (this.data) return this.data;
+    let data = window.ZenEmojisData;
+    if (!data) {
+      try {
+        const scope = {};
+        Services.scriptloader.loadSubScript("chrome://browser/content/zen-components/ZenEmojisData.min.mjs", scope);
+        data = scope.ZenEmojisData;
+      } catch {}
+    }
+    return (this.data = Array.isArray(data) ? data : []);
+  },
+
+  find(text) {
+    const words = text.toLowerCase().split(/\s+/).filter(Boolean), all = this.list();
+    // (A word that's one of few tags counts more: 🎉 before a face that's also "party".)
+    const pick = words.length ? all.map(e => [words.every(w => e.tags.some(t => t.startsWith(w))) ? words.reduce((a, w) => a + (e.tags.includes(w) ? 2 : 1), 0) - e.tags.length * 0.05 : -1, e])
+      .filter(([s]) => s > 0).sort((a, b) => b[0] - a[0] || a[1].order - b[1].order).map(([, e]) => e) : all.slice(0, 40);
+    return pick.slice(0, MAX).map(e => ({ kind: "emoji", title: `${e.emoji}  ${e.tags.slice(0, 4).join(", ")}`, sub: "", text: e.emoji }));
+  },
+};
+
+/* :help: what Zenith can do, for someone new, each a thing to try (Enter
+   does it). ":help tiles" narrows it. */
+const HELP = [
+  ["Jump to any tab", "Alt+W, then a few letters of its title or site", () => Switcher.show("", "tabs")],
+  ["Open a site or search", "Alt+D: an address, a search, a bookmark", () => Switcher.show("", "open")],
+  ["Look something up and stay", "Alt+Q: Peek. Or Ctrl+Alt+click a link", () => window.ZenithPeek?.prompt("")],
+  ["Follow links by keyboard", "Alt+; puts letters on every link: type them", () => document.getElementById("zenith-hints-command")?.doCommand()],
+  ["Two pages side by side", "Alt+Shift+click a link, or Alt+Shift+Enter: a tile. Alt+H/J/K/L move between tiles", () => window.ZenithShell?.sheet.toggle()],
+  ["Every key on one sheet", "Alt+Shift+/", () => window.ZenithShell?.sheet.toggle()],
+  ["Spaces", "Alt+1…0 goes to one, Alt+Shift+1…0 sends the tab there", () => Switcher.show("", "spaces")],
+  ["Read without distractions", "Alt+Z: focus mode, Alt+Z again to leave", () => window.ZenithFocus?.toggle()],
+  ["A timer", ":timer 10m tea, or :pomo", () => Switcher.show(":timer ")],
+  ["Calendar, weather, toggles", "Alt+N: the Dash. Settings › Bar adds a bar like waybar", () => window.ZenithDash?.toggle()],
+  ["Tidy up your tabs", "Alt+Shift+T: the tab manager", () => window.ZenithTabs?.show()],
+  ["Change anything", "Alt+Shift+Z: Zenith's settings over the page", () => window.ZenithLive?.toggle()],
+];
+
+const Help = {
+  find(arg) {
+    const words = arg.toLowerCase().split(/\s+/).filter(Boolean);
+    return HELP.filter(([t, s]) => words.every(w => `${t} ${s}`.toLowerCase().includes(w)))
+      .map(([title, sub, run]) => ({ kind: "help", title, sub, run }));
+  },
+};
+
 /* --- The list ------------------------------------------------------------------ */
 
 const Switcher = {
@@ -294,11 +423,21 @@ const Switcher = {
     const box = make("div", { id: "zenith-switcher-box" });
     this.input = make("input", {
       id: "zenith-switcher-input", spellcheck: "false",
-      placeholder: "Go to a tab, folder or space · : for commands",
+      placeholder: "Go to a tab, folder or space · : for commands · :help",
     });
     this.list = make("div", { id: "zenith-switcher-list", role: "listbox" });
     this.foot = make("div", { id: "zenith-switcher-foot" }, "↑↓ choose · Enter goes · Esc closes");
-    box.append(this.input, this.list, this.foot);
+    // The modes, as rofi's (a click, or Ctrl+Tab and Ctrl+Shift+Tab).
+    this.modes = make("div", { id: "zenith-switcher-modes", role: "tablist" });
+    for (const [id, label] of MODES) {
+      const b = make("button", { type: "button", class: "zenith-switch-mode", "data-mode": id, role: "tab" }, label);
+      b.addEventListener("mousedown", e => {
+        e.preventDefault();
+        this.setMode(id);
+      });
+      this.modes.append(b);
+    }
+    box.append(this.modes, this.input, this.list, this.foot);
     this.host.append(box);
     (document.getElementById("zen-main-app-wrapper") ?? document.body).append(this.host);
     this.input.addEventListener("input", () => this.update());
@@ -315,14 +454,30 @@ const Switcher = {
     return !!this.host && !this.host.hidden;
   },
 
-  show(text = "") {
+  show(text = "", mode = "tabs") {
     // Fast start: whatever hasn't started yet starts now (a command may need it).
     window.zenithLater?.now();
     if (!this.host) this.build();
     this.host.hidden = false;
     this.input.value = text;
+    this.setMode(mode, false);
     this.update();
     this.input.focus();
+  },
+
+  setMode(mode, update = true) {
+    this.mode = MODES.some(m => m[0] === mode) ? mode : "tabs";
+    for (const b of this.modes.children) b.toggleAttribute("current", b.dataset.mode === this.mode);
+    this.input.placeholder = MODES.find(m => m[0] === this.mode)[2];
+    if (update) {
+      this.update();
+      this.input.focus();
+    }
+  },
+
+  stepMode(by) {
+    const i = MODES.findIndex(m => m[0] === this.mode);
+    this.setMode(MODES[(i + by + MODES.length) % MODES.length][0]);
   },
 
   hide() {
@@ -335,15 +490,43 @@ const Switcher = {
   },
 
   update() {
-    const text = this.input.value;
-    this.items = text.trimStart().startsWith(":") ? Commands.find(text.trimStart()) : Items.find(text);
+    const text = this.input.value, mode = this.mode ?? "tabs", lead = text.trimStart();
+    const asked = (this.asked = (this.asked ?? 0) + 1);
+    if (lead.startsWith(":")) this.items = Commands.find(lead);
+    else if (mode === "commands") this.items = Commands.find(`:${lead}`);
+    else if (mode === "calc" || lead.startsWith("=")) {
+      const sum = lead.replace(/^=\s*/, ""), answer = sum ? window.ZenithPeek?.answer?.(sum) : null;
+      this.items = answer ? [{ kind: "calc", title: answer, sub: `${sum} · Enter copies it`, text: answer }]
+        : [{ kind: "calc", title: sum ? "No answer yet" : "Type a sum or a conversion", sub: "2+2*3 · 10 km to mi", text: "" }];
+      this.select(0);
+      return;
+    } else if (mode === "emoji") this.items = Emoji.find(text);
+    else if (mode === "spaces") this.items = Items.find(text).filter(i => i.kind === "space");
+    else if (mode === "open") {
+      this.items = Open.find(text);
+      // (Bookmarks a moment later, if what's typed hasn't changed.)
+      if (text.trim()) {
+        Open.bookmarks(text).then(found => {
+          if (asked !== this.asked || !found.length) return;
+          const urls = new Set(this.items.map(i => i.url).filter(Boolean));
+          this.items.push(...found.filter(b => !urls.has(b.url)));
+          this.render();
+        });
+      }
+      this.select(0);
+      return;
+    } else this.items = Items.find(text);
     // Peek, last (first when nothing else matches): what you typed, looked
     // up without leaving the page (Keys › Switcher › Peek in the switcher).
     const q = text.trim();
-    if (q && !q.startsWith(":") && Services.prefs.getStringPref("zenith.plus.switcher-peek", "") !== "off" && window.ZenithPeek) {
+    if (q && !q.startsWith(":") && mode === "tabs" && Services.prefs.getStringPref("zenith.plus.switcher-peek", "") !== "off" && window.ZenithPeek) {
       this.items.push({ kind: "peek", title: `Peek: ${q}`, sub: "Look it up without leaving the page", text: q, icon: "" });
     }
-    this.selected = 0;
+    this.select(0);
+  },
+
+  select(i) {
+    this.selected = i;
     this.render();
   },
 
@@ -392,6 +575,19 @@ const Switcher = {
   async choose() {
     const item = this.items[this.selected];
     if (!item) return;
+    if (item.kind === "help") {
+      this.hide();
+      return item.run?.();
+    }
+    if (item.kind === "calc" || item.kind === "emoji") {
+      if (!item.text) return;
+      this.hide();
+      return copy(item.text);
+    }
+    if (item.kind === "open" || item.kind === "search") {
+      this.hide();
+      return Open.go(item, this.here);
+    }
     if (item.kind === "command") {
       // Picked from the list, a command that takes more (":timer 10m tea")
       // gets its name filled in first.
@@ -415,6 +611,9 @@ const Switcher = {
     if (e.key === "Escape") {
       e.preventDefault();
       this.hide();
+    } else if (e.key === "Tab" && ctrl) {
+      e.preventDefault();
+      this.stepMode(e.shiftKey ? -1 : 1);
     } else if (e.key === "ArrowDown" || (ctrl && e.key === "n") || (e.key === "Tab" && !e.shiftKey)) {
       e.preventDefault();
       this.move(1);
@@ -423,6 +622,8 @@ const Switcher = {
       this.move(-1);
     } else if (e.key === "Enter") {
       e.preventDefault();
+      // (Shift+Enter: a site or search opens in this tab.)
+      this.here = e.shiftKey;
       this.choose();
     }
   },

@@ -286,6 +286,51 @@
     "zenithWhy": "Only on Windows"
   },
   {
+    "property": "zenith.plus.wallpaper-source",
+    "label": "Windows: the wallpaper behind Zen",
+    "type": "dropdown",
+    "placeholder": "Default (Windows' own (as if see-through))",
+    "options": [
+      {
+        "label": "Windows' own (as if see-through)",
+        "value": "desktop"
+      },
+      {
+        "label": "A picture of your own",
+        "value": "own"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.material-windows",
+          "value": ""
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Only on Windows",
+    "zenithPlatform": "WINNT"
+  },
+  {
+    "property": "zenith.plus.ink",
+    "label": "Sidebar text",
+    "type": "dropdown",
+    "placeholder": "Default (Readable on what's behind it)",
+    "options": [
+      {
+        "label": "Readable on what's behind it",
+        "value": "auto"
+      },
+      {
+        "label": "As Zen decides",
+        "value": "zen"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.plus.material-macos",
     "label": "macOS: window material",
     "type": "dropdown",
@@ -1491,6 +1536,156 @@
     "zenithWhy": "The bar is off"
   },
   {
+    "property": "zenith.bar.privacy",
+    "label": "Trackers blocked on the page",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.appearance",
+    "label": "Pages dark or light (a button)",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.weather",
+    "label": "Weather (wttr.in)",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.weather-place",
+    "label": "Weather for",
+    "type": "dropdown",
+    "placeholder": "Default (Near you (by your connection))",
+    "options": [
+      {
+        "label": "Near you (by your connection)",
+        "value": "near"
+      },
+      {
+        "label": "Peek's last weather place",
+        "value": "peek"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.resources",
+    "label": "What Firefox uses (memory)",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
     "property": "zenith.bar.tab-look",
     "label": "Tabs in the bar",
     "type": "dropdown",
@@ -1539,6 +1734,13 @@
     ],
     "operator": "AND",
     "zenithWhy": "Tabs aren't in the bar"
+  },
+  {
+    "property": "zenith.dash.weather",
+    "label": "The Dash's weather (wttr.in)",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
   },
   {
     "property": "zenith.palette",

@@ -1,6 +1,6 @@
 # Zenith Plus
 
-Version 0.14.0
+Version 0.15.0
 
 The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
 
@@ -9,6 +9,16 @@ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus a
 **Clicking a link with keys** (Shell): Alt+click, Alt+Shift+click, Ctrl+Alt+click (AltGr too) and Ctrl+Shift+click each do one thing: Zen's Glance, Peek, a tile beside this one, or nothing of Zenith's (the page's and Firefox's own). As they come: Glance, a tile, Peek, nothing. Zenith answers the click before Zen or Firefox, so any combo works for any of them; Zen's own Glance key moves to ⊞ meanwhile.
 
 **The bar** (Settings › Bar; off as it comes): a status bar across the top, the bottom, or both (status at the top, tabs at the bottom), as polybar and waybar. In it: a switcher button, your spaces (numbers, names, icons, dots, kanji or roman numerals; click or scroll), the Shell's mode (resize, passthrough), the tab you're on (or this space's tabs: icons with the current one's title, icons only, icon and title, titles while they fit, or numbers; click, middle-click closes, scroll steps), what's playing (play/pause, its title goes to the tab, scroll skips), downloads, timers, extensions, the clock (a click shows the date) and, at the top, the window's buttons (drag the bar to move the window). Looks: islands, strip, minimal, powerline; 24, 30 or 36px; monospace (a Nerd Font if you have one) or your system's; Zenith's icons, Nerd Font glyphs or text. Where tabs are: the sidebar, the bar (no sidebar: compact mode with its edge hover off; Ctrl+L and Ctrl+Alt+S still bring it), or the sidebar on hover; compact mode comes back as it was. It costs nothing while off; on, one timer wakes once a minute for the clock.
+
+**The Dash** (Alt+N, or a click on the bar's clock; a middle click shows the date in place): the time and date, the weather now and for three days, a month calendar, what's playing (cover, title, controls), your timers (start one in its field), quick toggles (Do Not Disturb where the system has one, pages dark or light, mute all, sleep the rest, focus mode, compact mode, screenshot, colour picker, the palette) and what Firefox uses (memory, processor, tabs awake and asleep, trackers on this page). In the bar, timers, downloads, trackers and extensions open their own popups in place; weather (off unless you turn it on), what Firefox uses (off) and trackers (on) are modules too.
+
+**The launcher** (Alt+D opens it on open; Alt+W on tabs): modes as rofi's, shown as chips over the field, Ctrl+Tab and Ctrl+Shift+Tab to change: tabs, open (an address, a search with your engine, an open tab, a bookmark; Enter a new tab, Shift+Enter this one), spaces, commands, calc (2+2*3, 10 km to mi; Enter copies) and emoji (Enter copies). `:help` shows twelve things to try, each one doing what it says.
+
+**Pages dark or light** (after Zen-Site-Appearance-Toggle): a click on the bar's sun or moon (or the Dash, or `:appearance dark|light|auto`) makes pages the opposite of now, again automatic; a right-click gives this space its own.
+
+**Readable sidebar text** (Settings › Look › Sidebar text): Zenith looks at the sidebar as it's drawn and picks light or dark text that reads on it (Zen picks from the space's colour alone, which misses the glass and the wallpaper).
+
+**Your wallpaper** (Settings › Look › The wallpaper behind Zen, Windows): Windows' own, as if see-through, or a picture of your own (Choose a picture), covering the window.
 
 **Palette** (Settings › Bar › Palette): Catppuccin (Mocha, Macchiato, Frappé, Latte), Tokyo Night, Gruvbox (dark, light), Nord, Rosé Pine (and Dawn), Everforest, Kanagawa, Dracula. It colours the whole browser: the bar, Zenith's accent and every space (the palette's base, its accent glowing in a corner). Your own colours come back with Your own colours.
 

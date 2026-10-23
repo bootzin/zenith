@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.14.0
+// @version        0.15.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -1337,6 +1337,7 @@ if (FIRST) {
     prompt: text => Prompt.show(text),
     open: (url, origin) => Peek.show({ url }, origin),
     command: text => Commands.match(text),
+    answer: text => Instant.answer(text), // the launcher's calc mode
     lookup: text => Peek.show(Lookup.resolve(text)),
     engine: () => Lookup.engine(), // [name, url with %s], for about:zenith-start
     // The weather line ("" = near you) and your recent places, as many as

@@ -19,6 +19,9 @@ Zenith comes in two parts.
 
 - **Zenith Shell:** the browser as a tiling window manager. i3's keys with Alt (**Alt+H/J/K/L** between tiles, **Alt+Shift+Enter** a new tile, **Alt+1…0** spaces, **Alt+R** resize, **Alt+-** the scratchpad, **Alt+P** passthrough; **Alt+Shift+/** lists them all), a link click per key combo (Alt+click Zen's Glance, **Alt+Shift+click** a tile, **Ctrl+Alt+click** Peek, each changeable), **Alt+drag** to move a tile and **Alt+right-drag** to resize it, **Alt+wheel** for the next space. Keys are matched by where they are, so they're the same on any layout, and you can change each on Zenith's page.
 - **The bar:** a status bar across the top or bottom (or both), as polybar and waybar: spaces, the tab you're on or all of the space's tabs, what's playing, downloads, timers, extensions and a clock, in four looks (islands, strip, minimal, powerline). At the top it's the title bar, with the window's buttons. Tabs can stay in the sidebar, move into the bar, or the sidebar can show on hover. Off by default; nothing of it runs while it's off.
+- **The Dash** (Alt+N, or the bar's clock): the time and the weather, a calendar, what's playing, timers, quick toggles (pages dark or light, mute all, sleep the rest, focus, compact, screenshot, palette) and what Firefox uses. The bar's timers, downloads, trackers and extensions open popups in place.
+- **The launcher** (Alt+D, or Alt+W for tabs): modes as rofi's, tabs, open (a site, a search, a bookmark), spaces, commands, calc and emoji; Ctrl+Tab steps through them. `:help` shows what Zenith can do.
+- **Pages dark or light** at a click (the bar, the Dash, `:appearance`), with a default per space.
 - **Palettes:** Catppuccin, Tokyo Night, Gruvbox, Nord, Rosé Pine, Everforest, Kanagawa and Dracula colour the whole browser: the bar, the accent and every space. Your own colours come back when you pick none.
 - **Peek:** quick lookups in a floating page that leaves nothing behind, with Alt+Q and instant answers.
 - **Live edges:** real load and download progress.
@@ -105,6 +108,10 @@ Specific things it changes:
 - Zenith's keys are added once to Zen's own list of keyboard shortcuts, under Other; change or clear them there (Zen keeps your changes). 0.13.0 takes link hints out of that list (they're the Shell's keys now).
 - While Zenith answers link clicks (Shell › Clicking a link with keys), Zen's own Glance key (`zen.glance.activation-method`) is set to ⊞ (the Windows key), and given back if every combo is set to nothing.
 - The bar moves the window's own buttons into itself and back. With tabs in the bar or the sidebar on hover it turns Zen's compact mode on (and its edge hover off for tabs in the bar, `zen.view.compact.show-sidebar-and-toolbar-on-hover`), and gives both back as they were.
+- Pages dark or light writes Firefox's own Website appearance (`layout.css.prefers-color-scheme.content-override`); automatic clears it.
+- The bar's weather and the Dash's ask [wttr.in](https://wttr.in) (near you, which it works out from your connection, or Peek's last place) at most every half hour; the bar's weather is off unless you turn it on.
+- Readable sidebar text takes a small picture of the sidebar as it's drawn, in memory, to see how bright it is; nothing is kept or sent.
+- A picture of your own as the wallpaper is copied into your profile folder (`zenith-wallpaper-own`).
 - A palette changes every space's colours, as Zen's theme picker would; the colours you had are kept (`zenith.internal.palette.own-spaces`) and given back with Your own colours.
 - Zenith Shell sets Firefox's `mousewheel.with_alt.action` to 0 (nothing) while Alt+wheel switches spaces, and gives your value back when you turn that off. Its page helper (the one Peek's link clicks use) stops an Alt+press from selecting text or starting a drag in the page, and tells the browser which link you Alt+Shift+clicked; it reads nothing else. The scratchpad is a floating tab whose window is moved off the screen (or minimised) while it's put away.
 - Extensions per space › Runs in spaces turns an extension off (as Add-ons does) in the spaces you untick and on again in the others; only what Zenith turned off is turned back on. While any extension has spaces, Firefox Sync's `services.sync.addons.ignoreUserEnabledChanges` is on, so your other devices don't follow; your value comes back after. An extension starts afresh each time it comes back (a password manager asks to be unlocked).
@@ -138,6 +145,7 @@ Zenith is free software: you can share and change it under the GNU General Publi
 
 - [fx-autoconfig](https://github.com/MrOtherGuy/fx-autoconfig) by MrOtherGuy (MPL-2.0), vendored in `vendor/fx-autoconfig`.
 - [Sine](https://github.com/CosmoCreeper/Sine) (MPL-2.0), vendored in `vendor/sine` for testing.
+- [Zen-Site-Appearance-Toggle](https://github.com/ravenothere/Zen-Site-Appearance-Toggle) (MIT) by ravenothere inspired pages dark or light; no code was copied.
 - [Zia](https://github.com/z1n-k/zia) (MIT) inspired the liquid glass edge; [Natsumi](https://github.com/greeeen-dev/natsumi-browser) the window material choice, the picture-in-picture controls, the miniplayer art and the settings page; [Zen-Nebula](https://github.com/JustAdumbPrsn/Zen-Nebula) the per-platform transparency notes. No code was copied from Natsumi or Zen-Nebula.
 - Several ideas come from mods Zenith replaces: Trackpad Animation, Load Bar, Better Unloaded Tabs, Audio Indicator, Floating Status Bar, Private Mode Highlighting, Container Halo, Better Find Bar, Floating History and Vertical Split Tab Groups.
 - Made with the help of AI.

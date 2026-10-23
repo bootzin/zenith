@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.14.0
+// @version        0.15.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -312,6 +312,18 @@ const RULES = {
   "zenith.plus.material-windows": {
     "why": "Only on Windows",
     "conditions": [],
+    "platform": "WINNT"
+  },
+  "zenith.plus.wallpaper-source": {
+    "why": "Only on Windows",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.plus.material-windows",
+          "value": ""
+        }
+      }
+    ],
     "platform": "WINNT"
   },
   "zenith.plus.material-macos": {
@@ -738,6 +750,116 @@ const RULES = {
     ]
   },
   "zenith.bar.tray": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ]
+  },
+  "zenith.bar.privacy": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ]
+  },
+  "zenith.bar.appearance": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ]
+  },
+  "zenith.bar.weather": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ]
+  },
+  "zenith.bar.weather-place": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ]
+  },
+  "zenith.bar.resources": {
     "why": "The bar is off",
     "conditions": [
       {

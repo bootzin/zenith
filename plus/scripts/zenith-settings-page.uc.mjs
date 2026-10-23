@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.14.0
+// @version        0.15.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -141,6 +141,25 @@ const SCHEMA = [
        }
       ],
       "default": "workspace"
+     },
+     {
+      "property": "zenith.plus.ink",
+      "label": "Sidebar text",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen picks light or dark text from a space's colour alone, which can be wrong once Zenith's glass and the wallpaper show through (a light colour over a dark desktop). Readable: Zenith looks at the sidebar as it's drawn and picks the text that reads, for the sidebar and the bar. Only when colours, the wallpaper or the window's place change.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Readable on what's behind it",
+        "value": "auto"
+       },
+       {
+        "label": "As Zen decides",
+        "value": "zen"
+       }
+      ],
+      "default": "auto"
      },
      {
       "property": "zenith.plus.space-colour",
@@ -487,6 +506,47 @@ const SCHEMA = [
        "conditions": [],
        "platform": "WINNT"
       }
+     },
+     {
+      "property": "zenith.plus.wallpaper-source",
+      "label": "The wallpaper",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Windows' own: the desktop's wallpaper, drawn where it sits behind the window, so Zen looks see-through. A picture of your own: one you choose (Choose a picture), covering the window, for Zen only.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Windows' own (as if see-through)",
+        "value": "desktop"
+       },
+       {
+        "label": "A picture of your own",
+        "value": "own"
+       }
+      ],
+      "default": "desktop",
+      "rule": {
+       "why": "Only on Windows",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.material-windows",
+          "value": ""
+         }
+        }
+       ],
+       "platform": "WINNT"
+      }
+     },
+     {
+      "property": "zenith.action.wallpaper-pick",
+      "label": "Your picture",
+      "type": "action",
+      "extra": false,
+      "desc": "Choose a picture to be Zen's background (Wallpaper: a picture of your own). Zenith keeps a copy in your profile, so the original can move.",
+      "button": "Choose a picture",
+      "command": "zenith-wallpaper-pick-command",
+      "host": "Zen"
      },
      {
       "property": "zenith.plus.material-macos",
@@ -4016,6 +4076,172 @@ const SCHEMA = [
       }
      },
      {
+      "property": "zenith.bar.privacy",
+      "label": "Trackers",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A shield with how many trackers Firefox blocked on the page you're on (hidden when none); a click lists them.",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "not": {
+            "property": "zenith.bar.position",
+            "value": ""
+           }
+          },
+          {
+           "not": {
+            "property": "zenith.bar.position",
+            "value": "off"
+           }
+          }
+         ],
+         "operator": "AND"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.appearance",
+      "label": "Pages dark or light",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A sun or a moon: how pages look. A click makes them dark or light (the opposite of now), again goes back to automatic; a right-click sets this space's own. Firefox's Website appearance, as Zen-Site-Appearance-Toggle does.",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "not": {
+            "property": "zenith.bar.position",
+            "value": ""
+           }
+          },
+          {
+           "not": {
+            "property": "zenith.bar.position",
+            "value": "off"
+           }
+          }
+         ],
+         "operator": "AND"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.weather",
+      "label": "Weather",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The sky and the temperature from wttr.in (one request each half hour, for every window); a click opens the Dash with the next days. Off unless you turn it on: it asks the web.",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "not": {
+            "property": "zenith.bar.position",
+            "value": ""
+           }
+          },
+          {
+           "not": {
+            "property": "zenith.bar.position",
+            "value": "off"
+           }
+          }
+         ],
+         "operator": "AND"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.weather-place",
+      "label": "Weather for",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Near you: wttr.in works it out from your connection (no location asked). Or the last place you looked up with Peek's weather (wt Lisbon).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Near you (by your connection)",
+        "value": "near"
+       },
+       {
+        "label": "Peek's last weather place",
+        "value": "peek"
+       }
+      ],
+      "default": "near",
+      "parent": "zenith.bar.weather",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "not": {
+            "property": "zenith.bar.position",
+            "value": ""
+           }
+          },
+          {
+           "not": {
+            "property": "zenith.bar.position",
+            "value": "off"
+           }
+          }
+         ],
+         "operator": "AND"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.resources",
+      "label": "What Firefox uses",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "How much memory Firefox uses (all its processes), read every 30 seconds while the window is in front; a click opens the Dash.",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "not": {
+            "property": "zenith.bar.position",
+            "value": ""
+           }
+          },
+          {
+           "not": {
+            "property": "zenith.bar.position",
+            "value": "off"
+           }
+          }
+         ],
+         "operator": "AND"
+        }
+       ]
+      }
+     },
+     {
       "property": "zenith.bar.tray",
       "label": "Extensions",
       "type": "checkbox",
@@ -4045,6 +4271,20 @@ const SCHEMA = [
         }
        ]
       }
+     }
+    ]
+   },
+   {
+    "title": "The Dash",
+    "settings": [
+     {
+      "property": "zenith.dash.weather",
+      "label": "Weather in the Dash",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The Dash shows now and the next days from wttr.in (the bar's place), asked when you open it at most each half hour.",
+      "host": "Zenith Plus",
+      "default": true
      }
     ]
    },
@@ -5013,7 +5253,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.14.0";
+const SCHEMA_VERSION = "0.15.0";
 
 class SettingsView {
   constructor(kind) {
@@ -5048,12 +5288,7 @@ class SettingsView {
     for (const section of SCHEMA) root.append(this.section(section));
     this.empty = el("p", { class: "zp-empty", hidden: true }, "No setting matches.");
     root.append(this.empty);
-    // A list that's open closes when you click anywhere else.
-    root.addEventListener("mousedown", e => {
-      for (const open of root.querySelectorAll(".zp-chooser[open]")) {
-        if (!open.contains(e.target)) open.removeAttribute("open");
-      }
-    });
+    // (An open list closes by itself on a click elsewhere: it's a popover.)
     this.refresh();
     this.watch();
     this.spy();
@@ -5443,26 +5678,44 @@ class SettingsView {
 
   // A list of choices that opens in place (the same in the page and the
   // panel; the system's own list doesn't open inside the browser window).
+  // It's a popover, in the top layer: nothing it opens over can clip it (the
+  // live panel did), placed by its button, upwards when there's more room.
   chooser(s) {
     const wrap = el("div", { class: "zp-chooser" });
     const button = el("button", { class: "zp-select", type: "button", "aria-haspopup": "listbox", "aria-label": s.label });
-    const list = el("div", { class: "zp-options", role: "listbox" });
+    const list = el("div", { class: "zp-options", role: "listbox", popover: "auto" });
+    const close = () => {
+      if (list.matches(":popover-open")) list.hidePopover();
+    };
     for (const o of s.options) {
       const option = el("button", { class: "zp-option", type: "button", role: "option", "data-value": o.value }, o.label);
       option.addEventListener("click", () => {
         write(s, o.value);
-        wrap.removeAttribute("open");
+        close();
         button.focus();
       });
       list.append(option);
     }
-    button.addEventListener("click", () => wrap.toggleAttribute("open"));
-    wrap.addEventListener("keydown", e => {
-      if (e.key === "Escape" && wrap.hasAttribute("open")) {
-        e.stopPropagation();
-        wrap.removeAttribute("open");
-        button.focus();
-      }
+    const place = () => {
+      const view = button.ownerDocument.defaultView, r = button.getBoundingClientRect();
+      const room = { below: view.innerHeight - r.bottom - 8, above: r.top - 8 }, want = Math.min(260, list.scrollHeight);
+      const up = room.below < want && room.above > room.below;
+      list.style.maxHeight = `${Math.max(120, Math.min(260, up ? room.above : room.below))}px`;
+      list.style.minWidth = `${r.width}px`;
+      list.style.right = `${Math.max(8, view.innerWidth - r.right)}px`;
+      list.style.top = up ? "auto" : `${r.bottom + 4}px`;
+      list.style.bottom = up ? `${view.innerHeight - r.top + 4}px` : "auto";
+    };
+    button.addEventListener("click", () => {
+      if (list.matches(":popover-open")) return close();
+      list.showPopover();
+      place();
+      wrap.setAttribute("open", "true");
+      // (It stays where it opened: scrolling the settings closes it.)
+      button.ownerDocument.addEventListener("scroll", close, { once: true, capture: true });
+    });
+    list.addEventListener("toggle", e => {
+      if (e.newState === "closed") wrap.removeAttribute("open");
     });
     wrap.append(button, list);
     return {
@@ -5617,10 +5870,10 @@ const STYLE = `
   .zp-list-remove { appearance: none; border: none; background: none; color: inherit; opacity: 0.6; cursor: pointer;
     min-height: 0; margin: 0; padding: 1px 6px; border-radius: 999px; font-size: 0.85em; }
   .zp-list-remove:hover { opacity: 1; background: color-mix(in srgb, currentColor 12%, transparent); }
-  .zp-options { display: none; position: absolute; inset-inline-end: 0; top: calc(100% + 4px); z-index: 5; min-width: 100%;
+  .zp-options { display: none; position: fixed; inset: auto; margin: 0; z-index: 5;
     max-height: 260px; overflow: auto; padding: 4px; border-radius: 10px; border: 1px solid var(--zp-border);
-    background: var(--zp-control); box-shadow: 0 10px 30px rgb(0 0 0 / 0.35); }
-  .zp-chooser[open] .zp-options { display: block; }
+    background: var(--zp-control); color: inherit; box-shadow: 0 10px 30px rgb(0 0 0 / 0.35); }
+  .zp-options:popover-open { display: block; }
   .zp-option { appearance: none; display: block; width: 100%; text-align: start; border: none; background: none; color: inherit;
     font: inherit; margin: 0; min-height: 0; padding: 6px 10px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
   .zp-option:hover { background: color-mix(in srgb, currentColor 9%, transparent); }

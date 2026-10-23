@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.14.0
+// @version        0.15.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -898,14 +898,30 @@ const Wallpaper = {
     return PathUtils.join(PathUtils.profileDir, "zenith-wallpaper.jpg");
   },
 
+  // A picture of your own instead (Settings › Window material › Wallpaper:
+  // a picture of your own): copied into the profile, it covers the window,
+  // not the desktop's place behind it.
+  OWN: "zenith.plus.wallpaper-source", // "" Windows' wallpaper · "own"
+  get ownFile() {
+    return PathUtils.join(PathUtils.profileDir, "zenith-wallpaper-own");
+  },
+
   init() {
     if (Services.appinfo.OS !== "WINNT") return;
     const refresh = () => this.refresh();
     Services.prefs.addObserver(this.PREF, refresh);
+    Services.prefs.addObserver(this.OWN, refresh);
     window.addEventListener("focus", refresh);
     window.ZenithWallpaper = this; // for tools/checks
+    // Settings' "Choose a picture…".
+    const commandset = document.createXULElement("commandset"), command = document.createXULElement("command");
+    command.id = "zenith-wallpaper-pick-command";
+    command.addEventListener("command", () => this.pick());
+    commandset.append(command);
+    root.append(commandset);
     onUnload(() => {
       Services.prefs.removeObserver(this.PREF, refresh);
+      Services.prefs.removeObserver(this.OWN, refresh);
       window.removeEventListener("focus", refresh);
       this.off();
     });
@@ -917,7 +933,7 @@ const Wallpaper = {
   },
 
   async fromCache() {
-    if (Services.prefs.getStringPref(this.PREF, "") !== "") return false;
+    if (Services.prefs.getStringPref(this.PREF, "") !== "" || Services.prefs.getStringPref(this.OWN, "") === "own") return false;
     try {
       const cache = JSON.parse(Services.prefs.getStringPref(this.CACHE, "") || "null");
       if (!cache?.sig) return false;
@@ -1010,6 +1026,8 @@ const Wallpaper = {
 
   async refresh() {
     if (Services.prefs.getStringPref(this.PREF, "") !== "") return this.off();
+    if (Services.prefs.getStringPref(this.OWN, "") === "own" && (await IOUtils.exists(this.ownFile))) return this.showOwn();
+    if (this.ownSize) this.off(); // (back from a picture of your own)
     if (this.busy) return;
     this.busy = true;
     try {
@@ -1027,6 +1045,7 @@ const Wallpaper = {
         this.sig = sig;
         root.style.setProperty("--zth-wall", `url("${this.url}")`);
         root.setAttribute("zenith-wallpaper", "true");
+        window.dispatchEvent(new CustomEvent("ZenithWallpaperDrawn"));
       }
       this.area = src.area;
       // The window's screen: where the drawing is anchored.
@@ -1142,7 +1161,66 @@ const Wallpaper = {
     }
   },
 
+  // Your picture, covering the window (centred, cropped to fit).
+  async showOwn() {
+    try {
+      const stat = await IOUtils.stat(this.ownFile);
+      const sig = `own:${stat.lastModified}:${stat.size}`;
+      if (sig !== this.sig) {
+        const blob = new Blob([await IOUtils.read(this.ownFile)]);
+        const bitmap = await createImageBitmap(blob);
+        this.ownSize = [bitmap.width, bitmap.height];
+        bitmap.close();
+        if (this.url) URL.revokeObjectURL(this.url);
+        this.url = URL.createObjectURL(blob);
+        this.sig = sig;
+        root.style.setProperty("--zth-wall", `url("${this.url}")`);
+        root.setAttribute("zenith-wallpaper", "true");
+        window.dispatchEvent(new CustomEvent("ZenithWallpaperDrawn"));
+      }
+      this.watching(false);
+      this.cover();
+      if (!this.onResize) {
+        this.onResize = () => this.cover();
+        window.addEventListener("resize", this.onResize);
+      }
+    } catch (e) {
+      console.error("[Zenith] your wallpaper", e);
+      this.off();
+    }
+  },
+
+  cover() {
+    const [iw, ih] = this.ownSize ?? [1, 1], W = window.innerWidth, H = window.innerHeight, k = Math.max(W / iw, H / ih);
+    const w = Math.round(iw * k), h = Math.round(ih * k);
+    const at = [Math.round((W - w) / 2), Math.round((H - h) / 2), w, h];
+    this.at = at.join();
+    ["x", "y", "w", "h"].forEach((n, i) => root.style.setProperty(`--zth-wall-${n}`, `${at[i]}px`));
+  },
+
+  // Choose a picture: it's copied into the profile (the original can move).
+  async pick() {
+    const fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+    fp.init(window.browsingContext, "A picture behind Zen", Ci.nsIFilePicker.modeOpen);
+    fp.appendFilters(Ci.nsIFilePicker.filterImages);
+    const result = await new Promise(resolve => fp.open(resolve));
+    if (result !== Ci.nsIFilePicker.returnOK || !fp.file) return;
+    try {
+      await IOUtils.copy(fp.file.path, this.ownFile);
+      this.sig = null;
+      // (Window material › Wallpaper, which draws it.)
+      Services.prefs.clearUserPref(this.PREF);
+      if (Services.prefs.getStringPref(this.OWN, "") === "own") this.refresh();
+      else Services.prefs.setStringPref(this.OWN, "own");
+    } catch (e) {
+      console.error("[Zenith] your wallpaper", e);
+      hint("That picture couldn't be copied");
+    }
+  },
+
   off() {
+    if (this.onResize) window.removeEventListener("resize", this.onResize);
+    this.onResize = this.ownSize = null;
     this.watching(false);
     root.removeAttribute("zenith-wallpaper");
     for (const n of ["", "-x", "-y", "-w", "-h"]) root.style.removeProperty(`--zth-wall${n}`);
@@ -1397,6 +1475,9 @@ function noticesOnTop() {
 }
 
 /* --- A short note at the foot of the page (focus mode) -------------------- */
+
+// (Also the launcher's, for "Copied".)
+window.ZenithHint = text => hint(text);
 
 function hint(text) {
   let pill = document.getElementById("zenith-hint");
@@ -4981,6 +5062,8 @@ const ShellKeys = {
     ["last-space", "Alt+Backquote", "The space you were on before", "Spaces"],
     ["hints", "Alt+Semicolon", "Link hints", "Zenith", true],
     ["hints-tab", "Alt+Shift+Semicolon", "Link hints, in a new tab", "Zenith", true],
+    ["launcher", "Alt+KeyD", "The launcher: open a page, search, bookmarks (Ctrl+Tab: its other modes)", "Zenith"],
+    ["dash", "Alt+KeyN", "The Dash: calendar, weather, media, timers, toggles", "Zenith"],
     ["passthrough", "Alt+KeyP", "Passthrough: every key to the page, until Alt+P", "Zenith"],
     ["keys", "Alt+Shift+Slash", "These keys", "Zenith"],
     ["restart", "Alt+Shift+KeyR", "Restart Zen (your tabs come back)", "Zenith"],
@@ -5001,7 +5084,7 @@ const ShellKeys = {
       for (const p of prefs) Services.prefs.removeObserver(p, read);
       window.removeEventListener("keydown", key, true);
     });
-    window.ZenithShell = { keys: this, tiler: Tiler, spaces: ShellSpaces, scratchpad: Scratchpad, modes: ShellModes, mouse: ShellMouse, sheet: KeySheet, nag: Nagbar }; // the settings page, the page actor, tools/checks
+    window.ZenithShell = { keys: this, tiler: Tiler, spaces: ShellSpaces, scratchpad: Scratchpad, modes: ShellModes, mouse: ShellMouse, sheet: KeySheet, nag: Nagbar, tabs: ShellTabs }; // the settings page, the page actor, the Dash, tools/checks
   },
 
   read() {
@@ -5086,6 +5169,8 @@ const ShellKeys = {
       case "hints": return LinkHints.show(false).catch(e => console.error("[Zenith] link hints", e));
       case "hints-tab": return LinkHints.show(true).catch(e => console.error("[Zenith] link hints", e));
       case "keys": return KeySheet.toggle();
+      case "launcher": return window.ZenithSwitcher?.show?.("", "open");
+      case "dash": return DashLoader.toggle();
       case "restart": return Nagbar.ask("restart");
       case "quit": return Nagbar.ask("quit");
     }
@@ -5934,6 +6019,177 @@ const KeySheet = {
   },
 };
 
+/* --- Readable sidebar text: light or dark by what's really behind it ----------------
+   Zen picks light or dark text from a space's colour alone, but what the
+   sidebar shows is that colour over Zenith's glass and the wallpaper: a
+   light colour over a dark desktop came out dark on dark (and the other
+   way round). Zenith looks at the sidebar as it's drawn (a small picture of
+   a strip of it, the middle brightness, so text and the tab you're on don't
+   count) and sets its text, and the bar's, to whichever reads better. Only
+   when a space's colours, the wallpaper, the window's place on it or its
+   material change (about 5 ms each time). Settings › Look › Sidebar text:
+   "As Zen decides" hands it back. */
+const InkContrast = {
+  PREF: "zenith.plus.ink",
+
+  init() {
+    const soon = () => this.soon();
+    const mo = new MutationObserver(soon);
+    mo.observe(root, { attributes: true, attributeFilter: ["style", "zen-should-be-dark-mode", "zen-compact-mode", "zenith-wallpaper"] });
+    this.media = window.matchMedia("(prefers-color-scheme: dark)");
+    this.media.addEventListener("change", soon);
+    for (const t of ["ZenithWallpaperDrawn", "activate", "sizemodechange"]) window.addEventListener(t, soon);
+    for (const p of [this.PREF, "zenith.plus.material-windows"]) Services.prefs.addObserver(p, soon);
+    onUnload(() => {
+      mo.disconnect();
+      this.media.removeEventListener("change", soon);
+      for (const t of ["ZenithWallpaperDrawn", "activate", "sizemodechange"]) window.removeEventListener(t, soon);
+      for (const p of [this.PREF, "zenith.plus.material-windows"]) Services.prefs.removeObserver(p, soon);
+      clearTimeout(this.timer);
+    });
+    window.ZenithInk = this; // for tools/checks
+    this.soon();
+  },
+
+  soon() {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.measure(), 400);
+  },
+
+  sig() {
+    return [root.style.getPropertyValue("--zen-primary-color"), root.getAttribute("zen-should-be-dark-mode"), root.getAttribute("zen-compact-mode"),
+            Wallpaper.sig, Wallpaper.at, this.media.matches, Services.prefs.getStringPref("zenith.plus.material-windows", "")].join("|");
+  },
+
+  measure(force = false) {
+    if (Services.prefs.getStringPref(this.PREF, "") === "zen") {
+      root.removeAttribute("zenith-ink");
+      this.last = null;
+      return null;
+    }
+    if (document.hidden) return null;
+    const sig = this.sig();
+    if (sig === this.last && !force) return null;
+    // The sidebar, or (hidden away in compact mode) the bar, which sits on the same colours.
+    const side = gNavToolbox.getBoundingClientRect();
+    const box = side.width > 40 && side.right > 40 ? side : document.getElementById("zenith-bar")?.getBoundingClientRect();
+    if (!box?.width) return null;
+    this.last = sig;
+    try {
+      // A strip down its right third (the tabs' text sits to the left), a tenth the size.
+      const k = 0.1, x = box.left + box.width * 0.62, w = box.width * 0.3;
+      const c = (this.canvas ??= document.createElementNS(HTML_NS, "canvas"));
+      c.width = Math.max(1, Math.ceil(w * k));
+      c.height = Math.max(1, Math.ceil(box.height * k));
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.setTransform(k, 0, 0, k, 0, 0);
+      // (Behind a see-through window: the system's own backdrop, about.)
+      ctx.drawWindow(window, x, box.top, w, box.height, this.media.matches ? "rgb(32,32,32)" : "rgb(243,243,243)");
+      const d = ctx.getImageData(0, 0, c.width, c.height).data, L = [];
+      const lin = v => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+      for (let i = 0; i < d.length; i += 4) L.push(0.2126 * lin(d[i]) + 0.7152 * lin(d[i + 1]) + 0.0722 * lin(d[i + 2]));
+      L.sort((a, b) => a - b);
+      const mid = L[L.length >> 1];
+      // White or black text, whichever has the more contrast.
+      const ink = 1.05 / (mid + 0.05) >= (mid + 0.05) / 0.05 ? "light" : "dark";
+      root.setAttribute("zenith-ink", ink);
+      return { ink, luminance: mid };
+    } catch (e) {
+      console.error("[Zenith] sidebar text", e);
+      return null;
+    }
+  },
+};
+
+/* --- Site appearance: pages dark or light, at a click -------------------------------
+   After Zen-Site-Appearance-Toggle (MIT, by ravenothere). Pages follow
+   Firefox's own Website appearance (Settings › General), which this sets: a
+   click goes from automatic to the opposite of what pages show now, and a
+   click again back to automatic. A space can have its own (dark or light),
+   set as you go there; a space without one goes back to automatic if the
+   one you left had set it. The bar's button (right-click: this space's),
+   the Dash, and :appearance in the switcher. */
+const SiteAppearance = {
+  PREF: "layout.css.prefers-color-scheme.content-override", // 0 dark, 1 light, 2 Firefox's automatic
+  SPACES: "zenith.internal.appearance.spaces", // { space: "dark" | "light" }
+
+  forced() {
+    if (!Services.prefs.prefHasUserValue(this.PREF)) return null;
+    return { 0: "dark", 1: "light" }[Services.prefs.getIntPref(this.PREF, 2)] ?? null;
+  },
+
+  // What pages look like now.
+  isDark() {
+    const f = this.forced();
+    return f ? f === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  },
+
+  set(mode) {
+    if (mode === "dark") Services.prefs.setIntPref(this.PREF, 0);
+    else if (mode === "light") Services.prefs.setIntPref(this.PREF, 1);
+    else Services.prefs.clearUserPref(this.PREF);
+  },
+
+  toggle() {
+    this.set(this.forced() ? "auto" : this.isDark() ? "light" : "dark");
+    hint(this.forced() ? `Pages: ${this.forced()}` : "Pages: automatic");
+  },
+
+  spaces() {
+    try {
+      return JSON.parse(Services.prefs.getStringPref(this.SPACES, "") || "{}");
+    } catch {
+      return {};
+    }
+  },
+
+  // This space's own (or "auto": none).
+  space(uuid = window.gZenWorkspaces?.activeWorkspace) {
+    return this.spaces()[uuid] ?? "auto";
+  },
+
+  setSpace(mode, uuid = window.gZenWorkspaces?.activeWorkspace) {
+    if (!uuid) return;
+    const all = this.spaces();
+    if (mode === "dark" || mode === "light") all[uuid] = mode;
+    else delete all[uuid];
+    if (Object.keys(all).length) Services.prefs.setStringPref(this.SPACES, JSON.stringify(all));
+    else Services.prefs.clearUserPref(this.SPACES);
+    if (uuid === window.gZenWorkspaces?.activeWorkspace) this.set(mode);
+  },
+
+  init() {
+    const W = window.gZenWorkspaces;
+    window.ZenithAppearance = this; // the bar, the Dash, the switcher, tools/checks
+    if (!W?.addChangeListeners) return;
+    this.here = W.activeWorkspace;
+    this.onChange = () => {
+      const id = W.activeWorkspace;
+      if (!id || id === this.here) return;
+      const left = this.space(this.here), own = this.space(id);
+      this.here = id;
+      if (own !== "auto") this.set(own);
+      else if (left !== "auto") this.set("auto");
+    };
+    W.addChangeListeners(this.onChange);
+    onUnload(() => W.removeChangeListeners?.(this.onChange));
+  },
+};
+
+/* --- The Dash, on demand (plus/pages/dash.mjs) --------------------------------------
+   Alt+N, or the bar's clock: imported the first time it opens. */
+const DashLoader = {
+  async toggle(anchor = null) {
+    try {
+      this.mod ??= await import(await BarLoader.page("dash.mjs"));
+      this.mod.toggle({ anchor, Bridge });
+    } catch (e) {
+      console.error("[Zenith] Dash", e);
+    }
+  },
+};
+window.ZenithDash = DashLoader; // the bar's clock, tools/checks
+
 /* --- Zenith Shell's bar: imported only while it's on ---------------------------
    The bar (Settings › Bar) is plus/pages/bar.mjs, imported into this window
    when it's on and stopped when it's off, so with the bar off none of it
@@ -5941,7 +6197,8 @@ const KeySheet = {
    changes in place. Not in a floating tab's window. */
 const BarLoader = {
   REBUILD: ["zenith.bar.position", "zenith.bar.tabs", "zenith.bar.title", "zenith.bar.launcher", "zenith.bar.media",
-            "zenith.bar.downloads", "zenith.bar.timers", "zenith.bar.tray", "zenith.bar.icons"],
+            "zenith.bar.downloads", "zenith.bar.timers", "zenith.bar.tray", "zenith.bar.icons", "zenith.bar.weather",
+            "zenith.bar.resources", "zenith.bar.privacy", "zenith.bar.appearance"],
 
   init() {
     const apply = () => this.apply();
@@ -5955,11 +6212,16 @@ const BarLoader = {
   },
 
   async url() {
+    return this.page("bar.mjs");
+  },
+
+  // A file of plus/pages (beside the scripts, or where Sine's install has it).
+  async page(file) {
     for (const d of ["../pages/", "zenith-pages/"]) {
-      const url = new URL(`${d}bar.mjs`, import.meta.url).href;
+      const url = new URL(`${d}${file}`, import.meta.url).href;
       if (await fetch(url).then(r => r.ok, () => false)) return url;
     }
-    throw new Error("plus/pages/bar.mjs isn't there");
+    throw new Error(`plus/pages/${file} isn't there`);
   },
 
   apply() {
@@ -7743,6 +8005,7 @@ const MediaArt = {
   copies: new Map(), // art address -> Promise<{ url, tint }>
 
   init() {
+    window.ZenithMediaArt = this; // the Dash's media card: copy(src)
     const bar = document.getElementById("zen-media-controls-toolbar");
     if (!bar) return;
     const schedule = () => {
@@ -8115,6 +8378,8 @@ start("shell spaces", () => ShellSpaces.init());
 start("shell mouse", () => ShellMouse.init());
 start("link clicks", () => LinkClicks.init());
 start("palettes", () => Palettes.init(), true);
+start("site appearance", () => SiteAppearance.init(), true);
+start("sidebar text", () => InkContrast.init());
 start("bar", () => BarLoader.init(), true);
 start("groups that don't pin", () => UnpinnedGroups.init(), true);
 start("bookmarks bar", () => BookmarksBar.init(), true);

@@ -122,6 +122,7 @@ PARENTS = {
     "zenith.plus.switcher-scope": "zenith.plus.switcher",
     "zenith.shell.bindings": "zenith.shell.keys",
     "zenith.bar.tab-look": "zenith.bar.tabs",
+    "zenith.bar.weather-place": "zenith.bar.weather",
     "zenith.shell.passthrough-sites": "zenith.shell.keys",
 }
 
@@ -131,11 +132,12 @@ SECTIONS = [
         "blurb": "Size, colour, glass and the window around the page.",
         "groups": [
             ("Size", ["zenith.core.density", "zenith.core.scale"]),
-            ("Colour and shape", ["zenith.core.accent", "zenith.plus.space-colour", "zenith.plus.colour-strength",
+            ("Colour and shape", ["zenith.core.accent", "zenith.plus.ink", "zenith.plus.space-colour", "zenith.plus.colour-strength",
                                   "zenith.action.colours-image", "zenith.action.colours-wallpaper", "zenith.plus.palette-sync", "zenith.plus.palette-spaces",
                                   "zenith.action.colours-undo", "zenith.core.corners", "zenith.core.pills"]),
             ("Glass", ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
-                       "zenith.core.floating-sidebar", "zenith.plus.material-windows", "zenith.plus.material-macos",
+                       "zenith.core.floating-sidebar", "zenith.plus.material-windows", "zenith.plus.wallpaper-source",
+                       "zenith.action.wallpaper-pick", "zenith.plus.material-macos",
                        "zenith.plus.material-linux", "zenith.plus.see-through-pages", "zenith.plus.blend"]),
             ("Window", ["zenith.core.page", "zen.tabs.vertical.right-side", "zen.view.hide-window-controls"]),
         ],
@@ -240,7 +242,10 @@ SECTIONS = [
             ("Bar", ["zenith.bar.position", "zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.icons"]),
             ("Tabs", ["zenith.bar.tabs", "zenith.bar.tab-look"]),
             ("In the bar", ["zenith.bar.spaces", "zenith.bar.title", "zenith.bar.clock", "zenith.bar.launcher",
-                            "zenith.bar.media", "zenith.bar.downloads", "zenith.bar.timers", "zenith.bar.tray"]),
+                            "zenith.bar.media", "zenith.bar.downloads", "zenith.bar.timers", "zenith.bar.privacy",
+                            "zenith.bar.appearance", "zenith.bar.weather", "zenith.bar.weather-place", "zenith.bar.resources",
+                            "zenith.bar.tray"]),
+            ("The Dash", ["zenith.dash.weather"]),
             ("Palette", ["zenith.palette"]),
         ],
     },
@@ -566,6 +571,14 @@ DESCRIPTIONS = {
     "zenith.bar.timers": "The next timer or pomodoro to end (Peek: timer 10m tea), counting down.",
     "zenith.bar.tray": "Firefox's extensions panel.",
     "zenith.palette": "One palette for the whole browser: the bar, Zenith's accent and every space's colours (the accent as each space's main colour, the palette's base around it). Your spaces' own colours are kept, and come back with Your own colours. Works with the bar off too.",
+    "zenith.plus.wallpaper-source": "Windows' own: the desktop's wallpaper, drawn where it sits behind the window, so Zen looks see-through. A picture of your own: one you choose (Choose a picture), covering the window, for Zen only.",
+    "zenith.plus.ink": "Zen picks light or dark text from a space's colour alone, which can be wrong once Zenith's glass and the wallpaper show through (a light colour over a dark desktop). Readable: Zenith looks at the sidebar as it's drawn and picks the text that reads, for the sidebar and the bar. Only when colours, the wallpaper or the window's place change.",
+    "zenith.bar.privacy": "A shield with how many trackers Firefox blocked on the page you're on (hidden when none); a click lists them.",
+    "zenith.bar.appearance": "A sun or a moon: how pages look. A click makes them dark or light (the opposite of now), again goes back to automatic; a right-click sets this space's own. Firefox's Website appearance, as Zen-Site-Appearance-Toggle does.",
+    "zenith.bar.weather": "The sky and the temperature from wttr.in (one request each half hour, for every window); a click opens the Dash with the next days. Off unless you turn it on: it asks the web.",
+    "zenith.bar.weather-place": "Near you: wttr.in works it out from your connection (no location asked). Or the last place you looked up with Peek's weather (wt Lisbon).",
+    "zenith.bar.resources": "How much memory Firefox uses (all its processes), read every 30 seconds while the window is in front; a click opens the Dash.",
+    "zenith.dash.weather": "The Dash shows now and the next days from wttr.in (the bar's place), asked when you open it at most each half hour.",
     "zenith.shell.mouse": "Hold Alt and drag a tile: onto the middle of another, they swap; onto its edge, it goes "
                           "there. Hold Alt and drag with the right button: the tile's nearest edges follow. Esc puts it "
                           "back. Alt+click still opens Zen's Glance.",
@@ -609,6 +622,13 @@ WARNINGS = {
 }
 
 ACTIONS = {
+    "zenith.action.wallpaper-pick": {
+        "label": "Your picture",
+        "desc": "Choose a picture to be Zen's background (Wallpaper: a picture of your own). Zenith keeps a copy in "
+                "your profile, so the original can move.",
+        "button": "Choose a picture",
+        "command": "zenith-wallpaper-pick-command",
+    },
     "zenith.action.cookies": {
         "label": "Each site's cookies",
         "desc": "Every site with cookies: allow it, keep its cookies until you close Zen, block it, leave its banners alone, "
@@ -747,6 +767,14 @@ LABELS = {
     "zenith.bar.timers": "Timers",
     "zenith.bar.tray": "Extensions",
     "zenith.palette": "Palette",
+    "zenith.plus.wallpaper-source": "The wallpaper",
+    "zenith.plus.ink": "Sidebar text",
+    "zenith.bar.privacy": "Trackers",
+    "zenith.bar.appearance": "Pages dark or light",
+    "zenith.bar.weather": "Weather",
+    "zenith.bar.weather-place": "Weather for",
+    "zenith.bar.resources": "What Firefox uses",
+    "zenith.dash.weather": "Weather in the Dash",
     "zenith.links.alt": "Alt+click a link",
     "zenith.links.alt-shift": "Alt+Shift+click a link",
     "zenith.links.ctrl-alt": "Ctrl+Alt+click a link",

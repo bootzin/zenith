@@ -15,6 +15,8 @@
 //   - each module is boxed off (contain), so a ticking clock restyles one
 //     node, never the bar.
 
+import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard } from "./shell-ui.mjs";
+
 const P = Services.prefs;
 const HTML = "http://www.w3.org/1999/xhtml";
 
@@ -125,8 +127,11 @@ function soon(fn) {
 
 /* --- Icons: Zenith's own (drawn by CSS), Nerd Font glyphs, or text ------------ */
 const GLYPHS = {
-  nerd: { launcher: "", play: "", pause: "", download: "", done: "", timer: "", tray: "", clock: "" },
-  text: { launcher: "≡", play: "▶", pause: "⏸", download: "↓", done: "✓", timer: "⧗", tray: "+", clock: "" },
+  nerd: { launcher: "\uf00a", play: "\uf04b", pause: "\uf04c", download: "\uf019", done: "\uf00c", timer: "\uf252", tray: "\uf12e", clock: "\uf017",
+          sun: "\uf185", partly: "\uf6c4", cloud: "\uf0c2", fog: "\uf75f", rain: "\uf73d", snow: "\uf2dc", storm: "\uf0e7",
+          moon: "\uf186", shield: "\uf132", memory: "\uf2db" },
+  text: { launcher: "≡", play: "▶", pause: "⏸", download: "↓", done: "✓", timer: "⧗", tray: "+", clock: "",
+          sun: "☀", partly: "⛅", cloud: "☁", fog: "≋", rain: "☂", snow: "❄", storm: "ϟ", moon: "☾", shield: "⛨", memory: "▦" },
 };
 
 function icon(name) {
@@ -391,7 +396,8 @@ function media(box) {
   Undo.add(() => watch(null));
   btn.addEventListener("click", () => {
     if (!ctrl) return;
-    if (ctrl.isPlaying) ctrl.pause();
+    // (pause() needs who asked; Zen's own media controls say "user".)
+    if (ctrl.isPlaying) ctrl.pause("user");
     else ctrl.play();
   });
   text.addEventListener("click", () => tab?.isConnected && (gBrowser.selectedTab = tab));
@@ -413,7 +419,7 @@ function downloads(box) {
   m.hidden = true;
   m.title = "Downloads";
   box.append(m);
-  m.addEventListener("click", () => (window.DownloadsPanel?.showPanel ? DownloadsPanel.showPanel() : BrowserCommands.downloadsUI?.()));
+  m.addEventListener("click", () => Popup.open(m, downloadsCard, { kind: "downloads" }));
   const all = new Set();
   let doneTimer = null;
   const draw = soon(() => {
@@ -467,7 +473,7 @@ function timers(box) {
   m.append(ic, text);
   m.hidden = true;
   box.append(m);
-  m.addEventListener("click", () => window.ZenithSwitcher?.toggle?.());
+  m.addEventListener("click", () => Popup.open(m, timersCard, { kind: "timers" }));
   let stopTick = null;
   const read = () => {
     try {
@@ -492,7 +498,7 @@ function timers(box) {
     put(text, `${next.label ? `${next.label} ` : ""}${h ? `${h}:${`${mm}`.padStart(2, "0")}` : mm}:${ss}${list.length > 1 ? ` +${list.length - 1}` : ""}`);
     // (Measured once it's in the window, and again as its length changes.)
     if (text.zbText.length !== was || !m.style.width) requestAnimationFrame(() => fixWidth(m));
-    m.title = "Timers (Alt+W, then :timer)";
+    m.title = "Timers (a click lists them)";
     stopTick ??= Tick.add(1, draw);
   };
   Undo.pref("zenith.internal.timers", draw);
@@ -503,9 +509,20 @@ function timers(box) {
 // Extensions: Firefox's extensions panel, as a tray.
 function tray(box) {
   const m = mod("tray", "button");
+  m.id = "zenith-bar-tray";
   m.title = "Extensions";
   m.append(icon("tray"));
-  m.addEventListener("click", e => window.gUnifiedExtensions?.togglePanel?.(e));
+  // Firefox's own extensions panel, dropping from here (not from its button
+  // in the sidebar, which would bring the sidebar out).
+  m.addEventListener("click", e => {
+    const U = window.gUnifiedExtensions;
+    if (!U) return;
+    Popup.close();
+    const panel = U.panel;
+    if (panel.state === "open" || panel.state === "showing") return void PanelMultiView.hidePopup(panel);
+    m.open = false;
+    U.togglePanel(e, "zenith_bar", panel, "unified-extensions-view", m).catch(err => console.error("[Zenith] bar extensions", err));
+  });
   box.append(m);
 }
 
@@ -545,14 +562,120 @@ function clock(box) {
     draw();
     requestAnimationFrame(() => fixWidth(m));
   };
-  m.addEventListener("click", () => {
+  // A click opens the Dash (its calendar has the date); a middle click shows
+  // the date in place, and back.
+  m.addEventListener("click", () => window.ZenithDash?.toggle(m));
+  m.addEventListener("auxclick", e => {
+    if (e.button !== 1) return;
     alt = !alt;
     draw();
-    fixWidth(m);
+    requestAnimationFrame(() => fixWidth(m));
   });
   Undo.pref("zenith.bar.clock", setup);
   Undo.add(() => stop?.());
   setup();
+}
+
+// The weather (Settings › Bar › Weather; wttr.in, kept 30 minutes for every
+// window): the sky and the temperature; a click opens the Dash.
+function weather(box) {
+  const m = mod("weather", "button"), ic = icon("cloud"), text = node("span");
+  m.append(ic, text);
+  m.hidden = true;
+  box.append(m);
+  m.addEventListener("click", () => window.ZenithDash?.toggle(m));
+  const draw = w => {
+    if (!w?.now) return;
+    m.hidden = false;
+    put(text, `${w.now.t}${w.unit}`);
+    setIcon(ic, w.now.sky);
+    m.title = `${w.where ? `${w.where}: ` : ""}${w.now.text}, ${w.now.t}${w.unit} (feels ${w.now.feels}${w.unit})`;
+  };
+  draw(Weather.cached());
+  // (Another window fetched it.)
+  Undo.pref(Weather.CACHE, () => draw(Weather.cached()));
+  Undo.pref("zenith.bar.weather-place", () => Weather.get().then(draw));
+  // Now, then looked at every ten minutes; fetched only once it's half an hour old.
+  Weather.get().then(w => !Bar.gone && draw(w));
+  Undo.add(Tick.add(600, () => Weather.get().then(draw)));
+}
+
+// What Firefox uses (Settings › Bar › What Firefox uses): its memory, read
+// every 30 seconds while the window is in front; a click opens the Dash.
+function resources(box) {
+  const m = mod("resources", "button"), text = node("span");
+  m.append(icon("memory"), text);
+  box.append(m);
+  m.addEventListener("click", () => window.ZenithDash?.toggle(m));
+  const draw = async () => {
+    if (!document.hasFocus() && text.zbText) return;
+    const s = await System.sample();
+    if (Bar.gone) return;
+    put(text, bytes(s.memory));
+    m.title = `Firefox uses ${bytes(s.memory)} · ${s.awake} tabs awake, ${s.asleep} asleep`;
+  };
+  draw();
+  Undo.add(Tick.add(30, draw));
+}
+
+// Trackers Firefox blocked on the page you're on: a shield and how many
+// (none: hidden); a click lists them.
+function privacy(box) {
+  const m = mod("privacy", "button"), text = node("span");
+  m.append(icon("shield"), text);
+  m.hidden = true;
+  box.append(m);
+  let timer = null;
+  const draw = () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const c = await Trackers.count();
+      if (Bar.gone) return;
+      m.hidden = !c.total;
+      put(text, `${c.total}`);
+      m.title = `${c.total} tracker${c.total === 1 ? "" : "s"} blocked on this page`;
+    }, 500);
+  };
+  const listener = {
+    onContentBlockingEvent: draw,
+    onLocationChange: (wp, req, loc, flags) => wp?.isTopLevel && !(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) && draw(),
+  };
+  gBrowser.addProgressListener(listener);
+  Undo.add(() => {
+    clearTimeout(timer);
+    gBrowser.removeProgressListener(listener);
+  });
+  Undo.on(gBrowser.tabContainer, "TabSelect", draw);
+  m.addEventListener("click", () => Popup.open(m, trackersCard, { kind: "trackers" }));
+  draw();
+}
+
+// How pages look (Zenith's Site appearance): a click goes dark or light
+// and back to automatic; a right-click sets this space's own.
+function appearance(box) {
+  const A = window.ZenithAppearance;
+  if (!A) return;
+  const m = mod("appearance", "button"), ic = icon("moon");
+  m.append(ic);
+  box.append(m);
+  const draw = () => {
+    const dark = A.isDark(), forced = A.forced();
+    setIcon(ic, dark ? "moon" : "sun");
+    m.toggleAttribute("forced", !!forced);
+    m.title = `Pages: ${forced ?? "automatic"} (${dark ? "dark" : "light"}) · click: ${forced ? "automatic" : dark ? "light" : "dark"} · right-click: this space's`;
+  };
+  m.addEventListener("click", () => {
+    A.toggle();
+    draw();
+  });
+  m.addEventListener("contextmenu", e => {
+    e.preventDefault();
+    Popup.open(m, appearanceCard, { kind: "appearance" });
+  });
+  Undo.pref(A.PREF, draw);
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  Undo.on(mq, "change", draw);
+  draw();
 }
 
 // The window's own buttons (minimise, maximise, close), moved into the bar
@@ -611,6 +734,8 @@ const Bar = {
     const status = [
       on("launcher") && ["left", launcher], ["left", spaces], ["left", modeSlot],
       on("media") && ["right", media], on("downloads") && ["right", downloads], on("timers") && ["right", timers],
+      on("privacy") && ["right", privacy], bool("zenith.bar.weather", false) && ["right", weather],
+      bool("zenith.bar.resources", false) && ["right", resources], on("appearance") && ["right", appearance],
       on("tray") && ["right", tray], ["right", clock],
     ].filter(Boolean);
     const centre = tabsIn === "bar" && where !== "both" ? ["centre", tasks] : pref("zenith.bar.title", "title") !== "off" && ["centre", title];
@@ -676,6 +801,7 @@ const Bar = {
   // where tabs are stays as it is.
   stop({ keepTabs = false } = {}) {
     this.gone = true;
+    Popup.close();
     Tick.stop();
     Undo.run();
     for (const bar of this.bars ?? []) bar.remove();
