@@ -2,7 +2,7 @@
 // @name           Zenith Tab manager
 // @description    Zenith Plus: every tab of every space on one page (about:zenith-tabs), tidying up, and rules for grouping, sleeping and closing.
 // @include        main
-// @version        0.13.0
+// @version        0.14.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 

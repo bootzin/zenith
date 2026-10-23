@@ -91,7 +91,6 @@ class Handler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(b"<!doctype html><title></title>")
                     self.wfile.flush()
-                    import time
                     time.sleep(40)
                     return
                 return self._html("<!doctype html><title></title>")

@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.13.0
+// @version        0.14.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -525,28 +525,7 @@ async function watchPeekLinks() {
     }
     break;
   }
-  // Alt instead of Glance: Zen's Glance sees a click before any page
-  // script can, so while it's so, Glance's own key moves to the Windows
-  // key (Zenith's Bridge keeps yours and gives it back after).
-  const glance = () => {
-    // (Pages can't read Zenith's settings: shared with them.)
-    // (Unset, Peek clicks with Alt+Shift; while Zenith Shell opens tiles
-    // with Alt+Shift, as it does unless changed, Peek's goes to Ctrl+Alt.)
-    const tile = Services.prefs.getStringPref("zenith.shell.tile-click", "") || "alt-shift";
-    const mode = Services.prefs.getStringPref("zenith.plus.peek-click", "") || (tile === "alt-shift" ? "ctrl-alt" : "alt-shift"), on = prefs.bool("zenith.peek.enabled", true);
-    Services.ppmm.sharedData.set("zenith-peek-click", { mode, on });
-    Services.ppmm.sharedData.flush();
-    const take = (mode === "alt" || mode === "alt-swap") && on;
-    const zen = Services.prefs.getStringPref("zen.glance.activation-method", "alt");
-    if (take && zen === "alt") window.ZenithBridge?.apply("peek-click", { "zen.glance.activation-method": "meta" });
-    else if (!take) window.ZenithBridge?.apply("peek-click", { "zen.glance.activation-method": null });
-  };
-  for (const pref of ["zenith.plus.peek-click", "zenith.peek.enabled", "zenith.shell.tile-click"]) Services.prefs.addObserver(pref, glance);
-  window.addEventListener("unload", () => {
-    for (const pref of ["zenith.plus.peek-click", "zenith.peek.enabled", "zenith.shell.tile-click"]) Services.prefs.removeObserver(pref, glance);
-  }, { once: true });
-  glance();
-  setTimeout(glance, 1000); // (Zenith's Bridge starts with the other scripts)
+  // (Which keys peek a link is Zenith Plus's LinkClicks: Shell › Mouse.)
   // Back and forward (Alt+Left/Right, the mouse's side buttons) in a Peek:
   // its page's, not the tab's behind it.
   const B = window.BrowserCommands;

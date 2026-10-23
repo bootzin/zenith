@@ -2,7 +2,7 @@
 // @name           Zenith Bookmarks
 // @description    Zenith Plus: your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.
 // @include        main
-// @version        0.13.0
+// @version        0.14.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 

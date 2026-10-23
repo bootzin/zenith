@@ -957,6 +957,508 @@ browser[zenith-see-through] {
   }
 }
 
+/* === Zenith Shell's bar ============================================================ */
+
+/* The bar (plus/pages/bar.mjs): a strip across the top or bottom of the
+   window, before or after everything else. Its colours come from the
+   palette when there is one (--zth-pal-*), else from Zenith's own glass.
+   Everything in it is boxed off (contain), so a module changing restyles
+   itself only. */
+#zenith-bar,
+#zenith-bar-bottom {
+  --zb-h: 30px;
+  --zb-pad: 4px;
+  /* (On the window's own colours, as Zen paints behind the sidebar.) */
+  --zb-bg: var(--zen-main-browser-background-toolbar, var(--zth-pal-mantle, var(--zth-panel-bg)));
+  --zb-pill: var(--zth-pal-base, color-mix(in srgb, var(--zth-ink) 9%, transparent));
+  --zb-surface: var(--zth-pal-surface, color-mix(in srgb, var(--zth-ink) 10%, transparent));
+  --zb-ink: var(--zth-pal-text, var(--zth-ink));
+  --zb-dim: var(--zth-pal-overlay, var(--zth-ink-dim));
+  --zb-accent: var(--zth-pal-accent, var(--zth-accent));
+  --zb-urgent: var(--zth-pal-red, rgb(229 72 77));
+  --zb-radius: 8px;
+  --zb-font: "JetBrainsMono Nerd Font", "JetBrainsMono NF", "JetBrains Mono", "CaskaydiaCove Nerd Font", "Cascadia Mono", ui-monospace, Consolas, monospace;
+  flex: none;
+  box-sizing: border-box;
+  height: var(--zb-h);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  contain: strict;
+  position: relative;
+  z-index: 3;
+  background: var(--zb-bg);
+  color: var(--zb-ink);
+  font: 600 12px / 1 var(--zb-font);
+  font-variant-numeric: tabular-nums;
+  -moz-window-dragging: drag;
+  user-select: none;
+
+  &[size="24"] {
+    --zb-h: 24px;
+    --zb-pad: 3px;
+    font-size: 11px;
+  }
+
+  &[size="36"] {
+    --zb-h: 36px;
+    --zb-pad: 5px;
+    font-size: 13px;
+  }
+
+  &[font="system"] {
+    --zb-font: system-ui, sans-serif;
+  }
+
+  &[tasks] {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  & > div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: 100%;
+  }
+
+  & > .zb-left {
+    justify-self: start;
+  }
+
+  & > .zb-centre {
+    justify-self: center;
+    max-width: 100%;
+  }
+
+  &[tasks] > .zb-centre {
+    justify-self: stretch;
+  }
+
+  & > .zb-right {
+    justify-self: end;
+  }
+
+  & .zb-mod {
+    appearance: none;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: calc(var(--zb-h) - 2 * var(--zb-pad));
+    min-width: 0;
+    margin: 0;
+    padding: 0 10px;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    white-space: nowrap;
+    contain: layout paint style;
+    -moz-window-dragging: no-drag;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  & :is(button.zb-mod, .zb-mod button) {
+    cursor: pointer;
+  }
+
+  & .zb-i {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    background: currentColor;
+    mask: var(--zb-icon) center / contain no-repeat;
+
+    &[icon="launcher"] {
+      --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='2' y='2' width='5' height='5' rx='1.3'/%3E%3Crect x='9' y='2' width='5' height='5' rx='1.3'/%3E%3Crect x='2' y='9' width='5' height='5' rx='1.3'/%3E%3Crect x='9' y='9' width='5' height='5' rx='1.3'/%3E%3C/svg%3E");
+    }
+
+    &[icon="play"] {
+      --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 2.6v10.8L13 8z'/%3E%3C/svg%3E");
+    }
+
+    &[icon="pause"] {
+      --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3.5' y='2.5' width='3' height='11' rx='1'/%3E%3Crect x='9.5' y='2.5' width='3' height='11' rx='1'/%3E%3C/svg%3E");
+    }
+
+    &[icon="download"] {
+      --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7 2h2v6.6l2.3-2.3 1.4 1.4L8 12.4 3.3 7.7l1.4-1.4L7 8.6zM3 13.2h10v1.6H3z'/%3E%3C/svg%3E");
+    }
+
+    &[icon="done"] {
+      --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6.2 11.8 2.5 8.1l1.4-1.4 2.3 2.3 5.9-5.9 1.4 1.4z'/%3E%3C/svg%3E");
+    }
+
+    &[icon="timer"] {
+      --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 1.5h8V3c0 1.9-1.2 3.4-2.6 5 1.4 1.6 2.6 3.1 2.6 5v1.5H4V13c0-1.9 1.2-3.4 2.6-5C5.2 6.4 4 4.9 4 3z'/%3E%3C/svg%3E");
+    }
+
+    &[icon="tray"] {
+      --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 2.3a1.6 1.6 0 0 1 3.2 0v.9H12v2.9h-.8a1.6 1.6 0 0 0 0 3.2h.8v3.9H9.2v-.8a1.6 1.6 0 0 0-3.2 0v.8H3.1V9.3h.8a1.6 1.6 0 0 0 0-3.2h-.8V3.2H6z'/%3E%3C/svg%3E");
+    }
+  }
+
+  & .zb-g {
+    font-size: 1.15em;
+  }
+
+  /* The binding mode, as i3bar's. */
+  & .zb-mod[mod="mode"] {
+    background: var(--zb-urgent);
+    color: white;
+    border-radius: var(--zb-radius);
+  }
+
+  & .zb-mod[mod="title"] {
+    max-width: 46vw;
+    font-weight: 500;
+
+    & .zb-title-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  & .zb-mod:is([mod="launcher"], [mod="clock"]) {
+    color: var(--zth-pal-accent, inherit);
+  }
+
+  & .zb-mod[mod="buttons"] {
+    padding: 0;
+    height: 100%;
+
+    & .titlebar-buttonbox-container {
+      height: 100%;
+    }
+  }
+
+  /* Spaces: numbers, names, icons, kanji, roman numerals, or dots. */
+  & .zb-mod[mod="spaces"] {
+    gap: 3px;
+    padding: 0 6px;
+  }
+
+  & .zb-space {
+    appearance: none;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    min-width: 20px;
+    height: calc(var(--zb-h) - 2 * var(--zb-pad) - 6px);
+    margin: 0;
+    padding: 0 5px;
+    border: none;
+    border-radius: 5px;
+    background: none;
+    color: var(--zb-dim);
+    font: inherit;
+
+    &[busy] {
+      color: var(--zb-ink);
+    }
+
+    &[urgent] {
+      color: var(--zb-urgent);
+    }
+
+    &:hover:not([current]) {
+      background: var(--zb-surface);
+    }
+
+    &[current] {
+      min-width: 28px;
+      background: var(--zb-accent);
+      color: white;
+      color: contrast-color(var(--zb-accent));
+    }
+
+    & img {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  & [look="dots"] > .zb-space {
+    min-width: 8px;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border-radius: 4px;
+    background: var(--zb-dim);
+    transition: width 0.2s ease;
+
+    &[busy] {
+      background: var(--zb-ink);
+    }
+
+    &[urgent] {
+      background: var(--zb-urgent);
+    }
+
+    &[current] {
+      width: 22px;
+      background: var(--zb-accent);
+    }
+  }
+
+  /* Tabs in the bar, as waybar's taskbar. */
+  & .zb-mod[mod="tasks"] {
+    flex: 1;
+    gap: 2px;
+    padding: 0 4px;
+    overflow: hidden;
+    justify-content: flex-start;
+  }
+
+  & .zb-task {
+    appearance: none;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
+    height: calc(var(--zb-h) - 2 * var(--zb-pad) - 4px);
+    max-width: 200px;
+    margin: 0;
+    padding: 0 7px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--zb-dim);
+    font: inherit;
+    cursor: pointer;
+
+    & img {
+      flex: none;
+      width: 16px;
+      height: 16px;
+    }
+
+    & img:not([src]) {
+      border-radius: 50%;
+      background: var(--zb-surface);
+    }
+
+    & .zb-task-label {
+      display: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    & .zb-task-n {
+      display: none;
+    }
+
+    &:hover {
+      background: var(--zb-surface);
+    }
+
+    &[current] {
+      background: var(--zb-surface);
+      color: var(--zb-ink);
+      box-shadow: inset 0 -2px var(--zb-accent);
+    }
+
+    &[asleep] img {
+      opacity: 0.45;
+    }
+
+    &[loud] {
+      color: var(--zb-accent);
+    }
+  }
+
+  & [look="current"] > .zb-task[current] .zb-task-label {
+    display: block;
+  }
+
+  & [look="titles"] > .zb-task {
+    width: 150px;
+
+    & .zb-task-label {
+      display: block;
+    }
+  }
+
+  & [look="numbers"] > .zb-task {
+    min-width: 24px;
+    justify-content: center;
+
+    & img {
+      display: none;
+    }
+
+    & .zb-task-n {
+      display: block;
+    }
+  }
+
+  & .zb-mod[mod="media"] {
+    max-width: 280px;
+
+    & .zb-media-play {
+      appearance: none;
+      display: grid;
+      place-items: center;
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: none;
+      color: var(--zb-accent);
+    }
+
+    & .zb-media-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+      cursor: pointer;
+    }
+  }
+
+  /* Islands (Hyprland and waybar, the default): each module a rounded pill
+     on the window's own background. */
+  &[look="islands"] {
+    & .zb-mod:not([mod="buttons"]) {
+      background: var(--zb-pill);
+      border-radius: var(--zb-radius);
+      outline: 1px solid var(--zth-hairline, transparent);
+      outline-offset: -1px;
+    }
+  }
+
+  /* Strip (polybar): one solid bar, flat modules, the space you're in
+     underlined. */
+  &[look="strip"] {
+    --zb-bg: var(--zth-pal-mantle, var(--zen-main-browser-background-toolbar, var(--zth-panel-bg)));
+    gap: 0;
+
+    & > div {
+      gap: 0;
+    }
+
+    & .zb-space {
+      height: var(--zb-h);
+      border-radius: 0;
+
+      &[current] {
+        background: var(--zb-surface);
+        color: var(--zb-accent);
+        box-shadow: inset 0 -2px var(--zb-accent);
+      }
+    }
+
+    & .zb-mod {
+      height: 100%;
+    }
+
+    & .zb-mod[mod="launcher"] {
+      background: var(--zb-accent);
+      color: white;
+      color: contrast-color(var(--zb-accent));
+    }
+
+    & .zb-mod[mod="clock"] {
+      background: var(--zb-surface);
+      color: var(--zb-ink);
+    }
+  }
+
+  /* Minimal (i3bar): text, with bars between. */
+  &[look="minimal"] {
+    --zb-bg: var(--zth-pal-mantle, light-dark(rgb(244 244 246), rgb(12 12 14)));
+    gap: 0;
+
+    & .zb-mod {
+      padding: 0 8px;
+    }
+
+    & > .zb-right > .zb-mod:not([mod="buttons"]) + .zb-mod:not([hidden], [mod="buttons"])::before {
+      content: "|";
+      margin-inline-end: 8px;
+      color: var(--zb-dim);
+      font-weight: 400;
+    }
+
+    & .zb-space {
+      border-radius: 0;
+      outline: 1px solid var(--zb-surface);
+
+      &[current] {
+        outline-color: var(--zb-accent);
+      }
+    }
+
+    & .zb-mod:is([mod="launcher"], [mod="clock"]) {
+      color: inherit;
+    }
+  }
+
+  /* Powerline: segments joined by arrows. */
+  &[look="powerline"] {
+    gap: 0;
+    padding: 0;
+
+    & > div {
+      gap: 0;
+    }
+
+    & .zb-mod {
+      height: 100%;
+    }
+
+    & > .zb-left > .zb-mod:not([mod="mode"]) {
+      padding-inline: 10px 18px;
+      margin-inline-end: -8px;
+      background: var(--zb-surface);
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%);
+
+      &:first-child {
+        background: var(--zb-accent);
+        color: white;
+        color: contrast-color(var(--zb-accent));
+      }
+    }
+
+    & > .zb-right > .zb-mod:not([mod="buttons"]) {
+      padding-inline: 18px 10px;
+      margin-inline-start: -8px;
+      background: var(--zb-surface);
+      clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+
+      &[mod="clock"] {
+        background: var(--zb-accent);
+        color: white;
+        color: contrast-color(var(--zb-accent));
+      }
+    }
+  }
+}
+
+/* The bar lives in Zen's own app wrapper (on the window's background,
+   as the sidebar is), which stacks it above or below the browser. */
+:root[zenith-bar] #zen-main-app-wrapper {
+  flex-direction: column !important;
+
+  & > #browser {
+    flex: 1 1 0 !important;
+    min-height: 0;
+  }
+}
+
+/* A palette gives Zenith its accent too (the spaces take its colours, so
+   Zen's own follows). */
+:root[zenith-palette] {
+  --zth-accent: var(--zth-pal-accent) !important;
+}
+
 /* === Workspace dots and flash ===================================================== */
 
 /* Waybar-style: one dot per space at the top of the page, the current one

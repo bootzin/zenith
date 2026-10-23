@@ -83,6 +83,11 @@ def ALL(*conds):
     return {"conditions": list(conds), "operator": "AND"}
 
 
+# The bar is on (Settings › Bar): anything but off.
+def _bar_on():
+    return ALL(NOT("zenith.bar.position", ""), NOT("zenith.bar.position", "off"))
+
+
 def when(entry, why, *conds):
     entry["conditions"] = list(conds)
     entry["operator"] = "AND"
@@ -90,6 +95,7 @@ def when(entry, why, *conds):
     return entry
 
 
+BAR_ON = _bar_on()
 PEEK_ON = IF("zenith.peek.enabled", True)
 MOTION_ON = NOT("zenith.motion.preset", "off")
 
@@ -258,11 +264,6 @@ MODS = {
     # that another setting makes irrelevant (plus/scripts/zenith-settings).
     "plus": [
         script(checkbox("zenith.peek.enabled", "Peek: Alt+Q, or Shift+Enter in the URL bar (type ? in Peek to edit prefixes)", True)),
-        when(script(dropdown("zenith.plus.peek-click", "Peek a link by clicking it with", "Alt+Shift",
-                             ("Alt+Shift", "alt-shift"), ("Ctrl+Alt", "ctrl-alt"), ("Alt (instead of Zen's Glance)", "alt"),
-                             ("Alt, and Alt+Shift for Zen's Glance (swapped)", "alt-swap"),
-                             ("Nothing (its right-click menu only)", "off"))),
-             "Peek is off", PEEK_ON),
         when(script(dropdown("zenith.peek.behind", "The page behind a Peek", "As it is",
                              ("As it is", "keep"), ("Faded, like Glance", "fade"))),
              "Peek is off", PEEK_ON),
@@ -374,20 +375,67 @@ MODS = {
              "Float a tab is off", IF("zenith.plus.float-tab", True)),
         script(checkbox("zenith.plus.split-solo", "Alt+F: the pane you're on fills a split view; Alt+F again, the split as it was", True)),
         script(checkbox("zenith.plus.link-hints", "Link hints on Alt+; (the key right of L): letters on every link, type them to follow it (Alt+Shift+;: in a new tab)", True)),
+        # (BAR_ON: see _bar_on.)
+        script(dropdown("zenith.bar.position", "Zenith Shell's bar", "Off",
+                        ("Off", "off"), ("At the top", "top"), ("At the bottom", "bottom"),
+                        ("Both: status at the top, tabs at the bottom", "both"))),
+        *[when(script(e), "The bar is off", BAR_ON) for e in (
+            dropdown("zenith.bar.style", "The bar's look", "Islands (Hyprland and waybar)",
+                     ("Islands (Hyprland and waybar)", "islands"), ("Strip (polybar)", "strip"),
+                     ("Minimal (i3bar)", "minimal"), ("Powerline", "powerline")),
+            dropdown("zenith.bar.size", "The bar's height", "Normal (30px)",
+                     ("Compact (24px)", "24"), ("Normal (30px)", "30"), ("Roomy (36px)", "36")),
+            dropdown("zenith.bar.font", "The bar's font", "Monospace (a Nerd Font, if you have one)",
+                     ("Monospace (a Nerd Font, if you have one)", "mono"), ("Your system's", "system")),
+            dropdown("zenith.bar.icons", "The bar's icons", "Zenith's own",
+                     ("Zenith's own", "svg"), ("Nerd Font glyphs", "nerd"), ("Text", "text")),
+            dropdown("zenith.bar.tabs", "Where tabs are, with the bar on", "In the sidebar",
+                     ("In the sidebar", "sidebar"), ("In the bar, no sidebar", "bar"),
+                     ("The sidebar on hover (Zen's compact mode)", "hover")),
+            dropdown("zenith.bar.spaces", "Spaces in the bar", "Numbers",
+                     ("Numbers", "numbers"), ("Names", "names"), ("Icons", "icons"), ("Dots", "dots"),
+                     ("Kanji (一 二 三)", "kanji"), ("Roman numerals (I II III)", "roman")),
+            dropdown("zenith.bar.title", "The tab you're on, in the bar", "Its title",
+                     ("Its title", "title"), ("The site, then the title", "site"), ("Nothing", "off")),
+            dropdown("zenith.bar.clock", "The bar's clock", "14:05",
+                     ("14:05", "hm"), ("Thu 22 Oct 14:05", "dhm"), ("2026-10-22 14:05", "iso"),
+                     ("14:05:09 (wakes each second)", "hms"), ("2:05 PM", "12h"), ("No clock", "off")),
+            checkbox("zenith.bar.launcher", "A switcher button (Alt+W)", True),
+            checkbox("zenith.bar.media", "What's playing", True),
+            checkbox("zenith.bar.downloads", "Downloads under way", True),
+            checkbox("zenith.bar.timers", "Timers and pomodoros", True),
+            checkbox("zenith.bar.tray", "Extensions", True),
+        )],
+        when(script(dropdown("zenith.bar.tab-look", "Tabs in the bar", "Icons, the current one with its title",
+                             ("Icons, the current one with its title", "current"), ("Icons only", "icons"),
+                             ("Icon and short title", "titles"),
+                             ("Icon and short title while they fit, then fewer titles", "fit"), ("Numbers (i3)", "numbers"))),
+             "Tabs aren't in the bar", ANY(IF("zenith.bar.tabs", "bar"), IF("zenith.bar.position", "both"))),
+        script(dropdown("zenith.palette", "Palette", "Your own colours",
+                        ("Your own colours", "own"), ("Catppuccin Mocha", "catppuccin-mocha"),
+                        ("Catppuccin Macchiato", "catppuccin-macchiato"), ("Catppuccin Frappé", "catppuccin-frappe"),
+                        ("Catppuccin Latte", "catppuccin-latte"), ("Tokyo Night", "tokyo-night"),
+                        ("Gruvbox dark", "gruvbox-dark"), ("Gruvbox light", "gruvbox-light"), ("Nord", "nord"),
+                        ("Rosé Pine", "rose-pine"), ("Rosé Pine Dawn", "rose-pine-dawn"), ("Everforest", "everforest"),
+                        ("Kanagawa", "kanagawa"), ("Dracula", "dracula"))),
         script(checkbox("zenith.shell.keys", "Zenith Shell: i3's keys with Alt (Alt+Shift+/ lists them)", True)),
         when(script(keymap("zenith.shell.bindings", "Shell keys")),
              "The Shell's keys are off", IF("zenith.shell.keys", True)),
         when(script(sites("zenith.shell.passthrough-sites", "Sites that keep their Alt keys", "Add a site (docs.google.com)")),
              "The Shell's keys are off", IF("zenith.shell.keys", True)),
-        script(dropdown("zenith.shell.tile-click", "Open a link as a tile by clicking it with", "Alt+Shift",
-                        ("Alt+Shift", "alt-shift"), ("Ctrl+Alt", "ctrl-alt"), ("Nothing", "off"))),
+        *[script(dropdown(f"zenith.links.{combo}", f"{keys}+click a link", default,
+                          ("Zen's Glance", "glance"), ("Peek", "peek"), ("A tile beside this one", "tile"),
+                          ("Nothing (the page's and Firefox's own)", "nothing")))
+          for combo, keys, default in (("alt", "Alt", "Zen's Glance"), ("alt-shift", "Alt+Shift", "A tile beside this one"),
+                                       ("ctrl-alt", "Ctrl+Alt (or AltGr)", "Peek"),
+                                       ("ctrl-shift", "Ctrl+Shift", "Nothing (the page's and Firefox's own)"))],
         script(checkbox("zenith.shell.mouse", "Alt+drag moves a tile, Alt+right-drag resizes it", True)),
         script(checkbox("zenith.shell.wheel", "Alt+wheel: the next or previous space", True)),
         script(checkbox("zenith.shell.follow-mouse", "Focus follows the mouse across tiles", False)),
         script(dropdown("zenith.shell.new-tile", "Where a new tile goes", "Along the tile's longer side",
                         ("Along the tile's longer side", "dwindle"), ("Always to the right", "right"), ("Always below", "below"))),
         script(dropdown("zenith.shell.tiles", "Tiles in one split", "4 (Zen's own)",
-                        ("4 (Zen's own)", "4"), ("6", "6"), ("8", "8"))),
+                        ("4 (Zen's own)", "4"), ("6", "6"), ("8", "8"), ("No limit (experimental)", "0"))),
         script(dropdown("zenith.plus.focus-scope", "Focus mode is on for", "The site you're on",
                         ("The site you're on", "site"), ("Every site", "all"))),
         script(dropdown("zenith.plus.focus-pages", "Focus mode and the page", "Articles in a reading view, the rest tidied",

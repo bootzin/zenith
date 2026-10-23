@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.13.0
+// @version        0.14.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -4947,7 +4947,6 @@ const SHELL = {
   ON: "zenith.shell.keys",
   BINDINGS: "zenith.shell.bindings",
   SITES: "zenith.shell.passthrough-sites",
-  TILE_CLICK: "zenith.shell.tile-click",
   MOUSE: "zenith.shell.mouse",
   WHEEL: "zenith.shell.wheel",
   FOLLOW: "zenith.shell.follow-mouse",
@@ -5103,6 +5102,8 @@ const ShellModes = {
   pill() {
     const text = this.mode === "resize" ? "resize · hjkl or arrows, = to even out, Esc to end"
                : this.passthrough ? `passthrough · ${ShellKeys.pretty(ShellKeys.combos.get("passthrough")) || "Alt+P"} to end` : "";
+    // (With the bar on, the mode shows in it, as i3bar's does.)
+    if (BarLoader.bar?.mode(text)) return void this.node?.removeAttribute("show");
     this.node ??= (document.getElementById("zen-main-app-wrapper") ?? document.body).appendChild(el("div", { id: "zenith-mode" }));
     this.node.textContent = text;
     this.node.toggleAttribute("show", !!text);
@@ -5149,10 +5150,11 @@ const Tiler = {
   },
 
   init() {
-    // Tiles in one split (Shell › Tiles in one split): Zen's own is 4.
+    // Tiles in one split (Shell › Tiles in one split): Zen's own is 4; 0 is
+    // no limit (experimental: Zen's grid takes any number).
     const cap = () => {
       const n = parseInt(Services.prefs.getStringPref(SHELL.TILES, ""), 10);
-      if (this.S) this.S.MAX_TABS = n >= 2 && n <= 12 ? n : 4;
+      if (this.S) this.S.MAX_TABS = n === 0 ? Infinity : n >= 2 && n <= 12 ? n : 4;
     };
     Services.prefs.addObserver(SHELL.TILES, cap);
     onUnload(() => Services.prefs.removeObserver(SHELL.TILES, cap));
@@ -5429,7 +5431,7 @@ const ShellMouse = {
         if (followOn) gBrowser.tabpanels.addEventListener("mousemove", follow, { passive: true });
         else gBrowser.tabpanels.removeEventListener("mousemove", follow);
       }
-      PeekLinkShare.update();
+      LinkClicks.update();
     };
     const prefs = [SHELL.MOUSE, SHELL.WHEEL, SHELL.FOLLOW];
     for (const p of prefs) Services.prefs.addObserver(p, read);
@@ -5612,20 +5614,71 @@ const ShellMouse = {
   },
 };
 
-/* What pages are told (they can't read Zenith's settings): whether an
-   Alt+press is the window's (Alt+drag), and the keys an Alt+Shift+click
-   on a link tiles with. Shared with Peek's own (zenith-peek.uc.mjs). */
-const PeekLinkShare = {
+/* Clicking a link with keys (Shell › Mouse): each key combo does one thing,
+   Zen's Glance, Peek, a tile beside this one, or nothing of Zenith's. The
+   page's helper (plus/pages/peek-link.sys.mjs) answers the click before
+   Zen or Firefox do: Firefox's Ctrl+click opens a tab, and Zen's Glance
+   only answers a click with one or three keys held, so neither could have
+   Ctrl+Alt. AltGr (the right Alt on layouts that have one) is Ctrl+Alt.
+   While Zenith answers clicks, Zen's own Glance key moves to the Windows
+   key through the Bridge (given back once every combo is "nothing").
+   Pages are told what to do (they can't read Zenith's settings), and
+   whether an Alt+press is the window's (Alt+drag). */
+const LinkClicks = {
+  // combo · what it does unless changed
+  COMBOS: { alt: "glance", "alt-shift": "tile", "ctrl-alt": "peek", "ctrl-shift": "nothing" },
+
+  pref(combo) {
+    return `zenith.links.${combo}`;
+  },
+
+  read() {
+    const out = {}, peek = Services.prefs.getBoolPref("zenith.peek.enabled", true);
+    for (const [combo, def] of Object.entries(this.COMBOS)) {
+      const v = Services.prefs.getStringPref(this.pref(combo), "") || def;
+      out[combo] = v === "peek" && !peek ? "nothing" : v;
+    }
+    return out;
+  },
+
   update() {
-    const tile = Services.prefs.getStringPref(SHELL.TILE_CLICK, "") || "alt-shift";
-    Services.ppmm.sharedData.set("zenith-shell-click", { tile: tile === "off" ? "" : tile, press: !!ShellMouse.on });
+    const combos = this.read();
+    Services.ppmm.sharedData.set("zenith-link-clicks", { combos, press: !!ShellMouse.on });
     Services.ppmm.sharedData.flush();
+    Bridge.apply("link-clicks", { "zen.glance.activation-method": Object.values(combos).some(v => v !== "nothing") ? "meta" : null });
+  },
+
+  // 0.13's two settings (Peek's keys, the Shell's tile keys) become the
+  // combos they amounted to, the tile winning Alt+Shift as it did.
+  migrate() {
+    const P = Services.prefs, OLD_PEEK = "zenith.plus.peek-click", OLD_TILE = "zenith.shell.tile-click";
+    // (0.13's Peek gave Zen's Glance key back through its own bridge.)
+    Bridge.apply("peek-click", { "zen.glance.activation-method": null });
+    if (!P.prefHasUserValue(OLD_PEEK) && !P.prefHasUserValue(OLD_TILE)) return;
+    const tile = P.getStringPref(OLD_TILE, "") || "alt-shift";
+    const peek = P.getStringPref(OLD_PEEK, "") || (tile === "alt-shift" ? "ctrl-alt" : "alt-shift");
+    const map = { alt: "glance", "alt-shift": "nothing", "ctrl-alt": "nothing", "ctrl-shift": "nothing" };
+    if (peek === "alt") map.alt = "peek";
+    else if (peek === "alt-swap") Object.assign(map, { alt: "peek", "alt-shift": "glance" });
+    else if (peek in map) map[peek] = "peek";
+    if (tile in map) map[tile] = "tile";
+    for (const [combo, v] of Object.entries(map)) {
+      if (v === this.COMBOS[combo]) P.clearUserPref(this.pref(combo));
+      else P.setStringPref(this.pref(combo), v);
+    }
+    P.clearUserPref(OLD_PEEK);
+    P.clearUserPref(OLD_TILE);
   },
 
   init() {
+    window.ZenithLinkClicks = this; // for tools/checks
+    this.migrate();
     const update = () => this.update();
-    Services.prefs.addObserver(SHELL.TILE_CLICK, update);
-    onUnload(() => Services.prefs.removeObserver(SHELL.TILE_CLICK, update));
+    const prefs = [...Object.keys(this.COMBOS).map(c => this.pref(c)), "zenith.peek.enabled"];
+    for (const p of prefs) Services.prefs.addObserver(p, update);
+    onUnload(() => {
+      for (const p of prefs) Services.prefs.removeObserver(p, update);
+    });
     this.update();
   },
 };
@@ -5836,7 +5889,10 @@ const KeySheet = {
       if (s && !s.isEmpty?.()) add("Zenith", s.toDisplayString?.() ?? "", label);
     }
     add("Zenith", "Alt+F", "The tile you're on fills the split, and back");
-    add("Mouse", "Alt+Shift+click", "A link as a new tile");
+    const DOES = { glance: "Zen's Glance", peek: "Peek", tile: "A new tile" };
+    for (const [combo, v] of Object.entries(LinkClicks.read())) {
+      if (DOES[v]) add("Mouse", `${{ alt: "Alt", "alt-shift": "Alt+Shift", "ctrl-alt": "Ctrl+Alt", "ctrl-shift": "Ctrl+Shift" }[combo]}+click`, `A link in ${DOES[v]}`.replace("in A new", "as a new"));
+    }
     add("Mouse", "Alt+drag", "A tile onto another (middle: swap; edge: there)");
     add("Mouse", "Alt+right-drag", "Resize a tile");
     add("Mouse", "Alt+wheel", "The next or previous space");
@@ -5875,6 +5931,159 @@ const KeySheet = {
     this.away = null;
     this.node?.remove();
     this.node = null;
+  },
+};
+
+/* --- Zenith Shell's bar: imported only while it's on ---------------------------
+   The bar (Settings › Bar) is plus/pages/bar.mjs, imported into this window
+   when it's on and stopped when it's off, so with the bar off none of it
+   runs or is even read. A change to what's in it rebuilds it; its look
+   changes in place. Not in a floating tab's window. */
+const BarLoader = {
+  REBUILD: ["zenith.bar.position", "zenith.bar.tabs", "zenith.bar.title", "zenith.bar.launcher", "zenith.bar.media",
+            "zenith.bar.downloads", "zenith.bar.timers", "zenith.bar.tray", "zenith.bar.icons"],
+
+  init() {
+    const apply = () => this.apply();
+    for (const p of this.REBUILD) Services.prefs.addObserver(p, apply);
+    onUnload(() => {
+      for (const p of this.REBUILD) Services.prefs.removeObserver(p, apply);
+      this.bar?.stop({ keepTabs: true });
+    });
+    window.ZenithBar = this; // for tools/checks
+    this.apply();
+  },
+
+  async url() {
+    for (const d of ["../pages/", "zenith-pages/"]) {
+      const url = new URL(`${d}bar.mjs`, import.meta.url).href;
+      if (await fetch(url).then(r => r.ok, () => false)) return url;
+    }
+    throw new Error("plus/pages/bar.mjs isn't there");
+  },
+
+  apply() {
+    const on = !["", "off"].includes(Services.prefs.getStringPref("zenith.bar.position", ""));
+    const away = (Services.prefs.getStringPref("zenith.bar.tabs", "") || "sidebar") !== "sidebar";
+    this.ready = (this.ready ?? Promise.resolve()).then(async () => {
+      // (Rebuilt with tabs still out of the sidebar: compact mode stays.)
+      this.bar?.stop({ keepTabs: on && away });
+      this.bar = null;
+      if (!on || window.zenithFloatFrom || root.hasAttribute("popup-window")) return;
+      this.bar = (await import(await this.url())).start({ Bridge });
+      ShellModes.pill();
+    }).catch(e => console.error("[Zenith] bar", e));
+    return this.ready;
+  },
+};
+
+/* --- Palettes: one palette for the whole browser ------------------------------------
+   Settings › Bar › Palette: Catppuccin, Tokyo Night, Gruvbox, Nord, Rosé
+   Pine, Everforest, Kanagawa, Dracula. A palette colours the bar, Zenith's
+   accent and every space (Zen's own colours, as Palette sync does: the
+   accent as the space's main colour, the palette's base around it), so a
+   rice is one palette everywhere. The spaces' own colours are kept the
+   first time and come back with "Your own colours". */
+const PALETTES = {
+  "catppuccin-mocha": { base: "#1e1e2e", mantle: "#181825", surface: "#313244", overlay: "#6c7086", text: "#cdd6f4", accent: "#cba6f7", second: "#89b4fa", red: "#f38ba8", green: "#a6e3a1", yellow: "#f9e2af" },
+  "catppuccin-macchiato": { base: "#24273a", mantle: "#1e2030", surface: "#363a4f", overlay: "#6e738d", text: "#cad3f5", accent: "#c6a0f6", second: "#8aadf4", red: "#ed8796", green: "#a6da95", yellow: "#eed49f" },
+  "catppuccin-frappe": { base: "#303446", mantle: "#292c3c", surface: "#414559", overlay: "#737994", text: "#c6d0f5", accent: "#ca9ee6", second: "#8caaee", red: "#e78284", green: "#a6d189", yellow: "#e5c890" },
+  "catppuccin-latte": { light: true, base: "#eff1f5", mantle: "#e6e9ef", surface: "#ccd0da", overlay: "#9ca0b0", text: "#4c4f69", accent: "#8839ef", second: "#1e66f5", red: "#d20f39", green: "#40a02b", yellow: "#df8e1d" },
+  "tokyo-night": { base: "#1a1b26", mantle: "#16161e", surface: "#292e42", overlay: "#565f89", text: "#c0caf5", accent: "#7aa2f7", second: "#bb9af7", red: "#f7768e", green: "#9ece6a", yellow: "#e0af68" },
+  "gruvbox-dark": { base: "#282828", mantle: "#1d2021", surface: "#3c3836", overlay: "#928374", text: "#ebdbb2", accent: "#fe8019", second: "#fabd2f", red: "#fb4934", green: "#b8bb26", yellow: "#fabd2f" },
+  "gruvbox-light": { light: true, base: "#fbf1c7", mantle: "#f2e5bc", surface: "#ebdbb2", overlay: "#928374", text: "#3c3836", accent: "#af3a03", second: "#b57614", red: "#9d0006", green: "#79740e", yellow: "#b57614" },
+  nord: { base: "#2e3440", mantle: "#272c36", surface: "#3b4252", overlay: "#4c566a", text: "#eceff4", accent: "#88c0d0", second: "#81a1c1", red: "#bf616a", green: "#a3be8c", yellow: "#ebcb8b" },
+  "rose-pine": { base: "#191724", mantle: "#16141f", surface: "#26233a", overlay: "#6e6a86", text: "#e0def4", accent: "#c4a7e7", second: "#ebbcba", red: "#eb6f92", green: "#9ccfd8", yellow: "#f6c177" },
+  "rose-pine-dawn": { light: true, base: "#faf4ed", mantle: "#f2e9e1", surface: "#f2e9e1", overlay: "#9893a5", text: "#575279", accent: "#907aa9", second: "#d7827e", red: "#b4637a", green: "#56949f", yellow: "#ea9d34" },
+  everforest: { base: "#2d353b", mantle: "#232a2e", surface: "#3d484d", overlay: "#859289", text: "#d3c6aa", accent: "#a7c080", second: "#83c092", red: "#e67e80", green: "#a7c080", yellow: "#dbbc7f" },
+  kanagawa: { base: "#1f1f28", mantle: "#16161d", surface: "#2a2a37", overlay: "#727169", text: "#dcd7ba", accent: "#7e9cd8", second: "#957fb8", red: "#ff5d62", green: "#98bb6c", yellow: "#e6c384" },
+  dracula: { base: "#282a36", mantle: "#21222c", surface: "#44475a", overlay: "#6272a4", text: "#f8f8f2", accent: "#bd93f9", second: "#ff79c6", red: "#ff5555", green: "#50fa7b", yellow: "#f1fa8c" },
+};
+
+const Palettes = {
+  PREF: "zenith.palette",
+  SAVED: "zenith.internal.palette.own-spaces", // { uuid: theme } as they were before a palette
+  DONE: "zenith.internal.palette.spaces",      // the palette the spaces have
+
+  init() {
+    const apply = () => this.apply();
+    Services.prefs.addObserver(this.PREF, apply);
+    onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
+    window.ZenithPalettes = this; // for tools/checks
+    this.apply();
+  },
+
+  rgb(hex) {
+    return [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  },
+
+  apply() {
+    const chosen = Services.prefs.getStringPref(this.PREF, ""), name = chosen in PALETTES ? chosen : "", pal = PALETTES[name];
+    // The bar and Zenith's accent: properties on the window (plus/chrome.css).
+    for (const k of ["base", "mantle", "surface", "overlay", "text", "accent", "second", "red", "green", "yellow"]) {
+      if (pal) root.style.setProperty(`--zth-pal-${k}`, pal[k]);
+      else root.style.removeProperty(`--zth-pal-${k}`);
+    }
+    if (pal) root.setAttribute("zenith-palette", pal.light ? "light" : "dark");
+    else root.removeAttribute("zenith-palette");
+    // The spaces are shared: the window in front changes them, once.
+    if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
+    const done = Services.prefs.getStringPref(this.DONE, "");
+    if (done === name) return;
+    try {
+      if (pal) this.paint(pal);
+      else this.giveBack();
+      if (name) Services.prefs.setStringPref(this.DONE, name);
+      else Services.prefs.clearUserPref(this.DONE);
+    } catch (e) {
+      console.error("[Zenith] palette", e);
+    }
+  },
+
+  // Every space: the palette's base, its accent as a glow in one corner and
+  // as the space's main colour (Zen's accent).
+  paint(pal) {
+    const W = window.gZenWorkspaces, picker = window.gZenThemePicker;
+    if (!W || !picker) return;
+    const spaces = W.getWorkspaces?.() ?? [];
+    if (!Services.prefs.prefHasUserValue(this.SAVED)) {
+      Services.prefs.setStringPref(this.SAVED, JSON.stringify(Object.fromEntries(spaces.map(s => [s.uuid, s.theme ?? null]))));
+    }
+    const dot = (hex, primary, c = this.rgb(hex)) => {
+      const [r, g, b] = c.map(v => v / 255);
+      return { c, isCustom: false, isPrimary: primary, algorithm: "floating", type: "explicit-lightness",
+               lightness: Math.round(((Math.max(r, g, b) + Math.min(r, g, b)) / 2) * 100) };
+    };
+    // (The glow is the accent mixed into the base, 40%: a narrow sidebar is
+    // mostly that corner. Zen brightens its own accent from the hue; Zenith's
+    // is the palette's exact one.)
+    const base = this.rgb(pal.base), tint = this.rgb(pal.accent).map((v, i) => Math.round(v * 0.4 + base[i] * 0.6));
+    const dots = [dot(pal.base, false), dot(null, true, tint), dot(pal.mantle, false)];
+    for (const space of spaces) {
+      const opacity = space.theme?.opacity ?? 0.5, texture = space.theme?.texture ?? 0;
+      space.theme = picker.constructor.getTheme?.(structuredClone(dots), opacity, texture)
+                    ?? { type: "gradient", gradientColors: structuredClone(dots), opacity, texture };
+      W.saveWorkspace(space);
+    }
+    const active = W.getActiveWorkspace?.();
+    if (active) picker.onWorkspaceChange(active);
+  },
+
+  giveBack() {
+    const W = window.gZenWorkspaces, picker = window.gZenThemePicker;
+    let saved = null;
+    try {
+      saved = JSON.parse(Services.prefs.getStringPref(this.SAVED, "null"));
+    } catch {}
+    if (!saved || !W || !picker) return;
+    for (const space of W.getWorkspaces?.() ?? []) {
+      if (!(space.uuid in saved)) continue;
+      space.theme = saved[space.uuid] ?? undefined;
+      W.saveWorkspace(space);
+    }
+    Services.prefs.clearUserPref(this.SAVED);
+    const active = W.getActiveWorkspace?.();
+    if (active) picker.onWorkspaceChange(active);
   },
 };
 
@@ -7904,7 +8113,9 @@ start("shell keys", () => ShellKeys.init(), true);
 start("shell tiles", () => Tiler.init(), true);
 start("shell spaces", () => ShellSpaces.init());
 start("shell mouse", () => ShellMouse.init());
-start("shell clicks", () => PeekLinkShare.init());
+start("link clicks", () => LinkClicks.init());
+start("palettes", () => Palettes.init(), true);
+start("bar", () => BarLoader.init(), true);
 start("groups that don't pin", () => UnpinnedGroups.init(), true);
 start("bookmarks bar", () => BookmarksBar.init(), true);
 start("colours from an image", () => ImageColours.init());

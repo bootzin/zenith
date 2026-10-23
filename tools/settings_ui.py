@@ -113,7 +113,6 @@ PARENTS = {
     "zenith.motion.swipe-round": "zenith.motion.swipe",
     "zenith.peek.behind": "zenith.peek.enabled",
     "zenith.peek.engine": "zenith.peek.enabled",
-    "zenith.plus.peek-click": "zenith.peek.enabled",
     "zenith.peek.custom-engine": "zenith.peek.enabled",
     "zenith.peek.instant": "zenith.peek.enabled",
     "zenith.peek.web-cards": "zenith.peek.enabled",
@@ -122,6 +121,7 @@ PARENTS = {
     "zenith.peek.pomodoro": "zenith.peek.enabled",
     "zenith.plus.switcher-scope": "zenith.plus.switcher",
     "zenith.shell.bindings": "zenith.shell.keys",
+    "zenith.bar.tab-look": "zenith.bar.tabs",
     "zenith.shell.passthrough-sites": "zenith.shell.keys",
 }
 
@@ -228,15 +228,27 @@ SECTIONS = [
         "blurb": "The browser as a tiling window manager: i3's keys with Alt (Alt+Shift+/ lists them), tiles you move and resize with the mouse, spaces as workspaces.",
         "groups": [
             ("Keys", ["zenith.shell.keys", "zenith.shell.bindings", "zenith.shell.passthrough-sites"]),
-            ("Mouse", ["zenith.shell.tile-click", "zenith.shell.mouse", "zenith.shell.wheel", "zenith.shell.follow-mouse"]),
+            ("Clicking a link with keys", ["zenith.links.alt", "zenith.links.alt-shift", "zenith.links.ctrl-alt", "zenith.links.ctrl-shift"]),
+            ("Mouse", ["zenith.shell.mouse", "zenith.shell.wheel", "zenith.shell.follow-mouse"]),
             ("Tiles", ["zenith.shell.new-tile", "zenith.shell.tiles", "zenith.panels.tile-focus", "zenith.panels.tile-dim"]),
+        ],
+    },
+    {
+        "id": "bar", "title": "Bar", "icon": "panels",
+        "blurb": "A status bar across the window, as polybar and waybar are: spaces, the tab you're on (or all of them), what's playing, downloads, timers and a clock. One palette can colour the whole browser.",
+        "groups": [
+            ("Bar", ["zenith.bar.position", "zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.icons"]),
+            ("Tabs", ["zenith.bar.tabs", "zenith.bar.tab-look"]),
+            ("In the bar", ["zenith.bar.spaces", "zenith.bar.title", "zenith.bar.clock", "zenith.bar.launcher",
+                            "zenith.bar.media", "zenith.bar.downloads", "zenith.bar.timers", "zenith.bar.tray"]),
+            ("Palette", ["zenith.palette"]),
         ],
     },
     {
         "id": "peek", "title": "Peek", "icon": "peek",
         "blurb": "Quick lookups with Alt+Q: answers in the prompt, pages in a floating window, timers.",
         "groups": [
-            ("Peek", ["zenith.peek.enabled", "zenith.plus.peek-click", "zenith.peek.behind", "zenith.peek.engine", "zenith.peek.custom-engine"]),
+            ("Peek", ["zenith.peek.enabled", "zenith.peek.behind", "zenith.peek.engine", "zenith.peek.custom-engine"]),
             ("Answers", ["zenith.peek.instant", "zenith.peek.web-cards", "zenith.peek.units",
                          "zenith.peek.weather-history"]),
             ("Timers", ["zenith.peek.pomodoro"]),
@@ -413,10 +425,9 @@ DESCRIPTIONS = {
     "zenith.motion.reduced": "When your system asks for less motion: keep Zenith's, or stop it.",
     "zenith.plus.animate-zen": "Keep Zen's own animations too, whatever the system says.",
     # Peek
-    "zenith.peek.enabled": "Alt+Q looks up the selected text or opens the Peek prompt; Shift+Enter in the URL bar peeks.",
+    "zenith.peek.enabled": "Alt+Q looks up the selected text or opens the Peek prompt; Shift+Enter in the URL bar peeks; "
+                           "Ctrl+Alt+click a link peeks it (Shell › Clicking a link with keys).",
     "zenith.peek.engine": "Where searches go.",
-    "zenith.plus.peek-click": "A link clicked with these keys opens in Peek, as Alt+click opens Zen's Glance; Alt takes Glance's "
-                              "place. Any link's right-click menu has Open Link in Peek.",
     "zenith.peek.behind": "While a Peek is open, the page behind stays as it is, or shrinks a little and fades the way Zen's "
                           "Glance fades the tab it opens from.",
     "zenith.peek.custom-engine": "Your own search address, with %s where the search goes. Used instead of the engine.",
@@ -534,9 +545,27 @@ DESCRIPTIONS = {
                              "A key another action had moves over.",
     "zenith.shell.passthrough-sites": "On these sites the page keeps its Alt keys (Google Docs, an online editor or "
                                       "terminal). Alt+P does the same anywhere, until you press it again.",
-    "zenith.shell.tile-click": "Click a link with these keys and it opens as a tile beside the one you're in. While it's "
-                               "Alt+Shift, Peek's own click (Peek, unless you've chosen it) moves to Ctrl+Alt; Alt+click "
-                               "stays Zen's Glance.",
+    "zenith.links.alt": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). While Zenith answers link clicks, Zen's own Glance key "
+                        "(Settings › Glance) moves to ⊞ (the Windows key); it's given back if every combo here is nothing.",
+    "zenith.links.alt-shift": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). ",
+    "zenith.links.ctrl-alt": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). AltGr (the right Alt on layouts that have one, like ABNT2) counts as Ctrl+Alt.",
+    "zenith.links.ctrl-shift": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). Firefox's own opens the link in a new tab in front.",
+    "zenith.bar.position": "A bar across the window, as polybar and waybar are. At the top it's the title bar too: drag it to move the window, the window's buttons at its end. Both: the status at the top, this space's tabs in a bar at the bottom. Nothing in it runs while it's off.",
+    "zenith.bar.style": "Islands: each part a rounded pill on the window's background. Strip: one solid bar, flat. Minimal: text with bars between, as i3bar. Powerline: segments joined by arrows.",
+    "zenith.bar.size": "How tall the bar is.",
+    "zenith.bar.font": "Monospace uses JetBrains Mono or Cascadia (their Nerd Font versions first), else your system's monospace.",
+    "zenith.bar.icons": "Zenith's own small icons, the glyphs of a Nerd Font you've installed, or plain text signs.",
+    "zenith.bar.tabs": "In the sidebar, as now. In the bar: the sidebar goes (Zen's compact mode, its edge hover off; the address bar and Ctrl+Alt+S still bring it) and this space's tabs are in the bar. On hover: the sidebar slides in at the window's edge (Zen's compact mode). Compact mode comes back as it was when you change this or turn the bar off.",
+    "zenith.bar.tab-look": "How each tab shows in the bar: icons with the current tab's title, icons only, icon and short title, icon and title while they fit (then only the current one's, then icons), or numbers as i3's workspaces. A click goes to a tab, a middle click closes it, the wheel steps through them.",
+    "zenith.bar.spaces": "How your spaces show: the one you're in highlighted, ones with tabs brighter, one with a tab asking for attention in red. A click goes there, the wheel steps through them.",
+    "zenith.bar.title": "The middle of the bar shows the tab you're on (when tabs aren't in the bar).",
+    "zenith.bar.clock": "A click shows the date instead, and back. The clock wakes once a minute (each second only with seconds shown).",
+    "zenith.bar.launcher": "A button that opens the switcher, as a launcher.",
+    "zenith.bar.media": "The tab playing music or a video: the button plays or pauses, the title goes to its tab, the wheel skips.",
+    "zenith.bar.downloads": "How many downloads are under way and how far; a tick for a moment when they're done. A click opens Firefox's downloads.",
+    "zenith.bar.timers": "The next timer or pomodoro to end (Peek: timer 10m tea), counting down.",
+    "zenith.bar.tray": "Firefox's extensions panel.",
+    "zenith.palette": "One palette for the whole browser: the bar, Zenith's accent and every space's colours (the accent as each space's main colour, the palette's base around it). Your spaces' own colours are kept, and come back with Your own colours. Works with the bar off too.",
     "zenith.shell.mouse": "Hold Alt and drag a tile: onto the middle of another, they swap; onto its edge, it goes "
                           "there. Hold Alt and drag with the right button: the tile's nearest edges follow. Esc puts it "
                           "back. Alt+click still opens Zen's Glance.",
@@ -546,7 +575,8 @@ DESCRIPTIONS = {
     "zenith.shell.new-tile": "Along the longer side, as Hyprland's dwindle: a wide tile splits side by side, a tall one "
                              "top and bottom. Alt+B (right) or Alt+V (below) decides for the next one only.",
     "zenith.shell.tiles": "How many tabs one split view takes. Each tile is a page drawn on screen, so more tiles use "
-                          "more of your computer.",
+                          "more of your computer. No limit is experimental: Zen's split view was made for four, a big split "
+                          "uses a lot of memory and CPU, and tiles can get too small to use.",
     "zenith.panels.tile-focus": "In a split view, the tile you're on: as Zen draws it, or with a border in the accent colour.",
     "zenith.panels.tile-dim": "In a split view, the tiles you're not on: as they are, or dimmed a little.",
     "zenith.plus.local-ai": "Turns on the AI built into Firefox (Zen keeps it off) for the two things below. It runs "
@@ -701,7 +731,26 @@ LABELS = {
     "zenith.shell.keys": "The Shell's keys",
     "zenith.shell.bindings": "Keys",
     "zenith.shell.passthrough-sites": "Sites that keep their Alt keys",
-    "zenith.shell.tile-click": "Open a link as a tile with",
+    "zenith.bar.position": "The bar",
+    "zenith.bar.style": "Look",
+    "zenith.bar.size": "Height",
+    "zenith.bar.font": "Font",
+    "zenith.bar.icons": "Icons",
+    "zenith.bar.tabs": "Where tabs are",
+    "zenith.bar.tab-look": "Tabs in the bar",
+    "zenith.bar.spaces": "Spaces",
+    "zenith.bar.title": "The tab you're on",
+    "zenith.bar.clock": "Clock",
+    "zenith.bar.launcher": "Switcher button",
+    "zenith.bar.media": "What's playing",
+    "zenith.bar.downloads": "Downloads",
+    "zenith.bar.timers": "Timers",
+    "zenith.bar.tray": "Extensions",
+    "zenith.palette": "Palette",
+    "zenith.links.alt": "Alt+click a link",
+    "zenith.links.alt-shift": "Alt+Shift+click a link",
+    "zenith.links.ctrl-alt": "Ctrl+Alt+click a link",
+    "zenith.links.ctrl-shift": "Ctrl+Shift+click a link",
     "zenith.shell.mouse": "Alt+drag and Alt+right-drag",
     "zenith.shell.wheel": "Alt+wheel: spaces",
     "zenith.shell.follow-mouse": "Focus follows the mouse",

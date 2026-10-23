@@ -1447,45 +1447,6 @@
     "usedBy": "zenith-plus"
   },
   {
-    "property": "zenith.plus.peek-click",
-    "label": "Peek a link by clicking it with",
-    "type": "dropdown",
-    "placeholder": "Default (Alt+Shift)",
-    "options": [
-      {
-        "label": "Alt+Shift",
-        "value": "alt-shift"
-      },
-      {
-        "label": "Ctrl+Alt",
-        "value": "ctrl-alt"
-      },
-      {
-        "label": "Alt (instead of Zen's Glance)",
-        "value": "alt"
-      },
-      {
-        "label": "Alt, and Alt+Shift for Zen's Glance (swapped)",
-        "value": "alt-swap"
-      },
-      {
-        "label": "Nothing (its right-click menu only)",
-        "value": "off"
-      }
-    ],
-    "usedBy": "zenith-plus",
-    "conditions": [
-      {
-        "if": {
-          "property": "zenith.peek.enabled",
-          "value": true
-        }
-      }
-    ],
-    "operator": "AND",
-    "zenithWhy": "Peek is off"
-  },
-  {
     "property": "zenith.peek.behind",
     "label": "The page behind a Peek",
     "type": "dropdown",
@@ -2445,6 +2406,646 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.bar.position",
+    "label": "Zenith Shell's bar",
+    "type": "dropdown",
+    "placeholder": "Default (Off)",
+    "options": [
+      {
+        "label": "Off",
+        "value": "off"
+      },
+      {
+        "label": "At the top",
+        "value": "top"
+      },
+      {
+        "label": "At the bottom",
+        "value": "bottom"
+      },
+      {
+        "label": "Both: status at the top, tabs at the bottom",
+        "value": "both"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.bar.style",
+    "label": "The bar's look",
+    "type": "dropdown",
+    "placeholder": "Default (Islands (Hyprland and waybar))",
+    "options": [
+      {
+        "label": "Islands (Hyprland and waybar)",
+        "value": "islands"
+      },
+      {
+        "label": "Strip (polybar)",
+        "value": "strip"
+      },
+      {
+        "label": "Minimal (i3bar)",
+        "value": "minimal"
+      },
+      {
+        "label": "Powerline",
+        "value": "powerline"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.size",
+    "label": "The bar's height",
+    "type": "dropdown",
+    "placeholder": "Default (Normal (30px))",
+    "options": [
+      {
+        "label": "Compact (24px)",
+        "value": "24"
+      },
+      {
+        "label": "Normal (30px)",
+        "value": "30"
+      },
+      {
+        "label": "Roomy (36px)",
+        "value": "36"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.font",
+    "label": "The bar's font",
+    "type": "dropdown",
+    "placeholder": "Default (Monospace (a Nerd Font, if you have one))",
+    "options": [
+      {
+        "label": "Monospace (a Nerd Font, if you have one)",
+        "value": "mono"
+      },
+      {
+        "label": "Your system's",
+        "value": "system"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.icons",
+    "label": "The bar's icons",
+    "type": "dropdown",
+    "placeholder": "Default (Zenith's own)",
+    "options": [
+      {
+        "label": "Zenith's own",
+        "value": "svg"
+      },
+      {
+        "label": "Nerd Font glyphs",
+        "value": "nerd"
+      },
+      {
+        "label": "Text",
+        "value": "text"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.tabs",
+    "label": "Where tabs are, with the bar on",
+    "type": "dropdown",
+    "placeholder": "Default (In the sidebar)",
+    "options": [
+      {
+        "label": "In the sidebar",
+        "value": "sidebar"
+      },
+      {
+        "label": "In the bar, no sidebar",
+        "value": "bar"
+      },
+      {
+        "label": "The sidebar on hover (Zen's compact mode)",
+        "value": "hover"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.spaces",
+    "label": "Spaces in the bar",
+    "type": "dropdown",
+    "placeholder": "Default (Numbers)",
+    "options": [
+      {
+        "label": "Numbers",
+        "value": "numbers"
+      },
+      {
+        "label": "Names",
+        "value": "names"
+      },
+      {
+        "label": "Icons",
+        "value": "icons"
+      },
+      {
+        "label": "Dots",
+        "value": "dots"
+      },
+      {
+        "label": "Kanji (一 二 三)",
+        "value": "kanji"
+      },
+      {
+        "label": "Roman numerals (I II III)",
+        "value": "roman"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.title",
+    "label": "The tab you're on, in the bar",
+    "type": "dropdown",
+    "placeholder": "Default (Its title)",
+    "options": [
+      {
+        "label": "Its title",
+        "value": "title"
+      },
+      {
+        "label": "The site, then the title",
+        "value": "site"
+      },
+      {
+        "label": "Nothing",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.clock",
+    "label": "The bar's clock",
+    "type": "dropdown",
+    "placeholder": "Default (14:05)",
+    "options": [
+      {
+        "label": "14:05",
+        "value": "hm"
+      },
+      {
+        "label": "Thu 22 Oct 14:05",
+        "value": "dhm"
+      },
+      {
+        "label": "2026-10-22 14:05",
+        "value": "iso"
+      },
+      {
+        "label": "14:05:09 (wakes each second)",
+        "value": "hms"
+      },
+      {
+        "label": "2:05 PM",
+        "value": "12h"
+      },
+      {
+        "label": "No clock",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.launcher",
+    "label": "A switcher button (Alt+W)",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.media",
+    "label": "What's playing",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.downloads",
+    "label": "Downloads under way",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.timers",
+    "label": "Timers and pomodoros",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.tray",
+    "label": "Extensions",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": ""
+            }
+          },
+          {
+            "not": {
+              "property": "zenith.bar.position",
+              "value": "off"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.tab-look",
+    "label": "Tabs in the bar",
+    "type": "dropdown",
+    "placeholder": "Default (Icons, the current one with its title)",
+    "options": [
+      {
+        "label": "Icons, the current one with its title",
+        "value": "current"
+      },
+      {
+        "label": "Icons only",
+        "value": "icons"
+      },
+      {
+        "label": "Icon and short title",
+        "value": "titles"
+      },
+      {
+        "label": "Icon and short title while they fit, then fewer titles",
+        "value": "fit"
+      },
+      {
+        "label": "Numbers (i3)",
+        "value": "numbers"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.tabs",
+              "value": "bar"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.position",
+              "value": "both"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Tabs aren't in the bar"
+  },
+  {
+    "property": "zenith.palette",
+    "label": "Palette",
+    "type": "dropdown",
+    "placeholder": "Default (Your own colours)",
+    "options": [
+      {
+        "label": "Your own colours",
+        "value": "own"
+      },
+      {
+        "label": "Catppuccin Mocha",
+        "value": "catppuccin-mocha"
+      },
+      {
+        "label": "Catppuccin Macchiato",
+        "value": "catppuccin-macchiato"
+      },
+      {
+        "label": "Catppuccin Frappé",
+        "value": "catppuccin-frappe"
+      },
+      {
+        "label": "Catppuccin Latte",
+        "value": "catppuccin-latte"
+      },
+      {
+        "label": "Tokyo Night",
+        "value": "tokyo-night"
+      },
+      {
+        "label": "Gruvbox dark",
+        "value": "gruvbox-dark"
+      },
+      {
+        "label": "Gruvbox light",
+        "value": "gruvbox-light"
+      },
+      {
+        "label": "Nord",
+        "value": "nord"
+      },
+      {
+        "label": "Rosé Pine",
+        "value": "rose-pine"
+      },
+      {
+        "label": "Rosé Pine Dawn",
+        "value": "rose-pine-dawn"
+      },
+      {
+        "label": "Everforest",
+        "value": "everforest"
+      },
+      {
+        "label": "Kanagawa",
+        "value": "kanagawa"
+      },
+      {
+        "label": "Dracula",
+        "value": "dracula"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.shell.keys",
     "label": "Zenith Shell: i3's keys with Alt (Alt+Shift+/ lists them)",
     "type": "checkbox",
@@ -2488,22 +3089,101 @@
     "zenithWhy": "The Shell's keys are off"
   },
   {
-    "property": "zenith.shell.tile-click",
-    "label": "Open a link as a tile by clicking it with",
+    "property": "zenith.links.alt",
+    "label": "Alt+click a link",
     "type": "dropdown",
-    "placeholder": "Default (Alt+Shift)",
+    "placeholder": "Default (Zen's Glance)",
     "options": [
       {
-        "label": "Alt+Shift",
-        "value": "alt-shift"
+        "label": "Zen's Glance",
+        "value": "glance"
       },
       {
-        "label": "Ctrl+Alt",
-        "value": "ctrl-alt"
+        "label": "Peek",
+        "value": "peek"
       },
       {
-        "label": "Nothing",
-        "value": "off"
+        "label": "A tile beside this one",
+        "value": "tile"
+      },
+      {
+        "label": "Nothing (the page's and Firefox's own)",
+        "value": "nothing"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.links.alt-shift",
+    "label": "Alt+Shift+click a link",
+    "type": "dropdown",
+    "placeholder": "Default (A tile beside this one)",
+    "options": [
+      {
+        "label": "Zen's Glance",
+        "value": "glance"
+      },
+      {
+        "label": "Peek",
+        "value": "peek"
+      },
+      {
+        "label": "A tile beside this one",
+        "value": "tile"
+      },
+      {
+        "label": "Nothing (the page's and Firefox's own)",
+        "value": "nothing"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.links.ctrl-alt",
+    "label": "Ctrl+Alt (or AltGr)+click a link",
+    "type": "dropdown",
+    "placeholder": "Default (Peek)",
+    "options": [
+      {
+        "label": "Zen's Glance",
+        "value": "glance"
+      },
+      {
+        "label": "Peek",
+        "value": "peek"
+      },
+      {
+        "label": "A tile beside this one",
+        "value": "tile"
+      },
+      {
+        "label": "Nothing (the page's and Firefox's own)",
+        "value": "nothing"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.links.ctrl-shift",
+    "label": "Ctrl+Shift+click a link",
+    "type": "dropdown",
+    "placeholder": "Default (Nothing (the page's and Firefox's own))",
+    "options": [
+      {
+        "label": "Zen's Glance",
+        "value": "glance"
+      },
+      {
+        "label": "Peek",
+        "value": "peek"
+      },
+      {
+        "label": "A tile beside this one",
+        "value": "tile"
+      },
+      {
+        "label": "Nothing (the page's and Firefox's own)",
+        "value": "nothing"
       }
     ],
     "usedBy": "zenith-plus"
@@ -2567,6 +3247,10 @@
       {
         "label": "8",
         "value": "8"
+      },
+      {
+        "label": "No limit (experimental)",
+        "value": "0"
       }
     ],
     "usedBy": "zenith-plus"
