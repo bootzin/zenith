@@ -157,7 +157,7 @@ function mediaCard(box, undo) {
 
 /* --- What Firefox uses -------------------------------------------------------------------- */
 function systemCard(box, undo) {
-  const c = card("Firefox", "zd-sys");
+  const c = card("Browser", "zd-sys");
   const rows = {};
   for (const [k, label, icon] of [["memory", "Memory", "memory"], ["cpu", "Processor", "cpu"], ["tabs", "Tabs", "tabs"], ["trackers", "Trackers here", "shield"]]) {
     const row = node("div", { class: "zs-row" });
@@ -166,11 +166,19 @@ function systemCard(box, undo) {
     c.append(row);
   }
   box.append(c);
+  // Tabs: this space's, and (in brackets) every space's; a click opens the tab manager.
+  const tabsRow = rows.tabs.parentNode;
+  tabsRow.setAttribute("action", "true");
+  tabsRow.addEventListener("click", () => {
+    Popup.close();
+    window.ZenithTabs?.show?.();
+  });
   const draw = async () => {
     const s = await System.sample();
     put(rows.memory, bytes(s.memory));
     put(rows.cpu, s.cpu === null ? "…" : `${s.cpu < 10 ? s.cpu.toFixed(1) : Math.round(s.cpu)}%`);
-    put(rows.tabs, `${s.awake} awake · ${s.asleep} asleep`);
+    put(rows.tabs, `${s.here.awake} awake (${s.awake}) · ${s.here.asleep} asleep (${s.asleep})`);
+    tabsRow.title = `In this space: ${s.here.awake} awake, ${s.here.asleep} asleep. In every space: ${s.awake} awake, ${s.asleep} asleep. A click opens the tab manager.`;
   };
   Trackers.count().then(t => put(rows.trackers, `${t.total}`));
   System.last = null;

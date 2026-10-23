@@ -964,8 +964,7 @@ browser[zenith-see-through] {
    palette when there is one (--zth-pal-*), else from Zenith's own glass.
    Everything in it is boxed off (contain), so a module changing restyles
    itself only. */
-#zenith-bar,
-#zenith-bar-bottom {
+.zenith-bar {
   --zb-h: 30px;
   --zb-pad: 4px;
   /* (On the window's own colours, as Zen paints behind the sidebar.) */
@@ -1419,6 +1418,236 @@ browser[zenith-see-through] {
   }
 }
 
+/* Bars standing up (left, right): a rail of icons, or wider with titles;
+   their parts top to bottom, the tabs in the middle, scrolling. */
+.zenith-bar[vertical] {
+  --zb-w: 44px;
+  width: var(--zb-w);
+  height: auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: 6px 0;
+
+  &[width="wide"] {
+    --zb-w: 210px;
+  }
+
+  & > div {
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    gap: 4px;
+  }
+
+  & > :is(.zb-left, .zb-centre, .zb-right) {
+    justify-self: stretch;
+  }
+
+  & > .zb-centre {
+    align-self: stretch;
+    max-width: none;
+  }
+
+  & .zb-mod {
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    width: calc(100% - 8px);
+    height: auto;
+    min-height: calc(var(--zb-h) - 2 * var(--zb-pad));
+    padding: 5px 0;
+  }
+
+  &[width="wide"] .zb-mod {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 5px 10px;
+  }
+
+  & .zb-mod[mod="spaces"] {
+    gap: 3px;
+  }
+
+  &[width] .zb-mod[mod="tasks"] {
+    flex: 1;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 4px 0;
+  }
+
+  /* (Arrows and bars between parts are for bars lying down.) */
+  &[look="powerline"] > div > .zb-mod:not([mod="mode"]) {
+    margin: 0;
+    padding-inline: 0;
+    clip-path: none;
+  }
+
+  &[look="minimal"] > .zb-right > .zb-mod::before {
+    display: none;
+  }
+
+  & .zb-task {
+    width: 100%;
+    max-width: none;
+    justify-content: center;
+    padding: 6px 0;
+  }
+
+  &[width="wide"] .zb-task {
+    justify-content: flex-start;
+    padding: 6px 8px;
+
+    & .zb-task-label {
+      display: block;
+    }
+  }
+
+  &[width="rail"] {
+    & :is(.zb-media-text, .zb-mod[mod="downloads"] > span:not(.zb-i, .zb-g), .zb-mod[mod="resources"] > span:not(.zb-i, .zb-g)) {
+      display: none;
+    }
+
+    & .zb-mod[mod="clock"] span {
+      white-space: pre;
+      text-align: center;
+      line-height: 1.15;
+    }
+
+    & .zb-mod[mod="weather"],
+    & .zb-mod[mod="timers"] {
+      font-size: 10px;
+    }
+  }
+}
+
+/* A bar that hides (Settings › Bar › Hide the … bar): out of the way, over
+   the page, until the pointer reaches its edge (or one of its popups is
+   open); it slides back a moment after the pointer leaves. */
+:root[zenith-bar] #zen-main-app-wrapper {
+  position: relative;
+}
+
+.zenith-bar[collapsible] {
+  position: absolute;
+  z-index: 6;
+  opacity: 0;
+  transition: translate 0.18s ease 0.4s, opacity 0.18s ease 0.4s;
+
+  &[edge="top"] {
+    inset: 0 0 auto 0;
+    translate: 0 calc(-100% + 5px);
+  }
+
+  &[edge="bottom"] {
+    inset: auto 0 0 0;
+    translate: 0 calc(100% - 5px);
+  }
+
+  &[edge="left"] {
+    inset: 0 auto 0 0;
+    translate: calc(-100% + 5px) 0;
+  }
+
+  &[edge="right"] {
+    inset: 0 0 0 auto;
+    translate: calc(100% - 5px) 0;
+  }
+
+  &:is(:hover, :focus-within, [holding]) {
+    translate: 0 0;
+    opacity: 1;
+    transition-delay: 0.06s;
+  }
+}
+
+/* More tabs than the bar has room for: how many, a click lists them. */
+.zenith-bar .zb-mod[mod="tasks-more"] {
+  flex: none;
+  gap: 5px;
+  padding: 0 8px;
+  color: var(--zb-dim);
+}
+
+.zenith-bar[vertical] .zb-mod[mod="tasks-more"] {
+  padding: 5px 0;
+}
+
+:is(.zb-i, .zs-i)[icon="power"] {
+  --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.2 1h1.6v7H7.2z'/%3E%3Cpath d='M4.4 3.2l1.1 1.2A4.6 4.6 0 1 0 10.5 4.4l1.1-1.2A6.2 6.2 0 1 1 4.4 3.2z'/%3E%3C/svg%3E");
+}
+
+:is(.zb-i, .zs-i)[icon="minimise"] {
+  --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 11h10v1.6H3z'/%3E%3C/svg%3E");
+}
+
+:is(.zb-i, .zs-i)[icon="maximise"] {
+  --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M3 3h10v10H3zm1.6 1.6v6.8h6.8V4.6z'/%3E%3C/svg%3E");
+}
+
+:is(.zb-i, .zs-i)[icon="window"] {
+  --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M5 2h9v9h-2v2H2V4h3zm1.6 1.6V5H12v4.4h.4V3.6zM3.6 5.6v5.8h6.8V5.6z'/%3E%3C/svg%3E");
+}
+
+:is(.zb-i, .zs-i)[icon="close"] {
+  --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 4.6l1.1-1.1L8 6.9l3.4-3.4 1.1 1.1L9.1 8l3.4 3.4-1.1 1.1L8 9.1l-3.4 3.4-1.1-1.1L6.9 8z'/%3E%3C/svg%3E");
+}
+
+:is(.zb-i, .zs-i)[icon="restart"] {
+  --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 2.5a5.5 5.5 0 1 0 5.4 6.6h-1.7A3.9 3.9 0 1 1 8 4.1c1.1 0 2 .4 2.7 1.1L9 6.9h4.5V2.4l-1.6 1.6A5.5 5.5 0 0 0 8 2.5z'/%3E%3C/svg%3E");
+}
+
+:is(.zb-i, .zs-i)[icon="quit"] {
+  --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 2.5h6v1.6H4.1v7.8h4.4v1.6h-6z'/%3E%3Cpath d='M10.4 4.8l3.2 3.2-3.2 3.2-1.1-1.1 1.3-1.3H6.5V7.2h4.1L9.3 5.9z'/%3E%3C/svg%3E");
+}
+
+/* Popups: rows you can click, the tab you're on, a favicon, a field at the top. */
+.zs-pop {
+  & .zs-row[action] {
+    cursor: pointer;
+  }
+
+  & .zs-row[current] {
+    background: color-mix(in srgb, var(--zs-accent) 18%, transparent);
+  }
+
+  & .zs-fav {
+    flex: none;
+    width: 16px;
+    height: 16px;
+  }
+
+  & .zs-fav:not([src]) {
+    border-radius: 50%;
+    background: color-mix(in srgb, currentColor 14%, transparent);
+  }
+
+  & .zs-field.zs-top {
+    margin: 0 0 8px;
+  }
+
+  & .zs-btn.zs-danger {
+    color: var(--zth-pal-red, rgb(229 72 77));
+  }
+
+  & .zs-btn.zs-danger[asking] {
+    border-color: transparent;
+    background: var(--zth-pal-red, rgb(229 72 77));
+    color: white;
+  }
+}
+
+/* A palette is light or dark: the bar and its popups say so to their
+   fields, scrollbars and light-dark() colours, whatever Zen's own scheme. */
+:root[zenith-palette="light"] :is(.zenith-bar, .zs-pop) {
+  color-scheme: light;
+}
+
+:root[zenith-palette="dark"] :is(.zenith-bar, .zs-pop) {
+  color-scheme: dark;
+}
+
 /* A palette gives Zenith its accent too (the spaces take its colours, so
    Zen's own follows). */
 :root[zenith-palette] {
@@ -1683,6 +1912,7 @@ browser[zenith-see-through] {
   }
 
   & .zs-field {
+    appearance: none;
     box-sizing: border-box;
     width: 100%;
     margin-top: 8px;
@@ -1977,14 +2207,14 @@ browser[zenith-see-through] {
    really behind the sidebar, for the sidebar and the bar. Zen sets the text
    colour on each space's own element too, and Firefox's tab strip has a
    scheme of its own: both follow. */
-:root[zenith-ink="light"] :is(#navigator-toolbox, #navigator-toolbox zen-workspace, #zenith-bar, #zenith-bar-bottom) {
+:root[zenith-ink="light"] :is(#navigator-toolbox, #navigator-toolbox zen-workspace, .zenith-bar) {
   color-scheme: dark !important;
   --toolbox-textcolor: rgb(255 255 255 / 0.92) !important;
   --tab-selected-color-scheme: dark !important;
   --toolbar-color-scheme: dark !important;
 }
 
-:root[zenith-ink="dark"] :is(#navigator-toolbox, #navigator-toolbox zen-workspace, #zenith-bar, #zenith-bar-bottom) {
+:root[zenith-ink="dark"] :is(#navigator-toolbox, #navigator-toolbox zen-workspace, .zenith-bar) {
   color-scheme: light !important;
   --toolbox-textcolor: rgb(0 0 0 / 0.86) !important;
   --tab-selected-color-scheme: light !important;

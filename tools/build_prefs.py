@@ -85,7 +85,12 @@ def ALL(*conds):
 
 # The bar is on (Settings › Bar): anything but off.
 def _bar_on():
-    return ALL(NOT("zenith.bar.position", ""), NOT("zenith.bar.position", "off"))
+    return ANY(*[IF(f"zenith.bar.{e}", v) for e in ("top", "bottom", "left", "right") for v in ("status", "tabs", "both")])
+
+
+# Tabs are in a bar (some edge has "Tabs" or "Status and tabs").
+def _tabs_in_bar():
+    return ANY(*[IF(f"zenith.bar.{e}", v) for e in ("top", "bottom", "left", "right") for v in ("tabs", "both")])
 
 
 def when(entry, why, *conds):
@@ -96,6 +101,7 @@ def when(entry, why, *conds):
 
 
 BAR_ON = _bar_on()
+TABS_IN_BAR = _tabs_in_bar()
 PEEK_ON = IF("zenith.peek.enabled", True)
 MOTION_ON = NOT("zenith.motion.preset", "off")
 
@@ -336,14 +342,9 @@ MODS = {
         script(dropdown("zenith.plus.tabs-auto-close", "Close loose tabs on their own", "Never",
                         ("Never", "off"), ("After a day", "1"), ("After 3 days", "3"), ("After a week", "7"),
                         ("After 2 weeks", "14"), ("After a month", "30"))),
-        script(dropdown("zenith.plus.palette-sync", "Palette sync: the spaces take your desktop palette's colours", "Off",
-                        ("Off", "off"), ("pywal or winwal (~/.cache/wal/colors.json)", "pywal"),
-                        ("wallust (~/.cache/wallust/colors.json)", "wallust"),
-                        ("Your wallpaper (with Window material on Wallpaper)", "wallpaper"))),
-        when(script(dropdown("zenith.plus.palette-spaces", "Palette sync colours", "Every space",
+        when(script(dropdown("zenith.plus.palette-spaces", "Which spaces a palette colours", "Every space",
                              ("Every space", "all"), ("The space you're in", "current"))),
-             "Palette sync is off", ANY(IF("zenith.plus.palette-sync", "pywal"), IF("zenith.plus.palette-sync", "wallust"),
-                                        IF("zenith.plus.palette-sync", "wallpaper"))),
+             "Only with a palette", ALL(NOT("zenith.palette", ""), NOT("zenith.palette", "own"))),
         script(dropdown("zenith.plus.space-colour", "Space colour in the glass", "Its gradient",
                         ("Its gradient", "gradient"), ("One tint", "tint"))),
         script(dropdown("zenith.plus.colour-strength", "Space colour strength", "Medium",
@@ -381,10 +382,32 @@ MODS = {
              "Float a tab is off", IF("zenith.plus.float-tab", True)),
         script(checkbox("zenith.plus.split-solo", "Alt+F: the pane you're on fills a split view; Alt+F again, the split as it was", True)),
         script(checkbox("zenith.plus.link-hints", "Link hints on Alt+; (the key right of L): letters on every link, type them to follow it (Alt+Shift+;: in a new tab)", True)),
-        # (BAR_ON: see _bar_on.)
-        script(dropdown("zenith.bar.position", "Zenith Shell's bar", "Off",
-                        ("Off", "off"), ("At the top", "top"), ("At the bottom", "bottom"),
-                        ("Both: status at the top, tabs at the bottom", "both"))),
+        # Bars on each edge (BAR_ON: see _bar_on), a layout preset that sets
+        # them, and where the sidebar is.
+        script(dropdown("zenith.bar.layout", "Bar layout", "No bar",
+                        ("No bar", "zen"), ("A top bar", "top"), ("Top and bottom", "split"), ("A taskbar", "taskbar"),
+                        ("A rail", "rail"), ("Minimal", "minimal"))),
+        script(dropdown("zenith.bar.top", "A bar at the top", "None", ("None", "off"), ("Status", "status"), ("Tabs", "tabs"), ("Status and tabs", "both"))),
+        when(script(checkbox("zenith.bar.hide-top", "The top bar hides until the pointer reaches it", False)),
+             "There's no bar at the top", ANY(IF("zenith.bar.top", "status"), IF("zenith.bar.top", "tabs"), IF("zenith.bar.top", "both"))),
+        script(dropdown("zenith.bar.bottom", "A bar at the bottom", "None", ("None", "off"), ("Status", "status"), ("Tabs", "tabs"), ("Status and tabs", "both"))),
+        when(script(checkbox("zenith.bar.hide-bottom", "The bottom bar hides until the pointer reaches it", False)),
+             "There's no bar at the bottom", ANY(IF("zenith.bar.bottom", "status"), IF("zenith.bar.bottom", "tabs"), IF("zenith.bar.bottom", "both"))),
+        script(dropdown("zenith.bar.left", "A bar at the left", "None", ("None", "off"), ("Status", "status"), ("Tabs", "tabs"), ("Status and tabs", "both"))),
+        when(script(checkbox("zenith.bar.hide-left", "The left bar hides until the pointer reaches it", False)),
+             "There's no bar at the left", ANY(IF("zenith.bar.left", "status"), IF("zenith.bar.left", "tabs"), IF("zenith.bar.left", "both"))),
+        script(dropdown("zenith.bar.right", "A bar at the right", "None", ("None", "off"), ("Status", "status"), ("Tabs", "tabs"), ("Status and tabs", "both"))),
+        when(script(checkbox("zenith.bar.hide-right", "The right bar hides until the pointer reaches it", False)),
+             "There's no bar at the right", ANY(IF("zenith.bar.right", "status"), IF("zenith.bar.right", "tabs"), IF("zenith.bar.right", "both"))),
+        script(dropdown("zenith.sidebar", "The sidebar", "Shown",
+                        ("Shown", "shown"), ("On hover (Zen's compact mode)", "hover"), ("Hidden (tabs in a bar)", "hidden"))),
+        when(script(dropdown("zenith.bar.side-width", "Bars on the left or right", "A rail of icons",
+                             ("A rail of icons", "rail"), ("With titles", "wide"))),
+             "There's no bar on the left or right", ANY(*[IF(f"zenith.bar.{e}", v) for e in ("left", "right") for v in ("status", "tabs", "both")])),
+        when(script(dropdown("zenith.bar.buttons", "The window's buttons", "In the top bar",
+                             ("In the top bar", "window"), ("A power button with them, and restart and quit", "power"),
+                             ("Not in a bar", "nothing"))),
+             "The bar is off", BAR_ON),
         *[when(script(e), "The bar is off", BAR_ON) for e in (
             dropdown("zenith.bar.style", "The bar's look", "Islands (Hyprland and waybar)",
                      ("Islands (Hyprland and waybar)", "islands"), ("Strip (polybar)", "strip"),
@@ -395,9 +418,6 @@ MODS = {
                      ("Monospace (a Nerd Font, if you have one)", "mono"), ("Your system's", "system")),
             dropdown("zenith.bar.icons", "The bar's icons", "Zenith's own",
                      ("Zenith's own", "svg"), ("Nerd Font glyphs", "nerd"), ("Text", "text")),
-            dropdown("zenith.bar.tabs", "Where tabs are, with the bar on", "In the sidebar",
-                     ("In the sidebar", "sidebar"), ("In the bar, no sidebar", "bar"),
-                     ("The sidebar on hover (Zen's compact mode)", "hover")),
             dropdown("zenith.bar.spaces", "Spaces in the bar", "Numbers",
                      ("Numbers", "numbers"), ("Names", "names"), ("Icons", "icons"), ("Dots", "dots"),
                      ("Kanji (一 二 三)", "kanji"), ("Roman numerals (I II III)", "roman")),
@@ -416,16 +436,17 @@ MODS = {
             checkbox("zenith.bar.weather", "Weather (wttr.in)", False),
             dropdown("zenith.bar.weather-place", "Weather for", "Near you (by your connection)",
                      ("Near you (by your connection)", "near"), ("Peek's last weather place", "peek")),
-            checkbox("zenith.bar.resources", "What Firefox uses (memory)", False),
+            checkbox("zenith.bar.resources", "What the browser uses (memory)", False),
         )],
         when(script(dropdown("zenith.bar.tab-look", "Tabs in the bar", "Icons, the current one with its title",
                              ("Icons, the current one with its title", "current"), ("Icons only", "icons"),
                              ("Icon and short title", "titles"),
                              ("Icon and short title while they fit, then fewer titles", "fit"), ("Numbers (i3)", "numbers"))),
-             "Tabs aren't in the bar", ANY(IF("zenith.bar.tabs", "bar"), IF("zenith.bar.position", "both"))),
+             "Tabs aren't in a bar", TABS_IN_BAR),
         script(checkbox("zenith.dash.weather", "The Dash's weather (wttr.in)", True)),
         script(dropdown("zenith.palette", "Palette", "Your own colours",
-                        ("Your own colours", "own"), ("Catppuccin Mocha", "catppuccin-mocha"),
+                        ("Your own colours", "own"), ("From your wallpaper", "wallpaper"), ("From pywal or winwal", "pywal"),
+                        ("From wallust", "wallust"), ("Catppuccin Mocha", "catppuccin-mocha"),
                         ("Catppuccin Macchiato", "catppuccin-macchiato"), ("Catppuccin Frappé", "catppuccin-frappe"),
                         ("Catppuccin Latte", "catppuccin-latte"), ("Tokyo Night", "tokyo-night"),
                         ("Gruvbox dark", "gruvbox-dark"), ("Gruvbox light", "gruvbox-light"), ("Nord", "nord"),

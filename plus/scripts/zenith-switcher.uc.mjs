@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.15.0
+// @version        0.15.1
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -239,7 +239,8 @@ const Items = {
 const peek = () => window.ZenithPeek ?? null;
 
 const COMMANDS = [
-  { name: "help", arg: "", text: "What Zenith can do, and how (for a start)", ok: () => true },
+  { name: "help", arg: "a topic: tiles, keys, bar…", text: "Zenith's help: what it can do, and how", ok: () => !!window.ZenithHelp,
+    run: a => window.ZenithHelp.open(a) },
   { name: "appearance", arg: "dark, light or auto", text: "How pages look: dark, light or automatic", ok: () => !!window.ZenithAppearance,
     run: a => (/^d/i.test(a) ? window.ZenithAppearance.set("dark") : /^l/i.test(a) ? window.ZenithAppearance.set("light")
              : /^a/i.test(a) ? window.ZenithAppearance.set("auto") : window.ZenithAppearance.toggle()) },
@@ -273,7 +274,6 @@ const Commands = {
     const name = m[1].toLowerCase(), arg = m[2].trim();
     const usable = COMMANDS.filter(c => c.ok());
     const exact = usable.find(c => c.name === name);
-    if (exact?.name === "help" && (arg || text.endsWith(" ") || name === "help")) return Help.find(arg);
     if (exact && (arg || text.endsWith(" "))) return [this.item(exact, arg, true)];
     return usable.map(c => [name ? score(name, c.name) : 1, c]).filter(([s]) => s >= 0)
       .sort((a, b) => b[0] - a[0]).map(([, c]) => this.item(c, "", false));
@@ -386,31 +386,6 @@ const Emoji = {
     const pick = words.length ? all.map(e => [words.every(w => e.tags.some(t => t.startsWith(w))) ? words.reduce((a, w) => a + (e.tags.includes(w) ? 2 : 1), 0) - e.tags.length * 0.05 : -1, e])
       .filter(([s]) => s > 0).sort((a, b) => b[0] - a[0] || a[1].order - b[1].order).map(([, e]) => e) : all.slice(0, 40);
     return pick.slice(0, MAX).map(e => ({ kind: "emoji", title: `${e.emoji}  ${e.tags.slice(0, 4).join(", ")}`, sub: "", text: e.emoji }));
-  },
-};
-
-/* :help: what Zenith can do, for someone new, each a thing to try (Enter
-   does it). ":help tiles" narrows it. */
-const HELP = [
-  ["Jump to any tab", "Alt+W, then a few letters of its title or site", () => Switcher.show("", "tabs")],
-  ["Open a site or search", "Alt+D: an address, a search, a bookmark", () => Switcher.show("", "open")],
-  ["Look something up and stay", "Alt+Q: Peek. Or Ctrl+Alt+click a link", () => window.ZenithPeek?.prompt("")],
-  ["Follow links by keyboard", "Alt+; puts letters on every link: type them", () => document.getElementById("zenith-hints-command")?.doCommand()],
-  ["Two pages side by side", "Alt+Shift+click a link, or Alt+Shift+Enter: a tile. Alt+H/J/K/L move between tiles", () => window.ZenithShell?.sheet.toggle()],
-  ["Every key on one sheet", "Alt+Shift+/", () => window.ZenithShell?.sheet.toggle()],
-  ["Spaces", "Alt+1…0 goes to one, Alt+Shift+1…0 sends the tab there", () => Switcher.show("", "spaces")],
-  ["Read without distractions", "Alt+Z: focus mode, Alt+Z again to leave", () => window.ZenithFocus?.toggle()],
-  ["A timer", ":timer 10m tea, or :pomo", () => Switcher.show(":timer ")],
-  ["Calendar, weather, toggles", "Alt+N: the Dash. Settings › Bar adds a bar like waybar", () => window.ZenithDash?.toggle()],
-  ["Tidy up your tabs", "Alt+Shift+T: the tab manager", () => window.ZenithTabs?.show()],
-  ["Change anything", "Alt+Shift+Z: Zenith's settings over the page", () => window.ZenithLive?.toggle()],
-];
-
-const Help = {
-  find(arg) {
-    const words = arg.toLowerCase().split(/\s+/).filter(Boolean);
-    return HELP.filter(([t, s]) => words.every(w => `${t} ${s}`.toLowerCase().includes(w)))
-      .map(([title, sub, run]) => ({ kind: "help", title, sub, run }));
   },
 };
 
@@ -575,10 +550,6 @@ const Switcher = {
   async choose() {
     const item = this.items[this.selected];
     if (!item) return;
-    if (item.kind === "help") {
-      this.hide();
-      return item.run?.();
-    }
     if (item.kind === "calc" || item.kind === "emoji") {
       if (!item.text) return;
       this.hide();

@@ -11,6 +11,24 @@ every setting appears exactly once.
 # doesn't list keep their own value. The values match what Zenith's CSS
 # does when a setting is left at "Follow preset".
 PRESETS = {
+    "zenith.bar.layout": {
+        "default": "zen",
+        "values": {
+            "zen": {"label": "No bar", "blurb": "Zen as it is: tabs in the sidebar"},
+            "top": {"label": "A top bar", "blurb": "Spaces, the tab you're on, the clock; tabs stay in the sidebar"},
+            "split": {"label": "Top and bottom", "blurb": "Status at the top, this space's tabs at the bottom; no sidebar"},
+            "taskbar": {"label": "A taskbar", "blurb": "One bar at the bottom with tabs and status; no sidebar"},
+            "rail": {"label": "A rail", "blurb": "Tabs and status in a slim bar on the left, instead of the sidebar"},
+            "minimal": {"label": "Minimal", "blurb": "Tabs and status at the top; the sidebar on hover"},
+        },
+        "sets": {
+            "zenith.bar.top": {"zen": "off", "top": "status", "split": "status", "taskbar": "off", "rail": "off", "minimal": "both"},
+            "zenith.bar.bottom": {"zen": "off", "top": "off", "split": "tabs", "taskbar": "both", "rail": "off", "minimal": "off"},
+            "zenith.bar.left": {"zen": "off", "top": "off", "split": "off", "taskbar": "off", "rail": "both", "minimal": "off"},
+            "zenith.bar.right": {"zen": "off", "top": "off", "split": "off", "taskbar": "off", "rail": "off", "minimal": "off"},
+            "zenith.sidebar": {"zen": "shown", "top": "shown", "split": "hidden", "taskbar": "hidden", "rail": "hidden", "minimal": "hover"},
+        },
+    },
     "zenith.edges.preset": {
         "default": "full",
         "values": {
@@ -99,7 +117,7 @@ PRESETS = {
 PICTURES = {
     "zenith.core.window-transparency", "zenith.core.page", "zenith.core.glass-edge", "zenith.core.floating-sidebar", "zenith.core.corners",
     "zenith.plus.material-windows", "zenith.edges.preset", "zenith.edges.container-style", "zenith.tabs.preset",
-    "zenith.urlbar.preset", "zenith.urlbar.results", "zenith.panels.preset", "zenith.panels.findbar",
+    "zenith.urlbar.preset", "zenith.urlbar.results", "zenith.bar.layout", "zenith.palette", "zenith.panels.preset", "zenith.panels.findbar",
     "zenith.panels.split", "zenith.panels.notifications", "zenith.motion.preset",
 }
 
@@ -121,7 +139,7 @@ PARENTS = {
     "zenith.peek.pomodoro": "zenith.peek.enabled",
     "zenith.plus.switcher-scope": "zenith.plus.switcher",
     "zenith.shell.bindings": "zenith.shell.keys",
-    "zenith.bar.tab-look": "zenith.bar.tabs",
+    "zenith.bar.tab-look": "zenith.bar.top",
     "zenith.bar.weather-place": "zenith.bar.weather",
     "zenith.shell.passthrough-sites": "zenith.shell.keys",
 }
@@ -132,8 +150,8 @@ SECTIONS = [
         "blurb": "Size, colour, glass and the window around the page.",
         "groups": [
             ("Size", ["zenith.core.density", "zenith.core.scale"]),
-            ("Colour and shape", ["zenith.core.accent", "zenith.plus.ink", "zenith.plus.space-colour", "zenith.plus.colour-strength",
-                                  "zenith.action.colours-image", "zenith.action.colours-wallpaper", "zenith.plus.palette-sync", "zenith.plus.palette-spaces",
+            ("Colour and shape", ["zenith.palette", "zenith.core.accent", "zenith.plus.ink", "zenith.plus.space-colour", "zenith.plus.colour-strength",
+                                  "zenith.action.colours-image", "zenith.action.colours-wallpaper", "zenith.plus.palette-spaces",
                                   "zenith.action.colours-undo", "zenith.core.corners", "zenith.core.pills"]),
             ("Glass", ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
                        "zenith.core.floating-sidebar", "zenith.plus.material-windows", "zenith.plus.wallpaper-source",
@@ -236,17 +254,18 @@ SECTIONS = [
         ],
     },
     {
-        "id": "bar", "title": "Bar", "icon": "panels",
-        "blurb": "A status bar across the window, as polybar and waybar are: spaces, the tab you're on (or all of them), what's playing, downloads, timers and a clock. One palette can colour the whole browser.",
+        "id": "bar", "title": "Bar", "icon": "panels", "preset": "zenith.bar.layout",
+        "blurb": "Bars on any edge of the window, as polybar and waybar are: spaces, the tab you're on (or all of them), what's playing, downloads, timers and a clock. Start from a layout, then change any edge.",
         "groups": [
-            ("Bar", ["zenith.bar.position", "zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.icons"]),
-            ("Tabs", ["zenith.bar.tabs", "zenith.bar.tab-look"]),
+            ("Bars", ["zenith.bar.top", "zenith.bar.hide-top", "zenith.bar.bottom", "zenith.bar.hide-bottom", "zenith.bar.left",
+                      "zenith.bar.hide-left", "zenith.bar.right", "zenith.bar.hide-right", "zenith.sidebar", "zenith.bar.side-width",
+                      "zenith.bar.buttons"]),
+            ("Look", ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.icons", "zenith.bar.tab-look"]),
             ("In the bar", ["zenith.bar.spaces", "zenith.bar.title", "zenith.bar.clock", "zenith.bar.launcher",
                             "zenith.bar.media", "zenith.bar.downloads", "zenith.bar.timers", "zenith.bar.privacy",
                             "zenith.bar.appearance", "zenith.bar.weather", "zenith.bar.weather-place", "zenith.bar.resources",
                             "zenith.bar.tray"]),
             ("The Dash", ["zenith.dash.weather"]),
-            ("Palette", ["zenith.palette"]),
         ],
     },
     {
@@ -445,15 +464,6 @@ DESCRIPTIONS = {
     "zenith.page.selection": "Selected text in web pages takes the accent colour.",
     "zenith.page.thin-scrollbars": "Thin scrollbars in the accent colour in web pages.",
     "zenith.plus.zoom-pill": "A small pill on zoomed pages; click it to reset.",
-    "zenith.plus.palette-sync": "For people who theme their whole desktop with pywal (winwal on Windows) or wallust: "
-                                "those tools pick colours from your wallpaper and write them to a file your terminal and "
-                                "other apps read. With this on, your spaces take that palette's most striking colours "
-                                "(one, two or three) the moment it changes. pywal writes ~/.cache/wal/colors.json itself; "
-                                "for wallust, add a template that writes the same file to ~/.cache/wallust/colors.json. "
-                                "Or Your wallpaper: whenever the wallpaper Zenith draws changes (Window material on "
-                                "Wallpaper), the spaces take its colours, no other tool needed. Undo colours puts the "
-                                "spaces back.",
-    "zenith.plus.palette-spaces": "Every space follows the palette, or only the space you're in when it changes.",
     "zenith.plus.float-tab": "Alt+Shift+F (or right-click a tab › Float this tab) moves the tab you're on into a small "
                              "window of its own, which takes the focus; the page carries on as it was, and Alt+Shift+F "
                              "there puts it back. Its bar: the title (click it, or Ctrl+L, Alt+D or F4, to type an "
@@ -555,12 +565,10 @@ DESCRIPTIONS = {
     "zenith.links.alt-shift": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). ",
     "zenith.links.ctrl-alt": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). AltGr (the right Alt on layouts that have one, like ABNT2) counts as Ctrl+Alt.",
     "zenith.links.ctrl-shift": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). Firefox's own opens the link in a new tab in front.",
-    "zenith.bar.position": "A bar across the window, as polybar and waybar are. At the top it's the title bar too: drag it to move the window, the window's buttons at its end. Both: the status at the top, this space's tabs in a bar at the bottom. Nothing in it runs while it's off.",
     "zenith.bar.style": "Islands: each part a rounded pill on the window's background. Strip: one solid bar, flat. Minimal: text with bars between, as i3bar. Powerline: segments joined by arrows.",
     "zenith.bar.size": "How tall the bar is.",
     "zenith.bar.font": "Monospace uses JetBrains Mono or Cascadia (their Nerd Font versions first), else your system's monospace.",
     "zenith.bar.icons": "Zenith's own small icons, the glyphs of a Nerd Font you've installed, or plain text signs.",
-    "zenith.bar.tabs": "In the sidebar, as now. In the bar: the sidebar goes (Zen's compact mode, its edge hover off; the address bar and Ctrl+Alt+S still bring it) and this space's tabs are in the bar. On hover: the sidebar slides in at the window's edge (Zen's compact mode). Compact mode comes back as it was when you change this or turn the bar off.",
     "zenith.bar.tab-look": "How each tab shows in the bar: icons with the current tab's title, icons only, icon and short title, icon and title while they fit (then only the current one's, then icons), or numbers as i3's workspaces. A click goes to a tab, a middle click closes it, the wheel steps through them.",
     "zenith.bar.spaces": "How your spaces show: the one you're in highlighted, ones with tabs brighter, one with a tab asking for attention in red. A click goes there, the wheel steps through them.",
     "zenith.bar.title": "The middle of the bar shows the tab you're on (when tabs aren't in the bar).",
@@ -570,15 +578,28 @@ DESCRIPTIONS = {
     "zenith.bar.downloads": "How many downloads are under way and how far; a tick for a moment when they're done. A click opens Firefox's downloads.",
     "zenith.bar.timers": "The next timer or pomodoro to end (Peek: timer 10m tea), counting down.",
     "zenith.bar.tray": "Firefox's extensions panel.",
-    "zenith.palette": "One palette for the whole browser: the bar, Zenith's accent and every space's colours (the accent as each space's main colour, the palette's base around it). Your spaces' own colours are kept, and come back with Your own colours. Works with the bar off too.",
     "zenith.plus.wallpaper-source": "Windows' own: the desktop's wallpaper, drawn where it sits behind the window, so Zen looks see-through. A picture of your own: one you choose (Choose a picture), covering the window, for Zen only.",
     "zenith.plus.ink": "Zen picks light or dark text from a space's colour alone, which can be wrong once Zenith's glass and the wallpaper show through (a light colour over a dark desktop). Readable: Zenith looks at the sidebar as it's drawn and picks the text that reads, for the sidebar and the bar. Only when colours, the wallpaper or the window's place change.",
     "zenith.bar.privacy": "A shield with how many trackers Firefox blocked on the page you're on (hidden when none); a click lists them.",
     "zenith.bar.appearance": "A sun or a moon: how pages look. A click makes them dark or light (the opposite of now), again goes back to automatic; a right-click sets this space's own. Firefox's Website appearance, as Zen-Site-Appearance-Toggle does.",
     "zenith.bar.weather": "The sky and the temperature from wttr.in (one request each half hour, for every window); a click opens the Dash with the next days. Off unless you turn it on: it asks the web.",
     "zenith.bar.weather-place": "Near you: wttr.in works it out from your connection (no location asked). Or the last place you looked up with Peek's weather (wt Lisbon).",
-    "zenith.bar.resources": "How much memory Firefox uses (all its processes), read every 30 seconds while the window is in front; a click opens the Dash.",
+    "zenith.bar.resources": "How much memory the browser uses (all its processes), read every 30 seconds while the window is in front; a click opens the Dash.",
     "zenith.dash.weather": "The Dash shows now and the next days from wttr.in (the bar's place), asked when you open it at most each half hour.",
+    "zenith.bar.layout": "A layout to start from: it sets the bars on each edge and the sidebar, which you can then change one by one.",
+    "zenith.bar.top": "What a bar at the top of the window holds: its status (spaces, the tab you're on, what's playing, the clock and the rest), this space's tabs, or both. At the top it's the title bar too: drag it to move the window.",
+    "zenith.bar.bottom": "What a bar at the bottom of the window holds: its status (spaces, the tab you're on, what's playing, the clock and the rest), this space's tabs, or both.",
+    "zenith.bar.left": "What a bar at the left of the window holds: its status (spaces, the tab you're on, what's playing, the clock and the rest), this space's tabs, or both. On the left or right it stands up: a rail of icons, or wider with titles (below).",
+    "zenith.bar.right": "What a bar at the right of the window holds: its status (spaces, the tab you're on, what's playing, the clock and the rest), this space's tabs, or both. On the left or right it stands up: a rail of icons, or wider with titles (below).",
+    "zenith.bar.hide-top": "The top bar slides away and comes back when the pointer reaches the window's top edge (or one of its popups is open), so the page has the room.",
+    "zenith.bar.hide-bottom": "The bottom bar slides away and comes back when the pointer reaches the window's bottom edge (or one of its popups is open), so the page has the room.",
+    "zenith.bar.hide-left": "The left bar slides away and comes back when the pointer reaches the window's left edge (or one of its popups is open), so the page has the room.",
+    "zenith.bar.hide-right": "The right bar slides away and comes back when the pointer reaches the window's right edge (or one of its popups is open), so the page has the room.",
+    "zenith.sidebar": "Shown, as Zen has it. On hover: it slides in at the window's edge (Zen's compact mode). Hidden: for tabs in a bar (compact mode, its edge hover off); Ctrl+L and Ctrl+Alt+S still bring it. Compact mode comes back as it was with Shown.",
+    "zenith.bar.side-width": "A rail: icons only, slim as a sidebar's edge (titles on hover). With titles: wider, each tab with its title.",
+    "zenith.bar.buttons": "The window's own buttons at the top bar's end; or a power button whose menu minimises, maximises, opens a new window, closes this one, restarts or quits Zen; or none in a bar (they stay where Zen puts them).",
+    "zenith.palette": "As a rice's theme: one palette for the whole browser, the spaces (all, or the one you're in), Zenith's accent and the bars. Pick a named one; or From your wallpaper (as wallbash and matugen do: dark or light by the picture, its colours as the accents; it follows a new wallpaper); or From pywal or wallust (their colours file, followed as it changes). Your own colours gives the spaces theirs back.",
+    "zenith.plus.palette-spaces": "Every space takes the palette's colours, or only the space you're in when you pick it.",
     "zenith.shell.mouse": "Hold Alt and drag a tile: onto the middle of another, they swap; onto its edge, it goes "
                           "there. Hold Alt and drag with the right button: the tile's nearest edges follow. Esc puts it "
                           "back. Alt+click still opens Zen's Glance.",
@@ -696,8 +717,6 @@ LABELS = {
     "zenith.tabs.badge-only": "Extension buttons only with a badge",
     "zenith.tabs.pin-mark": "Pin mark",
     "zenith.plus.space-colour": "Space colour",
-    "zenith.plus.palette-sync": "Palette sync",
-    "zenith.plus.palette-spaces": "Palette colours",
     "zenith.plus.colour-strength": "Colour strength",
     "zenith.plus.unpinned-groups": "Groups that don't pin",
     "zenith.plus.ready-pulse": "Background tab ready",
@@ -751,12 +770,10 @@ LABELS = {
     "zenith.shell.keys": "The Shell's keys",
     "zenith.shell.bindings": "Keys",
     "zenith.shell.passthrough-sites": "Sites that keep their Alt keys",
-    "zenith.bar.position": "The bar",
     "zenith.bar.style": "Look",
     "zenith.bar.size": "Height",
     "zenith.bar.font": "Font",
     "zenith.bar.icons": "Icons",
-    "zenith.bar.tabs": "Where tabs are",
     "zenith.bar.tab-look": "Tabs in the bar",
     "zenith.bar.spaces": "Spaces",
     "zenith.bar.title": "The tab you're on",
@@ -766,14 +783,13 @@ LABELS = {
     "zenith.bar.downloads": "Downloads",
     "zenith.bar.timers": "Timers",
     "zenith.bar.tray": "Extensions",
-    "zenith.palette": "Palette",
     "zenith.plus.wallpaper-source": "The wallpaper",
     "zenith.plus.ink": "Sidebar text",
     "zenith.bar.privacy": "Trackers",
     "zenith.bar.appearance": "Pages dark or light",
     "zenith.bar.weather": "Weather",
     "zenith.bar.weather-place": "Weather for",
-    "zenith.bar.resources": "What Firefox uses",
+    "zenith.bar.resources": "What the browser uses",
     "zenith.dash.weather": "Weather in the Dash",
     "zenith.links.alt": "Alt+click a link",
     "zenith.links.alt-shift": "Alt+Shift+click a link",

@@ -1,0 +1,264 @@
+/* about:zenith-help. The page takes Zenith's colours from the window it's in
+   (help.mjs copies them onto :root), as the tab manager does. */
+
+:root {
+  --ink: light-dark(rgb(20 20 24), rgb(244 244 248));
+  --dim: light-dark(rgb(20 20 24 / 0.68), rgb(244 244 248 / 0.7));
+  --line: light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.13));
+  --accent: var(--zth-accent, AccentColor);
+  --soft: color-mix(in srgb, var(--accent) 22%, transparent);
+  --radius: var(--zth-radius, 10px);
+  --pill: var(--zth-pill-radius, 999px);
+  --card: light-dark(rgb(255 255 255 / 0.66), rgb(255 255 255 / 0.06));
+  --hover: color-mix(in srgb, currentColor 9%, transparent);
+  color-scheme: light dark;
+  background: color-mix(in srgb, var(--zth-glass-color, Canvas) 70%, light-dark(rgb(246 246 248), rgb(18 18 22)));
+  color: var(--ink);
+  font: menu;
+  font-size: var(--zth-font, 13px);
+  line-height: 1.5;
+  height: 100%;
+  scroll-padding-top: 72px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: var(--pill);
+  padding: 4px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--hover);
+  }
+
+  &[data-try] {
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    background: var(--soft);
+  }
+}
+
+kbd,
+dt,
+code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--card);
+  white-space: nowrap;
+}
+
+a {
+  color: inherit;
+}
+
+#top {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--zth-glass-color, Canvas) 85%, light-dark(rgb(246 246 248), rgb(18 18 22)));
+
+  & h1 {
+    margin: 0 8px 0 0;
+    font-size: 1.4em;
+    letter-spacing: 0.02em;
+  }
+
+  & #search {
+    flex: 1;
+    max-width: 420px;
+    padding: 5px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--pill);
+    background: var(--card);
+    outline: none;
+
+    &:focus {
+      border-color: var(--accent);
+    }
+  }
+
+  & #beside[hidden] {
+    display: none;
+  }
+}
+
+#layout {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 760px);
+  gap: 32px;
+  padding: 20px 24px 60px;
+}
+
+#toc {
+  position: sticky;
+  top: 72px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  & a {
+    padding: 4px 10px;
+    border-radius: var(--pill);
+    color: var(--dim);
+    text-decoration: none;
+
+    &:hover {
+      background: var(--hover);
+      color: var(--ink);
+    }
+
+    &[current] {
+      background: var(--soft);
+      color: var(--ink);
+    }
+
+    &[hidden] {
+      display: none;
+    }
+  }
+}
+
+section {
+  padding: 4px 0 18px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
+
+  &[hidden] {
+    display: none;
+  }
+
+  & h2 {
+    margin: 8px 0 6px;
+    font-size: 1.25em;
+  }
+
+  & p {
+    margin: 6px 0;
+  }
+}
+
+.rows {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 18px;
+  margin: 10px 0;
+
+  & dt {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  & dd {
+    margin: 0;
+  }
+
+  & [hidden] {
+    display: none;
+  }
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 12px 0 4px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+
+  & span {
+    color: var(--dim);
+  }
+
+  & button {
+    margin-top: auto;
+    margin-block-start: 6px;
+  }
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+#key-groups {
+  columns: 2 300px;
+  column-gap: 28px;
+
+  & .group {
+    break-inside: avoid;
+    margin-bottom: 14px;
+  }
+
+  & h3 {
+    margin: 0 0 4px;
+    font-size: 1em;
+  }
+
+  & .key {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 10px;
+    padding: 2px 0;
+
+    & kbd {
+      justify-self: start;
+    }
+  }
+}
+
+#nothing {
+  margin: 0 24px 40px 246px;
+  color: var(--dim);
+}
+
+@media (max-width: 720px) {
+  #layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #toc {
+    display: none;
+  }
+
+  #nothing {
+    margin-left: 24px;
+  }
+}

@@ -57,6 +57,8 @@ export const Popup = {
     if (wide) pop.setAttribute("wide", "true");
     this.anchor = anchor;
     this.kind = kind;
+    this.bar = anchor?.closest?.(".zenith-bar") ?? null;
+    this.bar?.setAttribute("holding", "true");
     (document.getElementById("zen-main-app-wrapper") ?? document.body).append(pop);
     this.undo = build(pop) ?? null;
     this.place();
@@ -74,16 +76,28 @@ export const Popup = {
     window.addEventListener("blur", this.away);
   },
 
-  // Under the module (above it for a bar at the bottom), its edge with the
-  // module's, inside the window.
+  // Under the module (above it for a bar at the bottom, beside it for one on
+  // the left or right), its edge with the module's, inside the window. A
+  // hidden bar sliding out is placed where it'll be, not where it is.
   place() {
     const pop = this.node;
     if (!pop) return;
-    const W = window.innerWidth, H = window.innerHeight, w = pop.offsetWidth;
-    const a = this.anchor?.getBoundingClientRect() ?? { left: (W - w) / 2, right: (W + w) / 2, width: w, top: 0, bottom: 42 };
-    const low = a.top > H / 2;
-    const left = a.left + a.width / 2 > W / 2 ? Math.min(a.right, W - 8) - w : Math.max(8, a.left);
-    pop.style.left = `${Math.max(8, Math.min(left, W - w - 8))}px`;
+    const W = window.innerWidth, H = window.innerHeight, w = pop.offsetWidth, h = pop.offsetHeight;
+    let a = this.anchor?.getBoundingClientRect() ?? { left: (W - w) / 2, right: (W + w) / 2, width: w, top: 0, bottom: 42, height: 42 };
+    const edge = this.bar?.getAttribute("edge");
+    if (this.bar?.hasAttribute("collapsible")) {
+      const [dx = 0, dy = 0] = (getComputedStyle(this.bar).translate || "").split(" ").map(v => parseFloat(v) || 0);
+      a = { left: a.left - dx, right: a.right - dx, top: a.top - dy, bottom: a.bottom - dy, width: a.width, height: a.height };
+    }
+    const clampX = x => `${Math.max(8, Math.min(x, W - w - 8))}px`, clampY = y => `${Math.max(8, Math.min(y, H - h - 8))}px`;
+    if (edge === "left" || edge === "right") {
+      pop.style.left = clampX(edge === "left" ? a.right + 6 : a.left - w - 6);
+      pop.style.top = clampY(a.top + a.height / 2 > H / 2 ? a.bottom - h : a.top);
+      pop.setAttribute("from", edge);
+      return;
+    }
+    const low = edge === "bottom" || (!edge && a.top > H / 2);
+    pop.style.left = clampX(a.left + a.width / 2 > W / 2 ? Math.min(a.right, W - 8) - w : Math.max(8, a.left));
     if (low) pop.style.bottom = `${H - a.top + 6}px`;
     else pop.style.top = `${a.bottom + 6}px`;
     pop.setAttribute("from", low ? "below" : "above");
@@ -100,7 +114,8 @@ export const Popup = {
       console.error("[Zenith] popup", e);
     }
     this.node.remove();
-    this.node = this.anchor = this.undo = this.kind = null;
+    this.bar?.removeAttribute("holding");
+    this.node = this.anchor = this.undo = this.kind = this.bar = null;
   },
 };
 
@@ -303,14 +318,36 @@ export function downloadsCard(box) {
       }
       row.append(ico(d.succeeded ? "done" : "download"), info);
       if (d.succeeded) {
-        const open = button("Open", "zs-btn"), show = button("Folder", "zs-btn", "Show it in its folder");
-        open.addEventListener("click", () => d.launch().catch(() => {}));
+        // (The row opens it; Folder shows it; Delete deletes the file, as
+        // Zenith's delete in Firefox's downloads lists does.)
+        row.setAttribute("action", "true");
+        row.title = "Open it";
+        row.addEventListener("click", e => !e.target.closest("button") && d.launch().catch(() => {}));
+        const show = button("Folder", "zs-btn", "Show it in its folder");
         show.addEventListener("click", () => {
           try {
             new FileUtils.File(d.target.path).reveal();
           } catch {}
         });
-        row.append(open, show);
+        row.append(show);
+        const mode = P.getStringPref("zenith.plus.download-delete", "");
+        if (mode !== "off" && window.DownloadsCommon?.deleteDownloadFiles) {
+          const del = button("Delete", "zs-btn zs-danger", mode === "confirm" ? "Delete the file (a second click)" : "Delete the file");
+          del.addEventListener("click", async () => {
+            if (mode === "confirm" && !del.hasAttribute("asking")) {
+              del.setAttribute("asking", "true");
+              del.textContent = "Sure?";
+              setTimeout(() => del.isConnected && (del.removeAttribute("asking"), (del.textContent = "Delete")), 3000);
+              return;
+            }
+            try {
+              await window.DownloadsCommon.deleteDownloadFiles(d, Math.max(1, P.getIntPref("browser.download.clearHistoryOnDelete", 0)));
+            } catch (err) {
+              console.error("[Zenith] delete a download", err);
+            }
+          });
+          row.append(del);
+        }
       } else if (!d.stopped) {
         const cancel = button("✕", "zs-btn zs-x", "Cancel it");
         cancel.addEventListener("click", () => d.cancel());
@@ -352,8 +389,13 @@ export const System = {
     if (this.last) pc = Math.max(0, (100 * (cpu - this.last.cpu)) / 1e6 / (now - this.last.at) / (navigator.hardwareConcurrency || 1));
     this.last = { cpu, at: now };
     const tabs = gBrowser.tabs.filter(t => !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
-    const asleep = tabs.filter(t => t.hasAttribute("pending") || !t.linkedPanel).length;
-    return { memory, cpu: pc, awake: tabs.length - asleep, asleep, processes: all.length };
+    const sleeping = t => t.hasAttribute("pending") || !t.linkedPanel;
+    const asleep = tabs.filter(sleeping).length;
+    // (This space: its own tabs and the essentials, as its sidebar shows.)
+    const space = window.gZenWorkspaces?.activeWorkspace;
+    const here = tabs.filter(t => !space || t.hasAttribute("zen-essential") || t.getAttribute("zen-workspace-id") === space);
+    const hereAsleep = here.filter(sleeping).length;
+    return { memory, cpu: pc, awake: tabs.length - asleep, asleep, here: { awake: here.length - hereAsleep, asleep: hereAsleep }, processes: all.length };
   },
 };
 
@@ -430,4 +472,68 @@ export function appearanceCard(box) {
   box.append(node("div", { class: "zs-head" }, "How pages look"),
              row("Now", () => A.forced() ?? "auto", v => A.set(v)),
              row("In this space", () => A.space(), v => A.setSpace(v)));
+}
+
+/* --- Every tab of the space (the bar's "+N" when they don't fit) --------------------- */
+export function tabsCard(box) {
+  const field = node("input", { class: "zs-field zs-top", type: "text", spellcheck: "false", placeholder: "Find a tab" });
+  const list = node("div", { class: "zs-list" });
+  box.append(field, list);
+  const draw = () => {
+    const words = field.value.toLowerCase().split(/\s+/).filter(Boolean);
+    const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"))
+      .filter(t => words.every(w => `${t.label} ${t.linkedBrowser?.currentURI?.host ?? ""}`.toLowerCase().includes(w)));
+    list.replaceChildren(...(tabs.length ? tabs.map(t => {
+      const row = node("div", { class: "zs-row", action: "true" });
+      const img = node("img", { class: "zs-fav", alt: "" });
+      const src = t.getAttribute("image");
+      if (src) img.src = src;
+      row.append(img, node("span", { class: "zs-grow" }, t.label));
+      row.toggleAttribute("current", t.selected);
+      row.title = t.label;
+      row.addEventListener("click", () => {
+        gBrowser.selectedTab = t;
+        Popup.close();
+      });
+      row.addEventListener("auxclick", e => {
+        if (e.button !== 1) return;
+        gBrowser.removeTab(t, { animate: true });
+        setTimeout(draw, 50);
+      });
+      return row;
+    }) : [node("div", { class: "zs-empty" }, "No tab matches.")]));
+  };
+  field.addEventListener("input", draw);
+  field.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    list.querySelector(".zs-row")?.click();
+  });
+  draw();
+  setTimeout(() => field.focus(), 0);
+}
+
+/* --- The power button's menu ----------------------------------------------------------- */
+export function powerCard(box) {
+  const nag = window.ZenithShell?.nag;
+  const max = window.windowState === window.STATE_MAXIMIZED;
+  const items = [
+    ["minimise", "Minimise", () => window.minimize()],
+    ["maximise", max ? "Restore" : "Maximise", () => (max ? window.restore() : window.maximize())],
+    ["window", "New window", () => window.OpenBrowserWindow?.()],
+    ["close", "Close this window", () => (window.BrowserCommands?.tryToCloseWindow ? BrowserCommands.tryToCloseWindow() : window.close())],
+    ["restart", "Restart Zen", () => (nag ? nag.ask("restart") : null), !!nag],
+    ["quit", "Quit Zen", () => (nag ? nag.ask("quit") : window.goQuitApplication?.())],
+  ];
+  const list = node("div", { class: "zs-list" });
+  for (const [icon, label, run, ok = true] of items) {
+    if (!ok) continue;
+    const row = node("div", { class: "zs-row", action: "true", role: "menuitem" });
+    row.append(ico(icon), node("span", { class: "zs-grow" }, label));
+    row.addEventListener("click", () => {
+      Popup.close();
+      run();
+    });
+    list.append(row);
+  }
+  box.append(list);
 }

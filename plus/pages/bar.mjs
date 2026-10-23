@@ -15,7 +15,7 @@
 //   - each module is boxed off (contain), so a ticking clock restyles one
 //     node, never the bar.
 
-import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard } from "./shell-ui.mjs";
+import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard, tabsCard, powerCard } from "./shell-ui.mjs";
 
 const P = Services.prefs;
 const HTML = "http://www.w3.org/1999/xhtml";
@@ -127,10 +127,10 @@ function soon(fn) {
 
 /* --- Icons: Zenith's own (drawn by CSS), Nerd Font glyphs, or text ------------ */
 const GLYPHS = {
-  nerd: { launcher: "\uf00a", play: "\uf04b", pause: "\uf04c", download: "\uf019", done: "\uf00c", timer: "\uf252", tray: "\uf12e", clock: "\uf017",
+  nerd: { power: "\uf011", tabs: "\uf2d2", launcher: "\uf00a", play: "\uf04b", pause: "\uf04c", download: "\uf019", done: "\uf00c", timer: "\uf252", tray: "\uf12e", clock: "\uf017",
           sun: "\uf185", partly: "\uf6c4", cloud: "\uf0c2", fog: "\uf75f", rain: "\uf73d", snow: "\uf2dc", storm: "\uf0e7",
           moon: "\uf186", shield: "\uf132", memory: "\uf2db" },
-  text: { launcher: "≡", play: "▶", pause: "⏸", download: "↓", done: "✓", timer: "⧗", tray: "+", clock: "",
+  text: { power: "⏻", tabs: "▤", launcher: "≡", play: "▶", pause: "⏸", download: "↓", done: "✓", timer: "⧗", tray: "+", clock: "",
           sun: "☀", partly: "⛅", cloud: "☁", fog: "≋", rain: "☂", snow: "❄", storm: "ϟ", moon: "☾", shield: "⛨", memory: "▦" },
 };
 
@@ -273,8 +273,14 @@ function title(box) {
 // Tabs in the bar (Bar › Tabs: in the bar), as waybar's taskbar: this
 // space's tabs as icons, and titles as the look and the room allow.
 function tasks(box) {
-  const m = mod("tasks");
-  box.append(m);
+  const m = mod("tasks"), more = mod("tasks-more", "button"), count = node("span");
+  more.append(icon("tabs"), count);
+  more.hidden = true;
+  more.title = "Every tab of this space";
+  more.addEventListener("click", () => Popup.open(more, tabsCard, { kind: "tabs" }));
+  box.append(m, more);
+  const vertical = !!box.closest(".zenith-bar")?.hasAttribute("vertical");
+  let shown = null;
   const items = new Map(); // tab → button
   const WIDE = { icons: 30, current: 30, titles: 158 };
   let room = 0;
@@ -317,7 +323,20 @@ function tasks(box) {
       b.toggleAttribute("loud", t.hasAttribute("soundplaying"));
       b.toggleAttribute("split", !!t.splitView);
     });
-    m.setAttribute("look", look());
+    m.setAttribute("look", vertical && pref("zenith.bar.side-width", "rail") === "rail" ? (look() === "numbers" ? "numbers" : "icons") : look());
+    // More tabs than room: the strip scrolls, the tab you're on stays in
+    // view, and "+N" (how many) lists them all.
+    requestAnimationFrame(() => {
+      if (Bar.gone) return;
+      const over = vertical ? m.scrollHeight > m.clientHeight + 2 : m.scrollWidth > m.clientWidth + 2;
+      more.hidden = !over;
+      put(count, `${tabs.length}`);
+      const cur = items.get(gBrowser.selectedTab);
+      if (cur && cur !== shown) {
+        shown = cur;
+        cur.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    });
   });
   m.addEventListener("click", e => {
     const t = e.target.closest(".zb-task")?.zbTab;
@@ -544,7 +563,9 @@ function clock(box) {
   let fmt = null, look = "";
   const draw = () => {
     const now = new Date();
+    const rail = !!m.closest('.zenith-bar[vertical][width="rail"]');
     if (alt) put(text, DATE.format(now));
+    else if (rail) put(text, fmt.format(now).replace(/[:.]\s*|\s+/, "\n"));
     else if (look === "iso") {
       const p = n => `${n}`.padStart(2, "0");
       put(text, `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}`);
@@ -600,7 +621,7 @@ function weather(box) {
   Undo.add(Tick.add(600, () => Weather.get().then(draw)));
 }
 
-// What Firefox uses (Settings › Bar › What Firefox uses): its memory, read
+// What the browser uses (Settings › Bar › What the browser uses): its memory, read
 // every 30 seconds while the window is in front; a click opens the Dash.
 function resources(box) {
   const m = mod("resources", "button"), text = node("span");
@@ -612,7 +633,7 @@ function resources(box) {
     const s = await System.sample();
     if (Bar.gone) return;
     put(text, bytes(s.memory));
-    m.title = `Firefox uses ${bytes(s.memory)} · ${s.awake} tabs awake, ${s.asleep} asleep`;
+    m.title = `The browser uses ${bytes(s.memory)} · ${s.awake} tabs awake, ${s.asleep} asleep`;
   };
   draw();
   Undo.add(Tick.add(30, draw));
@@ -678,6 +699,17 @@ function appearance(box) {
   draw();
 }
 
+// A power button instead of the window's own (Settings › Bar › Window
+// buttons: a power button): minimise, maximise, close the window, a new
+// window, restart, quit.
+function power(box) {
+  const m = mod("power", "button");
+  m.title = "Window and Zen";
+  m.append(icon("power"));
+  m.addEventListener("click", () => Popup.open(m, powerCard, { kind: "power" }));
+  box.append(m);
+}
+
 // The window's own buttons (minimise, maximise, close), moved into the bar
 // at the top so it's the title bar; back where they were as the bar goes.
 function buttons(box) {
@@ -702,9 +734,18 @@ function buttons(box) {
 }
 
 /* --- The bar itself ------------------------------------------------------------ */
+const EDGES = ["top", "bottom", "left", "right"];
+
 const Bar = {
-  build(where, parts) {
-    const bar = node("div", { id: where === "bottom-tabs" ? "zenith-bar-bottom" : "zenith-bar", role: "toolbar", "aria-label": "Zenith bar" });
+  // A bar on an edge: its id (the top one is "zenith-bar"), whether it
+  // stands up (left, right) and whether it hides until the pointer comes.
+  build(edge, parts) {
+    const bar = node("div", { id: edge === "top" ? "zenith-bar" : `zenith-bar-${edge}`, class: "zenith-bar", edge, role: "toolbar", "aria-label": `Zenith bar (${edge})` });
+    if (edge === "left" || edge === "right") {
+      bar.setAttribute("vertical", "true");
+      bar.setAttribute("width", pref("zenith.bar.side-width", "rail"));
+    }
+    if (bool(`zenith.bar.hide-${edge}`, false)) bar.setAttribute("collapsible", "true");
     const left = node("div", { class: "zb-left" }), centre = node("div", { class: "zb-centre" }), right = node("div", { class: "zb-right" });
     bar.append(left, centre, right);
     for (const [side, fn] of parts) fn({ left, centre, right }[side]);
@@ -724,70 +765,48 @@ const Bar = {
     });
   },
 
+  // Each edge's bar (Settings › Bar): its status (spaces, the tab you're on,
+  // what's playing, the clock…), its tabs, or both.
   start(api) {
     const t0 = performance.now();
     this.api = api;
     this.gone = false;
     Tick.init();
-    const where = pref("zenith.bar.position", "off"), tabsIn = pref("zenith.bar.tabs", "sidebar");
     const on = name => bool(`zenith.bar.${name}`, true);
-    const status = [
+    const status = () => [
       on("launcher") && ["left", launcher], ["left", spaces], ["left", modeSlot],
       on("media") && ["right", media], on("downloads") && ["right", downloads], on("timers") && ["right", timers],
       on("privacy") && ["right", privacy], bool("zenith.bar.weather", false) && ["right", weather],
       bool("zenith.bar.resources", false) && ["right", resources], on("appearance") && ["right", appearance],
       on("tray") && ["right", tray], ["right", clock],
     ].filter(Boolean);
-    const centre = tabsIn === "bar" && where !== "both" ? ["centre", tasks] : pref("zenith.bar.title", "title") !== "off" && ["centre", title];
-    const app = document.getElementById("zen-main-app-wrapper");
+    const app = document.getElementById("zen-main-app-wrapper"), browser = document.getElementById("browser");
+    const want = Object.fromEntries(EDGES.map(e => [e, pref(`zenith.bar.${e}`, "off")]));
+    // The window's own buttons go at the top's end; the power button in the
+    // first bar with a status (top, right, left, bottom).
+    const buttonsAs = pref("zenith.bar.buttons", "window");
+    const powerAt = buttonsAs === "power" ? ["top", "right", "left", "bottom"].find(e => want[e] === "status" || want[e] === "both") : null;
     this.bars = [];
-    if (where === "bottom") {
-      const bar = this.build("bottom", [...status, centre].filter(Boolean));
-      bar.setAttribute("position", "bottom");
-      app.append(bar);
+    for (const edge of EDGES) {
+      const what = want[edge];
+      if (!["status", "tabs", "both"].includes(what)) continue;
+      const vertical = edge === "left" || edge === "right", parts = [];
+      if (what !== "tabs") parts.push(...status());
+      if (what !== "status") parts.push(["centre", tasks]);
+      else if (!vertical && pref("zenith.bar.title", "title") !== "off") parts.push(["centre", title]);
+      if (edge === "top" && buttonsAs === "window") parts.push(["right", buttons]);
+      if (edge === powerAt) parts.push(["right", power]);
+      const bar = this.build(edge, parts);
+      if (edge === "top") app.prepend(bar);
+      else if (edge === "bottom") app.append(bar);
+      else if (edge === "left") browser.prepend(bar);
+      else browser.append(bar);
       this.bars.push(bar);
-    } else {
-      const bar = this.build("top", [...status, centre, ["right", buttons]].filter(Boolean));
-      bar.setAttribute("position", "top");
-      app.prepend(bar);
-      this.bars.push(bar);
-      if (where === "both") {
-        const low = this.build("bottom-tabs", [["centre", tasks]]);
-        low.setAttribute("position", "bottom");
-        app.append(low);
-        this.bars.push(low);
-      }
     }
-    document.documentElement.setAttribute("zenith-bar", where);
+    document.documentElement.setAttribute("zenith-bar", this.bars.map(b => b.getAttribute("edge")).join(" "));
     this.look();
-    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font"]) Undo.pref(p, () => this.look());
-    this.tabs(tabsIn);
+    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width"]) Undo.pref(p, () => this.look());
     (window.zenithStartup ??= []).push({ script: "bar", name: "bar", at: Math.round(t0), ms: +(performance.now() - t0).toFixed(1) });
-  },
-
-  // Where tabs live while the bar is on: the sidebar as it is; the
-  // sidebar only on hover (Zen's compact mode); or in the bar, with no
-  // sidebar (compact mode, and its edge hover off: the address bar and
-  // Ctrl+Alt+S still bring it).
-  tabs(where) {
-    if (where === "sidebar") return this.tabsBack(this.api.Bridge);
-    document.documentElement.setAttribute("zenith-bar-tabs", where);
-    const C = window.gZenCompactModeManager;
-    this.api.Bridge.apply("bar-tabs", { "zen.view.compact.show-sidebar-and-toolbar-on-hover": where === "bar" ? false : null });
-    if (!C) return;
-    if (!P.prefHasUserValue(KEPT)) P.setStringPref(KEPT, String(C.preference));
-    if (!C.preference) C.preference = true;
-  },
-
-  // The sidebar as it was: compact mode back as you had it.
-  tabsBack(Bridge) {
-    document.documentElement.removeAttribute("zenith-bar-tabs");
-    Bridge.apply("bar-tabs", { "zen.view.compact.show-sidebar-and-toolbar-on-hover": null });
-    const C = window.gZenCompactModeManager;
-    if (!C || !P.prefHasUserValue(KEPT)) return;
-    const was = P.getStringPref(KEPT, "") === "true";
-    P.clearUserPref(KEPT);
-    if (C.preference !== was) C.preference = was;
   },
 
   mode(text) {
@@ -797,9 +816,7 @@ const Bar = {
     return true;
   },
 
-  // keepTabs: the bar is only being rebuilt (or the window closing), so
-  // where tabs are stays as it is.
-  stop({ keepTabs = false } = {}) {
+  stop() {
     this.gone = true;
     Popup.close();
     Tick.stop();
@@ -808,7 +825,6 @@ const Bar = {
     this.bars = [];
     this.modeNode = null;
     document.documentElement.removeAttribute("zenith-bar");
-    if (!keepTabs) this.tabsBack(this.api.Bridge);
   },
 };
 

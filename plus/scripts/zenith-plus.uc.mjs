@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.15.0
+// @version        0.15.1
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -3307,29 +3307,72 @@ const StartPage = {
   },
 
   register() {
-    const { NetUtil } = ChromeUtils.importESModule("resource://gre/modules/NetUtil.sys.mjs");
-    const read = url => {
-      const stream = NetUtil.newChannel({ uri: url, loadUsingSystemPrincipal: true }).open();
-      try {
-        return NetUtil.readInputStreamToString(stream, stream.available(), { charset: "UTF-8" });
-      } finally {
-        stream.close();
-      }
-    };
-    for (const d of ["../pages/", "zenith-pages/"]) {
-      try {
-        const url = new URL(`${d}start.html`, import.meta.url).href;
-        const text = read(url);
-        const about = ChromeUtils.importESModule(new URL(`${d}about.sys.mjs`, import.meta.url).href);
-        about.register("zenith-start", url, text);
-        about.revive("zenith-start");
-        SessionStore.promiseAllWindowsRestored?.then(() => about.revive("zenith-start"));
-        return true;
-      } catch {}
-    }
-    console.error("[Zenith] about:zenith-start: plus/pages isn't there");
-    return false;
+    return registerAbout("zenith-start", "start.html");
   },
+};
+
+// A page of Zenith's own at about:<name> (its file in plus/pages, read
+// there and then, so a tab restored at start never meets an unknown page;
+// one that did is reloaded).
+function registerAbout(name, file) {
+  const { NetUtil } = ChromeUtils.importESModule("resource://gre/modules/NetUtil.sys.mjs");
+  const read = url => {
+    const stream = NetUtil.newChannel({ uri: url, loadUsingSystemPrincipal: true }).open();
+    try {
+      return NetUtil.readInputStreamToString(stream, stream.available(), { charset: "UTF-8" });
+    } finally {
+      stream.close();
+    }
+  };
+  for (const d of ["../pages/", "zenith-pages/"]) {
+    try {
+      const url = new URL(`${d}${file}`, import.meta.url).href;
+      const text = read(url);
+      const about = ChromeUtils.importESModule(new URL(`${d}about.sys.mjs`, import.meta.url).href);
+      about.register(name, url, text);
+      about.revive(name);
+      SessionStore.promiseAllWindowsRestored?.then(() => about.revive(name));
+      return true;
+    } catch {}
+  }
+  console.error(`[Zenith] about:${name}: plus/pages isn't there`);
+  return false;
+}
+
+/* --- Help (about:zenith-help) -------------------------------------------------
+   What Zenith can do and how, each with a "Try it", and every key as it's
+   set now (KeySheet's). :help opens it (":help tiles" at that part), or
+   goes to it if it's open in this space. "Beside" tiles it next to the
+   page you came from. */
+const HelpPage = {
+  URL: "about:zenith-help",
+
+  init() {
+    window.ZenithHelp = this; // the switcher's :help, the page itself, tools/checks
+    this.ready = registerAbout("zenith-help", "help.html");
+  },
+
+  open(topic = "") {
+    if (!(this.ready ||= registerAbout("zenith-help", "help.html"))) return;
+    const url = this.URL + (topic ? `#${encodeURIComponent(topic.trim().toLowerCase())}` : "");
+    const tab = gBrowser.visibleTabs.find(t => t.linkedBrowser?.currentURI?.spec.startsWith(this.URL));
+    if (!tab) this.from = gBrowser.selectedTab;
+    if (tab) {
+      gBrowser.selectedTab = tab;
+      if (topic) tab.linkedBrowser.browsingContext?.window?.location?.replace(url);
+    } else openTrustedLinkIn(url, "tab");
+  },
+
+  // The page beside the tab it was opened from (or the one before it).
+  beside(tab) {
+    if (!tab || Tiler.data(tab)) return;
+    const tabs = gBrowser.visibleTabs.filter(t => t !== tab && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
+    const from = this.from?.isConnected && this.from !== tab && tabs.includes(this.from) ? this.from : tabs[Math.max(0, gBrowser.visibleTabs.indexOf(tab) - 1)] ?? tabs[0];
+    if (from) Tiler.insert(tab, from, "right");
+  },
+
+  groups: () => KeySheet.groups(),
+  links: () => LinkClicks.read(),
 };
 
 /* --- Zenith's helpers inside web pages ----------------------------------------
@@ -4957,30 +5000,12 @@ const NewTabBelow = {
     else S.applyGridLayout(data.layoutTree);
   },
 
-  // Into the split of `anchor`, right after it, and shown.
+  // Into the split of `anchor`, beside it (as Zenith Shell places a new
+  // tile), and shown: at once, so it's never drawn alone first (0.15.1: it
+  // used to be moved in a moment later, which flashed).
   join(tab, anchor) {
-    const S = window.gZenViewSplitter;
-    try {
-      if (!tab?.isConnected || !anchor?.isConnected || !S) return;
-      if (!this.splitOf(tab) || this.splitOf(tab) !== this.splitOf(anchor)) {
-        if (this.splitOf(tab)) S.removeTabFromGroup(tab);
-        S.splitTabs([anchor, tab], undefined, -1, { activate: true });
-      }
-      // (Next to it: once Zen has laid the new pane out, or the swap can't.)
-      let tries = 0;
-      const order = () => {
-        const tabs = () => this.splitOf(anchor)?.tabs ?? [];
-        for (let i = tabs().indexOf(tab); i > tabs().indexOf(anchor) + 1; i = tabs().indexOf(tab)) {
-          if (!SplitReorder.swap(tab, tabs()[i - 1])) break;
-        }
-        if (tabs().indexOf(tab) > tabs().indexOf(anchor) + 1 && ++tries < 8) return void setTimeout(order, 250);
-        gBrowser.selectedTab = tab;
-        this.redraw(tab);
-      };
-      setTimeout(order, 300);
-    } catch (e) {
-      console.error("[Zenith] new tab into a split", e);
-    }
+    if (!tab?.isConnected || !anchor?.isConnected) return;
+    Tiler.insert(tab, anchor);
   },
 
   place(tab, after) {
@@ -4994,18 +5019,36 @@ const NewTabBelow = {
     }
   },
 
-  // The address bar is up: the tab it opens (a new one, or Zen's empty tab
-  // made a real one) goes where `done` puts it; nothing opened, nothing moves.
+  // The address bar (or a new tab page) is up: the tab it opens (a new one,
+  // or Zen's empty tab made a real one) goes where `done` puts it, as it
+  // opens: before the next frame, so it's never drawn on its own first.
+  // Nothing opened (the address bar closed, or two minutes): nothing moves.
   watch(done) {
-    clearInterval(this.timer);
-    const before = new Set(document.querySelectorAll("tab.tabbrowser-tab")), empty = document.querySelector("tab[zen-empty-tab]");
-    const since = Date.now();
-    this.timer = setInterval(() => {
+    this.unwatch?.();
+    const empty = document.querySelector("tab[zen-empty-tab]"), since = Date.now();
+    let over = false;
+    const finish = () => {
+      over = true;
+      gBrowser.tabContainer.removeEventListener("TabOpen", opened);
+      changed.disconnect();
+      clearInterval(idle);
+      this.unwatch = null;
+    };
+    // (A microtask: after Firefox has added and selected it, before it's drawn.)
+    const take = tab => {
+      if (over) return;
+      finish();
+      Promise.resolve().then(() => done(tab));
+    };
+    const opened = e => !e.target.hasAttribute("zen-empty-tab") && take(e.target);
+    const changed = new MutationObserver(() => empty && !empty.hasAttribute("zen-empty-tab") && take(empty));
+    if (empty) changed.observe(empty, { attributes: true, attributeFilter: ["zen-empty-tab"] });
+    gBrowser.tabContainer.addEventListener("TabOpen", opened);
+    const idle = setInterval(() => {
       const typing = gURLBar.focused || gURLBar.view?.isOpen;
-      const made = [...document.querySelectorAll("tab.tabbrowser-tab")].find(t => !t.hasAttribute("zen-empty-tab") && !t.closing && (!before.has(t) || t === empty));
-      if (made) done(made);
-      if (made || (!typing && Date.now() - since > 800) || Date.now() - since > 120000) clearInterval(this.timer);
-    }, 250);
+      if ((!typing && Date.now() - since > 800) || Date.now() - since > 120000) finish();
+    }, 400);
+    this.unwatch = finish;
   },
 };
 
@@ -5948,9 +5991,8 @@ const Nagbar = {
 /* Alt+Shift+/: every key, the Shell's and Zenith's others, on one sheet
    (Hyprland's keybind viewer). Any key or a click puts it away. */
 const KeySheet = {
-  toggle() {
-    if (this.node) return this.close();
-    const node = (this.node = el("div", { id: "zenith-keysheet", role: "dialog", "aria-label": "Keys" }));
+  // Every key there is, as it's set now, by group (also about:zenith-help's).
+  groups() {
     const groups = new Map();
     const add = (group, combo, label) => {
       if (!combo) return;
@@ -5981,6 +6023,13 @@ const KeySheet = {
     add("Mouse", "Alt+drag", "A tile onto another (middle: swap; edge: there)");
     add("Mouse", "Alt+right-drag", "Resize a tile");
     add("Mouse", "Alt+wheel", "The next or previous space");
+    return groups;
+  },
+
+  toggle() {
+    if (this.node) return this.close();
+    const node = (this.node = el("div", { id: "zenith-keysheet", role: "dialog", "aria-label": "Keys" }));
+    const groups = this.groups(), K = ShellKeys;
     const head = el("div", { class: "zth-ks-head" });
     head.textContent = ShellModes.passthrough ? "Keys (passthrough is on: only Alt+P works)" : K.on ? "Keys" : "Keys (the Shell's keys are off: Settings › Zenith › Shell)";
     node.append(head);
@@ -6072,7 +6121,7 @@ const InkContrast = {
     if (sig === this.last && !force) return null;
     // The sidebar, or (hidden away in compact mode) the bar, which sits on the same colours.
     const side = gNavToolbox.getBoundingClientRect();
-    const box = side.width > 40 && side.right > 40 ? side : document.getElementById("zenith-bar")?.getBoundingClientRect();
+    const box = side.width > 40 && side.right > 40 ? side : document.querySelector(".zenith-bar")?.getBoundingClientRect();
     if (!box?.width) return null;
     this.last = sig;
     try {
@@ -6180,6 +6229,9 @@ const SiteAppearance = {
    Alt+N, or the bar's clock: imported the first time it opens. */
 const DashLoader = {
   async toggle(anchor = null) {
+    // (From the bar's clock when there's one, however it was asked for, so
+    // it's always in the same place.)
+    anchor ??= document.querySelector('.zenith-bar [mod="clock"]:not([hidden])');
     try {
       this.mod ??= await import(await BarLoader.page("dash.mjs"));
       this.mod.toggle({ anchor, Bridge });
@@ -6190,22 +6242,75 @@ const DashLoader = {
 };
 window.ZenithDash = DashLoader; // the bar's clock, tools/checks
 
+/* --- Where the sidebar is (Settings › Bar › The sidebar) ---------------------------
+   Shown (as Zen has it); on hover (Zen's compact mode); or hidden (compact
+   mode with its edge hover off: Ctrl+L and Ctrl+Alt+S still bring it), for
+   tabs in a bar. Works with or without a bar. Compact mode as it was is
+   kept and given back with "Shown". */
+const SidebarMode = {
+  PREF: "zenith.sidebar",
+  KEPT: "zenith.internal.bar.compact-before",
+
+  init() {
+    const apply = () => this.apply();
+    Services.prefs.addObserver(this.PREF, apply);
+    onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
+    this.apply();
+  },
+
+  apply() {
+    if (window.zenithFloatFrom || root.hasAttribute("popup-window")) return;
+    const P = Services.prefs, C = window.gZenCompactModeManager, how = P.getStringPref(this.PREF, "") || "shown";
+    if (how === "shown") {
+      Bridge.apply("bar-tabs", { "zen.view.compact.show-sidebar-and-toolbar-on-hover": null });
+      if (!C || !P.prefHasUserValue(this.KEPT)) return;
+      const was = P.getStringPref(this.KEPT, "") === "true";
+      P.clearUserPref(this.KEPT);
+      if (C.preference !== was) C.preference = was;
+      return;
+    }
+    Bridge.apply("bar-tabs", { "zen.view.compact.show-sidebar-and-toolbar-on-hover": how === "hidden" ? false : null });
+    if (!C) return;
+    if (!P.prefHasUserValue(this.KEPT)) P.setStringPref(this.KEPT, String(C.preference));
+    if (!C.preference) C.preference = true;
+  },
+};
+
 /* --- Zenith Shell's bar: imported only while it's on ---------------------------
    The bar (Settings › Bar) is plus/pages/bar.mjs, imported into this window
    when it's on and stopped when it's off, so with the bar off none of it
    runs or is even read. A change to what's in it rebuilds it; its look
    changes in place. Not in a floating tab's window. */
 const BarLoader = {
-  REBUILD: ["zenith.bar.position", "zenith.bar.tabs", "zenith.bar.title", "zenith.bar.launcher", "zenith.bar.media",
+  EDGES: ["top", "bottom", "left", "right"],
+  REBUILD: ["zenith.bar.top", "zenith.bar.bottom", "zenith.bar.left", "zenith.bar.right", "zenith.bar.hide-top",
+            "zenith.bar.hide-bottom", "zenith.bar.hide-left", "zenith.bar.hide-right", "zenith.bar.buttons", "zenith.bar.side-width",
+            "zenith.bar.title", "zenith.bar.launcher", "zenith.bar.media",
             "zenith.bar.downloads", "zenith.bar.timers", "zenith.bar.tray", "zenith.bar.icons", "zenith.bar.weather",
             "zenith.bar.resources", "zenith.bar.privacy", "zenith.bar.appearance"],
 
+  // 0.15's "The bar" (where) and "Where tabs are" become the edges' bars
+  // and the sidebar's setting, as they amounted to.
+  migrate() {
+    const P = Services.prefs, OLD = "zenith.bar.position", TABS = "zenith.bar.tabs";
+    if (!P.prefHasUserValue(OLD) && !P.prefHasUserValue(TABS)) return;
+    const pos = P.getStringPref(OLD, ""), tabs = P.getStringPref(TABS, "") || "sidebar";
+    if (pos === "both") {
+      P.setStringPref("zenith.bar.top", "status");
+      P.setStringPref("zenith.bar.bottom", "tabs");
+    } else if (pos === "top" || pos === "bottom") P.setStringPref(`zenith.bar.${pos}`, tabs === "bar" ? "both" : "status");
+    if (tabs !== "sidebar") P.setStringPref("zenith.sidebar", tabs === "bar" ? "hidden" : "hover");
+    P.clearUserPref(OLD);
+    P.clearUserPref(TABS);
+  },
+
   init() {
+    this.migrate();
     const apply = () => this.apply();
     for (const p of this.REBUILD) Services.prefs.addObserver(p, apply);
     onUnload(() => {
       for (const p of this.REBUILD) Services.prefs.removeObserver(p, apply);
-      this.bar?.stop({ keepTabs: true });
+      this.bar?.stop();
     });
     window.ZenithBar = this; // for tools/checks
     this.apply();
@@ -6225,11 +6330,9 @@ const BarLoader = {
   },
 
   apply() {
-    const on = !["", "off"].includes(Services.prefs.getStringPref("zenith.bar.position", ""));
-    const away = (Services.prefs.getStringPref("zenith.bar.tabs", "") || "sidebar") !== "sidebar";
+    const on = this.EDGES.some(e => ["status", "tabs", "both"].includes(Services.prefs.getStringPref(`zenith.bar.${e}`, "")));
     this.ready = (this.ready ?? Promise.resolve()).then(async () => {
-      // (Rebuilt with tabs still out of the sidebar: compact mode stays.)
-      this.bar?.stop({ keepTabs: on && away });
+      this.bar?.stop();
       this.bar = null;
       if (!on || window.zenithFloatFrom || root.hasAttribute("popup-window")) return;
       this.bar = (await import(await this.url())).start({ Bridge });
@@ -6265,22 +6368,157 @@ const PALETTES = {
 const Palettes = {
   PREF: "zenith.palette",
   SAVED: "zenith.internal.palette.own-spaces", // { uuid: theme } as they were before a palette
-  DONE: "zenith.internal.palette.spaces",      // the palette the spaces have
+  DONE: "zenith.internal.palette.spaces",      // the palette (and its colours) the spaces have
+  COMPUTED: "zenith.internal.palette.computed", // { name, pal }: the last palette made from a wallpaper or a file
+  // Palettes made on the fly, as a rice's are: your wallpaper's (as
+  // wallbash or matugen), or pywal's or wallust's colours file.
+  SOURCES: { wallpaper: "your wallpaper", pywal: "pywal", wallust: "wallust" },
 
   init() {
+    window.ZenithPalettes = this; // the settings page's swatches, tools/checks
+    this.migrate();
     const apply = () => this.apply();
-    Services.prefs.addObserver(this.PREF, apply);
-    onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
-    window.ZenithPalettes = this; // for tools/checks
+    for (const p of [this.PREF, "zenith.plus.palette-spaces"]) Services.prefs.addObserver(p, apply);
+    // A new wallpaper; the file pywal or wallust writes, looked at every
+    // few seconds while the window is in front (a changed date: read again).
+    const drawn = () => this.name() === "wallpaper" && this.apply(true);
+    window.addEventListener("ZenithWallpaperDrawn", drawn);
+    const look = async () => {
+      const name = this.name();
+      if (!["pywal", "wallust"].includes(name) || document.hidden || !document.hasFocus()) return;
+      const path = await PaletteSync.file(name);
+      const stamp = path ? (await IOUtils.stat(path).catch(() => null))?.lastModified : null;
+      if (stamp && stamp !== this.stamp) {
+        this.stamp = stamp;
+        this.apply(true);
+      }
+    };
+    const timer = setInterval(look, 5000);
+    onUnload(() => {
+      for (const p of [this.PREF, "zenith.plus.palette-spaces"]) Services.prefs.removeObserver(p, apply);
+      window.removeEventListener("ZenithWallpaperDrawn", drawn);
+      clearInterval(timer);
+    });
     this.apply();
+  },
+
+  // 0.15's Palette sync is a palette now.
+  migrate() {
+    const P = Services.prefs, OLD = "zenith.plus.palette-sync";
+    if (!P.prefHasUserValue(OLD)) return;
+    const v = P.getStringPref(OLD, "");
+    if (v in this.SOURCES && !P.getStringPref(this.PREF, "")) P.setStringPref(this.PREF, v);
+    P.clearUserPref(OLD);
+  },
+
+  name() {
+    const v = Services.prefs.getStringPref(this.PREF, "");
+    return v in PALETTES || v in this.SOURCES ? v : "";
   },
 
   rgb(hex) {
     return [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
   },
 
-  apply() {
-    const chosen = Services.prefs.getStringPref(this.PREF, ""), name = chosen in PALETTES ? chosen : "", pal = PALETTES[name];
+  hex(rgb) {
+    return `#${rgb.map(v => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
+  },
+
+  mix(x, y, t) {
+    const a = this.rgb(x), b = this.rgb(y);
+    return this.hex(a.map((v, i) => v * (1 - t) + b[i] * t));
+  },
+
+  luminance(hex) {
+    const lin = v => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    const [r, g, b] = this.rgb(hex).map(lin);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  },
+
+  // A palette's colours (the settings page's swatches): named ones as they
+  // are, made ones as they were last made.
+  colours(name) {
+    if (PALETTES[name]) return PALETTES[name];
+    try {
+      const c = JSON.parse(Services.prefs.getStringPref(this.COMPUTED, "") || "null");
+      return c?.name === name ? c.pal : null;
+    } catch {
+      return null;
+    }
+  },
+
+  // pywal's or wallust's colors.json: 0 the background, 7 (or the special
+  // foreground) the text, 1–6 the accents (the most colourful first), 8 the muted.
+  fromWal(j) {
+    const c = i => (/^#[0-9a-f]{6}$/i.test(j.colors?.[`color${i}`] ?? "") ? j.colors[`color${i}`] : null);
+    const bg = j.special?.background ?? c(0), fg = j.special?.foreground ?? c(7) ?? c(15);
+    if (!bg || !fg) return null;
+    const vivid = [1, 2, 3, 4, 5, 6].map(c).filter(Boolean).map(hex => {
+      const [L, a, b] = ImageColours.lab(this.rgb(hex));
+      return [Math.hypot(a, b), hex];
+    }).sort((x, y) => y[0] - x[0]).map(([, hex]) => hex);
+    const light = this.luminance(bg) > 0.4;
+    return { light, base: bg, mantle: this.mix(bg, light ? "#ffffff" : "#000000", 0.25), surface: this.mix(bg, fg, 0.12),
+             overlay: c(8) ?? this.mix(bg, fg, 0.45), text: fg, accent: vivid[0] ?? c(4) ?? fg, second: vivid[1] ?? c(5) ?? fg,
+             red: c(1) ?? "#e06c75", green: c(2) ?? "#98c379", yellow: c(3) ?? "#e5c07b" };
+  },
+
+  // A palette from a picture, as wallbash and matugen do: dark or light by
+  // the picture, the base a quiet tint of its main colour, the accents its
+  // most striking colours.
+  async fromImage(blob) {
+    const bitmap = await createImageBitmap(blob);
+    try {
+      const hues = ImageColours.palette(bitmap);
+      const c = document.createElementNS(HTML_NS, "canvas");
+      c.width = c.height = 16;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(bitmap, 0, 0, 16, 16);
+      const d = ctx.getImageData(0, 0, 16, 16).data;
+      let sum = 0;
+      for (let i = 0; i < d.length; i += 4) sum += ImageColours.lab([d[i], d[i + 1], d[i + 2]])[0];
+      const dark = sum / (d.length / 4) < 0.62;
+      const h0 = hues[0] ?? { h: 260, C: 0.05 }, h1 = hues[1] ?? { h: (h0.h + 40) % 360, C: h0.C };
+      const at = (L, C, h) => this.hex(ImageColours.rgb(L, C, h));
+      const tint = Math.min(0.035, h0.C * 0.35), pop = h => Math.max(0.08, Math.min(0.17, h.C * 1.2));
+      const A = dark ? 0.76 : 0.52;
+      return {
+        light: !dark,
+        base: at(dark ? 0.21 : 0.96, tint, h0.h), mantle: at(dark ? 0.17 : 0.92, tint, h0.h),
+        surface: at(dark ? 0.29 : 0.88, tint, h0.h), overlay: at(dark ? 0.56 : 0.6, tint, h0.h),
+        text: at(dark ? 0.93 : 0.26, 0.012, h0.h),
+        accent: at(A, pop(h0), h0.h), second: at(A, pop(h1), h1.h),
+        red: at(A, 0.14, 25), green: at(A, 0.13, 145), yellow: at(dark ? 0.84 : 0.62, 0.13, 90),
+      };
+    } finally {
+      bitmap.close();
+    }
+  },
+
+  // Make a palette from a wallpaper or a file (kept for the swatches, and
+  // for a start before the source is read again).
+  async make(name) {
+    try {
+      let pal = null;
+      if (name === "wallpaper") {
+        if (Wallpaper.url) pal = await this.fromImage(await (await fetch(Wallpaper.url)).blob());
+      } else {
+        const path = await PaletteSync.file(name);
+        if (path) pal = this.fromWal(JSON.parse(await IOUtils.readUTF8(path)));
+      }
+      if (pal) Services.prefs.setStringPref(this.COMPUTED, JSON.stringify({ name, pal }));
+      else hint(name === "wallpaper" ? "No wallpaper to take colours from (Window material: Wallpaper)" : `No ${name} colours file found`);
+      return pal ?? this.colours(name);
+    } catch (e) {
+      console.error("[Zenith] palette", e);
+      return this.colours(name);
+    }
+  },
+
+  async apply(again = false) {
+    const name = this.name();
+    const pal = PALETTES[name] ?? (name ? (again ? await this.make(name) : (this.colours(name) ?? (await this.make(name)))) : null);
+    if (name !== this.name()) return; // (changed meanwhile)
     // The bar and Zenith's accent: properties on the window (plus/chrome.css).
     for (const k of ["base", "mantle", "surface", "overlay", "text", "accent", "second", "red", "green", "yellow"]) {
       if (pal) root.style.setProperty(`--zth-pal-${k}`, pal[k]);
@@ -6288,28 +6526,33 @@ const Palettes = {
     }
     if (pal) root.setAttribute("zenith-palette", pal.light ? "light" : "dark");
     else root.removeAttribute("zenith-palette");
-    // The spaces are shared: the window in front changes them, once.
+    // The whole window light or dark as the palette is (Zen's own Window
+    // scheme, given back with no palette), so Zen's colours, its text and
+    // the bar's background agree with the palette's.
+    Bridge.apply("palette-scheme", { "zen.view.window.scheme": pal ? (pal.light ? 1 : 0) : null });
+    // The spaces are shared: the window in front changes them, once per palette (and its colours).
     if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
-    const done = Services.prefs.getStringPref(this.DONE, "");
-    if (done === name) return;
+    const all = Services.prefs.getStringPref("zenith.plus.palette-spaces", "") !== "current";
+    const sig = pal ? `${name}:${all ? "all" : "here"}:${[...JSON.stringify(pal)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7)}` : "";
+    if (Services.prefs.getStringPref(this.DONE, "") === sig) return;
     try {
-      if (pal) this.paint(pal);
+      if (pal) this.paint(pal, all);
       else this.giveBack();
-      if (name) Services.prefs.setStringPref(this.DONE, name);
+      if (sig) Services.prefs.setStringPref(this.DONE, sig);
       else Services.prefs.clearUserPref(this.DONE);
     } catch (e) {
       console.error("[Zenith] palette", e);
     }
   },
 
-  // Every space: the palette's base, its accent as a glow in one corner and
-  // as the space's main colour (Zen's accent).
-  paint(pal) {
+  // Every space (or the one you're in): the palette's base, its accent as a
+  // glow in one corner and as the space's main colour (Zen's accent).
+  paint(pal, all = true) {
     const W = window.gZenWorkspaces, picker = window.gZenThemePicker;
     if (!W || !picker) return;
-    const spaces = W.getWorkspaces?.() ?? [];
+    const spaces = all ? (W.getWorkspaces?.() ?? []) : [W.getActiveWorkspace?.()].filter(Boolean);
     if (!Services.prefs.prefHasUserValue(this.SAVED)) {
-      Services.prefs.setStringPref(this.SAVED, JSON.stringify(Object.fromEntries(spaces.map(s => [s.uuid, s.theme ?? null]))));
+      Services.prefs.setStringPref(this.SAVED, JSON.stringify(Object.fromEntries((W.getWorkspaces?.() ?? []).map(s => [s.uuid, s.theme ?? null]))));
     }
     const dot = (hex, primary, c = this.rgb(hex)) => {
       const [r, g, b] = c.map(v => v / 255);
@@ -8345,6 +8588,7 @@ start("sidebar hover", () => SidebarHover.init());
 start("delete downloads", () => DownloadDelete.init());
 start("link hints", () => LinkHints.init(), true);
 start("start page", () => StartPage.init(), true);
+start("help page", () => HelpPage.init());
 start("picture-in-picture", () => PiPWindows.init());
 start("float a tab", () => FloatTab.init(), true);
 start("keys in Zen's shortcuts", () => ZenithKeys.init());
@@ -8381,10 +8625,10 @@ start("palettes", () => Palettes.init(), true);
 start("site appearance", () => SiteAppearance.init(), true);
 start("sidebar text", () => InkContrast.init());
 start("bar", () => BarLoader.init(), true);
+start("sidebar", () => SidebarMode.init(), true);
 start("groups that don't pin", () => UnpinnedGroups.init(), true);
 start("bookmarks bar", () => BookmarksBar.init(), true);
 start("colours from an image", () => ImageColours.init());
-start("palette sync", () => PaletteSync.init());
 start("extensions per space", () => SpaceExtensions.init(), true);
 start("extension copies", () => ExtensionCopies.init(), true);
 start("split view reordering", () => SplitReorder.init());

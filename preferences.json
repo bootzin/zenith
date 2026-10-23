@@ -2042,33 +2042,8 @@
     "usedBy": "zenith-plus"
   },
   {
-    "property": "zenith.plus.palette-sync",
-    "label": "Palette sync: the spaces take your desktop palette's colours",
-    "type": "dropdown",
-    "placeholder": "Default (Off)",
-    "options": [
-      {
-        "label": "Off",
-        "value": "off"
-      },
-      {
-        "label": "pywal or winwal (~/.cache/wal/colors.json)",
-        "value": "pywal"
-      },
-      {
-        "label": "wallust (~/.cache/wallust/colors.json)",
-        "value": "wallust"
-      },
-      {
-        "label": "Your wallpaper (with Window material on Wallpaper)",
-        "value": "wallpaper"
-      }
-    ],
-    "usedBy": "zenith-plus"
-  },
-  {
     "property": "zenith.plus.palette-spaces",
-    "label": "Palette sync colours",
+    "label": "Which spaces a palette colours",
     "type": "dropdown",
     "placeholder": "Default (Every space)",
     "options": [
@@ -2086,29 +2061,23 @@
       {
         "conditions": [
           {
-            "if": {
-              "property": "zenith.plus.palette-sync",
-              "value": "pywal"
+            "not": {
+              "property": "zenith.palette",
+              "value": ""
             }
           },
           {
-            "if": {
-              "property": "zenith.plus.palette-sync",
-              "value": "wallust"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.plus.palette-sync",
-              "value": "wallpaper"
+            "not": {
+              "property": "zenith.palette",
+              "value": "own"
             }
           }
         ],
-        "operator": "OR"
+        "operator": "AND"
       }
     ],
     "operator": "AND",
-    "zenithWhy": "Palette sync is off"
+    "zenithWhy": "Only with a palette"
   },
   {
     "property": "zenith.plus.space-colour",
@@ -2451,29 +2420,458 @@
     "usedBy": "zenith-plus"
   },
   {
-    "property": "zenith.bar.position",
-    "label": "Zenith Shell's bar",
+    "property": "zenith.bar.layout",
+    "label": "Bar layout",
     "type": "dropdown",
-    "placeholder": "Default (Off)",
+    "placeholder": "Default (No bar)",
     "options": [
       {
-        "label": "Off",
-        "value": "off"
+        "label": "No bar",
+        "value": "zen"
       },
       {
-        "label": "At the top",
+        "label": "A top bar",
         "value": "top"
       },
       {
-        "label": "At the bottom",
-        "value": "bottom"
+        "label": "Top and bottom",
+        "value": "split"
       },
       {
-        "label": "Both: status at the top, tabs at the bottom",
+        "label": "A taskbar",
+        "value": "taskbar"
+      },
+      {
+        "label": "A rail",
+        "value": "rail"
+      },
+      {
+        "label": "Minimal",
+        "value": "minimal"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.bar.top",
+    "label": "A bar at the top",
+    "type": "dropdown",
+    "placeholder": "Default (None)",
+    "options": [
+      {
+        "label": "None",
+        "value": "off"
+      },
+      {
+        "label": "Status",
+        "value": "status"
+      },
+      {
+        "label": "Tabs",
+        "value": "tabs"
+      },
+      {
+        "label": "Status and tabs",
         "value": "both"
       }
     ],
     "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.bar.hide-top",
+    "label": "The top bar hides until the pointer reaches it",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "There's no bar at the top"
+  },
+  {
+    "property": "zenith.bar.bottom",
+    "label": "A bar at the bottom",
+    "type": "dropdown",
+    "placeholder": "Default (None)",
+    "options": [
+      {
+        "label": "None",
+        "value": "off"
+      },
+      {
+        "label": "Status",
+        "value": "status"
+      },
+      {
+        "label": "Tabs",
+        "value": "tabs"
+      },
+      {
+        "label": "Status and tabs",
+        "value": "both"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.bar.hide-bottom",
+    "label": "The bottom bar hides until the pointer reaches it",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "There's no bar at the bottom"
+  },
+  {
+    "property": "zenith.bar.left",
+    "label": "A bar at the left",
+    "type": "dropdown",
+    "placeholder": "Default (None)",
+    "options": [
+      {
+        "label": "None",
+        "value": "off"
+      },
+      {
+        "label": "Status",
+        "value": "status"
+      },
+      {
+        "label": "Tabs",
+        "value": "tabs"
+      },
+      {
+        "label": "Status and tabs",
+        "value": "both"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.bar.hide-left",
+    "label": "The left bar hides until the pointer reaches it",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "There's no bar at the left"
+  },
+  {
+    "property": "zenith.bar.right",
+    "label": "A bar at the right",
+    "type": "dropdown",
+    "placeholder": "Default (None)",
+    "options": [
+      {
+        "label": "None",
+        "value": "off"
+      },
+      {
+        "label": "Status",
+        "value": "status"
+      },
+      {
+        "label": "Tabs",
+        "value": "tabs"
+      },
+      {
+        "label": "Status and tabs",
+        "value": "both"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.bar.hide-right",
+    "label": "The right bar hides until the pointer reaches it",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "There's no bar at the right"
+  },
+  {
+    "property": "zenith.sidebar",
+    "label": "The sidebar",
+    "type": "dropdown",
+    "placeholder": "Default (Shown)",
+    "options": [
+      {
+        "label": "Shown",
+        "value": "shown"
+      },
+      {
+        "label": "On hover (Zen's compact mode)",
+        "value": "hover"
+      },
+      {
+        "label": "Hidden (tabs in a bar)",
+        "value": "hidden"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.bar.side-width",
+    "label": "Bars on the left or right",
+    "type": "dropdown",
+    "placeholder": "Default (A rail of icons)",
+    "options": [
+      {
+        "label": "A rail of icons",
+        "value": "rail"
+      },
+      {
+        "label": "With titles",
+        "value": "wide"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "There's no bar on the left or right"
+  },
+  {
+    "property": "zenith.bar.buttons",
+    "label": "The window's buttons",
+    "type": "dropdown",
+    "placeholder": "Default (In the top bar)",
+    "options": [
+      {
+        "label": "In the top bar",
+        "value": "window"
+      },
+      {
+        "label": "A power button with them, and restart and quit",
+        "value": "power"
+      },
+      {
+        "label": "Not in a bar",
+        "value": "nothing"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
   },
   {
     "property": "zenith.bar.style",
@@ -2503,19 +2901,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2545,19 +3003,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2583,19 +3101,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2625,61 +3203,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
-            }
-          }
-        ],
-        "operator": "AND"
-      }
-    ],
-    "operator": "AND",
-    "zenithWhy": "The bar is off"
-  },
-  {
-    "property": "zenith.bar.tabs",
-    "label": "Where tabs are, with the bar on",
-    "type": "dropdown",
-    "placeholder": "Default (In the sidebar)",
-    "options": [
-      {
-        "label": "In the sidebar",
-        "value": "sidebar"
-      },
-      {
-        "label": "In the bar, no sidebar",
-        "value": "bar"
-      },
-      {
-        "label": "The sidebar on hover (Zen's compact mode)",
-        "value": "hover"
-      }
-    ],
-    "usedBy": "zenith-plus",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2721,19 +3317,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2763,19 +3419,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2817,19 +3533,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2845,19 +3621,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2873,19 +3709,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2901,19 +3797,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2929,19 +3885,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2957,19 +3973,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -2985,19 +4061,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -3013,19 +4149,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -3041,19 +4237,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -3079,19 +4335,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -3099,7 +4415,7 @@
   },
   {
     "property": "zenith.bar.resources",
-    "label": "What Firefox uses (memory)",
+    "label": "What the browser uses (memory)",
     "type": "checkbox",
     "defaultValue": false,
     "usedBy": "zenith-plus",
@@ -3107,19 +4423,79 @@
       {
         "conditions": [
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": ""
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "status"
             }
           },
           {
-            "not": {
-              "property": "zenith.bar.position",
-              "value": "off"
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "status"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "both"
             }
           }
         ],
-        "operator": "AND"
+        "operator": "OR"
       }
     ],
     "operator": "AND",
@@ -3158,13 +4534,49 @@
         "conditions": [
           {
             "if": {
-              "property": "zenith.bar.tabs",
-              "value": "bar"
+              "property": "zenith.bar.top",
+              "value": "tabs"
             }
           },
           {
             "if": {
-              "property": "zenith.bar.position",
+              "property": "zenith.bar.top",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "both"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "tabs"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
               "value": "both"
             }
           }
@@ -3173,7 +4585,7 @@
       }
     ],
     "operator": "AND",
-    "zenithWhy": "Tabs aren't in the bar"
+    "zenithWhy": "Tabs aren't in a bar"
   },
   {
     "property": "zenith.dash.weather",
@@ -3191,6 +4603,18 @@
       {
         "label": "Your own colours",
         "value": "own"
+      },
+      {
+        "label": "From your wallpaper",
+        "value": "wallpaper"
+      },
+      {
+        "label": "From pywal or winwal",
+        "value": "pywal"
+      },
+      {
+        "label": "From wallust",
+        "value": "wallust"
       },
       {
         "label": "Catppuccin Mocha",

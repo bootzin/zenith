@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<!-- about:zenith-help: what Zenith can do, and how (zenith-plus.uc.mjs's HelpPage; :help opens it). -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Zenith help</title>
+    <link rel="icon" href="chrome://global/skin/icons/help.svg" />
+    <link rel="stylesheet" href="help.css" />
+    <script type="module" src="help.mjs"></script>
+  </head>
+  <body>
+    <header id="top">
+      <h1>Zenith</h1>
+      <input id="search" type="search" placeholder="Find something: tiles, timer, palette…" spellcheck="false" />
+      <button type="button" id="beside" title="Keep this page as a tile beside the one you came from">Beside</button>
+      <button type="button" data-try="settings" title="Zenith's settings over the page (Alt+Shift+Z)">Settings</button>
+    </header>
+    <div id="layout">
+      <nav id="toc">
+        <a href="#start">Start here</a>
+        <a href="#find">Find and open</a>
+        <a href="#tiles">Tiles</a>
+        <a href="#spaces">Spaces</a>
+        <a href="#links">Links</a>
+        <a href="#bar">The bar and the Dash</a>
+        <a href="#reading">Reading and pages</a>
+        <a href="#tabs">Tidy tabs</a>
+        <a href="#looks">Colours and wallpaper</a>
+        <a href="#keys">Every key</a>
+      </nav>
+      <main id="content">
+        <section id="start" data-words="start welcome begin new first">
+          <h2>Start here</h2>
+          <p>Zenith makes Zen work more like a tiling desktop (i3, Hyprland): most things by keyboard, pages as tiles beside each other, a bar like waybar's. Every part can be turned off in the settings; nothing here is needed to use Zen as it is.</p>
+          <p>Most of Zenith's keys use <kbd>Alt</kbd>, so they don't clash with the page's. Four are worth learning first:</p>
+          <div class="cards">
+            <div class="card"><kbd>Alt+W</kbd><b>Go to any tab</b><span>A few letters of its title or site, then Enter.</span><button type="button" data-try="switcher">Try it</button></div>
+            <div class="card"><kbd>Alt+D</kbd><b>Open a site or search</b><span>An address, a search, or one of your bookmarks.</span><button type="button" data-try="launcher">Try it</button></div>
+            <div class="card"><kbd>Alt+Shift+/</kbd><b>Every key, on one sheet</b><span>Any key closes it.</span><button type="button" data-try="keys">Try it</button></div>
+            <div class="card"><kbd>Alt+Shift+Z</kbd><b>Change anything</b><span>Zenith's settings over the page, with a search.</span><button type="button" data-try="settings">Try it</button></div>
+          </div>
+        </section>
+
+        <section id="find" data-words="switcher launcher search open command calc emoji rofi">
+          <h2>Find and open</h2>
+          <p>The switcher (<kbd>Alt+W</kbd>) and the launcher (<kbd>Alt+D</kbd>) are one list with modes, like rofi's: tabs, open, spaces, commands, a calculator and emoji. <kbd>Ctrl+Tab</kbd> moves between the modes, or click one at the top.</p>
+          <p>Type <kbd>:</kbd> for commands. A few:</p>
+          <dl class="rows">
+            <dt>:timer 10m tea</dt><dd>A countdown on the page's edge</dd>
+            <dt>:pomo</dt><dd>A pomodoro (<code>:pomo 25 5 4</code>)</dd>
+            <dt>:appearance dark</dt><dd>Pages dark, light or automatic</dd>
+            <dt>:set</dt><dd>Find a setting and change it</dd>
+            <dt>:peek</dt><dd>Look something up in a Peek</dd>
+            <dt>:help tiles</dt><dd>This page, at a topic</dd>
+          </dl>
+          <div class="cards">
+            <div class="card"><kbd>:</kbd><b>Every command</b><span>The switcher with <code>:</code> typed.</span><button type="button" data-try="commands">Try it</button></div>
+          </div>
+        </section>
+
+        <section id="tiles" data-words="tiles tiling split side by side window i3 hyprland resize">
+          <h2>Tiles</h2>
+          <p>Pages side by side, in Zen's split view, moved with i3's keys. Past the last tile, the same keys go to the tab before or after.</p>
+          <dl class="rows">
+            <dt>Alt+Shift+Enter</dt><dd>A new tile beside this one</dd>
+            <dt data-link="tile"></dt><dd data-link="tile">A link as a new tile</dd>
+            <dt>Alt+H J K L</dt><dd>Focus the tile to the left, below, above, right</dd>
+            <dt>Alt+Shift+H J K L</dt><dd>Move the tile that way (past the edge: out of the split)</dd>
+            <dt>Alt+B / Alt+V</dt><dd>The next tile goes to the right / below</dd>
+            <dt>Alt+E</dt><dd>Flip the split's direction</dd>
+            <dt>Alt+R</dt><dd>Resize mode: H J K L or arrows, <kbd>=</kbd> evens out, Esc leaves</dd>
+            <dt>Alt+F</dt><dd>The tile you're on fills the split, and back</dd>
+            <dt>Alt+drag</dt><dd>A tile onto another: the middle swaps, an edge puts it there</dd>
+            <dt>Alt+right-drag</dt><dd>Resize a tile</dd>
+          </dl>
+          <div class="cards">
+            <div class="card"><kbd>Alt+Shift+Enter</kbd><b>A tile beside this page</b><span>A new tab, next to this one.</span><button type="button" data-try="new-tile">Try it</button></div>
+          </div>
+        </section>
+
+        <section id="spaces" data-words="spaces workspaces scratchpad desktop">
+          <h2>Spaces</h2>
+          <p>Zen's spaces, as i3's workspaces.</p>
+          <dl class="rows">
+            <dt>Alt+1 … 0</dt><dd>Go to that space</dd>
+            <dt>Alt+Shift+1 … 0</dt><dd>Send the tab there (you stay)</dd>
+            <dt>Alt+`</dt><dd>The space you were on before</dd>
+            <dt>Alt+wheel</dt><dd>The next or previous space</dd>
+            <dt>Alt+Shift+-</dt><dd>Send the tab to the scratchpad, out of the way</dd>
+            <dt>Alt+-</dt><dd>Show or hide the scratchpad</dd>
+          </dl>
+          <div class="cards">
+            <div class="card"><kbd>Alt+W</kbd><b>Every space</b><span>The switcher's spaces mode.</span><button type="button" data-try="spaces">Try it</button></div>
+          </div>
+        </section>
+
+        <section id="links" data-words="links peek glance hints click mouse keyboard">
+          <h2>Links</h2>
+          <p>A link can open in a Peek (a small window over the page that stays while you work), in Zen's Glance, or as a tile. Which key does what is yours to choose: Settings › Shell › Clicking a link with keys.</p>
+          <dl class="rows" id="link-combos"></dl>
+          <dl class="rows">
+            <dt>Alt+;</dt><dd>Letters on every link: type them to follow it (no mouse)</dd>
+            <dt>Alt+Shift+;</dt><dd>The same, in a new tab</dd>
+            <dt>Alt+Q</dt><dd>Peek: look something up and stay where you are</dd>
+          </dl>
+          <div class="cards">
+            <div class="card"><kbd>Alt+Q</kbd><b>A Peek</b><span>Type a search or an address.</span><button type="button" data-try="peek">Try it</button></div>
+          </div>
+        </section>
+
+        <section id="bar" data-words="bar waybar polybar dash calendar weather clock media power sidebar layout taskbar rail">
+          <h2>The bar and the Dash</h2>
+          <p>A bar like waybar's, on any edge of the window: spaces, the page's title, the clock, media, downloads, timers, and your tabs if you want them there. Each edge has its own bar (or none), and a bar can hide until the pointer reaches its edge. If that's too many choices, a layout sets them all at once: Settings › Bar.</p>
+          <dl class="rows">
+            <dt>A top bar</dt><dd>Spaces, the tab you're on, the clock; tabs stay in the sidebar</dd>
+            <dt>Top and bottom</dt><dd>Status at the top, this space's tabs at the bottom; no sidebar</dd>
+            <dt>A taskbar</dt><dd>One bar at the bottom with tabs and status</dd>
+            <dt>A rail</dt><dd>Tabs and status in a slim bar on the left, instead of the sidebar</dd>
+            <dt>Minimal</dt><dd>Tabs and status at the top; the sidebar on hover</dd>
+          </dl>
+          <p>The Dash (<kbd>Alt+N</kbd>, or a click on the bar's clock) has a calendar, the weather, what's playing, your timers, quick toggles and what the browser is using.</p>
+          <div class="cards">
+            <div class="card"><kbd>Alt+N</kbd><b>The Dash</b><span>Any key or a click away closes it.</span><button type="button" data-try="dash">Try it</button></div>
+            <div class="card"><kbd>⚙</kbd><b>Choose a layout</b><span>Settings › Bar.</span><button type="button" data-try="bar-settings">Open</button></div>
+          </div>
+        </section>
+
+        <section id="reading" data-words="focus reading appearance dark light timer pomodoro float window">
+          <h2>Reading and pages</h2>
+          <dl class="rows">
+            <dt>Alt+Z</dt><dd>Focus mode: just the page; Alt+Z again to leave</dd>
+            <dt>:appearance</dt><dd>Pages dark, light or automatic (the bar and the Dash have a button too)</dd>
+            <dt>Alt+Shift+F</dt><dd>Float the tab in a small window of its own</dd>
+            <dt>Alt+P</dt><dd>Passthrough: every key goes to the page, until Alt+P again</dd>
+          </dl>
+          <div class="cards">
+            <div class="card"><kbd>Alt+Z</kbd><b>Focus mode</b><span>Try it here; Alt+Z brings everything back.</span><button type="button" data-try="focus">Try it</button></div>
+            <div class="card"><kbd>:timer</kbd><b>A timer</b><span>How long and a name: <code>10m tea</code>.</span><button type="button" data-try="timer">Try it</button></div>
+          </div>
+        </section>
+
+        <section id="tabs" data-words="tabs tidy sleep memory manager duplicates">
+          <h2>Tidy tabs</h2>
+          <dl class="rows">
+            <dt>Alt+Shift+T</dt><dd>The tab manager: what's using memory, duplicates, tabs you haven't used for days, rules</dd>
+            <dt>Alt+U</dt><dd>Put the tab to sleep</dd>
+            <dt>Alt+Shift+U</dt><dd>Put the space's other tabs to sleep</dd>
+            <dt>Alt+Shift+Q</dt><dd>Close the tab</dd>
+          </dl>
+          <div class="cards">
+            <div class="card"><kbd>Alt+Shift+T</kbd><b>The tab manager</b><span>Nothing happens until you press something.</span><button type="button" data-try="tabs">Try it</button></div>
+          </div>
+        </section>
+
+        <section id="looks" data-words="palette colours colors theme wallpaper pywal wallust catppuccin gruvbox nord rice">
+          <h2>Colours and wallpaper</h2>
+          <p>One palette colours the whole browser: the bar, the sidebar, popups, the spaces. Pick a named one (Catppuccin, Gruvbox, Nord, Rosé Pine and more), or let it follow something, as a Linux rice does:</p>
+          <dl class="rows">
+            <dt>From your wallpaper</dt><dd>Colours picked from the window's wallpaper, again whenever it changes</dd>
+            <dt>pywal</dt><dd>Your <code>~/.cache/wal/colors.json</code>, followed when it changes</dd>
+            <dt>wallust</dt><dd><code>~/.cache/wallust/colors.json</code> (a wallust template that writes pywal's format)</dd>
+          </dl>
+          <p>The window's wallpaper can be your desktop's or a picture of your own: Settings › Look.</p>
+          <div class="cards">
+            <div class="card"><kbd>⚙</kbd><b>Choose a palette</b><span>Settings › Look › Colour and shape.</span><button type="button" data-try="palette-settings">Open</button></div>
+          </div>
+        </section>
+
+        <section id="keys" data-words="keys shortcuts keyboard bindings">
+          <h2>Every key</h2>
+          <p id="keys-note">As they're set now. Change them in Settings › Shell › Keys.</p>
+          <div id="key-groups"></div>
+        </section>
+      </main>
+    </div>
+    <p id="nothing" hidden>Nothing here matches. Try fewer words, or <a href="#keys">every key</a>.</p>
+  </body>
+</html>
