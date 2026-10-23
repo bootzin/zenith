@@ -8,11 +8,11 @@
   "preferences": "https://raw.githubusercontent.com/bootzin/zenith/master/core/preferences.json",
   "image": "",
   "author": "bootzin",
-  "version": "0.12.22",
+  "version": "0.13.0",
   "tags": [
     "minimal",
     "zenith"
   ],
   "createdAt": "2026-10-16",
-  "updatedAt": "2026-10-22T23:14:55+00:00"
+  "updatedAt": "2026-10-23T00:41:11+00:00"
 }

@@ -46,6 +46,13 @@ def sites(prop, label, placeholder):
     return {"property": prop, "label": label, "type": "string", "placeholder": "example.com, another.site", "zenithList": placeholder}
 
 
+def keymap(prop, label):
+    """Zenith Shell's keys, kept as one text setting of the changes from the
+    defaults (Sine shows the text; Zenith's own settings page shows every
+    key with a button to press a new one)."""
+    return {"property": prop, "label": label, "type": "string", "placeholder": "focus-left=Alt+KeyH, …", "zenithKeys": True}
+
+
 def checkbox(prop, label, default=None):
     entry = {"property": prop, "label": label, "type": "checkbox"}
     if default is not None:
@@ -221,6 +228,10 @@ MODS = {
              "Only with Split view: Tiling gaps",
              ANY(IF("zenith.panels.split", "gaps"),
                  ALL(IF("zenith.panels.split", ""), NOT("zenith.panels.preset", "zen")))),
+        dropdown("zenith.panels.tile-focus", "The tile you're on (split view)", "As Zen draws it",
+                 ("As Zen draws it", "zen"), ("An accent border", "accent")),
+        dropdown("zenith.panels.tile-dim", "The other tiles (split view)", "As they are",
+                 ("As they are", "keep"), ("Dimmed", "dim")),
         dropdown("zenith.panels.notifications", "Notifications", "dunst cards",
                  ("Zen default", "zen"), ("Small toasts", "small"), ("dunst cards", "dunst")),
         tri("zenith.panels.compact-menus", "Compact menus"),
@@ -362,7 +373,21 @@ MODS = {
                              ("Its Zen window only", "zen"), ("Every app", "all"))),
              "Float a tab is off", IF("zenith.plus.float-tab", True)),
         script(checkbox("zenith.plus.split-solo", "Alt+F: the pane you're on fills a split view; Alt+F again, the split as it was", True)),
-        script(checkbox("zenith.plus.link-hints", "Link hints on Alt+J: letters on every link, type them to follow it (Alt+Shift+J: in a new tab)", True)),
+        script(checkbox("zenith.plus.link-hints", "Link hints on Alt+; (the key right of L): letters on every link, type them to follow it (Alt+Shift+;: in a new tab)", True)),
+        script(checkbox("zenith.shell.keys", "Zenith Shell: i3's keys with Alt (Alt+Shift+/ lists them)", True)),
+        when(script(keymap("zenith.shell.bindings", "Shell keys")),
+             "The Shell's keys are off", IF("zenith.shell.keys", True)),
+        when(script(sites("zenith.shell.passthrough-sites", "Sites that keep their Alt keys", "Add a site (docs.google.com)")),
+             "The Shell's keys are off", IF("zenith.shell.keys", True)),
+        script(dropdown("zenith.shell.tile-click", "Open a link as a tile by clicking it with", "Alt+Shift",
+                        ("Alt+Shift", "alt-shift"), ("Ctrl+Alt", "ctrl-alt"), ("Nothing", "off"))),
+        script(checkbox("zenith.shell.mouse", "Alt+drag moves a tile, Alt+right-drag resizes it", True)),
+        script(checkbox("zenith.shell.wheel", "Alt+wheel: the next or previous space", True)),
+        script(checkbox("zenith.shell.follow-mouse", "Focus follows the mouse across tiles", False)),
+        script(dropdown("zenith.shell.new-tile", "Where a new tile goes", "Along the tile's longer side",
+                        ("Along the tile's longer side", "dwindle"), ("Always to the right", "right"), ("Always below", "below"))),
+        script(dropdown("zenith.shell.tiles", "Tiles in one split", "4 (Zen's own)",
+                        ("4 (Zen's own)", "4"), ("6", "6"), ("8", "8"))),
         script(dropdown("zenith.plus.focus-scope", "Focus mode is on for", "The site you're on",
                         ("The site you're on", "site"), ("Every site", "all"))),
         script(dropdown("zenith.plus.focus-pages", "Focus mode and the page", "Articles in a reading view, the rest tidied",
@@ -504,6 +529,8 @@ def page_schema():
             out["placeholder"] = e.get("placeholder", "")
             if "zenithList" in e:
                 out["zenithList"] = e["zenithList"]
+            if e.get("zenithKeys"):
+                out["zenithKeys"] = True
         if prop in ui.PARENTS:
             out["parent"] = ui.PARENTS[prop]
         if prop in ui.PICTURES:

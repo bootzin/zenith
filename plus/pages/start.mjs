@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // about:zenith-start: a clock, a search box (Peek's engine) that also
 // filters your bookmarks as you type, and the bookmarks themselves: 1–9
 // open one while the box is empty, arrows and Enter pick one, Shift+Enter

@@ -17,6 +17,7 @@ Zenith comes in two parts.
 
 **Zenith Plus** adds what CSS alone can't do. It needs scripts.
 
+- **Zenith Shell:** the browser as a tiling window manager. i3's keys with Alt (**Alt+H/J/K/L** between tiles, **Alt+Shift+Enter** a new tile, **Alt+1…0** spaces, **Alt+R** resize, **Alt+-** the scratchpad, **Alt+P** passthrough; **Alt+Shift+/** lists them all), **Alt+Shift+click** a link to open it as a tile, **Alt+drag** to move a tile and **Alt+right-drag** to resize it, **Alt+wheel** for the next space. Keys are matched by where they are, so they're the same on any layout, and you can change each on Zenith's page.
 - **Peek:** quick lookups in a floating page that leaves nothing behind, with Alt+Q and instant answers.
 - **Live edges:** real load and download progress.
 - **Peek extras:** currency, definitions and weather in the prompt, timers and pomodoros, and `set` to find a setting, change it, or open it in the live panel.
@@ -26,8 +27,8 @@ Zenith comes in two parts.
 - **Ctrl+Tab with pictures** (optional): in the sidebar's order or recently used, like Alt+Tab; Ctrl+Shift+Tab goes back.
 - **Folders that don't pin:** a Zen folder can be set so its tabs act unpinned (Ctrl+W closes them, they keep the page they're on); it sits below the pinned tabs' line.
 - **Focus mode:** **Alt+Z** puts everything away but the page (the sidebar, edges, pills, the bookmarks bar, and whatever's open, which opens again as you leave): a video site becomes a place to watch rather than a feed (on YouTube: the home page is just the logo and search (past searches only on request), no recommendations, Shorts (a Short opens as a plain video), end screens, autoplay, channel or like buttons; the video gets the room, and search, the description, your playlist, comments or subscriptions stay as you choose), an article gets a calm reading view over the page, and other pages that are mostly reading are tidied (cookie banners, side columns, share bars, comments, stuck headers). Nothing reloads as you leave; sites can be left alone.
-- **Your keys:** every Zenith key is listed in Zen's Keyboard shortcuts settings, to change or clear.
-- **Link hints:** **Alt+J** puts a few letters on every link, button and field you can see; type them to follow it (**Alt+Shift+J** opens a link in a new tab in the background).
+- **Your keys:** Zenith's own keys are listed in Zen's Keyboard shortcuts settings, to change or clear; the Shell's are on Zenith's page (Shell › Keys).
+- **Link hints:** **Alt+;** (the key right of L) puts a few letters on every link, button and field you can see; type them to follow it (**Alt+Shift+;** opens a link in a new tab in the background).
 - **Float a tab:** **Alt+Shift+F** (or the tab's right-click menu) moves the tab you're on into a small window without reloading it, above your Zen window only (or above every app, a setting); Alt+Shift+F there puts it back. Zen's own pages and essentials float too. Its bar (pinned, or sliding down when the pointer comes in) has the title (click it, or Ctrl+L, to type an address), back into the window, minimise (above every app) and close (Ctrl+Shift+T brings it back floating). It floats again after Zen closes and starts.
 - **Start page:** `about:zenith-start` on the window's glass: a clock, a search box that also finds your bookmarks, and your bookmarks on number keys; optionally the weather where you are (and your recent places) and your most visited sites. The home page, and optionally new tabs too.
 - **Picture-in-picture:** the mouse wheel resizes it, screen edges hold it, and past a side edge it tucks away with a sliver left: rest the pointer on it (or click it) and it comes out, and it goes back when you click anywhere else or the pointer stays away a few seconds. It can live inside the Zen window instead of the screen.
@@ -99,7 +100,8 @@ Specific things it changes:
 - Colours from an image changes the current space's colours, as Zen's theme picker would; `:colours undo` in the switcher puts them back.
 - "Always open … there" on the link card adds a rule to Zen's Space routing, which you can edit or remove there. "Ask me each time" in Zen's Space routing dialog is saved in Zen's own rules (Zen without Zenith reads it as "where you are").
 - A folder set to act unpinned is listed in `zenith.internal.unpinned-folders`; its tabs' pinned page follows where they go. (0.11.2's Firefox tab groups are gone: Firefox's `browser.tabs.groups.enabled` gets your own value back.)
-- Zenith's keys are added once to Zen's own list of keyboard shortcuts, under Other; change or clear them there (Zen keeps your changes).
+- Zenith's keys are added once to Zen's own list of keyboard shortcuts, under Other; change or clear them there (Zen keeps your changes). 0.13.0 takes link hints out of that list (they're the Shell's keys now).
+- Zenith Shell sets Firefox's `mousewheel.with_alt.action` to 0 (nothing) while Alt+wheel switches spaces, and gives your value back when you turn that off. Its page helper (the one Peek's link clicks use) stops an Alt+press from selecting text or starting a drag in the page, and tells the browser which link you Alt+Shift+clicked; it reads nothing else. The scratchpad is a floating tab whose window is moved off the screen (or minimised) while it's put away.
 - Extensions per space › Runs in spaces turns an extension off (as Add-ons does) in the spaces you untick and on again in the others; only what Zenith turned off is turned back on. While any extension has spaces, Firefox Sync's `services.sync.addons.ignoreUserEnabledChanges` is on, so your other devices don't follow; your value comes back after. An extension starts afresh each time it comes back (a password manager asks to be unlocked).
 - Zen's own toasts ("Copied") are moved up beside Zenith's notices, so they show over Zenith's panels.
 - Bookmarks: dropping a tab on the panel adds a bookmark; "this space" bookmarks go in a folder per space under Other Bookmarks › Spaces, made the first time you use it.
@@ -122,6 +124,10 @@ Specific things it changes:
 
 - **Layout:** one folder per mod at the top (`core/`, `edges/`, `tabs/`, `urlbar/`, `panels/`, `motion/`), `plus/` holds Zenith Plus, and `tools/` holds the build, check and install scripts.
 - **Generated:** `chrome.css`, `preferences.json` and `theme.json` at the top are the one Sine mod, built from the folders by `python tools/package.py . --owner bootzin`. Don't edit them by hand; run that before every push.
+
+## Licence
+
+Zenith is free software: you can share and change it under the GNU General Public License, version 3 or (at your option) any later version ([LICENSE](LICENSE)). It comes with no warranty. The vendored fx-autoconfig and Sine keep their own licence (MPL-2.0, in their folders).
 
 ## Credits
 

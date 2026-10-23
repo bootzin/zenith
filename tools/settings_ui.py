@@ -121,6 +121,8 @@ PARENTS = {
     "zenith.peek.weather-history": "zenith.peek.web-cards",
     "zenith.peek.pomodoro": "zenith.peek.enabled",
     "zenith.plus.switcher-scope": "zenith.plus.switcher",
+    "zenith.shell.bindings": "zenith.shell.keys",
+    "zenith.shell.passthrough-sites": "zenith.shell.keys",
 }
 
 SECTIONS = [
@@ -206,7 +208,7 @@ SECTIONS = [
     },
     {
         "id": "keys", "title": "Keys", "icon": "keys",
-        "blurb": "Jump anywhere with Alt+W, follow links with Alt+J, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
+        "blurb": "Jump anywhere with Alt+W, follow links with Alt+;, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
         "groups": [
             ("Switcher", ["zenith.plus.switcher", "zenith.plus.switcher-scope", "zenith.plus.switcher-peek", "zenith.plus.switcher-colon"]),
             ("Ctrl+Tab", ["zenith.plus.ctrl-tab"]),
@@ -219,6 +221,15 @@ SECTIONS = [
             ("Link hints", ["zenith.plus.link-hints"]),
             ("Split views", ["zenith.plus.split-solo"]),
             ("Float a tab", ["zenith.plus.float-tab", "zenith.plus.float-above"]),
+        ],
+    },
+    {
+        "id": "shell", "title": "Shell", "icon": "keys",
+        "blurb": "The browser as a tiling window manager: i3's keys with Alt (Alt+Shift+/ lists them), tiles you move and resize with the mouse, spaces as workspaces.",
+        "groups": [
+            ("Keys", ["zenith.shell.keys", "zenith.shell.bindings", "zenith.shell.passthrough-sites"]),
+            ("Mouse", ["zenith.shell.tile-click", "zenith.shell.mouse", "zenith.shell.wheel", "zenith.shell.follow-mouse"]),
+            ("Tiles", ["zenith.shell.new-tile", "zenith.shell.tiles", "zenith.panels.tile-focus", "zenith.panels.tile-dim"]),
         ],
     },
     {
@@ -509,9 +520,35 @@ DESCRIPTIONS = {
                                  "(a pinned mail or chat tab with something new).",
     "zenith.plus.split-solo": "For a moment's attention: the pane of the tab you're on fills the split view, the others wait "
                               "behind it (nothing moves or reloads). Alt+F again, or a tab outside the split, and it's as it was.",
-    "zenith.plus.link-hints": "Alt+J puts a few letters on every link, button and field you can see; type them to "
-                              "follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+J opens a link in a "
-                              "new tab in the background.",
+    "zenith.plus.link-hints": "Alt+; (the key right of L, whatever your layout prints on it) puts a few letters on every "
+                              "link, button and field you can see; type them to follow it, Backspace to take a letter back, "
+                              "Esc to stop. Alt+Shift+; opens a link in a new tab in the background. Its keys are the Shell's: "
+                              "change them under Shell › Keys.",
+    "zenith.shell.keys": "i3's keys (sway's, with hjkl), Alt in place of the Windows key. Alt+H/J/K/L focus the tile that "
+                         "way (past the edge, the tab before or after), Alt+Shift+H/J/K/L move it (past the edge, out of "
+                         "the split), Alt+Shift+Enter a new tile, Alt+B/V where the next goes, Alt+E flips a split, Alt+R "
+                         "resizes, Alt+1…0 goes to a space and Alt+Shift+1…0 sends the tab there, Alt+- is the scratchpad, "
+                         "Alt+P passthrough. Alt+Shift+/ shows them all. Keys are matched by where they are, so they're the "
+                         "same on any layout. Alt+←/→ stay back and forward.",
+    "zenith.shell.bindings": "Every Shell key, and a button to press another for it (Backspace leaves one without a key). "
+                             "A key another action had moves over.",
+    "zenith.shell.passthrough-sites": "On these sites the page keeps its Alt keys (Google Docs, an online editor or "
+                                      "terminal). Alt+P does the same anywhere, until you press it again.",
+    "zenith.shell.tile-click": "Click a link with these keys and it opens as a tile beside the one you're in. While it's "
+                               "Alt+Shift, Peek's own click (Peek, unless you've chosen it) moves to Ctrl+Alt; Alt+click "
+                               "stays Zen's Glance.",
+    "zenith.shell.mouse": "Hold Alt and drag a tile: onto the middle of another, they swap; onto its edge, it goes "
+                          "there. Hold Alt and drag with the right button: the tile's nearest edges follow. Esc puts it "
+                          "back. Alt+click still opens Zen's Glance.",
+    "zenith.shell.wheel": "Alt and the wheel (or two fingers) over the page: the next or previous space. Firefox's own "
+                          "Alt+wheel (back and forward) is off while this is on, and comes back when it's off.",
+    "zenith.shell.follow-mouse": "As i3 does: rest the pointer on a tile for a moment and it's the one you're on.",
+    "zenith.shell.new-tile": "Along the longer side, as Hyprland's dwindle: a wide tile splits side by side, a tall one "
+                             "top and bottom. Alt+B (right) or Alt+V (below) decides for the next one only.",
+    "zenith.shell.tiles": "How many tabs one split view takes. Each tile is a page drawn on screen, so more tiles use "
+                          "more of your computer.",
+    "zenith.panels.tile-focus": "In a split view, the tile you're on: as Zen draws it, or with a border in the accent colour.",
+    "zenith.panels.tile-dim": "In a split view, the tiles you're not on: as they are, or dimmed a little.",
     "zenith.plus.local-ai": "Turns on the AI built into Firefox (Zen keeps it off) for the two things below. It runs "
                             "on this computer, in a process of its own: nothing you download or open is sent anywhere. "
                             "Each model is fetched from Mozilla once, the first time it's needed (about 380 MB for "
@@ -661,6 +698,17 @@ LABELS = {
     "zenith.plus.sine-mods-first": "Tidy Sine's mods page",
     "zenith.plus.fast-start": "Fast start",
     "zenith.plus.link-hints": "Link hints",
+    "zenith.shell.keys": "The Shell's keys",
+    "zenith.shell.bindings": "Keys",
+    "zenith.shell.passthrough-sites": "Sites that keep their Alt keys",
+    "zenith.shell.tile-click": "Open a link as a tile with",
+    "zenith.shell.mouse": "Alt+drag and Alt+right-drag",
+    "zenith.shell.wheel": "Alt+wheel: spaces",
+    "zenith.shell.follow-mouse": "Focus follows the mouse",
+    "zenith.shell.new-tile": "New tiles",
+    "zenith.shell.tiles": "Tiles in one split",
+    "zenith.panels.tile-focus": "The tile you're on",
+    "zenith.panels.tile-dim": "The other tiles",
     "zenith.plus.split-solo": "One pane of a split",
     "zenith.plus.focus-pages": "Pages in focus mode",
     "zenith.plus.focus-skip": "Sites left alone",

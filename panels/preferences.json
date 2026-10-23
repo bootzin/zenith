@@ -204,6 +204,38 @@
     "zenithWhy": "Only with Split view: Tiling gaps"
   },
   {
+    "property": "zenith.panels.tile-focus",
+    "label": "The tile you're on (split view)",
+    "type": "dropdown",
+    "placeholder": "Default (As Zen draws it)",
+    "options": [
+      {
+        "label": "As Zen draws it",
+        "value": "zen"
+      },
+      {
+        "label": "An accent border",
+        "value": "accent"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.tile-dim",
+    "label": "The other tiles (split view)",
+    "type": "dropdown",
+    "placeholder": "Default (As they are)",
+    "options": [
+      {
+        "label": "As they are",
+        "value": "keep"
+      },
+      {
+        "label": "Dimmed",
+        "value": "dim"
+      }
+    ]
+  },
+  {
     "property": "zenith.panels.notifications",
     "label": "Notifications",
     "type": "dropdown",

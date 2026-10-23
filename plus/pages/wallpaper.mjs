@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Draws the desktop's wallpaper into one picture for Window material:
 // Wallpaper (Zenith Plus). It runs in a worker, away from the window's own
 // thread, so a new wallpaper (a slideshow changes it every few minutes)

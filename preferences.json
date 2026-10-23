@@ -1202,6 +1202,38 @@
     "zenithWhy": "Only with Split view: Tiling gaps"
   },
   {
+    "property": "zenith.panels.tile-focus",
+    "label": "The tile you're on (split view)",
+    "type": "dropdown",
+    "placeholder": "Default (As Zen draws it)",
+    "options": [
+      {
+        "label": "As Zen draws it",
+        "value": "zen"
+      },
+      {
+        "label": "An accent border",
+        "value": "accent"
+      }
+    ]
+  },
+  {
+    "property": "zenith.panels.tile-dim",
+    "label": "The other tiles (split view)",
+    "type": "dropdown",
+    "placeholder": "Default (As they are)",
+    "options": [
+      {
+        "label": "As they are",
+        "value": "keep"
+      },
+      {
+        "label": "Dimmed",
+        "value": "dim"
+      }
+    ]
+  },
+  {
     "property": "zenith.panels.notifications",
     "label": "Notifications",
     "type": "dropdown",
@@ -2407,9 +2439,136 @@
   },
   {
     "property": "zenith.plus.link-hints",
-    "label": "Link hints on Alt+J: letters on every link, type them to follow it (Alt+Shift+J: in a new tab)",
+    "label": "Link hints on Alt+; (the key right of L): letters on every link, type them to follow it (Alt+Shift+;: in a new tab)",
     "type": "checkbox",
     "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.keys",
+    "label": "Zenith Shell: i3's keys with Alt (Alt+Shift+/ lists them)",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.bindings",
+    "label": "Shell keys",
+    "type": "string",
+    "placeholder": "focus-left=Alt+KeyH, …",
+    "zenithKeys": true,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.shell.keys",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The Shell's keys are off"
+  },
+  {
+    "property": "zenith.shell.passthrough-sites",
+    "label": "Sites that keep their Alt keys",
+    "type": "string",
+    "placeholder": "example.com, another.site",
+    "zenithList": "Add a site (docs.google.com)",
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.shell.keys",
+          "value": true
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The Shell's keys are off"
+  },
+  {
+    "property": "zenith.shell.tile-click",
+    "label": "Open a link as a tile by clicking it with",
+    "type": "dropdown",
+    "placeholder": "Default (Alt+Shift)",
+    "options": [
+      {
+        "label": "Alt+Shift",
+        "value": "alt-shift"
+      },
+      {
+        "label": "Ctrl+Alt",
+        "value": "ctrl-alt"
+      },
+      {
+        "label": "Nothing",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.mouse",
+    "label": "Alt+drag moves a tile, Alt+right-drag resizes it",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.wheel",
+    "label": "Alt+wheel: the next or previous space",
+    "type": "checkbox",
+    "defaultValue": true,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.follow-mouse",
+    "label": "Focus follows the mouse across tiles",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.new-tile",
+    "label": "Where a new tile goes",
+    "type": "dropdown",
+    "placeholder": "Default (Along the tile's longer side)",
+    "options": [
+      {
+        "label": "Along the tile's longer side",
+        "value": "dwindle"
+      },
+      {
+        "label": "Always to the right",
+        "value": "right"
+      },
+      {
+        "label": "Always below",
+        "value": "below"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.tiles",
+    "label": "Tiles in one split",
+    "type": "dropdown",
+    "placeholder": "Default (4 (Zen's own))",
+    "options": [
+      {
+        "label": "4 (Zen's own)",
+        "value": "4"
+      },
+      {
+        "label": "6",
+        "value": "6"
+      },
+      {
+        "label": "8",
+        "value": "8"
+      }
+    ],
     "usedBy": "zenith-plus"
   },
   {

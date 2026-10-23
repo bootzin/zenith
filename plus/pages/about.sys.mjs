@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* Zenith's own about: pages, for the whole browser (not one window): each
    address shows a page shipped with the mod (plus/pages), with the
    browser's full rights, like about:preferences. The page's own text is

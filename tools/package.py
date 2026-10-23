@@ -231,7 +231,7 @@ def main():
                     z.writestr(name, convert(HOSTS.sub("#theme-Zenith", f.read_text(encoding="utf-8")), names)[0])
                 else:
                     z.write(f, name)
-        for f in ("VERSION", "tools/install.ps1"):
+        for f in ("VERSION", "LICENSE", "tools/install.ps1"):
             z.write(root / f, f"zenith/{f}")
         z.writestr("zenith/INSTALL.txt", MANUAL_STEPS.format(version=version))
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // about:zenith-cookies: your cookie choices at the top (banners, the
 // policy, how long cookies are kept), the site you came from, what the
 // banner answerer did lately, and every site with cookies: its rule

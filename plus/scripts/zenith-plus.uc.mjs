@@ -2,8 +2,9 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.12.22
+// @version        0.13.0
 // ==/UserScript==
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 // Loaded into every browser window by the script loader (fx-autoconfig, or
 // Sine's, which is built on it). Zenith Plus's own stylesheet (plus/chrome.css,
@@ -2157,8 +2158,6 @@ const ZenithKeys = {
     ["zenith-key-focus", "z", { alt: true }, "zenith-focus-command", "Focus mode", "zenith.plus.focus-key", "zenith-focus-key"],
     ["zenith-key-tabs", "t", { alt: true, shift: true }, "zenith-tabs-command", "Tab manager", "zenith.plus.tab-manager", "zenith-tabs-key"],
     ["zenith-key-live", "z", { alt: true, shift: true }, "zenith-live-command", "Settings over the page", null, "zenith-live-key"],
-    ["zenith-key-hints", "j", { alt: true }, "zenith-hints-command", "Link hints", "zenith.plus.link-hints", "zenith-hints-key"],
-    ["zenith-key-hints-tab", "j", { alt: true, shift: true }, "zenith-hints-tab-command", "Link hints, new tab", "zenith.plus.link-hints", "zenith-hints-tab-key"],
     ["zenith-key-float", "f", { alt: true, shift: true }, "zenith-float-command", "Float a tab", "zenith.plus.float-tab", "zenith-float-key"],
   ],
 
@@ -2185,8 +2184,21 @@ const ZenithKeys = {
     // window menu: still on it, it moves to Alt+Shift+F.)
     const old = list.findIndex(s => s.getID() === "zenith-key-float" && s.getKeyName?.() === " " && s.getModifiers?.().alt && s.getModifiers?.().shift);
     if (old >= 0) list.splice(old, 1);
+    // (0.13.0: link hints moved to the Shell's keys, Alt+; by where the key
+    // is, so they leave Zen's list, which matches by letter.)
+    let moved = false;
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (/^zenith-key-hints(-tab)?$/.test(list[i].getID())) {
+        list.splice(i, 1);
+        moved = true;
+      }
+    }
     const have = new Set(list.map(s => s.getID()));
     const missing = this.LIST.filter(([id]) => !have.has(id));
+    if (moved && !missing.length) {
+      await M._saveShortcuts();
+      M.triggerShortcutRebuild();
+    }
     if (missing.length) {
       const fresh = Shortcut.parseFromSaved(missing.map(([id, key, mods, command]) => ({
         id, key, keycode: "", group: "zen-other", l10nId: null, action: command,
@@ -2513,7 +2525,12 @@ const FloatTab = {
     const quitting = () => !this.closing && this.comeHome();
     Services.obs.addObserver(quitting, "quit-application-requested");
     onUnload(() => Services.obs.removeObserver(quitting, "quit-application-requested"));
-    requestAnimationFrame(() => this.place());
+    requestAnimationFrame(() => {
+      this.place();
+      // Sent to the scratchpad (Zenith Shell): put away once it's in place
+      // (place() moves it a frame later).
+      if (window.zenithScratchpad) setTimeout(() => Scratchpad.show(window, false), 200);
+    });
   },
 
   buildBar() {
@@ -3287,7 +3304,7 @@ const PageActors = {
   },
 };
 
-/* --- Link hints (Alt+J) -------------------------------------------------------
+/* --- Link hints (Alt+;, one of the Shell's keys) ----------------------------------
    Vim-style: a few letters on every link, button and field you can see in
    the page; type them to follow it. Alt+Shift+J opens the link in a new tab
    in the background. The labels are drawn by plus/pages/link-hints.sys.mjs,
@@ -3298,29 +3315,13 @@ const LinkHints = {
 
   init() {
     const commandset = document.createXULElement("commandset");
-    const keyset = document.createXULElement("keyset");
-    keyset.id = "zenith-hint-keys";
-    for (const [id, modifiers, newTab] of [["zenith-hints", "alt", false], ["zenith-hints-tab", "alt,shift", true]]) {
+    for (const [id, newTab] of [["zenith-hints", false], ["zenith-hints-tab", true]]) {
       const command = document.createXULElement("command");
       command.id = `${id}-command`;
       command.addEventListener("command", () => this.show(newTab).catch(e => console.error("[Zenith] link hints", e)));
-      const key = document.createXULElement("key");
-      key.id = `${id}-key`;
-      key.setAttribute("modifiers", modifiers);
-      key.setAttribute("key", "J");
-      key.setAttribute("reserved", "true");
-      key.setAttribute("command", command.id);
       commandset.append(command);
-      keyset.append(key);
     }
-    root.append(commandset, keyset);
-    const watch = () => {
-      const on = Services.prefs.getBoolPref(this.PREF, true);
-      for (const key of keyset.children) key.toggleAttribute("disabled", !on);
-    };
-    Services.prefs.addObserver(this.PREF, watch);
-    onUnload(() => Services.prefs.removeObserver(this.PREF, watch));
-    watch();
+    root.append(commandset);
     window.ZenithHints = this; // for tools/checks
   },
 
@@ -4924,6 +4925,956 @@ const NewTabBelow = {
       if (made) done(made);
       if (made || (!typing && Date.now() - since > 800) || Date.now() - since > 120000) clearInterval(this.timer);
     }, 250);
+  },
+};
+
+/* --- Zenith Shell: i3's keys and tiling, with Alt -------------------------------
+   The browser as a tiling window manager (DESIGN.md, "Zenith Shell"): a
+   space is a workspace, a tab a window, Zen's split view the tiling tree.
+   The keys are sway's (i3 with hjkl), Alt standing in for the Windows key,
+   and matched by where the key is (event.code): Alt+1 works on AZERTY,
+   Alt+; is the key right of L on any layout. One listener, in the capture
+   phase, sees a key before the page does (tools/checks/r77); a key the
+   Shell doesn't have costs a Map lookup. Alt+P (passthrough), or a site on
+   the passthrough list, gives the page its Alt keys back. Keys are changed
+   on Zenith's page (Shell › Keys), kept as one setting of the changes.
+   The mouse: Alt+Shift+click a link opens it as a tile (the page's half is
+   in plus/pages/peek-link.sys.mjs); Alt+drag a tile onto another swaps
+   them, onto one's edge moves it there; Alt+right-drag resizes; Alt+wheel
+   walks the spaces (Firefox's own Alt+wheel step back is set to nothing
+   through the Bridge while that's on: r79). */
+const SHELL = {
+  ON: "zenith.shell.keys",
+  BINDINGS: "zenith.shell.bindings",
+  SITES: "zenith.shell.passthrough-sites",
+  TILE_CLICK: "zenith.shell.tile-click",
+  MOUSE: "zenith.shell.mouse",
+  WHEEL: "zenith.shell.wheel",
+  FOLLOW: "zenith.shell.follow-mouse",
+  NEW_TILE: "zenith.shell.new-tile",
+  TILES: "zenith.shell.tiles",
+};
+
+const ShellKeys = {
+  // name · default · what it does · group · works with the Shell's keys off
+  LIST: [
+    ["focus-left", "Alt+KeyH", "Focus the tile to the left (past the edge: the tab before)", "Tiles"],
+    ["focus-down", "Alt+KeyJ", "Focus the tile below (past the edge: the next tab)", "Tiles"],
+    ["focus-up", "Alt+KeyK", "Focus the tile above (past the edge: the tab before)", "Tiles"],
+    ["focus-right", "Alt+KeyL", "Focus the tile to the right (past the edge: the next tab)", "Tiles"],
+    ["move-left", "Alt+Shift+KeyH", "Move the tile left (past the edge: out of the split)", "Tiles"],
+    ["move-down", "Alt+Shift+KeyJ", "Move the tile down (past the edge: out of the split)", "Tiles"],
+    ["move-up", "Alt+Shift+KeyK", "Move the tile up (past the edge: out of the split)", "Tiles"],
+    ["move-right", "Alt+Shift+KeyL", "Move the tile right (past the edge: out of the split)", "Tiles"],
+    ["new-tile", "Alt+Shift+Enter", "A new tile beside this one", "Tiles"],
+    ["split-right", "Alt+KeyB", "The next tile goes to the right", "Tiles"],
+    ["split-below", "Alt+KeyV", "The next tile goes below", "Tiles"],
+    ["flip", "Alt+KeyE", "Flip the split's direction", "Tiles"],
+    ["resize", "Alt+KeyR", "Resize mode (hjkl or arrows, = to even out, Esc)", "Tiles"],
+    ["new-tab", "Alt+Enter", "New tab", "Tabs"],
+    ["close", "Alt+Shift+KeyQ", "Close the tab", "Tabs"],
+    ["sleep", "Alt+KeyU", "Put the tab to sleep", "Tabs"],
+    ["sleep-others", "Alt+Shift+KeyU", "Put the space's other tabs to sleep", "Tabs"],
+    ["scratchpad", "Alt+Minus", "Show or hide the scratchpad", "Tabs"],
+    ["to-scratchpad", "Alt+Shift+Minus", "Send the tab to the scratchpad", "Tabs"],
+    ...Array.from({ length: 10 }, (_, i) => [`space-${i + 1}`, `Alt+Digit${(i + 1) % 10}`, `Go to space ${i + 1}`, "Spaces"]),
+    ...Array.from({ length: 10 }, (_, i) => [`send-${i + 1}`, `Alt+Shift+Digit${(i + 1) % 10}`, `Send the tab to space ${i + 1}`, "Spaces"]),
+    ["last-space", "Alt+Backquote", "The space you were on before", "Spaces"],
+    ["hints", "Alt+Semicolon", "Link hints", "Zenith", true],
+    ["hints-tab", "Alt+Shift+Semicolon", "Link hints, in a new tab", "Zenith", true],
+    ["passthrough", "Alt+KeyP", "Passthrough: every key to the page, until Alt+P", "Zenith"],
+    ["keys", "Alt+Shift+Slash", "These keys", "Zenith"],
+    ["restart", "Alt+Shift+KeyR", "Restart Zen (your tabs come back)", "Zenith"],
+    ["quit", "Alt+Shift+KeyE", "Quit Zen", "Zenith"],
+  ],
+  // (Held down, these repeat; the rest happen once a press.)
+  REPEAT: new Set(["focus-left", "focus-down", "focus-up", "focus-right"]),
+
+  init() {
+    this.byName = new Map(this.LIST.map(e => [e[0], e]));
+    this.read();
+    const read = () => this.read();
+    const prefs = [SHELL.ON, SHELL.BINDINGS, SHELL.SITES];
+    for (const p of prefs) Services.prefs.addObserver(p, read);
+    const key = e => this.key(e);
+    window.addEventListener("keydown", key, true);
+    onUnload(() => {
+      for (const p of prefs) Services.prefs.removeObserver(p, read);
+      window.removeEventListener("keydown", key, true);
+    });
+    window.ZenithShell = { keys: this, tiler: Tiler, spaces: ShellSpaces, scratchpad: Scratchpad, modes: ShellModes, mouse: ShellMouse, sheet: KeySheet, nag: Nagbar }; // the settings page, the page actor, tools/checks
+  },
+
+  read() {
+    this.on = Services.prefs.getBoolPref(SHELL.ON, true);
+    // "name=Alt+KeyX, name=" (cleared): only what differs from the defaults.
+    const changed = new Map(Services.prefs.getStringPref(SHELL.BINDINGS, "").split(",").map(x => x.trim()).filter(x => x.includes("="))
+      .map(x => [x.slice(0, x.indexOf("=")).trim(), x.slice(x.indexOf("=") + 1).trim()]));
+    this.combos = new Map();
+    this.map = new Map();
+    for (const [name, combo] of this.LIST) {
+      const c = changed.has(name) ? changed.get(name) : combo;
+      this.combos.set(name, c);
+      if (c) this.map.set(c, name);
+    }
+    this.sites = Services.prefs.getStringPref(SHELL.SITES, "").split(/[\s,]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  },
+
+  combo(e) {
+    return [e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift", e.metaKey && "Meta", e.code].filter(Boolean).join("+");
+  },
+
+  // "Alt+Shift+KeyH" → "Alt+Shift+H".
+  pretty(combo) {
+    if (!combo) return "";
+    const NAMES = { Semicolon: ";", Backquote: "`", Minus: "-", Equal: "=", Slash: "/", Backslash: "\\", BracketLeft: "[",
+                    BracketRight: "]", Quote: "'", Comma: ",", Period: ".", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓" };
+    return combo.split("+").map(p => NAMES[p] ?? p.replace(/^Key|^Digit|^Numpad/, "")).join("+");
+  },
+
+  // The page you're on keeps its Alt keys (Shell › Sites that keep their Alt keys).
+  siteKeeps() {
+    if (!this.sites.length) return false;
+    let host = "";
+    try {
+      host = gBrowser.currentURI?.host?.toLowerCase() ?? "";
+    } catch {}
+    return !!host && this.sites.some(s => host === s || host.endsWith("." + s));
+  },
+
+  free() {
+    return !ShellModes.passthrough && !this.siteKeeps();
+  },
+
+  key(e) {
+    if (e.isComposing || this.recording) return; // (Zenith's page is taking a new key)
+    if (ShellModes.mode) return ShellModes.key(e);
+    if (!(e.altKey || e.ctrlKey || e.metaKey)) return;
+    const name = this.map.get(this.combo(e));
+    if (!name) return;
+    if (name === "passthrough" ? !this.on : !this.free() || !(this.on || this.byName.get(name)[4])) return;
+    // Alt+Enter in the address bar is Firefox's own: open in a new tab.
+    if (name === "new-tab" && e.target?.closest?.("#urlbar")) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.repeat && !this.REPEAT.has(name)) return;
+    try {
+      this.run(name);
+    } catch (err) {
+      console.error(`[Zenith] Shell: ${name}`, err);
+    }
+  },
+
+  run(name) {
+    const space = name.match(/^(space|send)-(\d+)$/);
+    if (space) return space[1] === "space" ? ShellSpaces.go(+space[2]) : ShellSpaces.send(+space[2]);
+    const dir = name.match(/^(focus|move)-(left|down|up|right)$/);
+    if (dir) return Tiler[dir[1]](dir[2]);
+    switch (name) {
+      case "new-tab": return BrowserCommands.openTab();
+      case "new-tile": return Tiler.newTile();
+      case "close": return gBrowser.removeTab(gBrowser.selectedTab, { animate: true });
+      case "split-right": return Tiler.next("right");
+      case "split-below": return Tiler.next("bottom");
+      case "flip": return Tiler.flip();
+      case "resize": return ShellModes.resize();
+      case "passthrough": return ShellModes.togglePassthrough();
+      case "last-space": return ShellSpaces.last();
+      case "scratchpad": return Scratchpad.toggle();
+      case "to-scratchpad": return Scratchpad.send();
+      case "sleep": return ShellTabs.sleep();
+      case "sleep-others": return ShellTabs.sleepOthers();
+      case "hints": return LinkHints.show(false).catch(e => console.error("[Zenith] link hints", e));
+      case "hints-tab": return LinkHints.show(true).catch(e => console.error("[Zenith] link hints", e));
+      case "keys": return KeySheet.toggle();
+      case "restart": return Nagbar.ask("restart");
+      case "quit": return Nagbar.ask("quit");
+    }
+  },
+};
+
+/* Binding modes, as i3's: resize (a key at a time changes a tile's size,
+   until Esc) and passthrough (no Shell keys at all). A pill at the top of
+   the page says which one is on, as i3bar does. */
+const ShellModes = {
+  mode: null,
+  passthrough: false,
+
+  pill() {
+    const text = this.mode === "resize" ? "resize · hjkl or arrows, = to even out, Esc to end"
+               : this.passthrough ? `passthrough · ${ShellKeys.pretty(ShellKeys.combos.get("passthrough")) || "Alt+P"} to end` : "";
+    this.node ??= (document.getElementById("zen-main-app-wrapper") ?? document.body).appendChild(el("div", { id: "zenith-mode" }));
+    this.node.textContent = text;
+    this.node.toggleAttribute("show", !!text);
+  },
+
+  togglePassthrough() {
+    this.passthrough = !this.passthrough;
+    this.pill();
+  },
+
+  resize() {
+    if (this.mode === "resize") return this.end();
+    if (!Tiler.data()) return hint("Resize mode is for a split (Alt+Shift+Enter makes one)");
+    this.mode = "resize";
+    this.left = () => !Tiler.data() && this.end();
+    gBrowser.tabContainer.addEventListener("TabSelect", this.left);
+    this.pill();
+  },
+
+  end() {
+    if (this.left) gBrowser.tabContainer.removeEventListener("TabSelect", this.left);
+    this.mode = this.left = null;
+    this.pill();
+  },
+
+  // In a mode every key is the mode's (i3 swallows the rest).
+  key(e) {
+    if (["Alt", "Shift", "Control", "Meta"].includes(e.key)) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.key === "Escape" || e.key === "Enter" || ShellKeys.map.get(ShellKeys.combo(e)) === "resize") return this.end();
+    const dir = { KeyH: "left", ArrowLeft: "left", KeyL: "right", ArrowRight: "right", KeyK: "up", ArrowUp: "up", KeyJ: "down", ArrowDown: "down" }[e.code];
+    if (dir) Tiler.resize(dir);
+    else if (e.code === "Equal" || e.code === "Digit0") Tiler.even();
+  },
+};
+
+/* The tiles: Zen's split view is already a tree (a node has a direction,
+   row or column, and children with their share of it), so the Shell works
+   on that tree and has Zen draw it. Zen keeps the tree with the session. */
+const Tiler = {
+  get S() {
+    return window.gZenViewSplitter;
+  },
+
+  init() {
+    // Tiles in one split (Shell › Tiles in one split): Zen's own is 4.
+    const cap = () => {
+      const n = parseInt(Services.prefs.getStringPref(SHELL.TILES, ""), 10);
+      if (this.S) this.S.MAX_TABS = n >= 2 && n <= 12 ? n : 4;
+    };
+    Services.prefs.addObserver(SHELL.TILES, cap);
+    onUnload(() => Services.prefs.removeObserver(SHELL.TILES, cap));
+    cap();
+  },
+
+  data(tab = gBrowser.selectedTab) {
+    return NewTabBelow.splitOf(tab);
+  },
+
+  // The tree's leaf for a tab (Zen's own map only has drawn ones).
+  leaf(data, tab) {
+    const walk = n => (n.tab ? (n.tab === tab ? n : null) : n.children.reduce((f, c) => f ?? walk(c), null));
+    return data?.layoutTree ? walk(data.layoutTree) : null;
+  },
+
+  box(tab) {
+    return tab?.linkedBrowser?.closest(".browserSidebarContainer")?.getBoundingClientRect() ?? null;
+  },
+
+  // The tile beside a tab's, that way: the nearest, then the one sharing
+  // most of that edge.
+  neighbour(tab, dir) {
+    const data = this.data(tab), a = data && this.box(tab);
+    if (!a) return null;
+    let best = null, score = Infinity;
+    for (const t of data.tabs) {
+      const b = t !== tab && this.box(t);
+      if (!b) continue;
+      const gap = { left: a.left - b.right, right: b.left - a.right, up: a.top - b.bottom, down: b.top - a.bottom }[dir];
+      const shared = dir === "left" || dir === "right" ? Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
+                                                       : Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      if (gap < -8 || shared <= 8) continue;
+      const s = Math.max(gap, 0) * 10 - shared;
+      if (s < score) [score, best] = [s, t];
+    }
+    return best;
+  },
+
+  focus(dir) {
+    const tab = gBrowser.selectedTab, to = this.neighbour(tab, dir);
+    if (to) return void (gBrowser.selectedTab = to);
+    this.step(dir === "left" || dir === "up" ? -1 : 1);
+  },
+
+  // Past the last tile: the tab before or after (the split's other tiles
+  // skipped), as niri walks its columns.
+  step(by) {
+    const tab = gBrowser.selectedTab, own = this.data(tab)?.tabs ?? [tab];
+    const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
+    const at = own.map(t => tabs.indexOf(t)).filter(i => i >= 0);
+    if (!at.length) return;
+    for (let i = (by < 0 ? Math.min(...at) : Math.max(...at)) + by; i >= 0 && i < tabs.length; i += by) {
+      if (!own.includes(tabs[i])) return void (gBrowser.selectedTab = tabs[i]);
+    }
+  },
+
+  move(dir) {
+    const tab = gBrowser.selectedTab, to = this.neighbour(tab, dir);
+    if (to) {
+      SplitReorder.swap(tab, to);
+      gBrowser.selectedTab = tab;
+      return;
+    }
+    // Past the split's edge: out of it, as i3 moves a window out of its container.
+    if (this.data(tab)) {
+      this.S.removeTabFromGroup(tab);
+      gBrowser.selectedTab = tab;
+      return;
+    }
+    if (dir === "left" || dir === "up") gBrowser.moveTabBackward();
+    else gBrowser.moveTabForward();
+  },
+
+  // Where a new tile goes: as Alt+B or Alt+V said, or by Shell › New
+  // tiles (along the tile's longer side, Hyprland's dwindle, by default).
+  sideFor(anchor) {
+    const next = this.nextSide;
+    this.nextSide = null;
+    if (next) return next;
+    const how = Services.prefs.getStringPref(SHELL.NEW_TILE, "") || "dwindle";
+    if (how === "right") return "right";
+    if (how === "below") return "bottom";
+    const b = (this.data(anchor) && this.box(anchor)) || gBrowser.tabpanels.getBoundingClientRect();
+    return b.width >= b.height ? "right" : "bottom";
+  },
+
+  next(side) {
+    this.nextSide = side;
+    hint(side === "right" ? "The next tile goes to the right" : "The next tile goes below");
+  },
+
+  full() {
+    hint(`This split is full (${this.S?.MAX_TABS ?? 4} tiles: Shell › Tiles in one split)`);
+  },
+
+  // Alt+Shift+Enter: the address bar, and the tab it opens is a tile.
+  newTile() {
+    const anchor = gBrowser.selectedTab, data = this.data(anchor);
+    if (data && data.tabs.length >= this.S.MAX_TABS) return this.full();
+    const side = this.sideFor(anchor);
+    NewTabBelow.watch(made => this.insert(made, anchor, side));
+    BrowserCommands.openTab();
+  },
+
+  // A tab becomes a tile beside `anchor`'s, on `side`.
+  insert(tab, anchor, side = this.sideFor(anchor)) {
+    const S = this.S;
+    try {
+      if (!S || !tab?.isConnected || !anchor?.isConnected || tab === anchor) return;
+      if (this.data(tab)) S.removeTabFromGroup(tab);
+      let data = this.data(anchor);
+      if (data && data.tabs.length >= S.MAX_TABS) return this.full();
+      if (!data) {
+        const tabs = side === "left" || side === "top" ? [tab, anchor] : [anchor, tab];
+        S.splitTabs(tabs, side === "left" || side === "right" ? "vsep" : "hsep", tabs.indexOf(tab));
+        return;
+      }
+      // Zen adds it at the end of the split; the Shell moves it beside the anchor.
+      S.splitTabs([anchor, tab], undefined, -1, { activate: false });
+      data = this.data(anchor);
+      const leaf = this.leaf(data, tab);
+      if (leaf && this.leaf(data, anchor)) {
+        S.removeNode(leaf);
+        S.splitIntoNode(this.leaf(data, anchor), leaf, side, 0.5);
+      }
+      gBrowser.selectedTab = tab;
+      S.activateSplitView(data, true);
+      this.save();
+    } catch (e) {
+      console.error("[Zenith] Shell: a new tile", e);
+    }
+  },
+
+  // Alt+Shift+click on a link (its page sends it here): a new tile beside
+  // the one it was clicked in.
+  link(url, principal, browser) {
+    const anchor = (browser && gBrowser.getTabForBrowser(browser)) || gBrowser.selectedTab, data = this.data(anchor);
+    if (data && data.tabs.length >= this.S.MAX_TABS) return this.full();
+    const tab = gBrowser.addTab(url, {
+      triggeringPrincipal: principal ?? Services.scriptSecurityManager.createNullPrincipal({ userContextId: anchor.userContextId }),
+      userContextId: anchor.userContextId,
+      inBackground: true,
+    });
+    this.insert(tab, anchor);
+  },
+
+  // A tile goes to `side` of another's (Alt+drag onto its edge).
+  place(tab, target, side) {
+    const S = this.S, data = this.data(tab);
+    if (!data || data !== this.data(target) || tab === target) return;
+    const leaf = this.leaf(data, tab);
+    S.removeNode(leaf);
+    S.splitIntoNode(this.leaf(data, target), leaf, side, 0.5);
+    this.tidy(data.layoutTree);
+    gBrowser.selectedTab = tab;
+    S.activateSplitView(data, true);
+    this.save();
+  },
+
+  flip() {
+    const data = this.data(), parent = this.leaf(data, gBrowser.selectedTab)?.parent;
+    if (!parent) return hint("Alt+E flips a split's direction");
+    parent.direction = parent.direction === "row" ? "column" : "row";
+    this.tidy(data.layoutTree);
+    this.S.activateSplitView(data, true);
+    this.save();
+  },
+
+  // Zen's tree never has a node inside one of the same direction: folded in.
+  tidy(node) {
+    if (!node?.children) return;
+    for (let i = 0; i < node.children.length; i++) {
+      const c = node.children[i];
+      if (c.children && c.direction === node.direction) {
+        for (const g of c.children) {
+          g.sizeInParent *= c.sizeInParent / 100;
+          g.parent = node;
+        }
+        node.children.splice(i, 1, ...c.children);
+        this.S._removeNodeSplitters?.(c, false);
+        i--;
+        continue;
+      }
+      this.tidy(c);
+    }
+  },
+
+  // The two nodes either side of the edge a tile's resize moves, along
+  // `axis`: the edge after the tile (`after`) or before it, and how many
+  // pixels the whole of their parent is.
+  edge(leaf, axis, after) {
+    let x = leaf;
+    while (x?.parent && x.parent.direction !== axis) x = x.parent;
+    const p = x?.parent;
+    if (!p) return null;
+    const i = p.children.indexOf(x);
+    const j = after ? (i + 1 < p.children.length ? i + 1 : i - 1) : (i > 0 ? i - 1 : i + 1);
+    const [a, b] = j > i ? [x, p.children[j]] : [p.children[j], x];
+    const panels = gBrowser.tabpanels.getBoundingClientRect(), at = p.positionToRoot ?? { top: 0, right: 0, bottom: 0, left: 0 };
+    const px = axis === "row" ? (panels.width * (100 - at.left - at.right)) / 100 : (panels.height * (100 - at.top - at.bottom)) / 100;
+    return { a, b, from: [a.sizeInParent, b.sizeInParent], px };
+  },
+
+  // Moves an edge by `d` (in % of its parent), no tile under 10%.
+  shift(edge, d) {
+    const [fa, fb] = edge.from;
+    d = Math.max(10 - fa, Math.min(d, fb - 10));
+    edge.a.sizeInParent = fa + d;
+    edge.b.sizeInParent = fb - d;
+  },
+
+  // Resize mode: l and j grow the tile (to the right, downwards), h and k
+  // shrink it, a twentieth at a time.
+  resize(dir) {
+    const data = this.data(), leaf = this.leaf(data, gBrowser.selectedTab);
+    const edge = leaf && this.edge(leaf, dir === "left" || dir === "right" ? "row" : "column", true);
+    if (!edge) return;
+    const grow = dir === "right" || dir === "down" ? 5 : -5;
+    this.shift(edge, edge.a.tab === gBrowser.selectedTab || this.holds(edge.a, gBrowser.selectedTab) ? grow : -grow);
+    this.S.applyGridLayout(data.layoutTree);
+    this.save();
+  },
+
+  holds(node, tab) {
+    return node.tab ? node.tab === tab : node.children.some(c => this.holds(c, tab));
+  },
+
+  even(node = this.data()?.layoutTree, top = true) {
+    if (!node?.children) return;
+    for (const c of node.children) {
+      c.sizeInParent = 100 / node.children.length;
+      this.even(c, false);
+    }
+    if (top) {
+      this.S.applyGridLayout(node);
+      this.save();
+    }
+  },
+
+  save() {
+    try {
+      this.S.saveState?.();
+    } catch {}
+  },
+};
+
+/* The mouse, as i3's floating_modifier and Hyprland's bindm: Alt+drag a
+   tile, Alt+right-drag resizes it, Alt+wheel walks the spaces. The window
+   sees an Alt+press over a page first (r79); the page, told by Zenith,
+   starts no selection or drag from it, and still gets its click (so
+   Alt+click is still Zen's Glance). */
+const ShellMouse = {
+  init() {
+    const down = e => this.down(e);
+    this.onMove = e => this.move(e);
+    this.onUp = e => this.up(e);
+    const menu = e => this.menu(e);
+    const wheel = e => this.wheel(e);
+    window.addEventListener("mousedown", down, true);
+    window.addEventListener("contextmenu", menu, true);
+    window.addEventListener("wheel", wheel, { capture: true, passive: true });
+    const follow = e => this.follow(e);
+    const read = () => {
+      const P = Services.prefs;
+      this.on = P.getBoolPref(SHELL.MOUSE, true);
+      this.wheelOn = P.getBoolPref(SHELL.WHEEL, true);
+      // Firefox's own Alt+wheel (a step back or forward in history) would
+      // happen as well: set to nothing while the Shell has Alt+wheel.
+      Bridge.apply("shell-wheel", { "mousewheel.with_alt.action": this.wheelOn ? 0 : null });
+      const followOn = P.getBoolPref(SHELL.FOLLOW, false);
+      if (followOn !== !!this.following) {
+        this.following = followOn;
+        if (followOn) gBrowser.tabpanels.addEventListener("mousemove", follow, { passive: true });
+        else gBrowser.tabpanels.removeEventListener("mousemove", follow);
+      }
+      PeekLinkShare.update();
+    };
+    const prefs = [SHELL.MOUSE, SHELL.WHEEL, SHELL.FOLLOW];
+    for (const p of prefs) Services.prefs.addObserver(p, read);
+    onUnload(() => {
+      for (const p of prefs) Services.prefs.removeObserver(p, read);
+      window.removeEventListener("mousedown", down, true);
+      window.removeEventListener("contextmenu", menu, true);
+      window.removeEventListener("wheel", wheel, { capture: true });
+      gBrowser.tabpanels.removeEventListener("mousemove", follow);
+      this.end();
+    });
+    read();
+  },
+
+  // The split's tab whose tile is under the pointer.
+  tileAt(target) {
+    const box = target?.closest?.(".browserSidebarContainer"), browser = box?.querySelector("browser");
+    const tab = browser && gBrowser.getTabForBrowser(browser);
+    return tab && Tiler.data(tab) ? tab : null;
+  },
+
+  down(e) {
+    if (!this.on || !e.altKey || e.ctrlKey || e.shiftKey || e.metaKey || (e.button !== 0 && e.button !== 2) || !ShellKeys.free()) return;
+    const tab = this.tileAt(e.target);
+    if (!tab) return;
+    this.press = { tab, data: Tiler.data(tab), button: e.button, x: e.clientX, y: e.clientY, box: Tiler.box(tab) };
+    window.addEventListener("mousemove", this.onMove, true);
+    window.addEventListener("mouseup", this.onUp, true);
+  },
+
+  move(e) {
+    const p = this.press;
+    if (!p) return;
+    if (!(e.buttons & (p.button === 2 ? 2 : 1))) return this.end();
+    if (!p.going) {
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 5) return;
+      this.start(p);
+    }
+    p.at = [e.clientX, e.clientY];
+    this.frame ??= requestAnimationFrame(() => {
+      this.frame = null;
+      if (this.press?.going) this.press.button === 2 ? this.resizing() : this.aiming();
+    });
+  },
+
+  start(p) {
+    p.going = true;
+    gBrowser.selectedTab = p.tab;
+    // The rest of the drag is the window's: a sheet over the tiles takes it.
+    const panels = gBrowser.tabpanels.getBoundingClientRect();
+    this.sheet = el("div", { id: "zenith-tile-drag", kind: p.button === 2 ? "resize" : "move" });
+    this.sheet.style.inset = `${panels.top}px ${innerWidth - panels.right}px ${innerHeight - panels.bottom}px ${panels.left}px`;
+    this.aim = el("div", { id: "zenith-tile-aim" });
+    this.sheet.append(this.aim);
+    (document.getElementById("zen-main-app-wrapper") ?? document.body).append(this.sheet);
+    this.esc = e => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      this.end(true);
+    };
+    window.addEventListener("keydown", this.esc, true);
+    if (p.button === 2) {
+      const leaf = Tiler.leaf(p.data, p.tab);
+      p.across = Tiler.edge(leaf, "row", p.x > p.box.left + p.box.width / 2);
+      p.updown = Tiler.edge(leaf, "column", p.y > p.box.top + p.box.height / 2);
+    }
+  },
+
+  // Over another tile: its middle swaps the two, an edge puts this tile there.
+  aiming() {
+    const p = this.press, [x, y] = p.at;
+    p.target = null;
+    for (const t of p.data.tabs) {
+      const b = t !== p.tab && Tiler.box(t);
+      if (!b || x < b.left || x > b.right || y < b.top || y > b.bottom) continue;
+      const fx = (x - b.left) / b.width, fy = (y - b.top) / b.height;
+      const near = Math.min(fx, 1 - fx, fy, 1 - fy);
+      const side = near > 0.3 ? "swap" : near === fx ? "left" : near === 1 - fx ? "right" : near === fy ? "top" : "bottom";
+      p.target = { tab: t, side };
+      const s = this.sheet.getBoundingClientRect();
+      const r = { left: b.left - s.left, top: b.top - s.top, width: b.width, height: b.height };
+      if (side === "right") r.left += r.width / 2;
+      if (side === "bottom") r.top += r.height / 2;
+      if (side === "left" || side === "right") r.width /= 2;
+      if (side === "top" || side === "bottom") r.height /= 2;
+      Object.assign(this.aim.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+      break;
+    }
+    this.aim.toggleAttribute("show", !!p.target);
+  },
+
+  resizing() {
+    const p = this.press, [x, y] = p.at;
+    if (p.across) Tiler.shift(p.across, ((x - p.x) / p.across.px) * 100);
+    if (p.updown) Tiler.shift(p.updown, ((y - p.y) / p.updown.px) * 100);
+    if (p.across || p.updown) Tiler.S.applyGridLayout(p.data.layoutTree);
+  },
+
+  up(e) {
+    const p = this.press;
+    if (!p || e.button !== p.button) return;
+    if (p.going) {
+      e.preventDefault();
+      e.stopPropagation();
+      // (Aimed again where it's let go: the last frame may be a move behind.)
+      p.at = [e.clientX, e.clientY];
+      if (p.button === 0) this.aiming();
+      if (p.button === 0 && p.target) {
+        try {
+          if (p.target.side === "swap") {
+            SplitReorder.swap(p.tab, p.target.tab);
+            gBrowser.selectedTab = p.tab;
+          } else Tiler.place(p.tab, p.target.tab, p.target.side);
+        } catch (err) {
+          console.error("[Zenith] Shell: Alt+drag", err);
+        }
+      }
+      if (p.button === 2) Tiler.save();
+      // (The right-click menu that follows a right-drag stays shut.)
+      this.dragged = p.button === 2 ? performance.now() : 0;
+    }
+    this.end();
+  },
+
+  end(cancel = false) {
+    const p = this.press;
+    if (cancel && p?.going && p.button === 2) {
+      if (p.across) Tiler.shift(p.across, 0);
+      if (p.updown) Tiler.shift(p.updown, 0);
+      Tiler.S?.applyGridLayout(p.data.layoutTree);
+    }
+    this.press = null;
+    if (this.frame) cancelAnimationFrame(this.frame);
+    this.frame = null;
+    window.removeEventListener("mousemove", this.onMove, true);
+    window.removeEventListener("mouseup", this.onUp, true);
+    if (this.esc) window.removeEventListener("keydown", this.esc, true);
+    this.esc = null;
+    this.sheet?.remove();
+    this.sheet = this.aim = null;
+  },
+
+  // The right-click menu stays shut during an Alt+right press (some systems
+  // open it as the button goes down) and just after a right-drag (Windows
+  // opens it as the button comes up). A plain Alt+right-click on Windows
+  // still gets its menu.
+  menu(e) {
+    if (this.press?.button === 2 || performance.now() - (this.dragged ?? 0) < 600) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.dragged = 0;
+    }
+  },
+
+  // A notch (or a trackpad's worth) a space; Firefox's own Alt+wheel is
+  // off meanwhile, so nothing needs stopping here (a passive listener:
+  // scrolling never waits on it).
+  wheel(e) {
+    if (!this.wheelOn || !e.altKey || e.ctrlKey || e.shiftKey || e.metaKey || !ShellKeys.free()) return;
+    const now = performance.now();
+    if (now - (this.wheelAt ?? 0) > 400) this.wheelSum = 0;
+    this.wheelAt = now;
+    this.wheelSum = (this.wheelSum ?? 0) + (e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY);
+    if (Math.abs(this.wheelSum) < 40 || now - (this.switched ?? 0) < 180) return;
+    this.switched = now;
+    window.gZenWorkspaces?.changeWorkspaceShortcut?.(this.wheelSum > 0 ? 1 : -1);
+    this.wheelSum = 0;
+  },
+
+  // Focus follows the mouse (Shell › off by default): a tile rested on
+  // for a moment is the one you're on.
+  follow(e) {
+    const tab = this.tileAt(e.target);
+    clearTimeout(this.followTimer);
+    if (!tab || tab === gBrowser.selectedTab || this.press) return;
+    this.followTimer = setTimeout(() => {
+      if (tab.isConnected && Tiler.data(tab) && Tiler.data(tab) === Tiler.data()) gBrowser.selectedTab = tab;
+    }, 150);
+  },
+};
+
+/* What pages are told (they can't read Zenith's settings): whether an
+   Alt+press is the window's (Alt+drag), and the keys an Alt+Shift+click
+   on a link tiles with. Shared with Peek's own (zenith-peek.uc.mjs). */
+const PeekLinkShare = {
+  update() {
+    const tile = Services.prefs.getStringPref(SHELL.TILE_CLICK, "") || "alt-shift";
+    Services.ppmm.sharedData.set("zenith-shell-click", { tile: tile === "off" ? "" : tile, press: !!ShellMouse.on });
+    Services.ppmm.sharedData.flush();
+  },
+
+  init() {
+    const update = () => this.update();
+    Services.prefs.addObserver(SHELL.TILE_CLICK, update);
+    onUnload(() => Services.prefs.removeObserver(SHELL.TILE_CLICK, update));
+    this.update();
+  },
+};
+
+/* Spaces as i3's workspaces: Alt+1…0 goes there, Alt+Shift+1…0 sends the
+   tab (you stay), Alt+` goes back to the one before. */
+const ShellSpaces = {
+  init() {
+    const W = window.gZenWorkspaces;
+    if (!W?.addChangeListeners) return;
+    this.now = W.activeWorkspace;
+    this.onChange = () => {
+      const id = W.activeWorkspace;
+      if (id && id !== this.now) [this.prev, this.now] = [this.now, id];
+    };
+    W.addChangeListeners(this.onChange);
+    onUnload(() => W.removeChangeListeners?.(this.onChange));
+  },
+
+  list() {
+    return window.gZenWorkspaces?.getWorkspaces?.() ?? [];
+  },
+
+  go(n) {
+    const s = this.list()[n - 1];
+    if (!s) return hint(`There's no space ${n}`);
+    if (s.uuid !== gZenWorkspaces.activeWorkspace) gZenWorkspaces.changeWorkspaceWithID(s.uuid);
+  },
+
+  send(n) {
+    const s = this.list()[n - 1], tab = gBrowser.selectedTab;
+    if (!s) return hint(`There's no space ${n}`);
+    if (tab.getAttribute("zen-workspace-id") === s.uuid || tab.hasAttribute("zen-essential")) return;
+    if (Tiler.data(tab)) Tiler.S.removeTabFromGroup(tab);
+    gZenWorkspaces.moveTabToWorkspace(tab, s.uuid);
+    hint(`Sent to ${s.name || `space ${n}`}`);
+  },
+
+  last() {
+    if (this.prev && this.list().some(s => s.uuid === this.prev)) gZenWorkspaces.changeWorkspaceWithID(this.prev);
+  },
+};
+
+const ShellTabs = {
+  unload(tabs) {
+    if (typeof gBrowser.explicitUnloadTabs === "function") gBrowser.explicitUnloadTabs(tabs);
+    else for (const t of tabs) gBrowser.discardBrowser(t, true);
+  },
+
+  sleep() {
+    const tab = gBrowser.selectedTab;
+    if (Tiler.data(tab)) return hint("A tile on screen can't sleep");
+    const to = gBrowser._findTabToBlurTo?.(tab);
+    if (!to || to === tab) return hint("Your only tab can't sleep");
+    gBrowser.selectedTab = to;
+    this.unload([tab]);
+  },
+
+  // The space's other tabs (not this split's, nor one playing sound).
+  sleepOthers() {
+    const keep = new Set(Tiler.data()?.tabs ?? [gBrowser.selectedTab]);
+    const tabs = gBrowser.visibleTabs.filter(t => !keep.has(t) && !t.closing && t.linkedPanel && !t.hasAttribute("pending")
+                                                   && !t.soundPlaying && !t.hasAttribute("zen-empty-tab"));
+    this.unload(tabs);
+    hint(tabs.length ? `${tabs.length} tab${tabs.length === 1 ? "" : "s"} asleep` : "Nothing else to put to sleep");
+  },
+};
+
+/* The scratchpad: tabs you call up over everything and send away again
+   (Slack, music, a chat), as i3's. A tab sent there floats (Float a tab)
+   and its float window is put away; Alt+- shows it, or the next one, and
+   puts it away again. Away is off the screen for a float above its Zen
+   window (it has no taskbar button, so nothing shows), minimised for one
+   above every app; either way its page rests, as a background tab does.
+   (Firefox won't hide a window outright: r80.) */
+const Scratchpad = {
+  shown(win) {
+    return !win.zenithScratchAway;
+  },
+
+  show(win, on) {
+    try {
+      const browser = win.gBrowser?.selectedBrowser;
+      if (!on) {
+        win.zenithScratchAway = true;
+        if (win.zenithFloatMode === "all") win.minimize();
+        else {
+          win.zenithScratchAt = [win.screenX, win.screenY];
+          win.moveTo(-32000, -32000);
+        }
+        if (browser) browser.docShellIsActive = false;
+        return;
+      }
+      win.zenithScratchAway = false;
+      if (win.windowState === win.STATE_MINIMIZED) win.restore();
+      if (win.zenithScratchAt) win.moveTo(...win.zenithScratchAt);
+      win.zenithScratchAt = null;
+      if (browser) browser.docShellIsActive = true;
+      win.setTimeout(() => win.focus(), 0); // (as Float a tab does: once it's back on screen)
+    } catch (e) {
+      console.error("[Zenith] scratchpad", e);
+    }
+  },
+
+  // The main window's scratchpad floats.
+  list(home = window.zenithFloatFrom ?? window) {
+    const out = [];
+    for (const w of Services.wm.getEnumerator("navigator:browser")) {
+      if (!w.closed && w.zenithFloatFrom === home && w.zenithScratchpad) out.push(w);
+    }
+    return out;
+  },
+
+  async send() {
+    if (window.zenithFloatFrom) return hint("Already floating: Alt+- hides it");
+    const tab = gBrowser.selectedTab;
+    if (!Services.prefs.getBoolPref(FloatTab.PREF, true)) return hint("The scratchpad floats tabs: Keys › Float a tab is off");
+    const win = await FloatTab.float(tab, { focus: false });
+    if (!win) return hint("This tab can't go to the scratchpad");
+    win.zenithScratchpad = true; // (the float puts itself away once it's in place)
+    hint(`In the scratchpad: ${ShellKeys.pretty(ShellKeys.combos.get("scratchpad")) || "Alt+-"} brings it back`);
+  },
+
+  toggle() {
+    const home = window.zenithFloatFrom ?? window, list = this.list(home);
+    if (!list.length) return hint("The scratchpad is empty (Alt+Shift+- sends a tab there)");
+    const open = list.find(w => this.shown(w));
+    if (open) {
+      this.show(open, false);
+      home.focus();
+      return;
+    }
+    this.i = ((this.i ?? -1) + 1) % list.length;
+    this.show(list[this.i], true);
+  },
+};
+
+/* Alt+Shift+E and Alt+Shift+R ask first, in a bar across the top as
+   i3-nagbar does. */
+const Nagbar = {
+  ask(kind) {
+    this.close();
+    const bar = (this.bar = el("div", { id: "zenith-nagbar", role: "alertdialog" }));
+    const text = el("span"), yes = el("button", { type: "button" }), no = el("button", { type: "button" });
+    text.textContent = kind === "quit" ? "Quit Zen?" : "Restart Zen? Your tabs come back as they are.";
+    yes.textContent = kind === "quit" ? "Yes, quit" : "Yes, restart";
+    no.textContent = "Cancel (Esc)";
+    bar.append(text, yes, no);
+    (document.getElementById("zen-main-app-wrapper") ?? document.body).append(bar);
+    yes.addEventListener("click", () => this.go(kind));
+    no.addEventListener("click", () => this.close());
+    this.esc = e => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      this.close();
+    };
+    window.addEventListener("keydown", this.esc, true);
+    // (Enter answers only once the button has the focus: a page's own
+    // Enter can't quit Zen.)
+    yes.focus();
+    this.timer = setTimeout(() => this.close(), 10000);
+  },
+
+  close() {
+    this.bar?.remove();
+    this.bar = null;
+    if (this.esc) window.removeEventListener("keydown", this.esc, true);
+    this.esc = null;
+    clearTimeout(this.timer);
+  },
+
+  go(kind) {
+    this.close();
+    if (kind === "quit") return window.goQuitApplication ? goQuitApplication() : Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
+    if (window.canQuitApplication && !canQuitApplication("restart")) return;
+    Services.prefs.setBoolPref("browser.sessionstore.resume_session_once", true);
+    Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
+  },
+};
+
+/* Alt+Shift+/: every key, the Shell's and Zenith's others, on one sheet
+   (Hyprland's keybind viewer). Any key or a click puts it away. */
+const KeySheet = {
+  toggle() {
+    if (this.node) return this.close();
+    const node = (this.node = el("div", { id: "zenith-keysheet", role: "dialog", "aria-label": "Keys" }));
+    const groups = new Map();
+    const add = (group, combo, label) => {
+      if (!combo) return;
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push([combo, label]);
+    };
+    const K = ShellKeys, plain = n => K.combos.get(n) === K.byName.get(n)[1];
+    const spacesPlain = K.LIST.filter(e => /^(space|send)-/.test(e[0])).every(e => plain(e[0]));
+    for (const [name, , label, group] of K.LIST) {
+      if (spacesPlain && /^(space|send)-/.test(name)) continue;
+      add(group, K.pretty(K.combos.get(name)), label);
+    }
+    if (spacesPlain) {
+      add("Spaces", "Alt+1 … 0", "Go to that space");
+      add("Spaces", "Alt+Shift+1 … 0", "Send the tab to that space (you stay)");
+    }
+    // Zenith's other keys, as Zen's Keyboard shortcuts have them.
+    const zen = window.gZenKeyboardShortcutsManager?._currentShortcutList ?? [];
+    for (const [id, , , , label] of ZenithKeys.LIST) {
+      const s = zen.find(x => x.getID?.() === id);
+      if (s && !s.isEmpty?.()) add("Zenith", s.toDisplayString?.() ?? "", label);
+    }
+    add("Zenith", "Alt+F", "The tile you're on fills the split, and back");
+    add("Mouse", "Alt+Shift+click", "A link as a new tile");
+    add("Mouse", "Alt+drag", "A tile onto another (middle: swap; edge: there)");
+    add("Mouse", "Alt+right-drag", "Resize a tile");
+    add("Mouse", "Alt+wheel", "The next or previous space");
+    const head = el("div", { class: "zth-ks-head" });
+    head.textContent = ShellModes.passthrough ? "Keys (passthrough is on: only Alt+P works)" : K.on ? "Keys" : "Keys (the Shell's keys are off: Settings › Zenith › Shell)";
+    node.append(head);
+    const cols = el("div", { class: "zth-ks-cols" });
+    for (const [group, rows] of groups) {
+      const box = el("section");
+      const h = el("h3");
+      h.textContent = group;
+      box.append(h);
+      for (const [combo, label] of rows) {
+        const row = el("div", { class: "zth-ks-row" }), k = el("kbd"), t = el("span");
+        k.textContent = combo;
+        t.textContent = label;
+        row.append(k, t);
+        box.append(row);
+      }
+      cols.append(box);
+    }
+    node.append(cols);
+    (document.getElementById("zen-main-app-wrapper") ?? document.body).append(node);
+    this.away = e => {
+      if (e.type === "keydown" && ["Alt", "Shift", "Control", "Meta"].includes(e.key)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      this.close();
+    };
+    window.addEventListener("keydown", this.away, true);
+    node.addEventListener("mousedown", this.away);
+  },
+
+  close() {
+    if (this.away) window.removeEventListener("keydown", this.away, true);
+    this.away = null;
+    this.node?.remove();
+    this.node = null;
   },
 };
 
@@ -6826,6 +7777,8 @@ const DROPDOWNS = {
  "zenith.panels.glance": "Zenith Panels",
  "zenith.panels.split": "Zenith Panels",
  "zenith.panels.gap": "Zenith Panels",
+ "zenith.panels.tile-focus": "Zenith Panels",
+ "zenith.panels.tile-dim": "Zenith Panels",
  "zenith.panels.notifications": "Zenith Panels",
  "zenith.panels.compact-menus": "Zenith Panels",
  "zenith.panels.menu-icons": "Zenith Panels",
@@ -6947,6 +7900,11 @@ start("sidebar width", () => SidebarWidth.init(), true);
 start("ctrl+tab order", () => CtrlTabOrder.init(), true);
 start("split solo", () => SplitSolo.init(), true);
 start("new tab below", () => NewTabBelow.init(), true);
+start("shell keys", () => ShellKeys.init(), true);
+start("shell tiles", () => Tiler.init(), true);
+start("shell spaces", () => ShellSpaces.init());
+start("shell mouse", () => ShellMouse.init());
+start("shell clicks", () => PeekLinkShare.init());
 start("groups that don't pin", () => UnpinnedGroups.init(), true);
 start("bookmarks bar", () => BookmarksBar.init(), true);
 start("colours from an image", () => ImageColours.init());

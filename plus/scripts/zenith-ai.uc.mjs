@@ -2,8 +2,9 @@
 // @name           Zenith local AI
 // @description    Zenith Plus: Firefox's own on-device AI for clearer download names and tab groups by topic. Nothing leaves your computer.
 // @include        main
-// @version        0.12.22
+// @version        0.13.0
 // ==/UserScript==
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 // Zenith's local AI uses the AI built into Firefox (Zen turns it off; with
 // Local AI on, Zenith turns it on and gives it back when you turn it off).

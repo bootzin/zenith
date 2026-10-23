@@ -2,8 +2,9 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.12.22
+// @version        0.13.0
 // ==/UserScript==
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 // Peek opens a lookup in Zen's detached Glance: a floating page that isn't
 // a tab and isn't saved to history. Ways in:
@@ -529,7 +530,10 @@ async function watchPeekLinks() {
   // key (Zenith's Bridge keeps yours and gives it back after).
   const glance = () => {
     // (Pages can't read Zenith's settings: shared with them.)
-    const mode = Services.prefs.getStringPref("zenith.plus.peek-click", "") || "alt-shift", on = prefs.bool("zenith.peek.enabled", true);
+    // (Unset, Peek clicks with Alt+Shift; while Zenith Shell opens tiles
+    // with Alt+Shift, as it does unless changed, Peek's goes to Ctrl+Alt.)
+    const tile = Services.prefs.getStringPref("zenith.shell.tile-click", "") || "alt-shift";
+    const mode = Services.prefs.getStringPref("zenith.plus.peek-click", "") || (tile === "alt-shift" ? "ctrl-alt" : "alt-shift"), on = prefs.bool("zenith.peek.enabled", true);
     Services.ppmm.sharedData.set("zenith-peek-click", { mode, on });
     Services.ppmm.sharedData.flush();
     const take = (mode === "alt" || mode === "alt-swap") && on;
@@ -537,9 +541,9 @@ async function watchPeekLinks() {
     if (take && zen === "alt") window.ZenithBridge?.apply("peek-click", { "zen.glance.activation-method": "meta" });
     else if (!take) window.ZenithBridge?.apply("peek-click", { "zen.glance.activation-method": null });
   };
-  for (const pref of ["zenith.plus.peek-click", "zenith.peek.enabled"]) Services.prefs.addObserver(pref, glance);
+  for (const pref of ["zenith.plus.peek-click", "zenith.peek.enabled", "zenith.shell.tile-click"]) Services.prefs.addObserver(pref, glance);
   window.addEventListener("unload", () => {
-    for (const pref of ["zenith.plus.peek-click", "zenith.peek.enabled"]) Services.prefs.removeObserver(pref, glance);
+    for (const pref of ["zenith.plus.peek-click", "zenith.peek.enabled", "zenith.shell.tile-click"]) Services.prefs.removeObserver(pref, glance);
   }, { once: true });
   glance();
   setTimeout(glance, 1000); // (Zenith's Bridge starts with the other scripts)

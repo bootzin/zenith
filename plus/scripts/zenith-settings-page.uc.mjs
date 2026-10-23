@@ -4,8 +4,9 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.22
+// @version        0.13.0
 // ==/UserScript==
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 // Adds "Zenith" to the list on the left of Zen's Settings (beside Sine
 // Mods). The page shows every Zenith setting in sections, each with a
@@ -2617,7 +2618,7 @@ const SCHEMA = [
   "id": "keys",
   "title": "Keys",
   "icon": "keys",
-  "blurb": "Jump anywhere with Alt+W, follow links with Alt+J, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
+  "blurb": "Jump anywhere with Alt+W, follow links with Alt+;, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
   "groups": [
    {
     "title": "Switcher",
@@ -3036,7 +3037,7 @@ const SCHEMA = [
       "label": "Link hints",
       "type": "checkbox",
       "extra": false,
-      "desc": "Alt+J puts a few letters on every link, button and field you can see; type them to follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+J opens a link in a new tab in the background.",
+      "desc": "Alt+; (the key right of L, whatever your layout prints on it) puts a few letters on every link, button and field you can see; type them to follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+; opens a link in a new tab in the background. Its keys are the Shell's: change them under Shell › Keys.",
       "host": "Zenith Plus",
       "default": true
      }
@@ -3097,6 +3098,216 @@ const SCHEMA = [
         }
        ]
       }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "shell",
+  "title": "Shell",
+  "icon": "keys",
+  "blurb": "The browser as a tiling window manager: i3's keys with Alt (Alt+Shift+/ lists them), tiles you move and resize with the mouse, spaces as workspaces.",
+  "groups": [
+   {
+    "title": "Keys",
+    "settings": [
+     {
+      "property": "zenith.shell.keys",
+      "label": "The Shell's keys",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "i3's keys (sway's, with hjkl), Alt in place of the Windows key. Alt+H/J/K/L focus the tile that way (past the edge, the tab before or after), Alt+Shift+H/J/K/L move it (past the edge, out of the split), Alt+Shift+Enter a new tile, Alt+B/V where the next goes, Alt+E flips a split, Alt+R resizes, Alt+1…0 goes to a space and Alt+Shift+1…0 sends the tab there, Alt+- is the scratchpad, Alt+P passthrough. Alt+Shift+/ shows them all. Keys are matched by where they are, so they're the same on any layout. Alt+←/→ stay back and forward.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.shell.bindings",
+      "label": "Keys",
+      "type": "string",
+      "extra": false,
+      "desc": "Every Shell key, and a button to press another for it (Backspace leaves one without a key). A key another action had moves over.",
+      "host": "Zenith Plus",
+      "placeholder": "focus-left=Alt+KeyH, …",
+      "zenithKeys": true,
+      "parent": "zenith.shell.keys",
+      "rule": {
+       "why": "The Shell's keys are off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.shell.keys",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.shell.passthrough-sites",
+      "label": "Sites that keep their Alt keys",
+      "type": "string",
+      "extra": false,
+      "desc": "On these sites the page keeps its Alt keys (Google Docs, an online editor or terminal). Alt+P does the same anywhere, until you press it again.",
+      "host": "Zenith Plus",
+      "placeholder": "example.com, another.site",
+      "zenithList": "Add a site (docs.google.com)",
+      "parent": "zenith.shell.keys",
+      "rule": {
+       "why": "The Shell's keys are off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.shell.keys",
+          "value": true
+         }
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "Mouse",
+    "settings": [
+     {
+      "property": "zenith.shell.tile-click",
+      "label": "Open a link as a tile with",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Click a link with these keys and it opens as a tile beside the one you're in. While it's Alt+Shift, Peek's own click (Peek, unless you've chosen it) moves to Ctrl+Alt; Alt+click stays Zen's Glance.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Alt+Shift",
+        "value": "alt-shift"
+       },
+       {
+        "label": "Ctrl+Alt",
+        "value": "ctrl-alt"
+       },
+       {
+        "label": "Nothing",
+        "value": "off"
+       }
+      ],
+      "default": "alt-shift"
+     },
+     {
+      "property": "zenith.shell.mouse",
+      "label": "Alt+drag and Alt+right-drag",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Hold Alt and drag a tile: onto the middle of another, they swap; onto its edge, it goes there. Hold Alt and drag with the right button: the tile's nearest edges follow. Esc puts it back. Alt+click still opens Zen's Glance.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.shell.wheel",
+      "label": "Alt+wheel: spaces",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt and the wheel (or two fingers) over the page: the next or previous space. Firefox's own Alt+wheel (back and forward) is off while this is on, and comes back when it's off.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.shell.follow-mouse",
+      "label": "Focus follows the mouse",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "As i3 does: rest the pointer on a tile for a moment and it's the one you're on.",
+      "host": "Zenith Plus",
+      "default": false
+     }
+    ]
+   },
+   {
+    "title": "Tiles",
+    "settings": [
+     {
+      "property": "zenith.shell.new-tile",
+      "label": "New tiles",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Along the longer side, as Hyprland's dwindle: a wide tile splits side by side, a tall one top and bottom. Alt+B (right) or Alt+V (below) decides for the next one only.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Along the tile's longer side",
+        "value": "dwindle"
+       },
+       {
+        "label": "Always to the right",
+        "value": "right"
+       },
+       {
+        "label": "Always below",
+        "value": "below"
+       }
+      ],
+      "default": "dwindle"
+     },
+     {
+      "property": "zenith.shell.tiles",
+      "label": "Tiles in one split",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How many tabs one split view takes. Each tile is a page drawn on screen, so more tiles use more of your computer.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "4 (Zen's own)",
+        "value": "4"
+       },
+       {
+        "label": "6",
+        "value": "6"
+       },
+       {
+        "label": "8",
+        "value": "8"
+       }
+      ],
+      "default": "4"
+     },
+     {
+      "property": "zenith.panels.tile-focus",
+      "label": "The tile you're on",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "In a split view, the tile you're on: as Zen draws it, or with a border in the accent colour.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "As Zen draws it",
+        "value": "zen"
+       },
+       {
+        "label": "An accent border",
+        "value": "accent"
+       }
+      ],
+      "default": "zen"
+     },
+     {
+      "property": "zenith.panels.tile-dim",
+      "label": "The other tiles",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "In a split view, the tiles you're not on: as they are, or dimmed a little.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "As they are",
+        "value": "keep"
+       },
+       {
+        "label": "Dimmed",
+        "value": "dim"
+       }
+      ],
+      "default": "keep"
      }
     ]
    }
@@ -4036,7 +4247,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.12.22";
+const SCHEMA_VERSION = "0.13.0";
 
 class SettingsView {
   constructor(kind) {
@@ -4276,6 +4487,118 @@ class SettingsView {
       });
       return { node: sw, update: v => sw.setAttribute("aria-checked", String(v === true || v === "on")) };
     }
+    // Zenith Shell's keys (kept as one setting of the changes from the
+    // defaults): how many changed, and a popup with every key, where a
+    // click on one waits for the new keys (Backspace: none; Esc: as it was).
+    if (s.type === "string" && s.zenithKeys) {
+      const doc = this.root?.ownerDocument ?? document;
+      const host = doc.defaultView?.browsingContext?.topChromeWindow ?? window;
+      const box = el("div", { class: "zp-list" });
+      const count = el("span", { class: "zp-list-count" });
+      const open = el("button", { class: "zp-chip zp-action", type: "button" }, "Edit…");
+      const dialog = el("dialog", { class: "zp-sites zp-keys", "aria-label": s.label });
+      const items = el("div", { class: "zp-keys-items" });
+      const note = el("p", { class: "zp-keys-note" });
+      const reset = el("button", { class: "zp-chip zp-action", type: "button" }, "All as they were");
+      const done = el("button", { class: "zp-chip zp-action", type: "button" }, "Done");
+      const foot = el("div", { class: "zp-sites-foot" });
+      foot.append(reset, done);
+      dialog.append(el("h3", {}, s.label), note, items, foot);
+      box.append(count, open);
+      (doc.body ?? doc.documentElement).append(dialog);
+      const keys = () => host.ZenithShell?.keys ?? Services.wm.getMostRecentWindow("navigator:browser")?.ZenithShell?.keys;
+      const parse = v => new Map(String(v ?? "").split(",").map(x => x.trim()).filter(x => x.includes("="))
+        .map(x => [x.slice(0, x.indexOf("=")).trim(), x.slice(x.indexOf("=") + 1).trim()]));
+      let changed = new Map(), waiting = null;
+      const save = () => write(s, [...changed].map(([n, c]) => `${n}=${c}`).join(", "));
+      const stop = () => {
+        if (!waiting) return;
+        doc.removeEventListener("keydown", waiting.listen, true);
+        if (keys()) keys().recording = false;
+        waiting.button.textContent = waiting.was;
+        waiting = null;
+      };
+      // A key for `name`; another action that had it is left without one.
+      const set = (name, combo) => {
+        const K = keys();
+        for (const [other] of K.LIST) {
+          const now = changed.has(other) ? changed.get(other) : K.byName.get(other)[1];
+          if (combo && other !== name && now === combo) changed.set(other, "");
+        }
+        if (combo === K.byName.get(name)[1]) changed.delete(name);
+        else changed.set(name, combo);
+        for (const [n, c] of [...changed]) if (c === K.byName.get(n)[1]) changed.delete(n);
+        save();
+      };
+      const listen = (name, button) => e => {
+        if (["Alt", "Shift", "Control", "Meta", "AltGraph"].includes(e.key)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.key === "Escape") return stop();
+        if (e.key === "Backspace" || e.key === "Delete") {
+          stop();
+          return set(name, "");
+        }
+        if (!(e.altKey || e.ctrlKey || e.metaKey)) {
+          button.textContent = "With Alt, Ctrl or ⊞…";
+          return;
+        }
+        const combo = keys().combo(e);
+        stop();
+        set(name, combo);
+      };
+      const draw = () => {
+        const K = keys();
+        if (!K) {
+          items.replaceChildren(el("p", { class: "zp-list-empty" }, "Open a Zen window to change the Shell's keys."));
+          return;
+        }
+        note.textContent = "Click a key, then press the new one. Backspace leaves it without one; Esc keeps it.";
+        const groups = new Map();
+        for (const [name, combo, label, group] of K.LIST) {
+          if (!groups.has(group)) groups.set(group, []);
+          groups.get(group).push([name, changed.has(name) ? changed.get(name) : combo, label]);
+        }
+        items.replaceChildren(...[...groups].map(([group, rows]) => {
+          const section = el("section", { class: "zp-keys-group" });
+          section.append(el("h4", {}, group));
+          for (const [name, combo, label] of rows) {
+            const row = el("div", { class: "zp-keys-row" });
+            const button = el("button", { type: "button", class: "zp-chip zp-keys-key" }, combo ? K.pretty(combo) : "None");
+            button.toggleAttribute("changed", changed.has(name));
+            button.addEventListener("click", () => {
+              stop();
+              waiting = { button, was: button.textContent, listen: listen(name, button) };
+              button.textContent = "Press keys…";
+              K.recording = true;
+              doc.addEventListener("keydown", waiting.listen, true);
+            });
+            row.append(el("span", {}, label), button);
+            section.append(row);
+          }
+          return section;
+        }));
+      };
+      reset.addEventListener("click", () => {
+        stop();
+        changed = new Map();
+        save();
+      });
+      open.addEventListener("click", () => {
+        draw();
+        dialog.showModal();
+      });
+      done.addEventListener("click", () => dialog.close());
+      dialog.addEventListener("close", stop);
+      return {
+        node: box,
+        update: v => {
+          changed = parse(v);
+          count.textContent = changed.size ? `${changed.size} changed` : "As they come";
+          if (dialog.open) draw();
+        },
+      };
+    }
     // A list of sites (kept as one comma-separated setting): how many, and
     // a button for a small popup where each has its ✕ and a field adds one.
     if (s.type === "string" && s.zenithList) {
@@ -4513,7 +4836,15 @@ const STYLE = `
   dialog.zp-sites::backdrop { background: rgb(0 0 0 / 0.35); }
   dialog.zp-sites h3 { margin: 0; font-size: 1.05em; font-weight: 600; }
   dialog.zp-sites .zp-input { min-width: 0; width: 100%; }
-  .zp-sites-foot { display: flex; justify-content: flex-end; }
+  .zp-sites-foot { display: flex; justify-content: flex-end; gap: 8px; }
+  dialog.zp-keys { width: min(640px, 92vw); max-height: 86vh; }
+  .zp-keys-note { margin: 0; color: var(--zp-dim); }
+  .zp-keys-items { overflow: auto; columns: 2 260px; column-gap: 20px; }
+  .zp-keys-group { break-inside: avoid; margin-bottom: 10px; }
+  .zp-keys-group h4 { margin: 0 0 4px; font-size: 0.85em; font-weight: 600; color: var(--zp-dim); }
+  .zp-keys-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 0; font-size: 0.92em; }
+  .zp-keys-key { font: 600 0.9em ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: nowrap; border-color: var(--zp-border); }
+  .zp-keys-key[changed] { border-color: var(--zp-accent, AccentColor); }
   .zp-list-items { display: flex; flex-wrap: wrap; gap: 4px; }
   .zp-list-item { display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 9px; border-radius: 999px;
     border: 1px solid var(--zp-border); background: var(--zp-control); font-size: 0.92em; }

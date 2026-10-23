@@ -226,6 +226,20 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+        elif path == "/events":
+            # What the page itself sees of Alt keys, Alt+wheel and Alt+clicks,
+            # in its title (the window reads it from there).
+            self._html("""<!doctype html><meta charset=utf-8><title>events</title>
+<body style="height:4000px;font:16px system-ui;margin:40px"><p><a id=l href="/page?n=linked" style="display:block;width:300px;height:60px;background:#dde">A link (a block, easy to click)</a></p>
+<p>Some text to select. Some text to select. Some text to select.</p><script>
+const log = { keys: [], wheel: 0, ctx: 0, down: [], scrollY: 0 }, put = () => document.title = JSON.stringify(log);
+addEventListener("keydown", e => { if (e.altKey && e.code !== "AltLeft") { log.keys.push(e.code); put(); } }, true);
+addEventListener("wheel", e => { if (e.altKey) { log.wheel++; put(); } }, { passive: true });
+addEventListener("scroll", () => { log.scrollY = scrollY; put(); });
+addEventListener("contextmenu", () => { log.ctx++; put(); });
+addEventListener("mousedown", e => { if (e.altKey) { log.down.push(e.button); put(); } }, true);
+addEventListener("click", e => { log.click = [e.target.localName, e.altKey, e.shiftKey, e.defaultPrevented]; put(); }, true);
+put();</script>""")
         elif path == "/download":
             self.send_response(200)
             self.send_header("Content-Type", "application/octet-stream")

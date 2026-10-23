@@ -253,6 +253,29 @@
   }
 }
 
+/* Split view: the tile you're on with an accent border (drawn above the
+   page, which paints over its own box's outline); the others dimmed
+   (opacity only: drawn by the compositor, nothing laid out again). */
+:root:has(#theme-Zenith-Panels[zenith-panels-tile-focus="accent"])
+  #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"].deck-selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  border: 2px solid var(--zth-accent);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+:root:has(#theme-Zenith-Panels[zenith-panels-tile-dim="dim"])
+  #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"] {
+  transition: opacity 0.15s ease;
+
+  &:not(.deck-selected) {
+    opacity: 0.78;
+  }
+}
+
 /* --- Notifications -------------------------------------------------------- */
 
 /* dunst cards (default): glassy, accent edge on the left */

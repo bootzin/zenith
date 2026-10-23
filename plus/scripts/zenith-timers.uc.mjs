@@ -2,8 +2,9 @@
 // @name           Zenith Timers
 // @description    Zenith Plus: countdown timers and pomodoros, started from Peek.
 // @include        main
-// @version        0.12.22
+// @version        0.13.0
 // ==/UserScript==
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 // Timers are started from the Peek prompt (Alt+Q):
 //   timer 10m tea      a countdown ("90s", "1h30m", "25" = minutes)

@@ -2,8 +2,9 @@
 // @name           Zenith Bookmarks
 // @description    Zenith Plus: your bookmarks in Zenith's look (Ctrl+B), beside the page or in Zen's Library.
 // @include        main
-// @version        0.12.22
+// @version        0.13.0
 // ==/UserScript==
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 // Ctrl+B opens Zenith's bookmarks instead of Firefox's sidebar (unless the
 // look is "Firefox's tree", which keeps Firefox's, restyled):

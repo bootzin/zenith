@@ -2,8 +2,9 @@
 // @name           Zenith Tab manager
 // @description    Zenith Plus: every tab of every space on one page (about:zenith-tabs), tidying up, and rules for grouping, sleeping and closing.
 // @include        main
-// @version        0.12.22
+// @version        0.13.0
 // ==/UserScript==
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 // The tab manager (the "tab report" in DESIGN.md). Alt+Shift+T, or ":tabs"
 // in the switcher, opens about:zenith-tabs:

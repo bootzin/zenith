@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Focus mode's pages (Zenith Plus, Alt+Z with Focus mode › Pages). Three
 // ways to quiet a page, each undone the moment you leave focus mode (no
 // reload, the page as you left it):

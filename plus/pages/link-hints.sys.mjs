@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Link hints (Zenith Plus, Alt+J): a few letters on every link, button and
 // field you can see in the page; type a label to follow it (or, with
 // Alt+Shift+J, to open a link in a new tab in the background), Backspace

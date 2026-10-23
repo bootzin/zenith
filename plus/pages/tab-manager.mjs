@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // about:zenith-tabs: every tab, what it costs, and tidying up.
 // The page asks the window it's in (zenith-tabs.uc.mjs: window.ZenithTabs)
 // to do everything; it only shows and picks. Nothing happens until you

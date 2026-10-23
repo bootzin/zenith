@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Cookie banners (Zenith Plus › Cookies). Zen has no banner rejecter of its
 // own (Firefox's isn't in it), so this answers them: in each page and its
 // frames, a consent tool's banner gets its "Reject" (or "Only necessary")

@@ -3,8 +3,9 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.12.22
+// @version        0.13.0
 // ==/UserScript==
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 // Zen's mod settings list every option flat, with no way to show that one
 // only matters when another is on. Sine has "conditions" for this, but they
@@ -478,6 +479,28 @@ const RULES = {
       {
         "if": {
           "property": "zenith.plus.float-tab",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.shell.bindings": {
+    "why": "The Shell's keys are off",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.shell.keys",
+          "value": true
+        }
+      }
+    ]
+  },
+  "zenith.shell.passthrough-sites": {
+    "why": "The Shell's keys are off",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.shell.keys",
           "value": true
         }
       }
