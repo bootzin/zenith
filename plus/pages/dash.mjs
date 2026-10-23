@@ -98,7 +98,7 @@ function calendar(box) {
 }
 
 /* --- What's playing: cover, title, controls ---------------------------------------------- */
-function mediaCard(box, undo) {
+export function mediaCard(box, undo) {
   const c = card("", "zd-media");
   box.append(c);
   const find = () => {

@@ -145,6 +145,7 @@ PARENTS = {
     "zenith.shell.bindings": "zenith.shell.keys",
     **{f"zenith.bar.{e}.modules": f"zenith.bar.{e}" for e in ("top", "bottom", "left", "right")},
     **{f"zenith.bar.hide-{e}": f"zenith.bar.{e}" for e in ("top", "bottom", "left", "right")},
+    "zenith.plus.appearance-skip": "zenith.plus.appearance-force",
     "zenith.shell.passthrough-sites": "zenith.shell.keys",
 }
 
@@ -267,8 +268,8 @@ SECTIONS = [
                       "zenith.bar.right", "zenith.bar.right.modules", "zenith.bar.hide-right",
                       "zenith.sidebar", "zenith.bar.side-width"]),
             ("Look", ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.icons"]),
-            ("Tabs in a bar", ["zenith.bar.tab-look", "zenith.bar.tab-align", "zenith.bar.tab-wheel"]),
-            ("Modules", ["zenith.bar.spaces", "zenith.bar.title", "zenith.bar.clock", "zenith.bar.media-look",
+            ("Tabs in a bar", ["zenith.bar.tab-look", "zenith.bar.tab-align", "zenith.bar.tab-wheel", "zenith.bar.marker"]),
+            ("Modules", ["zenith.bar.spaces", "zenith.bar.title", "zenith.bar.clock", "zenith.bar.media-look", "zenith.bar.media-hover",
                          "zenith.bar.downloads-always", "zenith.bar.weather-place"]),
             ("The Dash", ["zenith.dash.place", "zenith.dash.weather", "zenith.dash.downloads"]),
         ],
@@ -287,7 +288,8 @@ SECTIONS = [
         "id": "pages", "title": "Pages", "icon": "page",
         "blurb": "Small touches inside web pages, a start page, and this settings page.",
         "groups": [
-            ("In web pages", ["zenith.page.selection", "zenith.page.thin-scrollbars", "zenith.plus.zoom-pill", "zenith.plus.appearance-auto"]),
+            ("In web pages", ["zenith.page.selection", "zenith.page.thin-scrollbars", "zenith.plus.zoom-pill", "zenith.plus.appearance-auto",
+                              "zenith.plus.appearance-force", "zenith.plus.appearance-skip"]),
             ("Start page", ["zenith.plus.startpage", "zenith.plus.startpage-weather", "zenith.plus.startpage-weather-history",
                             "zenith.plus.startpage-bookmarks", "zenith.plus.startpage-top"]),
             ("Settings", ["zenith.plus.sine-mods-first"]),
@@ -627,13 +629,17 @@ DESCRIPTIONS = {
     "zenith.plus.appearance-auto": "With pages on automatic (the sun or moon in the bar, the Dash, :appearance auto), they follow the browser's own light or dark (your palette's when you have one, else Windows'), or Windows' setting whatever the browser looks like. Sites with a theme setting of their own keep theirs.",
     "zenith.bar.layout": "A layout to start from: it turns on the bars it needs with what each shows, and sets the sidebar. Then change any bar's list, or turn one on or off.",
     "zenith.bar.top": "A bar along the window's top: at the top it's the title bar too (drag it to move the window).",
-    "zenith.bar.top.modules": "What the top bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+    "zenith.bar.top.modules": "What the top bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
     "zenith.bar.bottom": "A bar along the window's bottom.",
-    "zenith.bar.bottom.modules": "What the bottom bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+    "zenith.bar.bottom.modules": "What the bottom bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
     "zenith.bar.left": "A bar along the window's left. On the left or right it stands up: a rail of icons, or wider with titles (below).",
-    "zenith.bar.left.modules": "What the left bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+    "zenith.bar.left.modules": "What the left bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
     "zenith.bar.right": "A bar along the window's right. On the left or right it stands up: a rail of icons, or wider with titles (below).",
-    "zenith.bar.right.modules": "What the right bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+    "zenith.bar.right.modules": "What the right bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
+    "zenith.bar.marker": "The line under the tab you're on (on a side bar, along its inner edge) and the pill of the space you're in. The tab's container: a tab in a Firefox container is marked in its colour (others in the space's); the space's colour: the colour Zen gives the space (its container's, if it opens tabs in one); or the theme's accent everywhere.",
+    "zenith.bar.media-hover": "A mini player (the cover, the title, previous, play and next) when the pointer rests on what's playing in a bar; it goes when the pointer leaves it.",
+    "zenith.plus.appearance-force": "When you set pages dark or light (the bar's sun or moon, the Dash, :appearance), Firefox asks every page for it, and many sites don't listen. Invert: a page still in the other mode once it has loaded is inverted, its pictures and videos turned back, as Dark Reader's filter mode does (pages that follow are left alone). Every page in your palette's colours: Firefox draws every page in the palette's background, text and link colours (or plain dark or light ones without a palette), as a high-contrast mode does: the same everywhere, but pages lose their own design. Only ask them: as Firefox does on its own.",
+    "zenith.plus.appearance-skip": "Sites that are never inverted (a site and its subdomains), for those that look wrong inverted.",
 }
 
 # Buttons on the page that open something of Zen's, with no setting behind
@@ -849,4 +855,8 @@ LABELS = {
     "zenith.dash.place": "Where the Dash opens",
     "zenith.dash.downloads": "Downloads in the Dash",
     "zenith.plus.appearance-auto": "Pages on automatic follow",
+    "zenith.bar.marker": "The marker's colour",
+    "zenith.bar.media-hover": "Hovering what's playing",
+    "zenith.plus.appearance-force": "Pages set dark or light",
+    "zenith.plus.appearance-skip": "Sites never inverted",
 }

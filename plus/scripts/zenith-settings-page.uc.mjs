@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.15.2
+// @version        0.15.3
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -3658,7 +3658,7 @@ const SCHEMA = [
       "label": "What it shows",
       "type": "string",
       "extra": false,
-      "desc": "What the top bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+      "desc": "What the top bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
       "host": "Zenith Plus",
       "placeholder": "launcher,spaces|title|clock",
       "zenithModules": true,
@@ -3720,7 +3720,7 @@ const SCHEMA = [
       "label": "What it shows",
       "type": "string",
       "extra": false,
-      "desc": "What the bottom bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+      "desc": "What the bottom bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
       "host": "Zenith Plus",
       "placeholder": "launcher,spaces|title|clock",
       "zenithModules": true,
@@ -3782,7 +3782,7 @@ const SCHEMA = [
       "label": "What it shows",
       "type": "string",
       "extra": false,
-      "desc": "What the left bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+      "desc": "What the left bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
       "host": "Zenith Plus",
       "placeholder": "launcher,spaces|title|clock",
       "zenithModules": true,
@@ -3844,7 +3844,7 @@ const SCHEMA = [
       "label": "What it shows",
       "type": "string",
       "extra": false,
-      "desc": "What the right bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+      "desc": "What the right bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
       "host": "Zenith Plus",
       "placeholder": "launcher,spaces|title|clock",
       "zenithModules": true,
@@ -4358,6 +4358,63 @@ const SCHEMA = [
         }
        ]
       }
+     },
+     {
+      "property": "zenith.bar.marker",
+      "label": "The marker's colour",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The line under the tab you're on (on a side bar, along its inner edge) and the pill of the space you're in. The tab's container: a tab in a Firefox container is marked in its colour (others in the space's); the space's colour: the colour Zen gives the space (its container's, if it opens tabs in one); or the theme's accent everywhere.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The tab's container (else the space's colour)",
+        "value": "container"
+       },
+       {
+        "label": "The space's colour",
+        "value": "space"
+       },
+       {
+        "label": "The theme's accent",
+        "value": "accent"
+       }
+      ],
+      "default": "container",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
      }
     ]
    },
@@ -4581,6 +4638,59 @@ const SCHEMA = [
        }
       ],
       "default": "title",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.media-hover",
+      "label": "Hovering what's playing",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A mini player (the cover, the title, previous, play and next) when the pointer rests on what's playing in a bar; it goes when the pointer leaves it.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Nothing",
+        "value": "off"
+       },
+       {
+        "label": "A mini player",
+        "value": "player"
+       }
+      ],
+      "default": "off",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5140,6 +5250,62 @@ const SCHEMA = [
        }
       ],
       "default": "browser"
+     },
+     {
+      "property": "zenith.plus.appearance-force",
+      "label": "Pages set dark or light",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "When you set pages dark or light (the bar's sun or moon, the Dash, :appearance), Firefox asks every page for it, and many sites don't listen. Invert: a page still in the other mode once it has loaded is inverted, its pictures and videos turned back, as Dark Reader's filter mode does (pages that follow are left alone). Every page in your palette's colours: Firefox draws every page in the palette's background, text and link colours (or plain dark or light ones without a palette), as a high-contrast mode does: the same everywhere, but pages lose their own design. Only ask them: as Firefox does on its own.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Invert those that don't follow (as Dark Reader does)",
+        "value": "invert"
+       },
+       {
+        "label": "Every page in your palette's colours",
+        "value": "palette"
+       },
+       {
+        "label": "Only ask them (sites may not listen)",
+        "value": "off"
+       }
+      ],
+      "default": "invert"
+     },
+     {
+      "property": "zenith.plus.appearance-skip",
+      "label": "Sites never inverted",
+      "type": "string",
+      "extra": false,
+      "desc": "Sites that are never inverted (a site and its subdomains), for those that look wrong inverted.",
+      "host": "Zenith Plus",
+      "placeholder": "example.com, another.site",
+      "zenithList": "Sites never inverted",
+      "parent": "zenith.plus.appearance-force",
+      "rule": {
+       "why": "Pages aren't inverted",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.plus.appearance-force",
+            "value": ""
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.appearance-force",
+            "value": "invert"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
      }
     ]
    },
@@ -5720,7 +5886,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.15.2";
+const SCHEMA_VERSION = "0.15.3";
 
 class SettingsView {
   constructor(kind) {
@@ -6081,12 +6247,29 @@ class SettingsView {
       const open = el("button", { class: "zp-chip zp-action", type: "button" }, "Edit…");
       const dialog = el("dialog", { class: "zp-sites zp-mods", "aria-label": s.label });
       const parts = el("div", { class: "zp-mods-parts" });
-      const note = el("p", { class: "zp-keys-note" }, "Drag a module to move it, ✕ takes it away, + adds one. The window's buttons can only be in one bar.");
-      const reset = el("button", { class: "zp-chip zp-action", type: "button" }, "As it comes");
+      const note = el("p", { class: "zp-keys-note" }, "Drag a module to move it (within a part or to another), ✕ takes it away, + adds one. The window's buttons can only be in one bar.");
+      const reset = el("button", { class: "zp-chip zp-action", type: "button" }, "Restore defaults");
       const done = el("button", { class: "zp-chip zp-action", type: "button" }, "Done");
       const foot = el("div", { class: "zp-sites-foot" });
       foot.append(reset, done);
       dialog.append(el("h3", {}, s.label), note, parts, foot);
+      // While a module is dragged: it fades, the row it would go into is
+      // lit, and a line shows where it would land.
+      const unmark = () => {
+        for (const n of dialog.querySelectorAll("[dragging], [dropping], [drop]")) {
+          n.removeAttribute("dragging");
+          n.removeAttribute("dropping");
+          n.removeAttribute("drop");
+        }
+      };
+      const mark = (row, target, side) => {
+        for (const n of dialog.querySelectorAll("[dropping], [drop]")) {
+          if (n !== row) n.removeAttribute("dropping");
+          if (n !== target) n.removeAttribute("drop");
+        }
+        row.setAttribute("dropping", "true");
+        target?.setAttribute("drop", side);
+      };
       box.append(count, open);
       (doc.body ?? doc.documentElement).append(dialog);
       let lists = { left: [], centre: [], right: [] }, drag = null;
@@ -6106,6 +6289,7 @@ class SettingsView {
         if (drag.key === to && drag.i < at) at--;
         lists[to].splice(at, 0, name);
         drag = null;
+        unmark();
         save();
         draw();
       };
@@ -6131,9 +6315,19 @@ class SettingsView {
               drag = { key, i };
               e.dataTransfer.setData("text/plain", name);
               e.dataTransfer.effectAllowed = "move";
+              requestAnimationFrame(() => chip.setAttribute("dragging", "true"));
             });
-            chip.addEventListener("dragend", () => (drag = null));
-            chip.addEventListener("dragover", e => drag && e.preventDefault());
+            chip.addEventListener("dragend", () => {
+              drag = null;
+              unmark();
+            });
+            chip.addEventListener("dragover", e => {
+              if (!drag) return;
+              e.preventDefault();
+              e.stopPropagation();
+              const r = chip.getBoundingClientRect();
+              mark(row, chip, e.clientX > r.left + r.width / 2 ? "after" : "before");
+            });
             chip.addEventListener("drop", e => {
               e.preventDefault();
               e.stopPropagation();
@@ -6152,7 +6346,12 @@ class SettingsView {
             draw();
           });
           row.append(add);
-          row.addEventListener("dragover", e => drag && e.preventDefault());
+          row.addEventListener("dragover", e => {
+            if (!drag) return;
+            e.preventDefault();
+            mark(row, add, "before");
+          });
+          row.addEventListener("dragleave", e => !row.contains(e.relatedTarget) && row.removeAttribute("dropping"));
           row.addEventListener("drop", e => {
             e.preventDefault();
             move(key, lists[key].length);
@@ -6177,7 +6376,7 @@ class SettingsView {
         update: v => {
           lists = read(v);
           const n = Object.values(lists).flat().length;
-          count.textContent = `${n} module${n === 1 ? "" : "s"}${v ? "" : " (as it comes)"}`;
+          count.textContent = `${n} module${n === 1 ? "" : "s"}${v ? "" : " (defaults)"}`;
           if (dialog.open) draw();
         },
       };
@@ -6446,6 +6645,17 @@ const STYLE = `
     border: 1px dashed var(--zp-border); border-radius: 8px; }
   .zp-mods-chip { display: inline-flex; align-items: center; gap: 2px; padding: 3px 2px 3px 10px; border: 1px solid var(--zp-border);
     border-radius: 999px; background: color-mix(in srgb, currentColor 7%, transparent); font-size: 0.92em; cursor: grab; }
+  .zp-mods-row { transition: background-color 0.12s, border-color 0.12s; }
+  .zp-mods-row[dropping] { border-style: solid; border-color: var(--zp-accent, AccentColor);
+    background: color-mix(in srgb, var(--zp-accent, AccentColor) 10%, transparent); }
+  .zp-mods-chip { position: relative; transition: opacity 0.12s; }
+  .zp-mods-chip[dragging] { opacity: 0.35; border-style: dashed; }
+  .zp-mods-chip:active { cursor: grabbing; }
+  :is(.zp-mods-chip, .zp-mods-add)[drop] { position: relative; }
+  :is(.zp-mods-chip, .zp-mods-add)[drop]::before { content: ""; position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: 2px;
+    background: var(--zp-accent, AccentColor); }
+  :is(.zp-mods-chip, .zp-mods-add)[drop="before"]::before { left: -6px; }
+  .zp-mods-chip[drop="after"]::before { right: -6px; }
   .zp-mods-x { appearance: none; border: none; background: none; color: var(--zp-dim); font: inherit; padding: 0 6px; cursor: pointer; }
   .zp-mods-x:hover { color: inherit; }
   select.zp-mods-add { appearance: none; flex: none; width: 30px; min-width: 0; height: 26px; padding: 0; border-color: var(--zp-border);

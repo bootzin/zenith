@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.15.2
+// @version        0.15.3
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -6267,9 +6267,44 @@ const SiteAppearance = {
     if (uuid === window.gZenWorkspaces?.activeWorkspace) this.write(mode === "dark" || mode === "light" ? mode : this.global());
   },
 
+  FORCE: "zenith.plus.appearance-force", // "invert" (as it comes), "palette" or "off"
+
+  // Pages set dark or light, beyond asking them: inverted where they don't
+  // follow (a helper in each page: plus/pages/appearance-force.sys.mjs), or
+  // every page in the palette's colours (Firefox's own colour override,
+  // through the bridge: yours come back when pages are automatic again).
+  force() {
+    const P = Services.prefs, how = P.getStringPref(this.FORCE, "") || "invert", mode = this.forced();
+    if (how === "invert") this.helper ??= PageActors.child("ZenithForce", "appearance-force.sys.mjs", { DOMContentLoaded: {}, pageshow: {} }, ["*://*/*", "file:///*"]);
+    // (Only the window in front: the colour settings are shared.)
+    if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
+    const PAL = getComputedStyle(root), pal = n => PAL.getPropertyValue(`--zth-pal-${n}`).trim();
+    const own = root.getAttribute("zenith-palette") === mode;
+    const colours = mode === "dark"
+      ? { bg: own ? pal("base") : "#1c1b22", fg: own ? pal("text") : "#fbfbfe", link: own ? pal("accent") : "#8c8cff", seen: own ? pal("second") : "#c88cff" }
+      : { bg: own ? pal("base") : "#ffffff", fg: own ? pal("text") : "#15141a", link: own ? pal("accent") : "#0060df", seen: own ? pal("second") : "#551a8b" };
+    const on = how === "palette" && !!mode;
+    Bridge.apply("appearance-palette", {
+      "browser.display.document_color_use": on ? 2 : null,
+      "browser.display.use_system_colors": on ? false : null,
+      ...Object.fromEntries(["", ".dark"].flatMap(dark => [
+        [`browser.display.background_color${dark}`, on ? colours.bg : null],
+        [`browser.display.foreground_color${dark}`, on ? colours.fg : null],
+        [`browser.anchor_color${dark}`, on ? colours.link : null],
+        [`browser.visited_color${dark}`, on ? colours.seen : null],
+      ])),
+    });
+  },
+
   init() {
     const W = window.gZenWorkspaces, P = Services.prefs;
     window.ZenithAppearance = this; // the bar, the Dash, the switcher, tools/checks
+    const force = () => this.force();
+    for (const p of [this.FORCE, this.PREF, "zenith.palette"]) P.addObserver(p, force);
+    onUnload(() => {
+      for (const p of [this.FORCE, this.PREF, "zenith.palette"]) P.removeObserver(p, force);
+    });
+    force();
     // (0.15: dark or light set before there was a choice of your own.)
     if (!P.prefHasUserValue(this.GLOBAL) && this.forced() && this.space() === "auto") P.setStringPref(this.GLOBAL, this.forced());
     // Automatic now follows the other one: pages on automatic too.
@@ -6318,14 +6353,14 @@ const SidebarMode = {
 
   init() {
     // Zen opens the sidebar on hover (or its toolbar) when the pointer
-    // leaves the window within 10px of an edge. An edge with a bar of
-    // Zenith's is the bar's: the sidebar answers at the bar's inner edge.
+    // leaves the window within 10px of an edge. An edge with a hiding bar
+    // of Zenith's is that bar's.
     const C = window.gZenCompactModeManager, crossed = C?._getCrossedEdge;
     if (crossed) {
       C._getCrossedEdge = function (x, y, element, ...rest) {
         const edge = crossed.call(this, x, y, element, ...rest);
         if (element && element !== root) return edge;
-        return edge && (root.getAttribute("zenith-bar") ?? "").split(" ").includes(edge) ? undefined : edge;
+        return edge && (root.getAttribute("zenith-bar-hides") ?? "").split(" ").includes(edge) ? undefined : edge;
       };
       onUnload(() => (C._getCrossedEdge = crossed));
     }

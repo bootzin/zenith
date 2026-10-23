@@ -52,7 +52,7 @@ export const Popup = {
   // at: "top-centre", "centre", "bottom-right"…: there in the page area,
   // whatever opened it; a click on anything matching `keep` (what opens it)
   // is left to that to close it.
-  open(anchor, build, { kind = "", wide = false, at = "", keep = "" } = {}) {
+  open(anchor, build, { kind = "", wide = false, at = "", keep = "", hover = false } = {}) {
     const again = !!this.node && this.kind === kind && (this.anchor === anchor || !!at);
     this.close();
     if (again) return;
@@ -78,6 +78,19 @@ export const Popup = {
     window.addEventListener("mousedown", this.away, true);
     window.addEventListener("keydown", this.away, true);
     window.addEventListener("blur", this.away);
+    if (hover) {
+      const stay = () => clearTimeout(this.leaving);
+      const go = () => {
+        clearTimeout(this.leaving);
+        this.leaving = setTimeout(() => this.node === pop && this.close(), 300);
+      };
+      const on = [[pop, "mouseenter", stay], [pop, "mouseleave", go], [anchor, "mouseenter", stay], [anchor, "mouseleave", go]];
+      for (const [n, t, f] of on) n?.addEventListener?.(t, f);
+      this.unhover = () => {
+        clearTimeout(this.leaving);
+        for (const [n, t, f] of on) n?.removeEventListener?.(t, f);
+      };
+    }
   },
 
   // Under the module (above it for a bar at the bottom, beside it for one on
@@ -123,6 +136,8 @@ export const Popup = {
     window.removeEventListener("mousedown", this.away, true);
     window.removeEventListener("keydown", this.away, true);
     window.removeEventListener("blur", this.away);
+    this.unhover?.();
+    this.unhover = null;
     try {
       this.undo?.();
     } catch (e) {
@@ -303,13 +318,29 @@ export function timersCard(box) {
   };
 }
 
+// Zen's Library at a section (downloads, history…); Firefox's Library
+// window when Zen's is off.
+export function openLibrary(section) {
+  const Lib = customElements.get("zen-library");
+  if (!Lib || !P.getBoolPref("zen.library.enabled", false)) return void window.BrowserCommands?.downloadsUI?.();
+  try {
+    const open = typeof Lib.isLibraryOpen === "function" ? Lib.isLibraryOpen() : Lib.isLibraryOpen;
+    if (!open) Lib.toggle();
+    const lib = Lib.getInstance?.() ?? document.querySelector("zen-library");
+    if (lib) lib.activeTab = section;
+  } catch (e) {
+    console.error("[Zenith] Zen's Library", e);
+    window.BrowserCommands?.downloadsUI?.();
+  }
+}
+
 /* --- Downloads: the latest, the ones under way first ---------------------------------- */
 export function downloadsCard(box, { most = 8 } = {}) {
   const list = node("div", { class: "zs-list" });
   const all = button("All downloads", "zs-btn zs-link");
   all.addEventListener("click", () => {
     Popup.close();
-    window.BrowserCommands?.downloadsUI?.();
+    openLibrary("downloads");
   });
   box.append(node("div", { class: "zs-head" }, "Downloads"), list, all);
   const { Downloads } = ChromeUtils.importESModule("resource://gre/modules/Downloads.sys.mjs");
@@ -561,4 +592,57 @@ export function powerCard(box) {
     list.append(row);
   }
   box.append(list);
+}
+
+/* --- A bar's menu (a right-click on it) ------------------------------------------------- */
+// (The module names the bar's lists use, from those on the page.)
+const LISTED = { tasks: "tabs", "tasks-more": "tabs", privacy: "trackers", resources: "memory", tray: "extensions" };
+
+export function barMenu(box, edge, mod) {
+  const Bars = window.ZenithBar, live = window.ZenithLive, name = mod ? (LISTED[mod] ?? mod) : null;
+  const label = name ? new Map(Bars?.MODULES ?? []).get(name) ?? name : null;
+  const listPref = `zenith.bar.${edge}.modules`, hidePref = `zenith.bar.hide-${edge}`;
+  const settings = async prop => {
+    live?.open({ s: { property: prop } });
+    await new Promise(r => setTimeout(r, 120));
+    return document.querySelector(`#zenith-live .zp-row[data-prop="${prop}"]`) ?? document.querySelector(`.zp-row[data-prop="${prop}"]`);
+  };
+  const items = [
+    ["edit", `What the ${edge} bar shows…`, async () => (await settings(listPref))?.querySelector(".zp-action")?.click(), !!live],
+    ["close", label ? `Take ${label} out of this bar` : null, () => {
+      const lists = Bars.lists(edge);
+      for (const side of ["left", "centre", "right"]) lists[side] = lists[side].filter(n => n !== name);
+      P.setStringPref(listPref, [lists.left, lists.centre, lists.right].map(x => x.join(",")).join("|"));
+    }, !!name && !!Bars],
+    ["hide", P.getBoolPref(hidePref, false) ? "Keep this bar on screen" : "Hide this bar until reached", () => P.setBoolPref(hidePref, !P.getBoolPref(hidePref, false))],
+    ["off", "Turn this bar off", () => P.setStringPref(`zenith.bar.${edge}`, "off")],
+    ["settings", "Bar settings…", () => live?.open({ kind: "preset", section: { id: "bar" } }), !!live],
+  ];
+  const list = node("div", { class: "zs-list" });
+  for (const [icon, text, run, ok = true] of items) {
+    if (!ok || !text) continue;
+    const row = node("div", { class: "zs-row", action: "true", role: "menuitem" });
+    row.append(ico(icon), node("span", { class: "zs-grow" }, text));
+    row.addEventListener("click", () => {
+      Popup.close();
+      run();
+    });
+    list.append(row);
+  }
+  // Its look, for every bar.
+  const look = node("div", { class: "zs-seg-row" });
+  look.append(node("span", { class: "zs-grow" }, "Look"));
+  const seg = node("div", { class: "zs-seg" });
+  const now = P.getStringPref("zenith.bar.style", "") || "islands";
+  for (const [v, text] of [["islands", "Islands"], ["strip", "Strip"], ["minimal", "Minimal"], ["powerline", "Powerline"]]) {
+    const b = button(text, "zs-btn");
+    b.toggleAttribute("on", now === v);
+    b.addEventListener("click", () => {
+      P.setStringPref("zenith.bar.style", v);
+      for (const x of seg.children) x.toggleAttribute("on", x === b);
+    });
+    seg.append(b);
+  }
+  look.append(seg);
+  box.append(node("div", { class: "zs-head" }, `The ${edge} bar`), list, look);
 }

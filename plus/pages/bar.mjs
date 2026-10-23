@@ -15,7 +15,7 @@
 //   - each module is boxed off (contain), so a ticking clock restyles one
 //     node, never the bar.
 
-import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard, tabsCard, powerCard } from "./shell-ui.mjs";
+import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard, tabsCard, powerCard, barMenu } from "./shell-ui.mjs";
 
 const P = Services.prefs;
 const HTML = "http://www.w3.org/1999/xhtml";
@@ -323,6 +323,12 @@ function tasks(box) {
       b.toggleAttribute("asleep", t.hasAttribute("pending"));
       b.toggleAttribute("loud", t.hasAttribute("soundplaying"));
       b.toggleAttribute("split", !!t.splitView);
+      const box = [...t.classList].find(c => c.startsWith("identity-color-")) ?? "";
+      if (b.zbBox !== box) {
+        if (b.zbBox) b.classList.remove(b.zbBox);
+        if (box) b.classList.add(box);
+        b.zbBox = box;
+      }
     });
     m.setAttribute("look", vertical && pref("zenith.bar.side-width", "rail") === "rail" ? (look() === "numbers" ? "numbers" : "icons") : look());
     // More tabs than room: the strip scrolls, the tab you're on stays in
@@ -396,6 +402,23 @@ function media(box) {
   Undo.pref("zenith.bar.media-look", look);
   prev.addEventListener("click", () => ctrl?.prevTrack());
   next.addEventListener("click", () => ctrl?.nextTrack());
+  let hovering = null;
+  m.addEventListener("mouseenter", () => {
+    if (pref("zenith.bar.media-hover", "off") !== "player") return;
+    clearTimeout(hovering);
+    hovering = setTimeout(async () => {
+      if (!m.matches(":hover") || Popup.kind === "player") return;
+      const { mediaCard } = await import("./dash.mjs");
+      if (!m.matches(":hover") || Bar.gone) return;
+      Popup.open(m, box => {
+        const undo = [];
+        mediaCard(box, undo);
+        return () => undo.forEach(fn => fn());
+      }, { kind: "player", hover: true });
+    }, 350);
+  });
+  m.addEventListener("mouseleave", () => clearTimeout(hovering));
+  Undo.add(() => clearTimeout(hovering));
   let tab = null, ctrl = null;
   const watch = c => {
     if (ctrl === c) return;
@@ -779,10 +802,16 @@ const Bar = {
     }
     if (bool(`zenith.bar.hide-${edge}`, false)) {
       bar.setAttribute("collapsible", "true");
-      // (Reached: the sidebar on hover may answer beside it; see chrome.css.)
-      bar.addEventListener("mouseenter", () => this.reached(edge, true));
-      bar.addEventListener("mouseleave", () => this.reached(edge, false));
     }
+    // A right-click: this bar's menu (its modules, hiding, its look…).
+    bar.addEventListener("contextmenu", e => {
+      if (e.defaultPrevented) return;
+      e.preventDefault();
+      const at = { left: e.clientX, right: e.clientX, top: e.clientY, bottom: e.clientY, width: 0, height: 0 };
+      const anchor = { getBoundingClientRect: () => at, closest: () => bar, contains: () => false };
+      const name = e.target.closest?.(".zb-mod")?.getAttribute("mod") ?? null;
+      Popup.open(anchor, box => barMenu(box, edge, name), { kind: "bar-menu" });
+    });
     const left = node("div", { class: "zb-left" }), centre = node("div", { class: "zb-centre" }), right = node("div", { class: "zb-right" });
     bar.append(left, centre, right);
     for (const [side, fn] of parts) fn({ left, centre, right }[side]);
@@ -790,20 +819,29 @@ const Bar = {
     return bar;
   },
 
-  // A hiding bar the pointer reached: kept as reached until it has slid
-  // away again (0.4 s, as chrome.css).
-  reached(edge, now) {
-    const root = document.documentElement, list = () => new Set((root.getAttribute("zenith-reached") ?? "").split(" ").filter(Boolean));
-    clearTimeout(this.leaving?.[edge]);
-    const set = on => {
-      const l = list();
-      if (on) l.add(edge);
-      else l.delete(edge);
-      if (l.size) root.setAttribute("zenith-reached", [...l].join(" "));
-      else root.removeAttribute("zenith-reached");
-    };
-    if (now) return set(true);
-    (this.leaving ??= {})[edge] = setTimeout(() => set(false), 450);
+  // The space's colour (its container's, or its own), for the markers:
+  // a property on each bar, again as you go to another space.
+  mark() {
+    const s = window.gZenWorkspaces?.getActiveWorkspace?.(), how = pref("zenith.bar.marker", "container");
+    let colour = null;
+    if (how !== "accent" && s) {
+      if (how === "container" && s.containerTabId) {
+        const name = window.ContextualIdentityService?.getPublicIdentityFromId(s.containerTabId)?.color;
+        if (name && name !== "toolbar") {
+          const probe = (this.probe ??= document.documentElement.appendChild(node("span", { hidden: "true" })));
+          probe.className = `identity-color-${name}`;
+          colour = getComputedStyle(probe).getPropertyValue("--identity-tab-color").trim() || null;
+        }
+      }
+      if (!colour) {
+        const c = s.theme?.gradientColors?.find(x => x?.isPrimary)?.c ?? s.theme?.gradientColors?.[0]?.c;
+        colour = Array.isArray(c) ? `rgb(${c.slice(0, 3).join(" ")})` : c ? String(c) : null;
+      }
+    }
+    for (const bar of this.bars) {
+      if (colour) bar.style.setProperty("--zb-space-colour", colour);
+      else bar.style.removeProperty("--zb-space-colour");
+    }
   },
 
   look() {
@@ -811,16 +849,11 @@ const Bar = {
       bar.setAttribute("look", pref("zenith.bar.style", "islands"));
       bar.setAttribute("size", pref("zenith.bar.size", "30"));
       bar.setAttribute("font", pref("zenith.bar.font", "mono"));
+      bar.setAttribute("marker", pref("zenith.bar.marker", "container"));
     }
-    // (Another look, size or font: the fixed-width modules measured again;
-    // a side bar's width, for the sidebar beside it.)
+    // (Another look, size or font: the fixed-width modules measured again.)
     requestAnimationFrame(() => {
       for (const bar of this.bars) for (const m of bar.querySelectorAll(".zb-mod[fixed]")) fixWidth(m);
-      for (const edge of ["left", "right"]) {
-        const bar = this.bars.find(b => b.getAttribute("edge") === edge);
-        if (bar) document.documentElement.style.setProperty(`--zth-bar-${edge}`, `${bar.offsetWidth}px`);
-        else document.documentElement.style.removeProperty(`--zth-bar-${edge}`);
-      }
     });
   },
 
@@ -863,7 +896,12 @@ const Bar = {
     const hides = this.bars.filter(b => b.hasAttribute("collapsible")).map(b => b.getAttribute("edge"));
     if (hides.length) document.documentElement.setAttribute("zenith-bar-hides", hides.join(" "));
     this.look();
-    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width"]) Undo.pref(p, () => this.look());
+    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width", "zenith.bar.marker"]) Undo.pref(p, () => this.look());
+    this.mark();
+    const mark = () => this.mark();
+    window.gZenWorkspaces?.addChangeListeners?.(mark);
+    Undo.add(() => window.gZenWorkspaces?.removeChangeListeners?.(mark));
+    Undo.on(window, "ZenWorkspaceDataChanged", mark);
     (window.zenithStartup ??= []).push({ script: "bar", name: "bar", at: Math.round(t0), ms: +(performance.now() - t0).toFixed(1) });
   },
 
@@ -886,9 +924,9 @@ const Bar = {
     this.modeNodes = [];
     document.documentElement.removeAttribute("zenith-bar");
     document.documentElement.removeAttribute("zenith-bar-buttons");
-    for (const a of ["zenith-bar-hides", "zenith-reached"]) document.documentElement.removeAttribute(a);
-    for (const t of Object.values(this.leaving ?? {})) clearTimeout(t);
-    for (const e of ["left", "right"]) document.documentElement.style.removeProperty(`--zth-bar-${e}`);
+    document.documentElement.removeAttribute("zenith-bar-hides");
+    this.probe?.remove();
+    this.probe = null;
   },
 };
 

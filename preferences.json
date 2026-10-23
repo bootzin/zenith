@@ -3328,6 +3328,110 @@
     "zenithWhy": "The bar is off"
   },
   {
+    "property": "zenith.bar.marker",
+    "label": "The marker on the tab and space you're on",
+    "type": "dropdown",
+    "placeholder": "Default (The tab's container (else the space's colour))",
+    "options": [
+      {
+        "label": "The tab's container (else the space's colour)",
+        "value": "container"
+      },
+      {
+        "label": "The space's colour",
+        "value": "space"
+      },
+      {
+        "label": "The theme's accent",
+        "value": "accent"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.media-hover",
+    "label": "Hovering what's playing",
+    "type": "dropdown",
+    "placeholder": "Default (Nothing)",
+    "options": [
+      {
+        "label": "Nothing",
+        "value": "off"
+      },
+      {
+        "label": "A mini player",
+        "value": "player"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
     "property": "zenith.bar.tab-align",
     "label": "Tabs in the bar sit",
     "type": "dropdown",
@@ -3498,6 +3602,56 @@
       }
     ],
     "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.appearance-force",
+    "label": "Pages set dark or light",
+    "type": "dropdown",
+    "placeholder": "Default (Invert those that don't follow (as Dark Reader does))",
+    "options": [
+      {
+        "label": "Invert those that don't follow (as Dark Reader does)",
+        "value": "invert"
+      },
+      {
+        "label": "Every page in your palette's colours",
+        "value": "palette"
+      },
+      {
+        "label": "Only ask them (sites may not listen)",
+        "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.appearance-skip",
+    "label": "Sites never inverted",
+    "type": "string",
+    "placeholder": "example.com, another.site",
+    "zenithList": "Sites never inverted",
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.plus.appearance-force",
+              "value": ""
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.appearance-force",
+              "value": "invert"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Pages aren't inverted"
   },
   {
     "property": "zenith.palette",
