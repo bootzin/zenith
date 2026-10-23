@@ -46,6 +46,14 @@ def sites(prop, label, placeholder):
     return {"property": prop, "label": label, "type": "string", "placeholder": "example.com, another.site", "zenithList": placeholder}
 
 
+def modules(prop, label):
+    """A bar's modules, kept as one text setting (start | middle | end, each
+    a comma-separated list, as waybar's modules-left, -center, -right): Sine
+    shows the text; Zenith's own settings page an editor to add, drag and
+    take away."""
+    return {"property": prop, "label": label, "type": "string", "placeholder": "launcher,spaces|title|clock", "zenithModules": True}
+
+
 def keymap(prop, label):
     """Zenith Shell's keys, kept as one text setting of the changes from the
     defaults (Sine shows the text; Zenith's own settings page shows every
@@ -85,12 +93,7 @@ def ALL(*conds):
 
 # The bar is on (Settings › Bar): anything but off.
 def _bar_on():
-    return ANY(*[IF(f"zenith.bar.{e}", v) for e in ("top", "bottom", "left", "right") for v in ("status", "tabs", "both")])
-
-
-# Tabs are in a bar (some edge has "Tabs" or "Status and tabs").
-def _tabs_in_bar():
-    return ANY(*[IF(f"zenith.bar.{e}", v) for e in ("top", "bottom", "left", "right") for v in ("tabs", "both")])
+    return ANY(*[IF(f"zenith.bar.{e}", "on") for e in ("top", "bottom", "left", "right")])
 
 
 def when(entry, why, *conds):
@@ -101,7 +104,6 @@ def when(entry, why, *conds):
 
 
 BAR_ON = _bar_on()
-TABS_IN_BAR = _tabs_in_bar()
 PEEK_ON = IF("zenith.peek.enabled", True)
 MOTION_ON = NOT("zenith.motion.preset", "off")
 
@@ -387,27 +389,31 @@ MODS = {
         script(dropdown("zenith.bar.layout", "Bar layout", "No bar",
                         ("No bar", "zen"), ("A top bar", "top"), ("Top and bottom", "split"), ("A taskbar", "taskbar"),
                         ("A rail", "rail"), ("Minimal", "minimal"))),
-        script(dropdown("zenith.bar.top", "A bar at the top", "None", ("None", "off"), ("Status", "status"), ("Tabs", "tabs"), ("Status and tabs", "both"))),
+        script(dropdown("zenith.bar.top", "A bar at the top", "None", ("None", "off"), ("On", "on"))),
+        when(script(modules("zenith.bar.top.modules", "What the top bar shows")),
+             "There's no bar at the top", IF("zenith.bar.top", "on")),
         when(script(checkbox("zenith.bar.hide-top", "The top bar hides until the pointer reaches it", False)),
-             "There's no bar at the top", ANY(IF("zenith.bar.top", "status"), IF("zenith.bar.top", "tabs"), IF("zenith.bar.top", "both"))),
-        script(dropdown("zenith.bar.bottom", "A bar at the bottom", "None", ("None", "off"), ("Status", "status"), ("Tabs", "tabs"), ("Status and tabs", "both"))),
+             "There's no bar at the top", IF("zenith.bar.top", "on")),
+        script(dropdown("zenith.bar.bottom", "A bar at the bottom", "None", ("None", "off"), ("On", "on"))),
+        when(script(modules("zenith.bar.bottom.modules", "What the bottom bar shows")),
+             "There's no bar at the bottom", IF("zenith.bar.bottom", "on")),
         when(script(checkbox("zenith.bar.hide-bottom", "The bottom bar hides until the pointer reaches it", False)),
-             "There's no bar at the bottom", ANY(IF("zenith.bar.bottom", "status"), IF("zenith.bar.bottom", "tabs"), IF("zenith.bar.bottom", "both"))),
-        script(dropdown("zenith.bar.left", "A bar at the left", "None", ("None", "off"), ("Status", "status"), ("Tabs", "tabs"), ("Status and tabs", "both"))),
+             "There's no bar at the bottom", IF("zenith.bar.bottom", "on")),
+        script(dropdown("zenith.bar.left", "A bar on the left", "None", ("None", "off"), ("On", "on"))),
+        when(script(modules("zenith.bar.left.modules", "What the left bar shows")),
+             "There's no bar on the left", IF("zenith.bar.left", "on")),
         when(script(checkbox("zenith.bar.hide-left", "The left bar hides until the pointer reaches it", False)),
-             "There's no bar at the left", ANY(IF("zenith.bar.left", "status"), IF("zenith.bar.left", "tabs"), IF("zenith.bar.left", "both"))),
-        script(dropdown("zenith.bar.right", "A bar at the right", "None", ("None", "off"), ("Status", "status"), ("Tabs", "tabs"), ("Status and tabs", "both"))),
+             "There's no bar on the left", IF("zenith.bar.left", "on")),
+        script(dropdown("zenith.bar.right", "A bar on the right", "None", ("None", "off"), ("On", "on"))),
+        when(script(modules("zenith.bar.right.modules", "What the right bar shows")),
+             "There's no bar on the right", IF("zenith.bar.right", "on")),
         when(script(checkbox("zenith.bar.hide-right", "The right bar hides until the pointer reaches it", False)),
-             "There's no bar at the right", ANY(IF("zenith.bar.right", "status"), IF("zenith.bar.right", "tabs"), IF("zenith.bar.right", "both"))),
+             "There's no bar on the right", IF("zenith.bar.right", "on")),
         script(dropdown("zenith.sidebar", "The sidebar", "Shown",
                         ("Shown", "shown"), ("On hover (Zen's compact mode)", "hover"), ("Hidden (tabs in a bar)", "hidden"))),
         when(script(dropdown("zenith.bar.side-width", "Bars on the left or right", "A rail of icons",
                              ("A rail of icons", "rail"), ("With titles", "wide"))),
-             "There's no bar on the left or right", ANY(*[IF(f"zenith.bar.{e}", v) for e in ("left", "right") for v in ("status", "tabs", "both")])),
-        when(script(dropdown("zenith.bar.buttons", "The window's buttons", "In the top bar",
-                             ("In the top bar", "window"), ("A power button with them, and restart and quit", "power"),
-                             ("Not in a bar", "nothing"))),
-             "The bar is off", BAR_ON),
+             "There's no bar on the left or right", ANY(IF("zenith.bar.left", "on"), IF("zenith.bar.right", "on"))),
         *[when(script(e), "The bar is off", BAR_ON) for e in (
             dropdown("zenith.bar.style", "The bar's look", "Islands (Hyprland and waybar)",
                      ("Islands (Hyprland and waybar)", "islands"), ("Strip (polybar)", "strip"),
@@ -422,28 +428,34 @@ MODS = {
                      ("Numbers", "numbers"), ("Names", "names"), ("Icons", "icons"), ("Dots", "dots"),
                      ("Kanji (一 二 三)", "kanji"), ("Roman numerals (I II III)", "roman")),
             dropdown("zenith.bar.title", "The tab you're on, in the bar", "Its title",
-                     ("Its title", "title"), ("The site, then the title", "site"), ("Nothing", "off")),
+                     ("Its title", "title"), ("The site, then the title", "site")),
             dropdown("zenith.bar.clock", "The bar's clock", "14:05",
-                     ("14:05", "hm"), ("Thu 22 Oct 14:05", "dhm"), ("2026-10-22 14:05", "iso"),
+                     ("14:05", "hm"), ("14:05 | 22.10", "hm-date"), ("Thu 22 Oct 14:05", "dhm"), ("2026-10-22 14:05", "iso"),
                      ("14:05:09 (wakes each second)", "hms"), ("2:05 PM", "12h"), ("No clock", "off")),
-            checkbox("zenith.bar.launcher", "A switcher button (Alt+W)", True),
-            checkbox("zenith.bar.media", "What's playing", True),
-            checkbox("zenith.bar.downloads", "Downloads under way", True),
-            checkbox("zenith.bar.timers", "Timers and pomodoros", True),
-            checkbox("zenith.bar.tray", "Extensions", True),
-            checkbox("zenith.bar.privacy", "Trackers blocked on the page", True),
-            checkbox("zenith.bar.appearance", "Pages dark or light (a button)", True),
-            checkbox("zenith.bar.weather", "Weather (wttr.in)", False),
+            dropdown("zenith.bar.media-look", "What's playing, in the bar", "Play button and title",
+                     ("Just a play button", "button"), ("Play button and title", "title"),
+                     ("Previous, play, next and title", "detailed")),
+            checkbox("zenith.bar.downloads-always", "Downloads always in the bar (not only while some are under way)", False),
             dropdown("zenith.bar.weather-place", "Weather for", "Near you (by your connection)",
                      ("Near you (by your connection)", "near"), ("Peek's last weather place", "peek")),
-            checkbox("zenith.bar.resources", "What the browser uses (memory)", False),
+            dropdown("zenith.bar.tab-look", "Tabs in the bar", "Icons, the current one with its title",
+                     ("Icons, the current one with its title", "current"), ("Icons only", "icons"),
+                     ("Icon and short title", "titles"),
+                     ("Icon and short title while they fit, then fewer titles", "fit"), ("Numbers (i3)", "numbers")),
+            dropdown("zenith.bar.tab-align", "Tabs in the bar sit", "At the start (left or top)",
+                     ("At the start (left or top)", "start"), ("In the middle", "centre"), ("At the end (right or bottom)", "end")),
+            dropdown("zenith.bar.tab-wheel", "The wheel over tabs in the bar", "Scrolls them",
+                     ("Scrolls them", "scroll"), ("Goes to the next or previous tab", "switch")),
         )],
-        when(script(dropdown("zenith.bar.tab-look", "Tabs in the bar", "Icons, the current one with its title",
-                             ("Icons, the current one with its title", "current"), ("Icons only", "icons"),
-                             ("Icon and short title", "titles"),
-                             ("Icon and short title while they fit, then fewer titles", "fit"), ("Numbers (i3)", "numbers"))),
-             "Tabs aren't in a bar", TABS_IN_BAR),
+        script(dropdown("zenith.dash.place", "Where the Dash opens", "At the top, in the middle",
+                        ("At the top, on the left", "top-left"), ("At the top, in the middle", "top-centre"),
+                        ("At the top, on the right", "top-right"), ("In the middle", "centre"),
+                        ("At the bottom, on the left", "bottom-left"), ("At the bottom, in the middle", "bottom-centre"),
+                        ("At the bottom, on the right", "bottom-right"))),
         script(checkbox("zenith.dash.weather", "The Dash's weather (wttr.in)", True)),
+        script(checkbox("zenith.dash.downloads", "Downloads in the Dash", False)),
+        script(dropdown("zenith.plus.appearance-auto", "Pages on automatic follow", "The browser (your palette, else Windows)",
+                        ("The browser (your palette, else Windows)", "browser"), ("Windows", "system"))),
         script(dropdown("zenith.palette", "Palette", "Your own colours",
                         ("Your own colours", "own"), ("From your wallpaper", "wallpaper"), ("From pywal or winwal", "pywal"),
                         ("From wallust", "wallust"), ("Catppuccin Mocha", "catppuccin-mocha"),
@@ -571,6 +583,8 @@ def page_schema():
                  if p not in ui.DESCRIPTIONS and not p.endswith(".preset") and p not in ui.ACTIONS]
     for preset, info in ui.PRESETS.items():
         for prop, by_preset in info["sets"].items():
+            if entries[prop][1].get("type") != "dropdown":
+                continue  # (a text setting, as a bar's modules: any text)
             options = {o["value"] for o in entries[prop][1].get("options", [])}
             problems += [f"{preset} sets {prop} to unknown {v!r}" for v in by_preset.values() if v not in options]
     if problems:
@@ -613,6 +627,8 @@ def page_schema():
                 out["zenithList"] = e["zenithList"]
             if e.get("zenithKeys"):
                 out["zenithKeys"] = True
+            if e.get("zenithModules"):
+                out["zenithModules"] = True
         if prop in ui.PARENTS:
             out["parent"] = ui.PARENTS[prop]
         if prop in ui.PICTURES:

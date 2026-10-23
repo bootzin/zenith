@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.15.1
+// @version        0.15.2
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -479,31 +479,36 @@ const RULES = {
       }
     ]
   },
+  "zenith.bar.top.modules": {
+    "why": "There's no bar at the top",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.bar.top",
+          "value": "on"
+        }
+      }
+    ]
+  },
   "zenith.bar.hide-top": {
     "why": "There's no bar at the top",
     "conditions": [
       {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
+        "if": {
+          "property": "zenith.bar.top",
+          "value": "on"
+        }
+      }
+    ]
+  },
+  "zenith.bar.bottom.modules": {
+    "why": "There's no bar at the bottom",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.bar.bottom",
+          "value": "on"
+        }
       }
     ]
   },
@@ -511,83 +516,54 @@ const RULES = {
     "why": "There's no bar at the bottom",
     "conditions": [
       {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
+        "if": {
+          "property": "zenith.bar.bottom",
+          "value": "on"
+        }
+      }
+    ]
+  },
+  "zenith.bar.left.modules": {
+    "why": "There's no bar on the left",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.bar.left",
+          "value": "on"
+        }
       }
     ]
   },
   "zenith.bar.hide-left": {
-    "why": "There's no bar at the left",
+    "why": "There's no bar on the left",
     "conditions": [
       {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
+        "if": {
+          "property": "zenith.bar.left",
+          "value": "on"
+        }
+      }
+    ]
+  },
+  "zenith.bar.right.modules": {
+    "why": "There's no bar on the right",
+    "conditions": [
+      {
+        "if": {
+          "property": "zenith.bar.right",
+          "value": "on"
+        }
       }
     ]
   },
   "zenith.bar.hide-right": {
-    "why": "There's no bar at the right",
+    "why": "There's no bar on the right",
     "conditions": [
       {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
+        "if": {
+          "property": "zenith.bar.right",
+          "value": "on"
+        }
       }
     ]
   },
@@ -599,119 +575,13 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
-      }
-    ]
-  },
-  "zenith.bar.buttons": {
-    "why": "The bar is off",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -727,73 +597,25 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -809,73 +631,25 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -891,73 +665,25 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -973,73 +699,25 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -1055,73 +733,25 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -1137,73 +767,25 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -1219,73 +801,25 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -1293,7 +827,7 @@ const RULES = {
       }
     ]
   },
-  "zenith.bar.launcher": {
+  "zenith.bar.media-look": {
     "why": "The bar is off",
     "conditions": [
       {
@@ -1301,73 +835,25 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -1375,7 +861,7 @@ const RULES = {
       }
     ]
   },
-  "zenith.bar.media": {
+  "zenith.bar.downloads-always": {
     "why": "The bar is off",
     "conditions": [
       {
@@ -1383,565 +869,25 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
-      }
-    ]
-  },
-  "zenith.bar.downloads": {
-    "why": "The bar is off",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
-      }
-    ]
-  },
-  "zenith.bar.timers": {
-    "why": "The bar is off",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
-      }
-    ]
-  },
-  "zenith.bar.tray": {
-    "why": "The bar is off",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
-      }
-    ]
-  },
-  "zenith.bar.privacy": {
-    "why": "The bar is off",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
-      }
-    ]
-  },
-  "zenith.bar.appearance": {
-    "why": "The bar is off",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
-      }
-    ]
-  },
-  "zenith.bar.weather": {
-    "why": "The bar is off",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -1957,155 +903,25 @@ const RULES = {
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
-            }
-          }
-        ],
-        "operator": "OR"
-      }
-    ]
-  },
-  "zenith.bar.resources": {
-    "why": "The bar is off",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "status"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],
@@ -2114,56 +930,100 @@ const RULES = {
     ]
   },
   "zenith.bar.tab-look": {
-    "why": "Tabs aren't in a bar",
+    "why": "The bar is off",
     "conditions": [
       {
         "conditions": [
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "tabs"
+              "value": "on"
             }
           },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.tab-align": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
           {
             "if": {
               "property": "zenith.bar.top",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "tabs"
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.tab-wheel": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.bottom",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.left",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "both"
+              "value": "on"
             }
           },
           {
             "if": {
               "property": "zenith.bar.right",
-              "value": "tabs"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "both"
+              "value": "on"
             }
           }
         ],

@@ -129,9 +129,9 @@ function soon(fn) {
 const GLYPHS = {
   nerd: { power: "\uf011", tabs: "\uf2d2", launcher: "\uf00a", play: "\uf04b", pause: "\uf04c", download: "\uf019", done: "\uf00c", timer: "\uf252", tray: "\uf12e", clock: "\uf017",
           sun: "\uf185", partly: "\uf6c4", cloud: "\uf0c2", fog: "\uf75f", rain: "\uf73d", snow: "\uf2dc", storm: "\uf0e7",
-          moon: "\uf186", shield: "\uf132", memory: "\uf2db" },
+          moon: "\uf186", shield: "\uf132", memory: "\uf2db", prev: "\uf048", next: "\uf051" },
   text: { power: "⏻", tabs: "▤", launcher: "≡", play: "▶", pause: "⏸", download: "↓", done: "✓", timer: "⧗", tray: "+", clock: "",
-          sun: "☀", partly: "⛅", cloud: "☁", fog: "≋", rain: "☂", snow: "❄", storm: "ϟ", moon: "☾", shield: "⛨", memory: "▦" },
+          sun: "☀", partly: "⛅", cloud: "☁", fog: "≋", rain: "☂", snow: "❄", storm: "ϟ", moon: "☾", shield: "⛨", memory: "▦", prev: "⏮", next: "⏭" },
 };
 
 function icon(name) {
@@ -149,11 +149,12 @@ function setIcon(span, name) {
 // A module whose text ticks keeps the width it has (measured once, as its
 // format changes, not each tick), so a tick lays out that module only.
 function fixWidth(m) {
-  m.style.width = "";
+  m.style.width = m.style.height = "";
   m.style.contain = "";
-  const w = m.getBoundingClientRect().width;
-  if (!w) return;
-  m.style.width = `${Math.ceil(w)}px`;
+  const r = m.getBoundingClientRect();
+  if (!r.width) return;
+  m.style.width = `${Math.ceil(r.width)}px`;
+  if (m.closest(".zenith-bar[vertical]")) m.style.height = `${Math.ceil(r.height)}px`;
   m.style.contain = "strict";
   m.setAttribute("fixed", "true");
 }
@@ -245,7 +246,7 @@ function modeSlot(box) {
   const m = mod("mode");
   m.hidden = true;
   box.append(m);
-  Bar.modeNode = m;
+  Bar.modeNodes.push(m);
 }
 
 // The tab you're on: its title, or the site and its title.
@@ -346,10 +347,19 @@ function tasks(box) {
     const t = e.button === 1 && e.target.closest(".zb-task")?.zbTab;
     if (t?.isConnected) gBrowser.removeTab(t, { animate: true });
   });
+  // The wheel scrolls the strip, as a browser's tab strip does (or, Bar ›
+  // The wheel over tabs, goes to the next or previous tab).
   m.addEventListener("wheel", e => {
-    if (Math.abs(e.deltaY) < 1) return;
-    gBrowser.tabContainer.advanceSelectedTab(e.deltaY > 0 ? 1 : -1, true);
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (Math.abs(d) < 1) return;
+    if (pref("zenith.bar.tab-wheel", "scroll") === "switch") return gBrowser.tabContainer.advanceSelectedTab(d > 0 ? 1 : -1, true);
+    const px = d * (e.deltaMode === 1 ? 24 : e.deltaMode === 2 ? 200 : 1);
+    if (vertical) m.scrollTop += px;
+    else m.scrollLeft += px;
   }, { passive: true });
+  const align = () => m.setAttribute("align", pref("zenith.bar.tab-align", "start"));
+  align();
+  Undo.pref("zenith.bar.tab-align", align);
   const ro = new ResizeObserver(entries => {
     room = entries.at(-1).contentRect.width;
     if (pref("zenith.bar.tab-look", "current") === "fit") draw();
@@ -372,11 +382,20 @@ function tasks(box) {
 function media(box) {
   const m = mod("media");
   const btn = node("button", { type: "button", class: "zb-media-play", title: "Play or pause" });
+  const prev = node("button", { type: "button", class: "zb-media-skip", title: "Previous" });
+  const next = node("button", { type: "button", class: "zb-media-skip", title: "Next" });
   const ic = icon("play"), text = node("span", { class: "zb-media-text" });
   btn.append(ic);
-  m.append(btn, text);
+  prev.append(icon("prev"));
+  next.append(icon("next"));
+  m.append(prev, btn, next, text);
   m.hidden = true;
   box.append(m);
+  const look = () => m.setAttribute("look", pref("zenith.bar.media-look", "title"));
+  look();
+  Undo.pref("zenith.bar.media-look", look);
+  prev.addEventListener("click", () => ctrl?.prevTrack());
+  next.addEventListener("click", () => ctrl?.nextTrack());
   let tab = null, ctrl = null;
   const watch = c => {
     if (ctrl === c) return;
@@ -399,6 +418,7 @@ function media(box) {
     } catch {}
     put(text, [meta?.title || tab.label, meta?.artist].filter(Boolean).join(" · "));
     text.title = text.textContent;
+    btn.title = `${ctrl.isPlaying ? "Pause" : "Play"}: ${text.textContent}`;
     setIcon(ic, ctrl.isPlaying ? "pause" : "play");
     m.toggleAttribute("playing", !!ctrl.isPlaying);
   });
@@ -435,7 +455,8 @@ function downloads(box) {
   const m = mod("downloads", "button");
   const ic = icon("download"), text = node("span");
   m.append(ic, text);
-  m.hidden = true;
+  const always = () => bool("zenith.bar.downloads-always", false);
+  m.hidden = !always();
   m.title = "Downloads";
   box.append(m);
   m.addEventListener("click", () => Popup.open(m, downloadsCard, { kind: "downloads" }));
@@ -456,10 +477,12 @@ function downloads(box) {
       setIcon(ic, "done");
       doneTimer = setTimeout(() => {
         doneTimer = null;
-        m.hidden = true;
+        setIcon(ic, "download");
+        m.hidden = !always();
       }, 4000);
-    }
+    } else if (!doneTimer) m.hidden = !always();
   });
+  Undo.pref("zenith.bar.downloads-always", draw);
   const view = {
     onDownloadAdded: d => {
       all.add(d);
@@ -548,8 +571,8 @@ function tray(box) {
 // The clock, in your format; a click shows the date instead, and back.
 function clock(box) {
   const m = mod("clock", "button");
-  const text = node("span");
-  m.append(text);
+  const text = node("span"), day = node("span", { class: "zb-clock-date" });
+  m.append(text, day);
   box.append(m);
   let alt = false, stop = null;
   const FORMATS = {
@@ -562,14 +585,17 @@ function clock(box) {
   const DATE = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   let fmt = null, look = "";
   const draw = () => {
-    const now = new Date();
+    const now = new Date(), p = n => `${n}`.padStart(2, "0");
     const rail = !!m.closest('.zenith-bar[vertical][width="rail"]');
-    if (alt) put(text, DATE.format(now));
-    else if (rail) put(text, fmt.format(now).replace(/[:.]\s*|\s+/, "\n"));
-    else if (look === "iso") {
-      const p = n => `${n}`.padStart(2, "0");
-      put(text, `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}`);
-    } else put(text, fmt.format(now));
+    const hm = `${p(now.getHours())}:${p(now.getMinutes())}`, dm = `${p(now.getDate())}.${p(now.getMonth() + 1)}`;
+    put(day, "");
+    if (rail) {
+      put(text, look === "12h" ? fmt.format(now).replace(/\s+/, "\n") : `${p(now.getHours())}\n${p(now.getMinutes())}`);
+      if (alt || ["dhm", "iso", "hm-date"].includes(look)) put(day, dm);
+    } else if (alt) put(text, DATE.format(now));
+    else if (look === "iso") put(text, `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())} ${hm}`);
+    else if (look === "hm-date") put(text, `${hm} | ${dm}`);
+    else put(text, fmt.format(now));
     m.title = DATE.format(now);
   };
   const setup = () => {
@@ -683,7 +709,7 @@ function appearance(box) {
     const dark = A.isDark(), forced = A.forced();
     setIcon(ic, dark ? "moon" : "sun");
     m.toggleAttribute("forced", !!forced);
-    m.title = `Pages: ${forced ?? "automatic"} (${dark ? "dark" : "light"}) · click: ${forced ? "automatic" : dark ? "light" : "dark"} · right-click: this space's`;
+    m.title = `${A.describe()} · click: ${forced ? "automatic" : dark ? "light" : "dark"} · right-click: more`;
   };
   m.addEventListener("click", () => {
     A.toggle();
@@ -693,7 +719,7 @@ function appearance(box) {
     e.preventDefault();
     Popup.open(m, appearanceCard, { kind: "appearance" });
   });
-  Undo.pref(A.PREF, draw);
+  for (const p of [A.PREF, A.AUTO, "zen.view.window.scheme"]) Undo.pref(p, draw);
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
   Undo.on(mq, "change", draw);
   draw();
@@ -736,6 +762,12 @@ function buttons(box) {
 /* --- The bar itself ------------------------------------------------------------ */
 const EDGES = ["top", "bottom", "left", "right"];
 
+// Every module, by the name a bar's list uses (BarLoader.MODULES labels them).
+const MODULES = {
+  launcher, spaces, mode: modeSlot, title, tabs: tasks, media, downloads, timers, trackers: privacy,
+  weather, memory: resources, appearance, extensions: tray, clock, buttons, power,
+};
+
 const Bar = {
   // A bar on an edge: its id (the top one is "zenith-bar"), whether it
   // stands up (left, right) and whether it hides until the pointer comes.
@@ -745,12 +777,33 @@ const Bar = {
       bar.setAttribute("vertical", "true");
       bar.setAttribute("width", pref("zenith.bar.side-width", "rail"));
     }
-    if (bool(`zenith.bar.hide-${edge}`, false)) bar.setAttribute("collapsible", "true");
+    if (bool(`zenith.bar.hide-${edge}`, false)) {
+      bar.setAttribute("collapsible", "true");
+      // (Reached: the sidebar on hover may answer beside it; see chrome.css.)
+      bar.addEventListener("mouseenter", () => this.reached(edge, true));
+      bar.addEventListener("mouseleave", () => this.reached(edge, false));
+    }
     const left = node("div", { class: "zb-left" }), centre = node("div", { class: "zb-centre" }), right = node("div", { class: "zb-right" });
     bar.append(left, centre, right);
     for (const [side, fn] of parts) fn({ left, centre, right }[side]);
     if (parts.some(([, fn]) => fn === tasks)) bar.setAttribute("tasks", "true");
     return bar;
+  },
+
+  // A hiding bar the pointer reached: kept as reached until it has slid
+  // away again (0.4 s, as chrome.css).
+  reached(edge, now) {
+    const root = document.documentElement, list = () => new Set((root.getAttribute("zenith-reached") ?? "").split(" ").filter(Boolean));
+    clearTimeout(this.leaving?.[edge]);
+    const set = on => {
+      const l = list();
+      if (on) l.add(edge);
+      else l.delete(edge);
+      if (l.size) root.setAttribute("zenith-reached", [...l].join(" "));
+      else root.removeAttribute("zenith-reached");
+    };
+    if (now) return set(true);
+    (this.leaving ??= {})[edge] = setTimeout(() => set(false), 450);
   },
 
   look() {
@@ -759,9 +812,15 @@ const Bar = {
       bar.setAttribute("size", pref("zenith.bar.size", "30"));
       bar.setAttribute("font", pref("zenith.bar.font", "mono"));
     }
-    // (Another look, size or font: the fixed-width modules measured again.)
+    // (Another look, size or font: the fixed-width modules measured again;
+    // a side bar's width, for the sidebar beside it.)
     requestAnimationFrame(() => {
       for (const bar of this.bars) for (const m of bar.querySelectorAll(".zb-mod[fixed]")) fixWidth(m);
+      for (const edge of ["left", "right"]) {
+        const bar = this.bars.find(b => b.getAttribute("edge") === edge);
+        if (bar) document.documentElement.style.setProperty(`--zth-bar-${edge}`, `${bar.offsetWidth}px`);
+        else document.documentElement.style.removeProperty(`--zth-bar-${edge}`);
+      }
     });
   },
 
@@ -772,30 +831,24 @@ const Bar = {
     this.api = api;
     this.gone = false;
     Tick.init();
-    const on = name => bool(`zenith.bar.${name}`, true);
-    const status = () => [
-      on("launcher") && ["left", launcher], ["left", spaces], ["left", modeSlot],
-      on("media") && ["right", media], on("downloads") && ["right", downloads], on("timers") && ["right", timers],
-      on("privacy") && ["right", privacy], bool("zenith.bar.weather", false) && ["right", weather],
-      bool("zenith.bar.resources", false) && ["right", resources], on("appearance") && ["right", appearance],
-      on("tray") && ["right", tray], ["right", clock],
-    ].filter(Boolean);
     const app = document.getElementById("zen-main-app-wrapper"), browser = document.getElementById("browser");
-    const want = Object.fromEntries(EDGES.map(e => [e, pref(`zenith.bar.${e}`, "off")]));
-    // The window's own buttons go at the top's end; the power button in the
-    // first bar with a status (top, right, left, bottom).
-    const buttonsAs = pref("zenith.bar.buttons", "window");
-    const powerAt = buttonsAs === "power" ? ["top", "right", "left", "bottom"].find(e => want[e] === "status" || want[e] === "both") : null;
     this.bars = [];
+    this.modeNodes = [];
+    // (The window's own buttons are one element: in the first bar that asks.)
+    let withButtons = false;
     for (const edge of EDGES) {
-      const what = want[edge];
-      if (!["status", "tabs", "both"].includes(what)) continue;
-      const vertical = edge === "left" || edge === "right", parts = [];
-      if (what !== "tabs") parts.push(...status());
-      if (what !== "status") parts.push(["centre", tasks]);
-      else if (!vertical && pref("zenith.bar.title", "title") !== "off") parts.push(["centre", title]);
-      if (edge === "top" && buttonsAs === "window") parts.push(["right", buttons]);
-      if (edge === powerAt) parts.push(["right", power]);
+      if (!api.on(edge)) continue;
+      const lists = api.lists(edge), parts = [];
+      for (const side of ["left", "centre", "right"]) {
+        for (const name of lists[side]) {
+          if (name === "buttons") {
+            if (withButtons) continue;
+            withButtons = true;
+          }
+          if (MODULES[name]) parts.push([side, MODULES[name]]);
+        }
+      }
+      if (!parts.length) continue;
       const bar = this.build(edge, parts);
       if (edge === "top") app.prepend(bar);
       else if (edge === "bottom") app.append(bar);
@@ -804,15 +857,22 @@ const Bar = {
       this.bars.push(bar);
     }
     document.documentElement.setAttribute("zenith-bar", this.bars.map(b => b.getAttribute("edge")).join(" "));
+    // (Zen's own window buttons elsewhere are hidden while a bar is on: in a
+    // bar, or nowhere.)
+    document.documentElement.setAttribute("zenith-bar-buttons", withButtons ? "bar" : "none");
+    const hides = this.bars.filter(b => b.hasAttribute("collapsible")).map(b => b.getAttribute("edge"));
+    if (hides.length) document.documentElement.setAttribute("zenith-bar-hides", hides.join(" "));
     this.look();
     for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width"]) Undo.pref(p, () => this.look());
     (window.zenithStartup ??= []).push({ script: "bar", name: "bar", at: Math.round(t0), ms: +(performance.now() - t0).toFixed(1) });
   },
 
   mode(text) {
-    if (!this.modeNode) return false;
-    put(this.modeNode, text ?? "");
-    this.modeNode.hidden = !text;
+    if (!this.modeNodes?.length) return false;
+    for (const m of this.modeNodes) {
+      put(m, text ?? "");
+      m.hidden = !text;
+    }
     return true;
   },
 
@@ -823,8 +883,12 @@ const Bar = {
     Undo.run();
     for (const bar of this.bars ?? []) bar.remove();
     this.bars = [];
-    this.modeNode = null;
+    this.modeNodes = [];
     document.documentElement.removeAttribute("zenith-bar");
+    document.documentElement.removeAttribute("zenith-bar-buttons");
+    for (const a of ["zenith-bar-hides", "zenith-reached"]) document.documentElement.removeAttribute(a);
+    for (const t of Object.values(this.leaving ?? {})) clearTimeout(t);
+    for (const e of ["left", "right"]) document.documentElement.style.removeProperty(`--zth-bar-${e}`);
   },
 };
 

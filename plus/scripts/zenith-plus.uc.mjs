@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.15.1
+// @version        0.15.2
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -6159,7 +6159,12 @@ const InkContrast = {
    one you left had set it. The bar's button (right-click: this space's),
    the Dash, and :appearance in the switcher. */
 const SiteAppearance = {
-  PREF: "layout.css.prefers-color-scheme.content-override", // 0 dark, 1 light, 2 Firefox's automatic
+  // Firefox's Website appearance: 0 dark, 1 light, 2 (its own default) as
+  // the browser is (Zen's window scheme: a palette's, else the system's),
+  // 3 as the system is.
+  PREF: "layout.css.prefers-color-scheme.content-override",
+  AUTO: "zenith.plus.appearance-auto", // what automatic follows: "browser" (as it comes) or "system"
+  GLOBAL: "zenith.internal.appearance.global", // your choice where a space has none of its own: "dark", "light" or none
   SPACES: "zenith.internal.appearance.spaces", // { space: "dark" | "light" }
 
   forced() {
@@ -6167,21 +6172,76 @@ const SiteAppearance = {
     return { 0: "dark", 1: "light" }[Services.prefs.getIntPref(this.PREF, 2)] ?? null;
   },
 
-  // What pages look like now.
+  follows() {
+    return Services.prefs.getStringPref(this.AUTO, "") === "system" ? "system" : "browser";
+  },
+
+  // Windows' own light or dark (Settings › Personalisation › Colours).
+  systemDark() {
+    if (Services.appinfo.OS === "WINNT") {
+      try {
+        const key = Cc["@mozilla.org/windows-registry-key;1"].createInstance(Ci.nsIWindowsRegKey);
+        key.open(key.ROOT_KEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", key.ACCESS_READ);
+        try {
+          return key.readIntValue("AppsUseLightTheme") === 0;
+        } finally {
+          key.close();
+        }
+      } catch {}
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  },
+
+  // Dark on automatic? (The window's own media query answers for the
+  // browser's frame, not its pages, so it's worked out here.)
+  autoDark() {
+    if (this.follows() === "browser") {
+      const zen = Services.prefs.getIntPref("zen.view.window.scheme", 2);
+      if (zen === 0) return true;
+      if (zen === 1) return false;
+    }
+    return this.systemDark();
+  },
+
   isDark() {
     const f = this.forced();
-    return f ? f === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return f ? f === "dark" : this.autoDark();
   },
 
+  // For tooltips: what pages are now, and why.
+  describe() {
+    const f = this.forced(), here = this.space() !== "auto" ? " (this space's own)" : "";
+    if (f) return `Pages: ${f}${here}`;
+    const by = this.follows() === "system" ? (Services.appinfo.OS === "WINNT" ? "Windows" : "the system") : "the browser";
+    return `Pages: automatic, ${this.autoDark() ? "dark" : "light"} as ${by}`;
+  },
+
+  write(mode) {
+    const P = Services.prefs;
+    if (mode === "dark") P.setIntPref(this.PREF, 0);
+    else if (mode === "light") P.setIntPref(this.PREF, 1);
+    else if (this.follows() === "system") P.setIntPref(this.PREF, 3);
+    else P.clearUserPref(this.PREF);
+  },
+
+  global() {
+    return Services.prefs.getStringPref(this.GLOBAL, "") || "auto";
+  },
+
+  // Your choice, wherever a space has none of its own.
   set(mode) {
-    if (mode === "dark") Services.prefs.setIntPref(this.PREF, 0);
-    else if (mode === "light") Services.prefs.setIntPref(this.PREF, 1);
-    else Services.prefs.clearUserPref(this.PREF);
+    if (mode === "dark" || mode === "light") Services.prefs.setStringPref(this.GLOBAL, mode);
+    else Services.prefs.clearUserPref(this.GLOBAL);
+    if (this.space() === "auto") this.write(mode);
   },
 
+  // A click: the opposite of what pages show now, again automatic; in a
+  // space with its own, that space's.
   toggle() {
-    this.set(this.forced() ? "auto" : this.isDark() ? "light" : "dark");
-    hint(this.forced() ? `Pages: ${this.forced()}` : "Pages: automatic");
+    const next = this.forced() ? "auto" : this.isDark() ? "light" : "dark";
+    if (this.space() !== "auto") this.setSpace(next);
+    else this.set(next);
+    hint(this.describe());
   },
 
   spaces() {
@@ -6204,21 +6264,28 @@ const SiteAppearance = {
     else delete all[uuid];
     if (Object.keys(all).length) Services.prefs.setStringPref(this.SPACES, JSON.stringify(all));
     else Services.prefs.clearUserPref(this.SPACES);
-    if (uuid === window.gZenWorkspaces?.activeWorkspace) this.set(mode);
+    if (uuid === window.gZenWorkspaces?.activeWorkspace) this.write(mode === "dark" || mode === "light" ? mode : this.global());
   },
 
   init() {
-    const W = window.gZenWorkspaces;
+    const W = window.gZenWorkspaces, P = Services.prefs;
     window.ZenithAppearance = this; // the bar, the Dash, the switcher, tools/checks
+    // (0.15: dark or light set before there was a choice of your own.)
+    if (!P.prefHasUserValue(this.GLOBAL) && this.forced() && this.space() === "auto") P.setStringPref(this.GLOBAL, this.forced());
+    // Automatic now follows the other one: pages on automatic too.
+    const follows = () => !this.forced() && this.write("auto");
+    P.addObserver(this.AUTO, follows);
+    onUnload(() => P.removeObserver(this.AUTO, follows));
+    if (!this.forced()) this.write("auto");
     if (!W?.addChangeListeners) return;
     this.here = W.activeWorkspace;
+    // Another space: its own, else your choice.
     this.onChange = () => {
       const id = W.activeWorkspace;
       if (!id || id === this.here) return;
-      const left = this.space(this.here), own = this.space(id);
       this.here = id;
-      if (own !== "auto") this.set(own);
-      else if (left !== "auto") this.set("auto");
+      const own = this.space(id);
+      this.write(own !== "auto" ? own : this.global());
     };
     W.addChangeListeners(this.onChange);
     onUnload(() => W.removeChangeListeners?.(this.onChange));
@@ -6229,9 +6296,7 @@ const SiteAppearance = {
    Alt+N, or the bar's clock: imported the first time it opens. */
 const DashLoader = {
   async toggle(anchor = null) {
-    // (From the bar's clock when there's one, however it was asked for, so
-    // it's always in the same place.)
-    anchor ??= document.querySelector('.zenith-bar [mod="clock"]:not([hidden])');
+    // (It opens where Bar › Where the Dash opens says, whatever asked.)
     try {
       this.mod ??= await import(await BarLoader.page("dash.mjs"));
       this.mod.toggle({ anchor, Bridge });
@@ -6252,6 +6317,18 @@ const SidebarMode = {
   KEPT: "zenith.internal.bar.compact-before",
 
   init() {
+    // Zen opens the sidebar on hover (or its toolbar) when the pointer
+    // leaves the window within 10px of an edge. An edge with a bar of
+    // Zenith's is the bar's: the sidebar answers at the bar's inner edge.
+    const C = window.gZenCompactModeManager, crossed = C?._getCrossedEdge;
+    if (crossed) {
+      C._getCrossedEdge = function (x, y, element, ...rest) {
+        const edge = crossed.call(this, x, y, element, ...rest);
+        if (element && element !== root) return edge;
+        return edge && (root.getAttribute("zenith-bar") ?? "").split(" ").includes(edge) ? undefined : edge;
+      };
+      onUnload(() => (C._getCrossedEdge = crossed));
+    }
     const apply = () => this.apply();
     Services.prefs.addObserver(this.PREF, apply);
     onUnload(() => Services.prefs.removeObserver(this.PREF, apply));
@@ -6283,25 +6360,81 @@ const SidebarMode = {
    changes in place. Not in a floating tab's window. */
 const BarLoader = {
   EDGES: ["top", "bottom", "left", "right"],
-  REBUILD: ["zenith.bar.top", "zenith.bar.bottom", "zenith.bar.left", "zenith.bar.right", "zenith.bar.hide-top",
-            "zenith.bar.hide-bottom", "zenith.bar.hide-left", "zenith.bar.hide-right", "zenith.bar.buttons", "zenith.bar.side-width",
-            "zenith.bar.title", "zenith.bar.launcher", "zenith.bar.media",
-            "zenith.bar.downloads", "zenith.bar.timers", "zenith.bar.tray", "zenith.bar.icons", "zenith.bar.weather",
-            "zenith.bar.resources", "zenith.bar.privacy", "zenith.bar.appearance"],
+  // What a bar can show, by the name its list uses, and how the settings
+  // page's editor names it.
+  MODULES: [
+    ["launcher", "Switcher button"], ["spaces", "Spaces"], ["mode", "The Shell's mode (resize, passthrough)"],
+    ["title", "The tab you're on"], ["tabs", "This space's tabs"], ["media", "What's playing"], ["downloads", "Downloads"],
+    ["timers", "Timers"], ["trackers", "Trackers blocked"], ["weather", "Weather"], ["memory", "Memory the browser uses"],
+    ["appearance", "Pages dark or light"], ["extensions", "Extensions"], ["clock", "Clock"],
+    ["buttons", "The window's buttons"], ["power", "Power menu"],
+  ],
+  // Each edge's list until you make your own: start | middle | end (top |
+  // middle | bottom on the left and right), as waybar's modules-left,
+  // modules-center and modules-right.
+  DEFAULTS: {
+    top: "launcher,spaces,mode|title|media,downloads,timers,trackers,appearance,extensions,clock,buttons",
+    bottom: "spaces,mode|tabs|downloads,timers,clock",
+    left: "launcher,spaces,mode|tabs|downloads,appearance,clock,power",
+    right: "launcher,spaces,mode|tabs|downloads,appearance,clock,power",
+  },
+  get REBUILD() {
+    return [...this.EDGES.flatMap(e => [`zenith.bar.${e}`, `zenith.bar.${e}.modules`, `zenith.bar.hide-${e}`]),
+            "zenith.bar.side-width", "zenith.bar.icons"];
+  },
 
-  // 0.15's "The bar" (where) and "Where tabs are" become the edges' bars
-  // and the sidebar's setting, as they amounted to.
+  on(edge) {
+    return !["", "off"].includes(Services.prefs.getStringPref(`zenith.bar.${edge}`, ""));
+  },
+
+  // An edge's modules: { left, centre, right }, names only Zenith knows.
+  lists(edge) {
+    const known = new Set(this.MODULES.map(m => m[0]));
+    const list = Services.prefs.getStringPref(`zenith.bar.${edge}.modules`, "") || this.DEFAULTS[edge];
+    const [l = "", c = "", r = ""] = list.split("|");
+    const names = part => part.split(",").map(x => x.trim()).filter(x => known.has(x));
+    return { left: names(l), centre: names(c), right: names(r) };
+  },
+
   migrate() {
     const P = Services.prefs, OLD = "zenith.bar.position", TABS = "zenith.bar.tabs";
-    if (!P.prefHasUserValue(OLD) && !P.prefHasUserValue(TABS)) return;
-    const pos = P.getStringPref(OLD, ""), tabs = P.getStringPref(TABS, "") || "sidebar";
-    if (pos === "both") {
-      P.setStringPref("zenith.bar.top", "status");
-      P.setStringPref("zenith.bar.bottom", "tabs");
-    } else if (pos === "top" || pos === "bottom") P.setStringPref(`zenith.bar.${pos}`, tabs === "bar" ? "both" : "status");
-    if (tabs !== "sidebar") P.setStringPref("zenith.sidebar", tabs === "bar" ? "hidden" : "hover");
-    P.clearUserPref(OLD);
-    P.clearUserPref(TABS);
+    // 0.15.0's "The bar" (where) and "Where tabs are": the edges' bars and
+    // the sidebar's setting, as they amounted to.
+    if (P.prefHasUserValue(OLD) || P.prefHasUserValue(TABS)) {
+      const pos = P.getStringPref(OLD, ""), tabs = P.getStringPref(TABS, "") || "sidebar";
+      if (pos === "both") {
+        P.setStringPref("zenith.bar.top", "status");
+        P.setStringPref("zenith.bar.bottom", "tabs");
+      } else if (pos === "top" || pos === "bottom") P.setStringPref(`zenith.bar.${pos}`, tabs === "bar" ? "both" : "status");
+      if (tabs !== "sidebar") P.setStringPref("zenith.sidebar", tabs === "bar" ? "hidden" : "hover");
+      P.clearUserPref(OLD);
+      P.clearUserPref(TABS);
+    }
+    // 0.15.1's Status, Tabs or Both on each edge, with the modules switched
+    // on or off for every bar and the window's buttons: each bar's own list.
+    const TOGGLES = { launcher: ["launcher", true], media: ["media", true], downloads: ["downloads", true], timers: ["timers", true],
+                      privacy: ["trackers", true], weather: ["weather", false], resources: ["memory", false],
+                      appearance: ["appearance", true], tray: ["extensions", true] };
+    const old = this.EDGES.filter(e => ["status", "tabs", "both"].includes(P.getStringPref(`zenith.bar.${e}`, "")));
+    const had = n => (P.prefHasUserValue(`zenith.bar.${n}`) ? P.getBoolPref(`zenith.bar.${n}`, TOGGLES[n][1]) : TOGGLES[n][1]);
+    if (old.length) {
+      const what = Object.fromEntries(old.map(e => [e, P.getStringPref(`zenith.bar.${e}`, "")]));
+      const buttonsAs = P.getStringPref("zenith.bar.buttons", "") || "window";
+      const powerAt = buttonsAs === "power" ? ["top", "right", "left", "bottom"].find(e => what[e] === "status" || what[e] === "both") : null;
+      for (const edge of old) {
+        const vertical = edge === "left" || edge === "right", status = what[edge] !== "tabs";
+        const left = status ? [had("launcher") && "launcher", "spaces", "mode"] : [];
+        const right = status ? ["media", "downloads", "timers", "privacy", "weather", "resources", "appearance", "tray"]
+          .filter(had).map(n => TOGGLES[n][0]).concat("clock") : [];
+        const centre = what[edge] !== "status" ? ["tabs"] : !vertical && P.getStringPref("zenith.bar.title", "") !== "off" ? ["title"] : [];
+        if (edge === "top" && buttonsAs === "window") right.push("buttons");
+        if (edge === powerAt) right.push("power");
+        P.setStringPref(`zenith.bar.${edge}.modules`, [left.filter(Boolean), centre, right].map(x => x.join(",")).join("|"));
+        P.setStringPref(`zenith.bar.${edge}`, "on");
+      }
+    }
+    for (const n of [...Object.keys(TOGGLES), "buttons"]) P.clearUserPref(`zenith.bar.${n}`);
+    if (P.getStringPref("zenith.bar.title", "") === "off") P.clearUserPref("zenith.bar.title");
   },
 
   init() {
@@ -6312,7 +6445,7 @@ const BarLoader = {
       for (const p of this.REBUILD) Services.prefs.removeObserver(p, apply);
       this.bar?.stop();
     });
-    window.ZenithBar = this; // for tools/checks
+    window.ZenithBar = this; // the settings page's editor, tools/checks
     this.apply();
   },
 
@@ -6330,12 +6463,12 @@ const BarLoader = {
   },
 
   apply() {
-    const on = this.EDGES.some(e => ["status", "tabs", "both"].includes(Services.prefs.getStringPref(`zenith.bar.${e}`, "")));
+    const on = this.EDGES.some(e => this.on(e));
     this.ready = (this.ready ?? Promise.resolve()).then(async () => {
       this.bar?.stop();
       this.bar = null;
       if (!on || window.zenithFloatFrom || root.hasAttribute("popup-window")) return;
-      this.bar = (await import(await this.url())).start({ Bridge });
+      this.bar = (await import(await this.url())).start({ Bridge, on: e => this.on(e), lists: e => this.lists(e) });
       ShellModes.pill();
     }).catch(e => console.error("[Zenith] bar", e));
     return this.ready;

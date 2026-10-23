@@ -49,14 +49,18 @@ export function bytes(n) {
    again. The popup's builder returns what to undo as it goes. */
 export const Popup = {
   // (No anchor, as Alt+N with the bar off: at the top, in the middle.)
-  open(anchor, build, { kind = "", wide = false } = {}) {
-    const again = !!this.node && this.anchor === anchor && this.kind === kind;
+  // at: "top-centre", "centre", "bottom-right"…: there in the page area,
+  // whatever opened it; a click on anything matching `keep` (what opens it)
+  // is left to that to close it.
+  open(anchor, build, { kind = "", wide = false, at = "", keep = "" } = {}) {
+    const again = !!this.node && this.kind === kind && (this.anchor === anchor || !!at);
     this.close();
     if (again) return;
     const pop = (this.node = node("div", { class: "zs-pop", kind, role: "dialog" }));
     if (wide) pop.setAttribute("wide", "true");
     this.anchor = anchor;
     this.kind = kind;
+    this.at = at;
     this.bar = anchor?.closest?.(".zenith-bar") ?? null;
     this.bar?.setAttribute("holding", "true");
     (document.getElementById("zen-main-app-wrapper") ?? document.body).append(pop);
@@ -69,7 +73,7 @@ export const Popup = {
         e.stopPropagation();
         return this.close();
       }
-      if (!pop.contains(e.target) && !anchor?.contains(e.target)) this.close();
+      if (!pop.contains(e.target) && !anchor?.contains(e.target) && !(keep && e.target.closest?.(keep))) this.close();
     };
     window.addEventListener("mousedown", this.away, true);
     window.addEventListener("keydown", this.away, true);
@@ -83,6 +87,17 @@ export const Popup = {
     const pop = this.node;
     if (!pop) return;
     const W = window.innerWidth, H = window.innerHeight, w = pop.offsetWidth, h = pop.offsetHeight;
+    if (this.at) {
+      // (The page area: beside the sidebar and the bars, 8px in.)
+      const r = document.getElementById("tabbrowser-tabbox")?.getBoundingClientRect() ?? { left: 0, top: 0, right: W, bottom: H, width: W, height: H };
+      const [v, hz = "centre"] = this.at === "centre" ? ["centre", "centre"] : this.at.split("-");
+      const x = hz === "left" ? r.left + 8 : hz === "right" ? r.right - w - 8 : r.left + (r.width - w) / 2;
+      const y = v === "top" ? r.top + 8 : v === "bottom" ? r.bottom - h - 8 : r.top + (r.height - h) / 2;
+      pop.style.left = `${Math.round(Math.max(8, Math.min(x, W - w - 8)))}px`;
+      pop.style.top = `${Math.round(Math.max(8, Math.min(y, H - h - 8)))}px`;
+      pop.setAttribute("from", v === "bottom" ? "below" : "above");
+      return;
+    }
     let a = this.anchor?.getBoundingClientRect() ?? { left: (W - w) / 2, right: (W + w) / 2, width: w, top: 0, bottom: 42, height: 42 };
     const edge = this.bar?.getAttribute("edge");
     if (this.bar?.hasAttribute("collapsible")) {
@@ -116,6 +131,7 @@ export const Popup = {
     this.node.remove();
     this.bar?.removeAttribute("holding");
     this.node = this.anchor = this.undo = this.kind = this.bar = null;
+    this.at = "";
   },
 };
 
@@ -288,7 +304,7 @@ export function timersCard(box) {
 }
 
 /* --- Downloads: the latest, the ones under way first ---------------------------------- */
-export function downloadsCard(box) {
+export function downloadsCard(box, { most = 8 } = {}) {
   const list = node("div", { class: "zs-list" });
   const all = button("All downloads", "zs-btn zs-link");
   all.addEventListener("click", () => {
@@ -301,7 +317,7 @@ export function downloadsCard(box) {
   let queued = false;
   const draw = () => {
     queued = false;
-    const items = [...seen].sort((a, b) => (a.stopped - b.stopped) || (b.startTime - a.startTime)).slice(0, 8);
+    const items = [...seen].sort((a, b) => (a.stopped - b.stopped) || (b.startTime - a.startTime)).slice(0, most);
     list.replaceChildren(...(items.length ? items.map(d => {
       const row = node("div", { class: "zs-row zs-dl" });
       const name = PathUtils.filename(d.target.path || "") || "Download";
@@ -323,7 +339,8 @@ export function downloadsCard(box) {
         row.setAttribute("action", "true");
         row.title = "Open it";
         row.addEventListener("click", e => !e.target.closest("button") && d.launch().catch(() => {}));
-        const show = button("Folder", "zs-btn", "Show it in its folder");
+        const show = button("", "zs-btn zs-ib", "Show it in its folder");
+        show.append(ico("folder"));
         show.addEventListener("click", () => {
           try {
             new FileUtils.File(d.target.path).reveal();
@@ -332,12 +349,13 @@ export function downloadsCard(box) {
         row.append(show);
         const mode = P.getStringPref("zenith.plus.download-delete", "");
         if (mode !== "off" && window.DownloadsCommon?.deleteDownloadFiles) {
-          const del = button("Delete", "zs-btn zs-danger", mode === "confirm" ? "Delete the file (a second click)" : "Delete the file");
+          const del = button("", "zs-btn zs-ib zs-danger", mode === "confirm" ? "Delete the file (a second click)" : "Delete the file");
+          del.append(ico("trash"));
           del.addEventListener("click", async () => {
             if (mode === "confirm" && !del.hasAttribute("asking")) {
               del.setAttribute("asking", "true");
-              del.textContent = "Sure?";
-              setTimeout(() => del.isConnected && (del.removeAttribute("asking"), (del.textContent = "Delete")), 3000);
+              del.title = "Click again to delete the file";
+              setTimeout(() => del.isConnected && (del.removeAttribute("asking"), (del.title = "Delete the file (a second click)")), 3000);
               return;
             }
             try {
@@ -383,12 +401,16 @@ export const System = {
   async sample() {
     const info = await ChromeUtils.requestProcInfo();
     const all = [info, ...info.children];
-    const memory = all.reduce((a, p) => a + (p.memory || 0), 0), cpu = all.reduce((a, p) => a + (p.cpuTime || 0), 0);
+    // (Firefox's own figure counts memory the processes share once each:
+    // Windows' private working set, as Task Manager and the tab manager.)
+    const own = window.ZenithTabs?.Look?.privateSet?.();
+    const memory = all.reduce((a, p) => a + ((own && own(p.pid)) ?? p.memory ?? 0), 0), cpu = all.reduce((a, p) => a + (p.cpuTime || 0), 0);
     const now = performance.now();
     let pc = null;
     if (this.last) pc = Math.max(0, (100 * (cpu - this.last.cpu)) / 1e6 / (now - this.last.at) / (navigator.hardwareConcurrency || 1));
     this.last = { cpu, at: now };
-    const tabs = gBrowser.tabs.filter(t => !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
+    const every = window.gZenWorkspaces?.allStoredTabs ?? gBrowser.tabs;
+    const tabs = [...new Set(every)].filter(t => t.isConnected && !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
     const sleeping = t => t.hasAttribute("pending") || !t.linkedPanel;
     const asleep = tabs.filter(sleeping).length;
     // (This space: its own tabs and the essentials, as its sidebar shows.)
@@ -469,9 +491,12 @@ export function appearanceCard(box) {
     r.append(seg);
     return r;
   };
+  const now = node("div", { class: "zs-sub zs-note" });
+  const say = () => put(now, A.describe());
   box.append(node("div", { class: "zs-head" }, "How pages look"),
-             row("Now", () => A.forced() ?? "auto", v => A.set(v)),
-             row("In this space", () => A.space(), v => A.setSpace(v)));
+             row("Everywhere", () => A.global(), v => (A.set(v), say())),
+             row("In this space", () => A.space(), v => (A.setSpace(v), say())), now);
+  say();
 }
 
 /* --- Every tab of the space (the bar's "+N" when they don't fit) --------------------- */

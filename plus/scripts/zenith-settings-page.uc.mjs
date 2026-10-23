@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.15.1
+// @version        0.15.2
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -3526,27 +3526,51 @@ const SCHEMA = [
    "sets": {
     "zenith.bar.top": {
      "zen": "off",
-     "top": "status",
-     "split": "status",
+     "top": "on",
+     "split": "on",
      "taskbar": "off",
      "rail": "off",
-     "minimal": "both"
+     "minimal": "on"
+    },
+    "zenith.bar.top.modules": {
+     "zen": "",
+     "top": "launcher,spaces,mode|title|media,downloads,timers,trackers,appearance,extensions,clock,buttons",
+     "split": "launcher,spaces,mode|title|media,downloads,timers,trackers,appearance,extensions,clock,buttons",
+     "taskbar": "",
+     "rail": "",
+     "minimal": "spaces,mode|tabs|clock,buttons"
     },
     "zenith.bar.bottom": {
      "zen": "off",
      "top": "off",
-     "split": "tabs",
-     "taskbar": "both",
+     "split": "on",
+     "taskbar": "on",
      "rail": "off",
      "minimal": "off"
+    },
+    "zenith.bar.bottom.modules": {
+     "zen": "",
+     "top": "",
+     "split": "|tabs|",
+     "taskbar": "launcher,spaces,mode|tabs|media,downloads,timers,trackers,appearance,extensions,clock,buttons",
+     "rail": "",
+     "minimal": ""
     },
     "zenith.bar.left": {
      "zen": "off",
      "top": "off",
      "split": "off",
      "taskbar": "off",
-     "rail": "both",
+     "rail": "on",
      "minimal": "off"
+    },
+    "zenith.bar.left.modules": {
+     "zen": "",
+     "top": "",
+     "split": "",
+     "taskbar": "",
+     "rail": "launcher,spaces,mode|tabs|downloads,timers,appearance,extensions,clock,power",
+     "minimal": ""
     },
     "zenith.bar.right": {
      "zen": "off",
@@ -3555,6 +3579,14 @@ const SCHEMA = [
      "taskbar": "off",
      "rail": "off",
      "minimal": "off"
+    },
+    "zenith.bar.right.modules": {
+     "zen": "",
+     "top": "",
+     "split": "",
+     "taskbar": "",
+     "rail": "",
+     "minimal": ""
     },
     "zenith.sidebar": {
      "zen": "shown",
@@ -3604,10 +3636,10 @@ const SCHEMA = [
     "settings": [
      {
       "property": "zenith.bar.top",
-      "label": "A bar at the top",
+      "label": "Top bar",
       "type": "dropdown",
       "extra": false,
-      "desc": "What a bar at the top of the window holds: its status (spaces, the tab you're on, what's playing, the clock and the rest), this space's tabs, or both. At the top it's the title bar too: drag it to move the window.",
+      "desc": "A bar along the window's top: at the top it's the title bar too (drag it to move the window).",
       "host": "Zenith Plus",
       "options": [
        {
@@ -3615,63 +3647,61 @@ const SCHEMA = [
         "value": "off"
        },
        {
-        "label": "Status",
-        "value": "status"
-       },
-       {
-        "label": "Tabs",
-        "value": "tabs"
-       },
-       {
-        "label": "Status and tabs",
-        "value": "both"
+        "label": "On",
+        "value": "on"
        }
       ],
       "default": "off"
      },
      {
+      "property": "zenith.bar.top.modules",
+      "label": "What it shows",
+      "type": "string",
+      "extra": false,
+      "desc": "What the top bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+      "host": "Zenith Plus",
+      "placeholder": "launcher,spaces|title|clock",
+      "zenithModules": true,
+      "parent": "zenith.bar.top",
+      "rule": {
+       "why": "There's no bar at the top",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.bar.top",
+          "value": "on"
+         }
+        }
+       ]
+      }
+     },
+     {
       "property": "zenith.bar.hide-top",
-      "label": "The top bar hides until the pointer reaches it",
+      "label": "Hides until reached",
       "type": "checkbox",
       "extra": false,
       "desc": "The top bar slides away and comes back when the pointer reaches the window's top edge (or one of its popups is open), so the page has the room.",
       "host": "Zenith Plus",
       "default": false,
+      "parent": "zenith.bar.top",
       "rule": {
        "why": "There's no bar at the top",
        "conditions": [
         {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
+         "if": {
+          "property": "zenith.bar.top",
+          "value": "on"
+         }
         }
        ]
       }
      },
      {
       "property": "zenith.bar.bottom",
-      "label": "A bar at the bottom",
+      "label": "Bottom bar",
       "type": "dropdown",
       "extra": false,
-      "desc": "What a bar at the bottom of the window holds: its status (spaces, the tab you're on, what's playing, the clock and the rest), this space's tabs, or both.",
+      "desc": "A bar along the window's bottom.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -3679,63 +3709,61 @@ const SCHEMA = [
         "value": "off"
        },
        {
-        "label": "Status",
-        "value": "status"
-       },
-       {
-        "label": "Tabs",
-        "value": "tabs"
-       },
-       {
-        "label": "Status and tabs",
-        "value": "both"
+        "label": "On",
+        "value": "on"
        }
       ],
       "default": "off"
      },
      {
+      "property": "zenith.bar.bottom.modules",
+      "label": "What it shows",
+      "type": "string",
+      "extra": false,
+      "desc": "What the bottom bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+      "host": "Zenith Plus",
+      "placeholder": "launcher,spaces|title|clock",
+      "zenithModules": true,
+      "parent": "zenith.bar.bottom",
+      "rule": {
+       "why": "There's no bar at the bottom",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.bar.bottom",
+          "value": "on"
+         }
+        }
+       ]
+      }
+     },
+     {
       "property": "zenith.bar.hide-bottom",
-      "label": "The bottom bar hides until the pointer reaches it",
+      "label": "Hides until reached",
       "type": "checkbox",
       "extra": false,
       "desc": "The bottom bar slides away and comes back when the pointer reaches the window's bottom edge (or one of its popups is open), so the page has the room.",
       "host": "Zenith Plus",
       "default": false,
+      "parent": "zenith.bar.bottom",
       "rule": {
        "why": "There's no bar at the bottom",
        "conditions": [
         {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
+         "if": {
+          "property": "zenith.bar.bottom",
+          "value": "on"
+         }
         }
        ]
       }
      },
      {
       "property": "zenith.bar.left",
-      "label": "A bar at the left",
+      "label": "Left bar",
       "type": "dropdown",
       "extra": false,
-      "desc": "What a bar at the left of the window holds: its status (spaces, the tab you're on, what's playing, the clock and the rest), this space's tabs, or both. On the left or right it stands up: a rail of icons, or wider with titles (below).",
+      "desc": "A bar along the window's left. On the left or right it stands up: a rail of icons, or wider with titles (below).",
       "host": "Zenith Plus",
       "options": [
        {
@@ -3743,63 +3771,61 @@ const SCHEMA = [
         "value": "off"
        },
        {
-        "label": "Status",
-        "value": "status"
-       },
-       {
-        "label": "Tabs",
-        "value": "tabs"
-       },
-       {
-        "label": "Status and tabs",
-        "value": "both"
+        "label": "On",
+        "value": "on"
        }
       ],
       "default": "off"
      },
      {
+      "property": "zenith.bar.left.modules",
+      "label": "What it shows",
+      "type": "string",
+      "extra": false,
+      "desc": "What the left bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+      "host": "Zenith Plus",
+      "placeholder": "launcher,spaces|title|clock",
+      "zenithModules": true,
+      "parent": "zenith.bar.left",
+      "rule": {
+       "why": "There's no bar on the left",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.bar.left",
+          "value": "on"
+         }
+        }
+       ]
+      }
+     },
+     {
       "property": "zenith.bar.hide-left",
-      "label": "The left bar hides until the pointer reaches it",
+      "label": "Hides until reached",
       "type": "checkbox",
       "extra": false,
       "desc": "The left bar slides away and comes back when the pointer reaches the window's left edge (or one of its popups is open), so the page has the room.",
       "host": "Zenith Plus",
       "default": false,
+      "parent": "zenith.bar.left",
       "rule": {
-       "why": "There's no bar at the left",
+       "why": "There's no bar on the left",
        "conditions": [
         {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
+         "if": {
+          "property": "zenith.bar.left",
+          "value": "on"
+         }
         }
        ]
       }
      },
      {
       "property": "zenith.bar.right",
-      "label": "A bar at the right",
+      "label": "Right bar",
       "type": "dropdown",
       "extra": false,
-      "desc": "What a bar at the right of the window holds: its status (spaces, the tab you're on, what's playing, the clock and the rest), this space's tabs, or both. On the left or right it stands up: a rail of icons, or wider with titles (below).",
+      "desc": "A bar along the window's right. On the left or right it stands up: a rail of icons, or wider with titles (below).",
       "host": "Zenith Plus",
       "options": [
        {
@@ -3807,53 +3833,51 @@ const SCHEMA = [
         "value": "off"
        },
        {
-        "label": "Status",
-        "value": "status"
-       },
-       {
-        "label": "Tabs",
-        "value": "tabs"
-       },
-       {
-        "label": "Status and tabs",
-        "value": "both"
+        "label": "On",
+        "value": "on"
        }
       ],
       "default": "off"
      },
      {
+      "property": "zenith.bar.right.modules",
+      "label": "What it shows",
+      "type": "string",
+      "extra": false,
+      "desc": "What the right bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Empty: as it comes.",
+      "host": "Zenith Plus",
+      "placeholder": "launcher,spaces|title|clock",
+      "zenithModules": true,
+      "parent": "zenith.bar.right",
+      "rule": {
+       "why": "There's no bar on the right",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.bar.right",
+          "value": "on"
+         }
+        }
+       ]
+      }
+     },
+     {
       "property": "zenith.bar.hide-right",
-      "label": "The right bar hides until the pointer reaches it",
+      "label": "Hides until reached",
       "type": "checkbox",
       "extra": false,
       "desc": "The right bar slides away and comes back when the pointer reaches the window's right edge (or one of its popups is open), so the page has the room.",
       "host": "Zenith Plus",
       "default": false,
+      "parent": "zenith.bar.right",
       "rule": {
-       "why": "There's no bar at the right",
+       "why": "There's no bar on the right",
        "conditions": [
         {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
+         "if": {
+          "property": "zenith.bar.right",
+          "value": "on"
+         }
         }
        ]
       }
@@ -3907,142 +3931,13 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.buttons",
-      "label": "The window's buttons",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The window's own buttons at the top bar's end; or a power button whose menu minimises, maximises, opens a new window, closes this one, restarts or quits Zen; or none in a bar (they stay where Zen puts them).",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "In the top bar",
-        "value": "window"
-       },
-       {
-        "label": "A power button with them, and restart and quit",
-        "value": "power"
-       },
-       {
-        "label": "Not in a bar",
-        "value": "nothing"
-       }
-      ],
-      "default": "window",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -4090,73 +3985,25 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -4195,73 +4042,25 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -4296,73 +4095,25 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -4401,73 +4152,25 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -4475,13 +4178,18 @@ const SCHEMA = [
         }
        ]
       }
-     },
+     }
+    ]
+   },
+   {
+    "title": "Tabs in a bar",
+    "settings": [
      {
       "property": "zenith.bar.tab-look",
       "label": "Tabs in the bar",
       "type": "dropdown",
       "extra": false,
-      "desc": "How each tab shows in the bar: icons with the current tab's title, icons only, icon and short title, icon and title while they fit (then only the current one's, then icons), or numbers as i3's workspaces. A click goes to a tab, a middle click closes it, the wheel steps through them.",
+      "desc": "How each tab shows in a bar: icons with the current tab's title, icons only, icon and short title, icon and title while they fit (then only the current one's, then icons), or numbers as i3's workspaces. A click goes to a tab, a middle click closes it.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -4506,58 +4214,143 @@ const SCHEMA = [
        }
       ],
       "default": "current",
-      "parent": "zenith.bar.top",
       "rule": {
-       "why": "Tabs aren't in a bar",
+       "why": "The bar is off",
        "conditions": [
         {
          "conditions": [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "tabs"
+            "value": "on"
            }
           },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-align",
+      "label": "Where tabs sit",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Where this space's tabs sit in a bar when they don't fill it: at the start (left, or top on a side bar), in the middle, or at the end.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "At the start (left or top)",
+        "value": "start"
+       },
+       {
+        "label": "In the middle",
+        "value": "centre"
+       },
+       {
+        "label": "At the end (right or bottom)",
+        "value": "end"
+       }
+      ],
+      "default": "start",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "tabs"
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-wheel",
+      "label": "The wheel over tabs",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Scrolls them: the wheel moves along the tabs when there are more than fit, as a browser's tab strip does. Goes to the next or previous tab: the wheel switches tabs instead.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Scrolls them",
+        "value": "scroll"
+       },
+       {
+        "label": "Goes to the next or previous tab",
+        "value": "switch"
+       }
+      ],
+      "default": "scroll",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -4569,7 +4362,7 @@ const SCHEMA = [
     ]
    },
    {
-    "title": "In the bar",
+    "title": "Modules",
     "settings": [
      {
       "property": "zenith.bar.spaces",
@@ -4613,73 +4406,25 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -4693,7 +4438,7 @@ const SCHEMA = [
       "label": "The tab you're on",
       "type": "dropdown",
       "extra": false,
-      "desc": "The middle of the bar shows the tab you're on (when tabs aren't in the bar).",
+      "desc": "How the tab you're on shows in a bar that has it: its title, or the site and then its title.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -4703,10 +4448,6 @@ const SCHEMA = [
        {
         "label": "The site, then the title",
         "value": "site"
-       },
-       {
-        "label": "Nothing",
-        "value": "off"
        }
       ],
       "default": "title",
@@ -4718,73 +4459,25 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -4798,12 +4491,16 @@ const SCHEMA = [
       "label": "Clock",
       "type": "dropdown",
       "extra": false,
-      "desc": "A click shows the date instead, and back. The clock wakes once a minute (each second only with seconds shown).",
+      "desc": "A click opens the Dash; a middle click shows the date instead, and back. In a rail the hours sit over the minutes, with the day and month under them if the format has a date. The clock wakes once a minute (each second only with seconds shown).",
       "host": "Zenith Plus",
       "options": [
        {
         "label": "14:05",
         "value": "hm"
+       },
+       {
+        "label": "14:05 | 22.10",
+        "value": "hm-date"
        },
        {
         "label": "Thu 22 Oct 14:05",
@@ -4835,73 +4532,25 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -4911,104 +4560,27 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.launcher",
-      "label": "Switcher button",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "A button that opens the switcher, as a launcher.",
-      "host": "Zenith Plus",
-      "default": true,
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.media",
+      "property": "zenith.bar.media-look",
       "label": "What's playing",
-      "type": "checkbox",
+      "type": "dropdown",
       "extra": false,
-      "desc": "The tab playing music or a video: the button plays or pauses, the title goes to its tab, the wheel skips.",
+      "desc": "What's playing: a play button only (its title on hover), the button and the title (a click goes to its tab), or previous and next buttons too. The wheel over it skips either way.",
       "host": "Zenith Plus",
-      "default": true,
+      "options": [
+       {
+        "label": "Just a play button",
+        "value": "button"
+       },
+       {
+        "label": "Play button and title",
+        "value": "title"
+       },
+       {
+        "label": "Previous, play, next and title",
+        "value": "detailed"
+       }
+      ],
+      "default": "title",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5017,73 +4589,25 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -5093,375 +4617,11 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.downloads",
-      "label": "Downloads",
+      "property": "zenith.bar.downloads-always",
+      "label": "Downloads always shown",
       "type": "checkbox",
       "extra": false,
-      "desc": "How many downloads are under way and how far; a tick for a moment when they're done. A click opens Firefox's downloads.",
-      "host": "Zenith Plus",
-      "default": true,
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.timers",
-      "label": "Timers",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "The next timer or pomodoro to end (Peek: timer 10m tea), counting down.",
-      "host": "Zenith Plus",
-      "default": true,
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.privacy",
-      "label": "Trackers",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "A shield with how many trackers Firefox blocked on the page you're on (hidden when none); a click lists them.",
-      "host": "Zenith Plus",
-      "default": true,
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.appearance",
-      "label": "Pages dark or light",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "A sun or a moon: how pages look. A click makes them dark or light (the opposite of now), again goes back to automatic; a right-click sets this space's own. Firefox's Website appearance, as Zen-Site-Appearance-Toggle does.",
-      "host": "Zenith Plus",
-      "default": true,
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.weather",
-      "label": "Weather",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "The sky and the temperature from wttr.in (one request each half hour, for every window); a click opens the Dash with the next days. Off unless you turn it on: it asks the web.",
+      "desc": "The downloads button stays in the bar with nothing under way, so a click always lists your latest downloads. Off: it shows only while some are under way, and for a moment after.",
       "host": "Zenith Plus",
       "default": false,
       "rule": {
@@ -5472,73 +4632,25 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -5565,7 +4677,6 @@ const SCHEMA = [
        }
       ],
       "default": "near",
-      "parent": "zenith.bar.weather",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5574,255 +4685,25 @@ const SCHEMA = [
           {
            "if": {
             "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
+            "value": "on"
            }
           },
           {
            "if": {
             "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.resources",
-      "label": "What the browser uses",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "How much memory the browser uses (all its processes), read every 30 seconds while the window is in front; a click opens the Dash.",
-      "host": "Zenith Plus",
-      "default": false,
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tray",
-      "label": "Extensions",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Firefox's extensions panel.",
-      "host": "Zenith Plus",
-      "default": true,
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "both"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "status"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "tabs"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "both"
+            "value": "on"
            }
           }
          ],
@@ -5837,6 +4718,45 @@ const SCHEMA = [
     "title": "The Dash",
     "settings": [
      {
+      "property": "zenith.dash.place",
+      "label": "Where the Dash opens",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The Dash opens in the same place however you open it (Alt+N, the clock, the weather): at the top, the middle or the bottom of the page area, on the left, in the middle or on the right.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "At the top, on the left",
+        "value": "top-left"
+       },
+       {
+        "label": "At the top, in the middle",
+        "value": "top-centre"
+       },
+       {
+        "label": "At the top, on the right",
+        "value": "top-right"
+       },
+       {
+        "label": "In the middle",
+        "value": "centre"
+       },
+       {
+        "label": "At the bottom, on the left",
+        "value": "bottom-left"
+       },
+       {
+        "label": "At the bottom, in the middle",
+        "value": "bottom-centre"
+       },
+       {
+        "label": "At the bottom, on the right",
+        "value": "bottom-right"
+       }
+      ],
+      "default": "top-centre"
+     },
+     {
       "property": "zenith.dash.weather",
       "label": "Weather in the Dash",
       "type": "checkbox",
@@ -5844,6 +4764,15 @@ const SCHEMA = [
       "desc": "The Dash shows now and the next days from wttr.in (the bar's place), asked when you open it at most each half hour.",
       "host": "Zenith Plus",
       "default": true
+     },
+     {
+      "property": "zenith.dash.downloads",
+      "label": "Downloads in the Dash",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A card with your latest downloads: a click opens one, Folder shows it, Delete deletes it.",
+      "host": "Zenith Plus",
+      "default": false
      }
     ]
    }
@@ -6192,6 +5121,25 @@ const SCHEMA = [
       "desc": "A small pill on zoomed pages; click it to reset.",
       "host": "Zenith Plus",
       "default": true
+     },
+     {
+      "property": "zenith.plus.appearance-auto",
+      "label": "Pages on automatic follow",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "With pages on automatic (the sun or moon in the bar, the Dash, :appearance auto), they follow the browser's own light or dark (your palette's when you have one, else Windows'), or Windows' setting whatever the browser looks like. Sites with a theme setting of their own keep theirs.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The browser (your palette, else Windows)",
+        "value": "browser"
+       },
+       {
+        "label": "Windows",
+        "value": "system"
+       }
+      ],
+      "default": "browser"
      }
     ]
    },
@@ -6772,7 +5720,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.15.1";
+const SCHEMA_VERSION = "0.15.2";
 
 class SettingsView {
   constructor(kind) {
@@ -7119,6 +6067,121 @@ class SettingsView {
         },
       };
     }
+    // A bar's modules (one setting: start | middle | end, as waybar's lists):
+    // how many, and a popup with the three parts, each a row of modules to
+    // drag (within a part or to another), ✕ to take one away, + to add one.
+    if (s.type === "string" && s.zenithModules) {
+      const doc = this.root?.ownerDocument ?? document;
+      const host = doc.defaultView?.browsingContext?.topChromeWindow ?? window;
+      const bar = () => host.ZenithBar ?? Services.wm.getMostRecentWindow("navigator:browser")?.ZenithBar;
+      const edge = s.property.split(".")[2], standing = edge === "left" || edge === "right";
+      const PARTS = [["left", standing ? "Top" : "Start"], ["centre", "Middle"], ["right", standing ? "Bottom" : "End"]];
+      const box = el("div", { class: "zp-list" });
+      const count = el("span", { class: "zp-list-count" });
+      const open = el("button", { class: "zp-chip zp-action", type: "button" }, "Edit…");
+      const dialog = el("dialog", { class: "zp-sites zp-mods", "aria-label": s.label });
+      const parts = el("div", { class: "zp-mods-parts" });
+      const note = el("p", { class: "zp-keys-note" }, "Drag a module to move it, ✕ takes it away, + adds one. The window's buttons can only be in one bar.");
+      const reset = el("button", { class: "zp-chip zp-action", type: "button" }, "As it comes");
+      const done = el("button", { class: "zp-chip zp-action", type: "button" }, "Done");
+      const foot = el("div", { class: "zp-sites-foot" });
+      foot.append(reset, done);
+      dialog.append(el("h3", {}, s.label), note, parts, foot);
+      box.append(count, open);
+      (doc.body ?? doc.documentElement).append(dialog);
+      let lists = { left: [], centre: [], right: [] }, drag = null;
+      const label = name => new Map(bar()?.MODULES ?? []).get(name) ?? name;
+      const read = v => {
+        const [l = "", c = "", r = ""] = String(v || bar()?.DEFAULTS?.[edge] || "").split("|");
+        const names = x => x.split(",").map(y => y.trim()).filter(Boolean);
+        return { left: names(l), centre: names(c), right: names(r) };
+      };
+      const save = () => {
+        const text = PARTS.map(([k]) => lists[k].join(",")).join("|");
+        write(s, text === (bar()?.DEFAULTS?.[edge] ?? "") ? "" : text);
+      };
+      const move = (to, at) => {
+        if (!drag) return;
+        const [name] = lists[drag.key].splice(drag.i, 1);
+        if (drag.key === to && drag.i < at) at--;
+        lists[to].splice(at, 0, name);
+        drag = null;
+        save();
+        draw();
+      };
+      const draw = () => {
+        if (!bar()) {
+          parts.replaceChildren(el("p", { class: "zp-list-empty" }, "Open a Zen window to change what the bar shows."));
+          return;
+        }
+        const used = new Set(Object.values(lists).flat());
+        parts.replaceChildren(...PARTS.map(([key, title]) => {
+          const part = el("section", { class: "zp-mods-part" });
+          const row = el("div", { class: "zp-mods-row" });
+          lists[key].forEach((name, i) => {
+            const chip = el("span", { class: "zp-mods-chip", draggable: "true" });
+            const x = el("button", { type: "button", class: "zp-mods-x", title: "Take it away" }, "✕");
+            chip.append(el("span", {}, label(name)), x);
+            x.addEventListener("click", () => {
+              lists[key].splice(i, 1);
+              save();
+              draw();
+            });
+            chip.addEventListener("dragstart", e => {
+              drag = { key, i };
+              e.dataTransfer.setData("text/plain", name);
+              e.dataTransfer.effectAllowed = "move";
+            });
+            chip.addEventListener("dragend", () => (drag = null));
+            chip.addEventListener("dragover", e => drag && e.preventDefault());
+            chip.addEventListener("drop", e => {
+              e.preventDefault();
+              e.stopPropagation();
+              const r = chip.getBoundingClientRect();
+              move(key, e.clientX > r.left + r.width / 2 ? i + 1 : i);
+            });
+            row.append(chip);
+          });
+          const add = el("select", { class: "zp-chip zp-mods-add", "aria-label": `Add to the ${title.toLowerCase()}` });
+          add.append(el("option", { value: "" }, "+"));
+          for (const [name, text] of bar().MODULES) if (!used.has(name)) add.append(el("option", { value: name }, text));
+          add.addEventListener("change", () => {
+            if (!add.value) return;
+            lists[key].push(add.value);
+            save();
+            draw();
+          });
+          row.append(add);
+          row.addEventListener("dragover", e => drag && e.preventDefault());
+          row.addEventListener("drop", e => {
+            e.preventDefault();
+            move(key, lists[key].length);
+          });
+          part.append(el("h4", {}, title), row);
+          return part;
+        }));
+      };
+      reset.addEventListener("click", () => {
+        write(s, "");
+        lists = read("");
+        draw();
+      });
+      open.addEventListener("click", () => {
+        lists = read(stored(s));
+        draw();
+        dialog.showModal();
+      });
+      done.addEventListener("click", () => dialog.close());
+      return {
+        node: box,
+        update: v => {
+          lists = read(v);
+          const n = Object.values(lists).flat().length;
+          count.textContent = `${n} module${n === 1 ? "" : "s"}${v ? "" : " (as it comes)"}`;
+          if (dialog.open) draw();
+        },
+      };
+    }
     // A list of sites (kept as one comma-separated setting): how many, and
     // a button for a small popup where each has its ✕ and a field adds one.
     if (s.type === "string" && s.zenithList) {
@@ -7376,6 +6439,17 @@ const STYLE = `
   dialog.zp-sites .zp-input { min-width: 0; width: 100%; }
   .zp-sites-foot { display: flex; justify-content: flex-end; gap: 8px; }
   dialog.zp-keys { width: min(640px, 92vw); max-height: 86vh; }
+  dialog.zp-mods { width: min(600px, 92vw); max-height: 86vh; }
+  .zp-mods-parts { display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+  .zp-mods-part h4 { margin: 0 0 4px; font-size: 0.85em; font-weight: 600; color: var(--zp-dim); }
+  .zp-mods-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 36px; padding: 6px;
+    border: 1px dashed var(--zp-border); border-radius: 8px; }
+  .zp-mods-chip { display: inline-flex; align-items: center; gap: 2px; padding: 3px 2px 3px 10px; border: 1px solid var(--zp-border);
+    border-radius: 999px; background: color-mix(in srgb, currentColor 7%, transparent); font-size: 0.92em; cursor: grab; }
+  .zp-mods-x { appearance: none; border: none; background: none; color: var(--zp-dim); font: inherit; padding: 0 6px; cursor: pointer; }
+  .zp-mods-x:hover { color: inherit; }
+  select.zp-mods-add { appearance: none; flex: none; width: 30px; min-width: 0; height: 26px; padding: 0; border-color: var(--zp-border);
+    border-radius: 999px; background-image: none; text-align: center; font-weight: 600; cursor: pointer; }
   .zp-keys-note { margin: 0; color: var(--zp-dim); }
   .zp-keys-items { overflow: auto; columns: 2 260px; column-gap: 20px; }
   .zp-keys-group { break-inside: avoid; margin-bottom: 10px; }

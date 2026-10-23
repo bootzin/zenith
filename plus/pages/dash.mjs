@@ -5,7 +5,7 @@
 // (zenith-plus.uc.mjs, DashLoader); while it's closed nothing of it runs.
 // Open, it reads Firefox's processes every 2 seconds and ticks each second.
 
-import { Popup, Weather, System, Trackers, Timers, node, put, button, ico, bytes, timersCard, everySecond } from "./shell-ui.mjs";
+import { Popup, Weather, System, Trackers, Timers, node, put, button, ico, bytes, timersCard, downloadsCard, everySecond } from "./shell-ui.mjs";
 
 const P = Services.prefs;
 
@@ -284,9 +284,16 @@ function build(box) {
     left.append(timers);
     undo.push(timersCard(timers));
   });
+  if (Services.prefs.getBoolPref("zenith.dash.downloads", false)) {
+    part("downloads", () => {
+      const list = card("", "zd-downloads");
+      left.append(list);
+      undo.push(downloadsCard(list, { most: 4 }));
+    });
+  }
   part("media", () => mediaCard(right, undo));
   part("toggles", () => toggles(right, undo));
-  part("Firefox", () => systemCard(right, undo));
+  part("the browser", () => systemCard(right, undo));
   return () => undo.forEach(fn => {
     try {
       fn();
@@ -297,5 +304,6 @@ function build(box) {
 }
 
 export function toggle({ anchor = null } = {}) {
-  Popup.open(anchor, build, { kind: "dash", wide: true });
+  const at = Services.prefs.getStringPref("zenith.dash.place", "") || "top-centre";
+  Popup.open(anchor, build, { kind: "dash", wide: true, at, keep: '.zenith-bar :is([mod="clock"], [mod="weather"], [mod="resources"])' });
 }

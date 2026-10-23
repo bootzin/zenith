@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.15.1
+// @version        0.15.2
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
