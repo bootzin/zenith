@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<!-- about:zenith-fetch: your setup at a glance, as fastfetch and neofetch print it (:fetch). -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <title>zenith-fetch</title>
+    <link rel="icon" href="chrome://global/skin/icons/info.svg" />
+    <link rel="stylesheet" href="fetch.css" />
+    <script type="module" src="fetch.mjs"></script>
+  </head>
+  <body>
+    <main id="card">
+      <pre id="logo" aria-hidden="true"></pre>
+      <section id="info">
+        <div id="who"></div>
+        <div id="rule"></div>
+        <dl id="lines"></dl>
+        <div id="swatches"></div>
+      </section>
+    </main>
+    <p id="actions">
+      <button type="button" id="copy">Copy as text</button>
+      <span id="note"></span>
+    </p>
+  </body>
+</html>

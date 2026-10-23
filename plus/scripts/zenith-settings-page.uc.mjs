@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.15.3
+// @version        0.16.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -3420,6 +3420,256 @@ const SCHEMA = [
     ]
    },
    {
+    "title": "Layouts",
+    "settings": [
+     {
+      "property": "zenith.shell.layout",
+      "label": "Layout",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How a space lays out its tiles, unless you've picked another one there with Alt+Y (or the bar's layout module). Dwindle: a new tile splits the one you're on along its longer side, as Hyprland's. Master and stack: one big tile (the master) and the rest stacked beside it, as dwm's; Alt+Shift+Y makes the tile you're on the master. Scroller: tiles are columns on a strip, as niri's: those that fit show, the others wait to the side until Alt+H or Alt+L brings them in; Alt+Shift+Y gives a column its next width. Monocle: the tile you're on fills the view, Alt+H and Alt+L go to the others.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Dwindle (Hyprland's)",
+        "value": "dwindle"
+       },
+       {
+        "label": "Master and stack (dwm's)",
+        "value": "master"
+       },
+       {
+        "label": "Scroller (niri's)",
+        "value": "scroller"
+       },
+       {
+        "label": "Monocle (one tile at a time)",
+        "value": "monocle"
+       }
+      ],
+      "default": "dwindle"
+     },
+     {
+      "property": "zenith.shell.master",
+      "label": "Master and stack",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The master on the left with the stack on the right (dwm's), or the master in the middle with the stack either side (better on a wide screen).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The master on the left (dwm)",
+        "value": "dwm"
+       },
+       {
+        "label": "The master in the middle, the stack either side",
+        "value": "centred"
+       }
+      ],
+      "default": "dwm"
+     },
+     {
+      "property": "zenith.shell.master-ratio",
+      "label": "The master's width",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How much of the width the master takes.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "50%",
+        "value": "50"
+       },
+       {
+        "label": "55%",
+        "value": "55"
+       },
+       {
+        "label": "60%",
+        "value": "60"
+       },
+       {
+        "label": "65%",
+        "value": "65"
+       },
+       {
+        "label": "70%",
+        "value": "70"
+       }
+      ],
+      "default": "55"
+     },
+     {
+      "property": "zenith.shell.scroller-width",
+      "label": "A new column",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How wide a new column is in the scroller; Alt+Shift+Y gives the one you're on the next width (a third, half, two thirds, all).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "A third of the view",
+        "value": "third"
+       },
+       {
+        "label": "Half the view",
+        "value": "half"
+       },
+       {
+        "label": "Two thirds",
+        "value": "twothirds"
+       },
+       {
+        "label": "All of it",
+        "value": "full"
+       }
+      ],
+      "default": "half"
+     }
+    ]
+   },
+   {
+    "title": "The overview",
+    "settings": [
+     {
+      "property": "zenith.overview.look",
+      "label": "The overview shows",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Alt+O (or the hot corner, or the bar's overview button) shows every tab as a picture: go to one with a click or Enter, close one with its ✕, Delete or a middle click, drag one onto another space to move it there, type to find one in any space. This space with every space in a strip above it (the wheel over the strip walks them), every space as a row of its own, or this space with a split's tiles in one picture, as they're laid out.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "This space, every space above it",
+        "value": "space"
+       },
+       {
+        "label": "Every space, a row each",
+        "value": "all"
+       },
+       {
+        "label": "This space, a split's tiles together",
+        "value": "tiles"
+       }
+      ],
+      "default": "space"
+     },
+     {
+      "property": "zenith.overview.corner",
+      "label": "Hot corner",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Pushing the pointer into this corner of the window opens the overview, as niri's and GNOME's hot corners. (On a window that isn't maximised, Windows keeps its corners for resizing: maximised, it's easy to reach.)",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The top left",
+        "value": "top-left"
+       },
+       {
+        "label": "The top right",
+        "value": "top-right"
+       },
+       {
+        "label": "The bottom left",
+        "value": "bottom-left"
+       },
+       {
+        "label": "The bottom right",
+        "value": "bottom-right"
+       },
+       {
+        "label": "None",
+        "value": "off"
+       }
+      ],
+      "default": "top-left"
+     }
+    ]
+   },
+   {
+    "title": "The launcher",
+    "settings": [
+     {
+      "property": "zenith.launcher.look",
+      "label": "Look",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Centred: a box in the middle of the window, a list under it. dmenu: one line across the top of the window (over a top bar), the results along it as dmenu's and tofi's; left and right (at the end of what you typed) or up and down choose. A grid: big tiles with their pictures, as rofi's grid themes; the arrows move around it.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Centred",
+        "value": "centred"
+       },
+       {
+        "label": "dmenu: one line across the top",
+        "value": "dmenu"
+       },
+       {
+        "label": "A grid of tiles",
+        "value": "grid"
+       }
+      ],
+      "default": "centred"
+     }
+    ]
+   },
+   {
+    "title": "The rice file",
+    "settings": [
+     {
+      "property": "zenith.rice.mode",
+      "label": "Settings the file holds",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A setting your rice file (~/.config/zenith/zenith.conf, Hyprland's language) holds: changing it here changes its line in the file too (the rest of the line and its comments stay; a value made of a $variable is left to you), or it's locked here and changed only in the file.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Changed here are changed in the file too",
+        "value": "write"
+       },
+       {
+        "label": "Locked: change them in the file",
+        "value": "locked"
+       }
+      ],
+      "default": "write"
+     },
+     {
+      "property": "zenith.action.rice-export",
+      "label": "Write my setup to zenith.conf",
+      "type": "action",
+      "extra": false,
+      "desc": "Every Zenith setting you've changed, written as a rice file in Hyprland's language at ~/.config/zenith/zenith.conf (a copy of the one there is kept beside it first). From then on it's read as Zen starts and on Alt+Shift+C.",
+      "button": "Write zenith.conf",
+      "command": "zenith-rice-export-command",
+      "host": "Zen"
+     },
+     {
+      "property": "zenith.action.rice-reload",
+      "label": "Read zenith.conf again",
+      "type": "action",
+      "extra": false,
+      "desc": "As Alt+Shift+C: the file's settings set again (it's also read when the window comes back to the front after you saved it).",
+      "button": "Read it",
+      "command": "zenith-rice-reload-command",
+      "host": "Zen"
+     },
+     {
+      "property": "zenith.action.rice-open",
+      "label": "Open zenith.conf",
+      "type": "action",
+      "extra": false,
+      "desc": "In the app your system opens .conf files with (written first if there isn't one).",
+      "button": "Open it",
+      "command": "zenith-rice-open-command",
+      "host": "Zen"
+     }
+    ]
+   },
+   {
     "title": "Tiles",
     "settings": [
      {
@@ -3801,10 +4051,10 @@ const SCHEMA = [
      },
      {
       "property": "zenith.bar.hide-left",
-      "label": "Hides until reached",
+      "label": "Hides until reached (the sidebar's hover off on this side)",
       "type": "checkbox",
       "extra": false,
-      "desc": "The left bar slides away and comes back when the pointer reaches the window's left edge (or one of its popups is open), so the page has the room.",
+      "desc": "The left bar slides away and comes back when the pointer reaches the window's left edge (or one of its popups is open), so the page has the room. With the sidebar on hover on the left, its hover goes off: that edge brings the bar (Ctrl+Alt+S still opens the sidebar).",
       "host": "Zenith Plus",
       "default": false,
       "parent": "zenith.bar.left",
@@ -3863,10 +4113,10 @@ const SCHEMA = [
      },
      {
       "property": "zenith.bar.hide-right",
-      "label": "Hides until reached",
+      "label": "Hides until reached (the sidebar's hover off on this side)",
       "type": "checkbox",
       "extra": false,
-      "desc": "The right bar slides away and comes back when the pointer reaches the window's right edge (or one of its popups is open), so the page has the room.",
+      "desc": "The right bar slides away and comes back when the pointer reaches the window's right edge (or one of its popups is open), so the page has the room. With the sidebar on hover on the right, its hover goes off: that edge brings the bar (Ctrl+Alt+S still opens the sidebar).",
       "host": "Zenith Plus",
       "default": false,
       "parent": "zenith.bar.right",
@@ -4250,6 +4500,168 @@ const SCHEMA = [
       }
      },
      {
+      "property": "zenith.bar.tab-crowd",
+      "label": "Tabs that don't fit",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "When this space's tabs don't fit in a bar. Titles go, then a window: first the titles go (icons only), and past that only the tabs around the one you're on show, with \"+12\" at either end listing the rest (the wheel moves the window). Shrink: every tab gets narrower, down to its icon, then the strip scrolls. Past a count: up to the count the tabs show as usual; past it, only the tab you're on, with its title, and the chip listing them all.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Titles go, then a window around the tab you're on",
+        "value": "window"
+       },
+       {
+        "label": "Shrink, as Chrome's (then scroll)",
+        "value": "shrink"
+       },
+       {
+        "label": "Past a count, only the tab you're on",
+        "value": "title"
+       }
+      ],
+      "default": "window",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-crowd-count",
+      "label": "The count",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Past how many tabs a bar shows only the tab you're on.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "10 tabs",
+        "value": "10"
+       },
+       {
+        "label": "15 tabs",
+        "value": "15"
+       },
+       {
+        "label": "20 tabs",
+        "value": "20"
+       },
+       {
+        "label": "30 tabs",
+        "value": "30"
+       }
+      ],
+      "default": "15",
+      "parent": "zenith.bar.tab-crowd",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-awake",
+      "label": "Only awake tabs",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A bar shows the tabs that are loaded (and the one you're on); sleeping ones are in the list the chip opens.",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
       "property": "zenith.bar.tab-align",
       "label": "Where tabs sit",
       "type": "dropdown",
@@ -4271,6 +4683,59 @@ const SCHEMA = [
        }
       ],
       "default": "start",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-scroll",
+      "label": "The tab you're on",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Kept in view: the strip moves only when the tab you're on would leave it. Kept in the middle: the strip (or the window of tabs) moves to keep it centred, except near either end.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Kept in view",
+        "value": "nearest"
+       },
+       {
+        "label": "Kept in the middle (when there's room either side)",
+        "value": "centre"
+       }
+      ],
+      "default": "nearest",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -4381,6 +4846,63 @@ const SCHEMA = [
        }
       ],
       "default": "container",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.container-hint",
+      "label": "Containers of other tabs",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Tabs in a Firefox container that you're not on: nothing (only the tab you're on is marked in its container's colour), a small dot in the container's colour by the icon, or a short line in it where the marker goes.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Not shown",
+        "value": "off"
+       },
+       {
+        "label": "A dot",
+        "value": "dot"
+       },
+       {
+        "label": "A short line",
+        "value": "line"
+       }
+      ],
+      "default": "off",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -4581,6 +5103,75 @@ const SCHEMA = [
        }
       ],
       "default": "hm",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.side-clock",
+      "label": "The clock on a side bar",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "On a bar on the left or right, the clock stands up: the hours over the minutes, with (as the bar's clock has it) the date under them, or nothing, the weekday, the seconds, the date, or the day over the month's name.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As the clock (the date under it if it has one)",
+        "value": "auto"
+       },
+       {
+        "label": "Hours and minutes",
+        "value": "hm"
+       },
+       {
+        "label": "The weekday under",
+        "value": "weekday"
+       },
+       {
+        "label": "The seconds under (wakes each second)",
+        "value": "seconds"
+       },
+       {
+        "label": "The date under",
+        "value": "date"
+       },
+       {
+        "label": "The day over the month, under",
+        "value": "stacked"
+       }
+      ],
+      "default": "auto",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5886,7 +6477,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.15.3";
+const SCHEMA_VERSION = "0.16.0";
 
 class SettingsView {
   constructor(kind) {
@@ -6096,8 +6687,12 @@ class SettingsView {
             if (!holds(s.rule.conditions)) reason = s.rule.why;
           } catch {}
         }
+        const win = window.gBrowser ? window : Services.wm.getMostRecentWindow("navigator:browser");
+        const rice = win?.ZenithRice?.holds(s.property) ?? null;
+        if (rice === "locked") reason = "From zenith.conf: change it there (Alt+Shift+C reads it again)";
         row.toggleAttribute("off", !!reason);
-        why.textContent = reason ?? "";
+        row.toggleAttribute("rice", rice === "written");
+        why.textContent = reason ?? (rice === "written" ? "In zenith.conf: changed here, changed there" : "");
       },
     });
     return row;

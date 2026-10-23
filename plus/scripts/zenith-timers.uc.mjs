@@ -2,7 +2,7 @@
 // @name           Zenith Timers
 // @description    Zenith Plus: countdown timers and pomodoros, started from Peek.
 // @include        main
-// @version        0.15.3
+// @version        0.16.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 

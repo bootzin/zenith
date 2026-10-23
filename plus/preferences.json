@@ -1153,7 +1153,7 @@
   },
   {
     "property": "zenith.bar.hide-left",
-    "label": "The left bar hides until the pointer reaches it",
+    "label": "The left bar hides until the pointer reaches it (on the sidebar's side, the sidebar's hover goes off)",
     "type": "checkbox",
     "defaultValue": false,
     "usedBy": "zenith-plus",
@@ -1205,7 +1205,7 @@
   },
   {
     "property": "zenith.bar.hide-right",
-    "label": "The right bar hides until the pointer reaches it",
+    "label": "The right bar hides until the pointer reaches it (on the sidebar's side, the sidebar's hover goes off)",
     "type": "checkbox",
     "defaultValue": false,
     "usedBy": "zenith-plus",
@@ -1992,6 +1992,328 @@
     "zenithWhy": "The bar is off"
   },
   {
+    "property": "zenith.bar.tab-crowd",
+    "label": "Tabs that don't fit in a bar",
+    "type": "dropdown",
+    "placeholder": "Default (Titles go, then a window around the tab you're on)",
+    "options": [
+      {
+        "label": "Titles go, then a window around the tab you're on",
+        "value": "window"
+      },
+      {
+        "label": "Shrink, as Chrome's (then scroll)",
+        "value": "shrink"
+      },
+      {
+        "label": "Past a count, only the tab you're on",
+        "value": "title"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.tab-crowd-count",
+    "label": "The count",
+    "type": "dropdown",
+    "placeholder": "Default (15 tabs)",
+    "options": [
+      {
+        "label": "10 tabs",
+        "value": "10"
+      },
+      {
+        "label": "15 tabs",
+        "value": "15"
+      },
+      {
+        "label": "20 tabs",
+        "value": "20"
+      },
+      {
+        "label": "30 tabs",
+        "value": "30"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.tab-awake",
+    "label": "Only awake tabs in a bar (sleeping ones in its list)",
+    "type": "checkbox",
+    "defaultValue": false,
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.tab-scroll",
+    "label": "The tab you're on, in a bar",
+    "type": "dropdown",
+    "placeholder": "Default (Kept in view)",
+    "options": [
+      {
+        "label": "Kept in view",
+        "value": "nearest"
+      },
+      {
+        "label": "Kept in the middle (when there's room either side)",
+        "value": "centre"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.container-hint",
+    "label": "Containers of the other tabs",
+    "type": "dropdown",
+    "placeholder": "Default (Not shown)",
+    "options": [
+      {
+        "label": "Not shown",
+        "value": "off"
+      },
+      {
+        "label": "A dot",
+        "value": "dot"
+      },
+      {
+        "label": "A short line",
+        "value": "line"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.side-clock",
+    "label": "The clock on a side bar",
+    "type": "dropdown",
+    "placeholder": "Default (As the clock (the date under it if it has one))",
+    "options": [
+      {
+        "label": "As the clock (the date under it if it has one)",
+        "value": "auto"
+      },
+      {
+        "label": "Hours and minutes",
+        "value": "hm"
+      },
+      {
+        "label": "The weekday under",
+        "value": "weekday"
+      },
+      {
+        "label": "The seconds under (wakes each second)",
+        "value": "seconds"
+      },
+      {
+        "label": "The date under",
+        "value": "date"
+      },
+      {
+        "label": "The day over the month, under",
+        "value": "stacked"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
     "property": "zenith.bar.tab-align",
     "label": "Tabs in the bar sit",
     "type": "dropdown",
@@ -2452,6 +2774,190 @@
     "label": "Focus follows the mouse across tiles",
     "type": "checkbox",
     "defaultValue": false,
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.layout",
+    "label": "Each space's layout, unless you choose another there (Alt+Y)",
+    "type": "dropdown",
+    "placeholder": "Default (Dwindle (Hyprland's))",
+    "options": [
+      {
+        "label": "Dwindle (Hyprland's)",
+        "value": "dwindle"
+      },
+      {
+        "label": "Master and stack (dwm's)",
+        "value": "master"
+      },
+      {
+        "label": "Scroller (niri's)",
+        "value": "scroller"
+      },
+      {
+        "label": "Monocle (one tile at a time)",
+        "value": "monocle"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.master",
+    "label": "Master and stack",
+    "type": "dropdown",
+    "placeholder": "Default (The master on the left (dwm))",
+    "options": [
+      {
+        "label": "The master on the left (dwm)",
+        "value": "dwm"
+      },
+      {
+        "label": "The master in the middle, the stack either side",
+        "value": "centred"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.master-ratio",
+    "label": "The master's width",
+    "type": "dropdown",
+    "placeholder": "Default (55%)",
+    "options": [
+      {
+        "label": "50%",
+        "value": "50"
+      },
+      {
+        "label": "55%",
+        "value": "55"
+      },
+      {
+        "label": "60%",
+        "value": "60"
+      },
+      {
+        "label": "65%",
+        "value": "65"
+      },
+      {
+        "label": "70%",
+        "value": "70"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.scroller-width",
+    "label": "A new column in the scroller",
+    "type": "dropdown",
+    "placeholder": "Default (Half the view)",
+    "options": [
+      {
+        "label": "A third of the view",
+        "value": "third"
+      },
+      {
+        "label": "Half the view",
+        "value": "half"
+      },
+      {
+        "label": "Two thirds",
+        "value": "twothirds"
+      },
+      {
+        "label": "All of it",
+        "value": "full"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.launcher.look",
+    "label": "The launcher's look (Alt+D, Alt+W)",
+    "type": "dropdown",
+    "placeholder": "Default (Centred)",
+    "options": [
+      {
+        "label": "Centred",
+        "value": "centred"
+      },
+      {
+        "label": "dmenu: one line across the top",
+        "value": "dmenu"
+      },
+      {
+        "label": "A grid of tiles",
+        "value": "grid"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.rice.mode",
+    "label": "Settings your zenith.conf holds",
+    "type": "dropdown",
+    "placeholder": "Default (Changed here are changed in the file too)",
+    "options": [
+      {
+        "label": "Changed here are changed in the file too",
+        "value": "write"
+      },
+      {
+        "label": "Locked: change them in the file",
+        "value": "locked"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.overview.look",
+    "label": "The overview shows (Alt+O)",
+    "type": "dropdown",
+    "placeholder": "Default (This space, every space above it)",
+    "options": [
+      {
+        "label": "This space, every space above it",
+        "value": "space"
+      },
+      {
+        "label": "Every space, a row each",
+        "value": "all"
+      },
+      {
+        "label": "This space, a split's tiles together",
+        "value": "tiles"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.overview.corner",
+    "label": "The overview's hot corner",
+    "type": "dropdown",
+    "placeholder": "Default (The top left)",
+    "options": [
+      {
+        "label": "The top left",
+        "value": "top-left"
+      },
+      {
+        "label": "The top right",
+        "value": "top-right"
+      },
+      {
+        "label": "The bottom left",
+        "value": "bottom-left"
+      },
+      {
+        "label": "The bottom right",
+        "value": "bottom-right"
+      },
+      {
+        "label": "None",
+        "value": "off"
+      }
+    ],
     "usedBy": "zenith-plus"
   },
   {

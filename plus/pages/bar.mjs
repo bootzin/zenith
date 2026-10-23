@@ -129,9 +129,11 @@ function soon(fn) {
 const GLYPHS = {
   nerd: { power: "\uf011", tabs: "\uf2d2", launcher: "\uf00a", play: "\uf04b", pause: "\uf04c", download: "\uf019", done: "\uf00c", timer: "\uf252", tray: "\uf12e", clock: "\uf017",
           sun: "\uf185", partly: "\uf6c4", cloud: "\uf0c2", fog: "\uf75f", rain: "\uf73d", snow: "\uf2dc", storm: "\uf0e7",
-          moon: "\uf186", shield: "\uf132", memory: "\uf2db", prev: "\uf048", next: "\uf051" },
+          moon: "\uf186", shield: "\uf132", memory: "\uf2db", prev: "\uf048", next: "\uf051",
+          dwindle: "\uf009", master: "\uf0db", scroller: "\uf0c9", monocle: "\uf2d0", overview: "\uf00a" },
   text: { power: "⏻", tabs: "▤", launcher: "≡", play: "▶", pause: "⏸", download: "↓", done: "✓", timer: "⧗", tray: "+", clock: "",
-          sun: "☀", partly: "⛅", cloud: "☁", fog: "≋", rain: "☂", snow: "❄", storm: "ϟ", moon: "☾", shield: "⛨", memory: "▦", prev: "⏮", next: "⏭" },
+          sun: "☀", partly: "⛅", cloud: "☁", fog: "≋", rain: "☂", snow: "❄", storm: "ϟ", moon: "☾", shield: "⛨", memory: "▦", prev: "⏮", next: "⏭",
+          dwindle: "◰", master: "◧", scroller: "▥", monocle: "□", overview: "⊞" },
 };
 
 function icon(name) {
@@ -280,68 +282,110 @@ function tasks(box) {
   more.title = "Every tab of this space";
   more.addEventListener("click", () => Popup.open(more, tabsCard, { kind: "tabs" }));
   box.append(m, more);
-  const vertical = !!box.closest(".zenith-bar")?.hasAttribute("vertical");
-  let shown = null;
+  const bar = box.closest(".zenith-bar"), vertical = !!bar?.hasAttribute("vertical");
+  const rail = () => vertical && pref("zenith.bar.side-width", "rail") === "rail";
   const items = new Map(); // tab → button
-  const WIDE = { icons: 30, current: 30, titles: 158 };
-  let room = 0;
-  const look = () => {
-    const want = pref("zenith.bar.tab-look", "current");
-    if (want !== "fit") return want;
-    const n = m.children.length;
-    if (n * WIDE.titles <= room) return "titles";
-    if ((n - 1) * WIDE.current + 200 <= room) return "current";
-    return "icons";
+  // "+12" at either end of a window of tabs (Bar › Tabs when they don't fit).
+  const edge = side => {
+    const b = node("button", { type: "button", class: "zb-task zb-task-more", side });
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      Popup.open(b, tabsCard, { kind: "tabs" });
+    });
+    return b;
+  };
+  const before = edge("before"), after = edge("after");
+  // How much room a tab takes in each look (a side bar's rows: their height).
+  const SIZE = vertical ? { icons: 38, current: 38, titles: 38, numbers: 38 } : { icons: 33, current: 33, titles: 163, numbers: 31 };
+  let room = 0, start = 0, selected = null;
+  const button = t => {
+    let b = items.get(t);
+    if (!b) {
+      b = node("button", { type: "button", class: "zb-task" });
+      b.zbTab = t;
+      b.append(node("img", { alt: "" }), node("span", { class: "zb-task-label" }), node("span", { class: "zb-task-n" }));
+      items.set(t, b);
+    }
+    return b;
+  };
+  const paint = (b, t, i) => {
+    const img = b.firstChild, src = t.getAttribute("image") || "";
+    if (img.getAttribute("src") !== src) {
+      if (src) img.setAttribute("src", src);
+      else img.removeAttribute("src");
+    }
+    put(b.children[1], t.label);
+    put(b.children[2], `${i + 1}`);
+    b.title = t.label;
+    b.toggleAttribute("current", t.selected);
+    b.toggleAttribute("asleep", t.hasAttribute("pending"));
+    b.toggleAttribute("loud", t.hasAttribute("soundplaying"));
+    b.toggleAttribute("split", !!t.splitView);
+    const box = [...t.classList].find(c => c.startsWith("identity-color-")) ?? "";
+    if (b.zbBox !== box) {
+      if (b.zbBox) b.classList.remove(b.zbBox);
+      if (box) b.classList.add(box);
+      b.zbBox = box;
+    }
   };
   const draw = soon(() => {
-    const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
-    const keep = new Set(tabs);
-    for (const [t, b] of items) {
-      if (!keep.has(t)) {
-        b.remove();
-        items.delete(t);
-      }
+    if (Bar.gone) return;
+    const all = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
+    // (Bar › Only awake tabs: sleeping ones are in the chip's list.)
+    const tabs = bool("zenith.bar.tab-awake", false) ? all.filter(t => t.selected || !t.hasAttribute("pending")) : all;
+    for (const [t, b] of items) if (!tabs.includes(t)) items.delete(t);
+    const crowd = pref("zenith.bar.tab-crowd", "window"), n = tabs.length, cur = Math.max(0, tabs.indexOf(gBrowser.selectedTab));
+    const want = pref("zenith.bar.tab-look", "current");
+    // The look: yours while they fit; crowded, titles go first.
+    let look = want === "fit" ? "titles" : want;
+    if (rail()) look = want === "numbers" ? "numbers" : "icons";
+    else if (vertical) look = want === "numbers" ? "numbers" : "titles";
+    const fits = l => n * SIZE[l] <= room;
+    if (!vertical && crowd !== "shrink" && (want === "fit" || crowd === "window") && room) {
+      if (look === "titles" && !fits("titles")) look = (n - 1) * SIZE.current + 200 <= room ? "current" : "icons";
+      else if (look === "current" && !fits("current")) look = "icons";
     }
-    tabs.forEach((t, i) => {
-      let b = items.get(t);
-      if (!b) {
-        b = node("button", { type: "button", class: "zb-task" });
-        b.zbTab = t;
-        b.append(node("img", { alt: "" }), node("span", { class: "zb-task-label" }), node("span", { class: "zb-task-n" }));
-        items.set(t, b);
-      }
-      if (m.children[i] !== b) m.insertBefore(b, m.children[i] ?? null);
-      const img = b.firstChild, src = t.getAttribute("image") || "";
-      if (img.getAttribute("src") !== src) {
-        if (src) img.setAttribute("src", src);
-        else img.removeAttribute("src");
-      }
-      put(b.children[1], t.label);
-      put(b.children[2], `${i + 1}`);
-      b.title = t.label;
-      b.toggleAttribute("current", t.selected);
-      b.toggleAttribute("asleep", t.hasAttribute("pending"));
-      b.toggleAttribute("loud", t.hasAttribute("soundplaying"));
-      b.toggleAttribute("split", !!t.splitView);
-      const box = [...t.classList].find(c => c.startsWith("identity-color-")) ?? "";
-      if (b.zbBox !== box) {
-        if (b.zbBox) b.classList.remove(b.zbBox);
-        if (box) b.classList.add(box);
-        b.zbBox = box;
-      }
-    });
-    m.setAttribute("look", vertical && pref("zenith.bar.side-width", "rail") === "rail" ? (look() === "numbers" ? "numbers" : "icons") : look());
-    // More tabs than room: the strip scrolls, the tab you're on stays in
-    // view, and "+N" (how many) lists them all.
+    let shown = tabs, hiddenBefore = 0, hiddenAfter = 0;
+    if (crowd === "title" && n > parseInt(pref("zenith.bar.tab-crowd-count", "15"), 10)) {
+      // Past the count: the tab you're on, with its title, and the chip.
+      shown = [tabs[cur]].filter(Boolean);
+      look = vertical && rail() ? "icons" : "titles";
+    } else if (crowd === "window" && room && !fits(look)) {
+      // A window of tabs around the one you're on, "+N" for the rest.
+      const each = SIZE[look === "titles" ? "icons" : look] ?? SIZE.icons;
+      if (look === "titles") look = "icons";
+      const k = Math.max(1, Math.floor((room - 2 * (vertical ? 30 : 40)) / each));
+      const centre = pref("zenith.bar.tab-scroll", "nearest") === "centre";
+      if (centre || cur < start || cur >= start + k || selected === null) start = cur - Math.floor(k / 2);
+      start = Math.max(0, Math.min(start, n - k));
+      shown = tabs.slice(start, start + k);
+      hiddenBefore = start;
+      hiddenAfter = n - start - shown.length;
+    }
+    selected = gBrowser.selectedTab;
+    const nodes = shown.map(t => button(t));
+    shown.forEach((t, i) => paint(nodes[i], t, tabs.indexOf(t)));
+    put(before, `+${hiddenBefore}`);
+    put(after, `+${hiddenAfter}`);
+    before.title = `${hiddenBefore} more before`;
+    after.title = `${hiddenAfter} more after`;
+    const want2 = [...(hiddenBefore ? [before] : []), ...nodes, ...(hiddenAfter ? [after] : [])];
+    if (want2.length !== m.children.length || want2.some((x, i) => m.children[i] !== x)) m.replaceChildren(...want2);
+    m.setAttribute("look", look);
+    m.setAttribute("crowd", crowd);
+    // More tabs than room (shrinking or scrolling), sleeping ones left out,
+    // or only the one you're on: the chip says how many, and lists them.
     requestAnimationFrame(() => {
       if (Bar.gone) return;
       const over = vertical ? m.scrollHeight > m.clientHeight + 2 : m.scrollWidth > m.clientWidth + 2;
-      more.hidden = !over;
-      put(count, `${tabs.length}`);
-      const cur = items.get(gBrowser.selectedTab);
-      if (cur && cur !== shown) {
-        shown = cur;
-        cur.scrollIntoView({ block: "nearest", inline: "nearest" });
+      const missing = all.length - shown.length - hiddenBefore - hiddenAfter;
+      more.hidden = !(over || missing > 0);
+      put(count, `${all.length}`);
+      const b = items.get(gBrowser.selectedTab);
+      if (b?.isConnected && (b !== m.zbShown || pref("zenith.bar.tab-scroll", "nearest") === "centre")) {
+        m.zbShown = b;
+        const centre = pref("zenith.bar.tab-scroll", "nearest") === "centre";
+        b.scrollIntoView({ block: centre ? "center" : "nearest", inline: centre ? "center" : "nearest" });
       }
     });
   });
@@ -353,12 +397,17 @@ function tasks(box) {
     const t = e.button === 1 && e.target.closest(".zb-task")?.zbTab;
     if (t?.isConnected) gBrowser.removeTab(t, { animate: true });
   });
-  // The wheel scrolls the strip, as a browser's tab strip does (or, Bar ›
-  // The wheel over tabs, goes to the next or previous tab).
+  // The wheel scrolls the strip, as a browser's tab strip does (a window of
+  // tabs moves along), or (Bar › The wheel over tabs) goes to the next tab.
   m.addEventListener("wheel", e => {
     const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     if (Math.abs(d) < 1) return;
     if (pref("zenith.bar.tab-wheel", "scroll") === "switch") return gBrowser.tabContainer.advanceSelectedTab(d > 0 ? 1 : -1, true);
+    if (before.isConnected || after.isConnected) {
+      start += d > 0 ? 1 : -1;
+      selected = gBrowser.selectedTab;
+      return void draw();
+    }
     const px = d * (e.deltaMode === 1 ? 24 : e.deltaMode === 2 ? 200 : 1);
     if (vertical) m.scrollTop += px;
     else m.scrollLeft += px;
@@ -367,8 +416,10 @@ function tasks(box) {
   align();
   Undo.pref("zenith.bar.tab-align", align);
   const ro = new ResizeObserver(entries => {
-    room = entries.at(-1).contentRect.width;
-    if (pref("zenith.bar.tab-look", "current") === "fit") draw();
+    const r = entries.at(-1).contentRect, now = vertical ? r.height : r.width;
+    if (Math.abs(now - room) < 4) return;
+    room = now;
+    draw();
   });
   ro.observe(m);
   Undo.add(() => ro.disconnect());
@@ -378,7 +429,7 @@ function tasks(box) {
   });
   window.gZenWorkspaces?.addChangeListeners?.(draw);
   Undo.add(() => window.gZenWorkspaces?.removeChangeListeners?.(draw));
-  Undo.pref("zenith.bar.tab-look", draw);
+  for (const p of ["zenith.bar.tab-look", "zenith.bar.tab-crowd", "zenith.bar.tab-crowd-count", "zenith.bar.tab-awake", "zenith.bar.tab-scroll"]) Undo.pref(p, draw);
   draw();
 }
 
@@ -591,6 +642,33 @@ function tray(box) {
   box.append(m);
 }
 
+// The space's layout (Alt+Y): its picture and name; a click the next one.
+function layout(box) {
+  const L = window.ZenithLayouts;
+  if (!L) return;
+  const m = mod("layout", "button"), ic = icon("dwindle"), text = node("span");
+  m.append(ic, text);
+  box.append(m);
+  const draw = () => {
+    const how = L.of();
+    setIcon(ic, how);
+    put(text, { dwindle: "dwindle", master: "master", scroller: "scroll", monocle: "mono" }[how]);
+    m.title = `Layout: ${L.NAMES[how]} · a click (or Alt+Y): the next`;
+  };
+  m.addEventListener("click", () => L.cycle());
+  Undo.on(window, "ZenithLayout", draw);
+  draw();
+}
+
+// The overview (Alt+O), as a button.
+function overview(box) {
+  const m = mod("overview", "button");
+  m.title = "Overview (Alt+O)";
+  m.append(icon("overview"));
+  m.addEventListener("click", () => window.ZenithOverview?.toggle());
+  box.append(m);
+}
+
 // The clock, in your format; a click shows the date instead, and back.
 function clock(box) {
   const m = mod("clock", "button");
@@ -607,14 +685,23 @@ function clock(box) {
   };
   const DATE = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   let fmt = null, look = "";
+  const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "short" }), MONTH = new Intl.DateTimeFormat(undefined, { month: "short" });
+  // On a side bar (Bar › The clock on a side bar): stacked, and under the
+  // time nothing, the weekday, the seconds, the date, or the day over the month.
+  const sideLook = () => (m.closest(".zenith-bar[vertical]") ? pref("zenith.bar.side-clock", "auto") : null);
   const draw = () => {
     const now = new Date(), p = n => `${n}`.padStart(2, "0");
-    const rail = !!m.closest('.zenith-bar[vertical][width="rail"]');
+    const rail = !!m.closest('.zenith-bar[vertical][width="rail"]'), side = sideLook();
     const hm = `${p(now.getHours())}:${p(now.getMinutes())}`, dm = `${p(now.getDate())}.${p(now.getMonth() + 1)}`;
     put(day, "");
-    if (rail) {
-      put(text, look === "12h" ? fmt.format(now).replace(/\s+/, "\n") : `${p(now.getHours())}\n${p(now.getMinutes())}`);
-      if (alt || ["dhm", "iso", "hm-date"].includes(look)) put(day, dm);
+    m.setAttribute("side", side ?? "");
+    if (rail || (side && side !== "auto")) {
+      const time = look === "12h" ? fmt.format(now).replace(/\s+/, "\n") : `${p(now.getHours())}\n${p(now.getMinutes())}`;
+      put(text, side === "seconds" ? `${time}\n${p(now.getSeconds())}` : time);
+      if (side === "weekday") put(day, WEEKDAY.format(now));
+      else if (side === "date") put(day, dm);
+      else if (side === "stacked") put(day, `${now.getDate()}\n${MONTH.format(now).replace(/\.$/, "")}`);
+      else if (side === "auto" && (alt || ["dhm", "iso", "hm-date"].includes(look))) put(day, dm);
     } else if (alt) put(text, DATE.format(now));
     else if (look === "iso") put(text, `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())} ${hm}`);
     else if (look === "hm-date") put(text, `${hm} | ${dm}`);
@@ -628,7 +715,7 @@ function clock(box) {
     stop = null;
     if (look === "off") return;
     fmt = new Intl.DateTimeFormat(undefined, FORMATS[look] ?? FORMATS.hm);
-    stop = Tick.add(look === "hms" ? 1 : 60, draw);
+    stop = Tick.add(look === "hms" || sideLook() === "seconds" ? 1 : 60, draw);
     draw();
     requestAnimationFrame(() => fixWidth(m));
   };
@@ -642,6 +729,7 @@ function clock(box) {
     requestAnimationFrame(() => fixWidth(m));
   });
   Undo.pref("zenith.bar.clock", setup);
+  Undo.pref("zenith.bar.side-clock", setup);
   Undo.add(() => stop?.());
   setup();
 }
@@ -788,7 +876,7 @@ const EDGES = ["top", "bottom", "left", "right"];
 // Every module, by the name a bar's list uses (BarLoader.MODULES labels them).
 const MODULES = {
   launcher, spaces, mode: modeSlot, title, tabs: tasks, media, downloads, timers, trackers: privacy,
-  weather, memory: resources, appearance, extensions: tray, clock, buttons, power,
+  weather, memory: resources, appearance, extensions: tray, clock, buttons, power, layout, overview,
 };
 
 const Bar = {
@@ -850,6 +938,7 @@ const Bar = {
       bar.setAttribute("size", pref("zenith.bar.size", "30"));
       bar.setAttribute("font", pref("zenith.bar.font", "mono"));
       bar.setAttribute("marker", pref("zenith.bar.marker", "container"));
+      bar.setAttribute("hint", pref("zenith.bar.container-hint", "off"));
     }
     // (Another look, size or font: the fixed-width modules measured again.)
     requestAnimationFrame(() => {
@@ -896,7 +985,7 @@ const Bar = {
     const hides = this.bars.filter(b => b.hasAttribute("collapsible")).map(b => b.getAttribute("edge"));
     if (hides.length) document.documentElement.setAttribute("zenith-bar-hides", hides.join(" "));
     this.look();
-    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width", "zenith.bar.marker"]) Undo.pref(p, () => this.look());
+    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width", "zenith.bar.marker", "zenith.bar.container-hint"]) Undo.pref(p, () => this.look());
     this.mark();
     const mark = () => this.mark();
     window.gZenWorkspaces?.addChangeListeners?.(mark);

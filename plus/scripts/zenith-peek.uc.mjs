@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.15.3
+// @version        0.16.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -1296,6 +1296,15 @@ function watchPeekKeys() {
     } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
       e.preventDefault();
       Peek.keep();
+    } else if (e.target === gZenGlanceManager.detachedBrowser &&
+               (((e.key === "l" || e.key === "L") && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) ||
+                (e.key === "F4" && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey))) {
+      // Ctrl+L or F4 in a Peek: its own address, in Peek's prompt (Enter goes
+      // there in the Peek), not the page beneath's in Zen's URL bar.
+      e.preventDefault();
+      e.stopPropagation();
+      const spec = gZenGlanceManager.detachedBrowser.currentURI?.spec ?? "";
+      Prompt.show(spec.startsWith("about:blank") ? "" : spec);
     }
   };
   window.addEventListener("keydown", onKey, true);

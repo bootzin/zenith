@@ -1,0 +1,113 @@
+/* about:zenith-fetch. Colours from the window it's in (fetch.mjs copies the
+   palette and Zenith's accent onto :root). */
+
+:root {
+  --ink: var(--zth-pal-text, light-dark(rgb(24 24 28), rgb(232 232 238)));
+  --dim: color-mix(in srgb, var(--ink) 62%, transparent);
+  --accent: var(--zth-pal-accent, var(--zth-accent, AccentColor));
+  --second: var(--zth-pal-second, color-mix(in srgb, var(--accent) 60%, var(--ink)));
+  color-scheme: light dark;
+  background: var(--zth-pal-base, light-dark(rgb(246 246 248), rgb(18 18 22)));
+  color: var(--ink);
+  font: 15px / 1.5 "JetBrainsMono Nerd Font", "JetBrains Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  display: grid;
+  place-content: center;
+  gap: 24px;
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+#card {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+#logo {
+  margin: 0;
+  font: inherit;
+  line-height: 1.05;
+  font-weight: 700;
+  background: linear-gradient(160deg, var(--accent), var(--second));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  user-select: none;
+}
+
+#who {
+  font-weight: 700;
+
+  & b {
+    color: var(--accent);
+  }
+}
+
+#rule {
+  color: var(--dim);
+}
+
+#lines {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0 12px;
+  margin: 4px 0 14px;
+
+  & dt {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  & dd {
+    margin: 0;
+  }
+}
+
+#swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 28px);
+  gap: 0;
+
+  & span {
+    height: 18px;
+  }
+}
+
+#actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  padding: 4px 14px;
+  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+#note {
+  color: var(--dim);
+}
+
+@media (max-width: 760px) {
+  #card {
+    flex-direction: column;
+  }
+}

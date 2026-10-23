@@ -3077,13 +3077,14 @@ background: var(--zb-mark);
 }
 & .zb-mod[mod="tasks"] {
 flex: 1;
-gap: 2px;
+gap: 5px;
 padding: 0 4px;
 overflow: hidden;
 justify-content: flex-start;
 }
 & .zb-task {
 appearance: none;
+position: relative;
 flex: none;
 display: flex;
 align-items: center;
@@ -3105,8 +3106,10 @@ width: 16px;
 height: 16px;
 }
 & img:not([src]) {
-border-radius: 50%;
-background: var(--zb-surface);
+content: url("chrome://global/skin/icons/defaultFavicon.svg");
+-moz-context-properties: fill;
+fill: currentColor;
+opacity: 0.7;
 }
 & .zb-task-label {
 display: none;
@@ -3119,15 +3122,19 @@ font-weight: 500;
 display: none;
 }
 &:hover {
-background: var(--zb-surface);
-}
-&[class*="identity-color-"] {
-box-shadow: inset 0 -1px var(--identity-tab-color, transparent);
+background: color-mix(in srgb, var(--zb-ink) 9%, transparent);
 }
 &[current] {
-background: var(--zb-surface);
+background: color-mix(in srgb, var(--zb-task-mark, var(--zb-mark)) 22%, transparent);
 color: var(--zb-ink);
-box-shadow: inset 0 -2px var(--zb-task-mark, var(--zb-mark));
+&::before {
+content: "";
+position: absolute;
+inset: auto 6px 0 6px;
+height: 2px;
+border-radius: 1px;
+background: var(--zb-task-mark, var(--zb-mark));
+}
 }
 &[asleep] {
 color: color-mix(in srgb, var(--zb-ink) 58%, transparent);
@@ -3416,29 +3423,84 @@ transition-delay: 0.06s;
 .zenith-bar[marker="accent"] {
 --zb-mark: var(--zb-accent);
 }
-.zenith-bar[marker="container"] .zb-task[class*="identity-color-"] {
+.zenith-bar[marker="container"] .zb-task[class*="identity-color-"]:not(.identity-color-toolbar) {
 --zb-task-mark: var(--identity-tab-color);
 }
 .zenith-bar[vertical] .zb-task {
 height: auto;
 min-height: 30px;
-&[current] {
-box-shadow: inset -3px 0 var(--zb-task-mark, var(--zb-mark));
+&[current]::before {
+inset: 6px 0 6px auto;
+width: 3px;
+height: auto;
 }
-&[class*="identity-color-"]:not([current]) {
-box-shadow: inset -1px 0 var(--identity-tab-color, transparent);
 }
-}
-.zenith-bar[vertical][edge="right"] .zb-task {
-&[current] {
-box-shadow: inset 3px 0 var(--zb-task-mark, var(--zb-mark));
-}
-&[class*="identity-color-"]:not([current]) {
-box-shadow: inset 1px 0 var(--identity-tab-color, transparent);
-}
+.zenith-bar[vertical][edge="right"] .zb-task[current]::before {
+inset: 6px auto 6px 0;
 }
 .zenith-bar[vertical][width="rail"] .zb-task {
 min-height: 34px;
+}
+.zenith-bar:is([hint="dot"], [hint="line"]) .zb-task[class*="identity-color-"]:not([current])::after {
+content: "";
+position: absolute;
+background: var(--identity-tab-color);
+}
+.zenith-bar[hint="dot"] .zb-task[class*="identity-color-"]:not([current])::after {
+width: 5px;
+height: 5px;
+border-radius: 50%;
+inset: auto 3px 3px auto;
+}
+.zenith-bar[hint="line"] .zb-task[class*="identity-color-"]:not([current])::after {
+inset: auto 30% 0 30%;
+height: 1.5px;
+border-radius: 1px;
+}
+.zenith-bar[vertical][hint="dot"] .zb-task[class*="identity-color-"]:not([current])::after {
+inset: auto auto 2px calc(50% - 2.5px);
+}
+.zenith-bar[vertical][hint="line"] .zb-task[class*="identity-color-"]:not([current])::after {
+inset: 30% 0 30% auto;
+width: 1.5px;
+height: auto;
+}
+.zenith-bar[vertical][edge="right"][hint="line"] .zb-task[class*="identity-color-"]:not([current])::after {
+inset: 30% auto 30% 0;
+}
+.zenith-bar .zb-mod[mod="tasks"][crowd="shrink"] > .zb-task:not(.zb-task-more) {
+flex: 0 1 auto;
+min-width: 30px;
+}
+.zenith-bar .zb-task.zb-task-more {
+min-width: 0;
+padding: 0 7px;
+color: var(--zb-ink);
+font-weight: 600;
+opacity: 0.8;
+}
+.zenith-bar[vertical] .zb-task.zb-task-more {
+min-height: 24px;
+padding: 0;
+font-size: 10.5px;
+}
+.zenith-bar[vertical] .zb-mod[mod="clock"] {
+& > span {
+white-space: pre;
+text-align: center;
+line-height: 1.15;
+}
+&[side="hm"] > span:first-child {
+font-size: 14px;
+font-weight: 700;
+}
+&[side="seconds"] > span:first-child {
+font-size: 11.5px;
+}
+&[side="stacked"] .zb-clock-date {
+padding-top: 3px;
+border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+}
 }
 .zenith-bar .zb-mod[mod="tasks"] {
 &[align="centre"] > .zb-task:first-child, &[align="end"] > .zb-task:first-child {
@@ -3467,6 +3529,12 @@ display: none !important;
 }
 :root[zen-compact-mode="true"][zenith-bar-hides~="left"]:not([zen-right-side="true"]) #navigator-toolbox:not([zen-user-show], [zen-has-hover]), :root[zen-compact-mode="true"][zenith-bar-hides~="right"][zen-right-side="true"] #navigator-toolbox:not([zen-user-show], [zen-has-hover]) {
 pointer-events: none !important;
+}
+:root:is([zenith-palette="light"], [zenith-ink="dark"]) .zenith-bar .zb-task img[src], :root:is([zenith-palette="light"], [zenith-ink="dark"]) .zs-pop .zs-fav[src] {
+mix-blend-mode: multiply;
+}
+:root[zenith-focus] .zenith-bar {
+display: none !important;
 }
 .zenith-bar .zb-mod[mod="tasks-more"] {
 flex: none;
@@ -3509,6 +3577,21 @@ padding: 5px 0;
 }
 :is(.zb-i, .zs-i)[icon="settings"] {
 --zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M7 1.5h2l.4 1.8 1.2.5 1.6-1 1.4 1.4-1 1.6.5 1.2 1.8.4v2l-1.8.4-.5 1.2 1 1.6-1.4 1.4-1.6-1-1.2.5L9 14.5H7l-.4-1.8-1.2-.5-1.6 1-1.4-1.4 1-1.6-.5-1.2L1.5 9V7l1.8-.4.5-1.2-1-1.6 1.4-1.4 1.6 1 1.2-.5zM8 5.8a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4z'/%3E%3C/svg%3E");
+}
+:is(.zb-i, .zs-i)[icon="dwindle"] {
+--zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.5 2.5h13v11h-13zM3 4v8h4.5V4zm6 0v3.2h4V4zm0 4.8V12h1.8V8.8zm3.3 0V12h.7V8.8z'/%3E%3C/svg%3E");
+}
+:is(.zb-i, .zs-i)[icon="master"] {
+--zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.5 2.5h13v11h-13zM3 4v8h5.5V4zm7 0v3.2h3V4zm0 4.8V12h3V8.8z'/%3E%3C/svg%3E");
+}
+:is(.zb-i, .zs-i)[icon="scroller"] {
+--zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M.5 3.5h4v9h-4zm5.5-1h4v11H6zm5.5 1h4v9h-4zM7.5 4v8h1V4z'/%3E%3C/svg%3E");
+}
+:is(.zb-i, .zs-i)[icon="monocle"] {
+--zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.5 2.5h13v11h-13zM3 4v8h10V4z'/%3E%3C/svg%3E");
+}
+:is(.zb-i, .zs-i)[icon="overview"] {
+--zb-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 2.5h5.5v4.5H1.5zM9 2.5h5.5v4.5H9zM1.5 9h5.5v4.5H1.5zM9 9h5.5v4.5H9z'/%3E%3C/svg%3E");
 }
 :is(.zb-i, .zs-i)[icon="folder"] {
 --zb-icon: url("chrome://browser/skin/zen-icons/folder.svg");
@@ -3562,6 +3645,232 @@ color-scheme: dark;
 }
 :root[zenith-palette] {
 --zth-accent: var(--zth-pal-accent) !important;
+}
+#zenith-hot-corner {
+position: fixed;
+z-index: 50;
+width: 10px;
+height: 10px;
+&[corner="top-left"] {
+inset: 0 auto auto 0;
+}
+&[corner="top-right"] {
+inset: 0 0 auto auto;
+}
+&[corner="bottom-left"] {
+inset: auto auto 0 0;
+}
+&[corner="bottom-right"] {
+inset: auto 0 0 auto;
+}
+}
+#zenith-overview {
+--zo-ink: var(--zth-pal-text, light-dark(rgb(24 24 28), rgb(238 238 243)));
+--zo-card: var(--zth-pal-surface, light-dark(rgb(255 255 255 / 0.9), rgb(44 44 52 / 0.9)));
+--zo-accent: var(--zth-pal-accent, var(--zth-accent, AccentColor));
+position: fixed;
+inset: 0;
+z-index: 460 !important;
+display: flex;
+flex-direction: column;
+gap: 14px;
+padding: 22px 28px 28px;
+box-sizing: border-box;
+background: color-mix(in srgb, var(--zth-pal-base, light-dark(rgb(236 236 240), rgb(16 16 20))) 95%, transparent);
+color: var(--zo-ink);
+font: 13px / 1.35 system-ui, sans-serif;
+opacity: 0;
+transition: opacity 0.15s ease;
+&[open] {
+opacity: 1;
+}
+& .zo-top, & .zo-body {
+transition: scale 0.18s ease;
+scale: 1.04;
+}
+&[open] :is(.zo-top, .zo-body) {
+scale: 1;
+}
+&[closing] :is(.zo-top, .zo-body) {
+scale: 1.04;
+}
+& .zo-top {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 12px;
+}
+& .zo-find {
+width: min(480px, 80%);
+padding: 8px 14px;
+border: 1px solid color-mix(in srgb, var(--zo-ink) 18%, transparent);
+border-radius: 999px;
+background: var(--zo-card);
+color: inherit;
+font: inherit;
+outline: none;
+&:focus {
+border-color: var(--zo-accent);
+}
+}
+& .zo-spaces {
+display: flex;
+flex-wrap: wrap;
+justify-content: center;
+gap: 8px;
+}
+& .zo-space {
+appearance: none;
+display: flex;
+align-items: center;
+gap: 7px;
+padding: 6px 12px;
+border: 1px solid color-mix(in srgb, var(--zo-ink) 14%, transparent);
+border-radius: 10px;
+background: var(--zo-card);
+color: inherit;
+font: inherit;
+cursor: pointer;
+&[current] {
+border-color: var(--zo-accent);
+box-shadow: inset 0 -2px var(--zo-accent);
+}
+&[dropping] {
+background: color-mix(in srgb, var(--zo-accent) 25%, var(--zo-card));
+}
+& .zo-count {
+opacity: 0.6;
+font-variant-numeric: tabular-nums;
+}
+}
+& .zo-body {
+flex: 1;
+min-height: 0;
+overflow: auto;
+padding: 4px;
+}
+& .zo-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+gap: 16px;
+}
+& .zo-row {
+margin-bottom: 18px;
+padding: 8px;
+border-radius: 12px;
+&[here] {
+background: color-mix(in srgb, var(--zo-accent) 8%, transparent);
+}
+&[dropping] {
+outline: 2px solid var(--zo-accent);
+}
+}
+& .zo-row-head {
+display: flex;
+gap: 8px;
+margin: 0 4px 8px;
+font-weight: 600;
+}
+& .zo-row-cards {
+display: flex;
+gap: 12px;
+overflow-x: auto;
+& .zo-card {
+flex: none;
+width: 200px;
+}
+}
+& .zo-card {
+position: relative;
+display: flex;
+flex-direction: column;
+gap: 6px;
+padding: 6px;
+border-radius: 12px;
+background: var(--zo-card);
+box-shadow: 0 4px 18px rgb(0 0 0 / 0.18);
+outline: none;
+cursor: pointer;
+transition: transform 0.1s ease;
+&:hover, &:focus {
+transform: translateY(-2px);
+box-shadow: 0 0 0 2px var(--zo-accent), 0 8px 24px rgb(0 0 0 / 0.22);
+}
+&[current] {
+box-shadow: 0 0 0 2px var(--zo-accent), 0 4px 18px rgb(0 0 0 / 0.18);
+}
+&[asleep] .zo-pic {
+opacity: 0.7;
+}
+& .zo-pic {
+position: relative;
+aspect-ratio: 16 / 10;
+border-radius: 8px;
+background: color-mix(in srgb, var(--zo-ink) 7%, transparent) top left / cover no-repeat;
+display: grid;
+place-items: center;
+overflow: hidden;
+}
+& .zo-icon {
+width: 32px;
+height: 32px;
+}
+& img:not([src]) {
+content: url("chrome://global/skin/icons/defaultFavicon.svg");
+-moz-context-properties: fill;
+fill: currentColor;
+opacity: 0.7;
+}
+& .zo-tile {
+position: absolute;
+margin: 1px;
+border-radius: 4px;
+background: color-mix(in srgb, var(--zo-ink) 10%, transparent) top left / cover no-repeat;
+&:hover {
+outline: 2px solid var(--zo-accent);
+}
+}
+& .zo-name {
+display: flex;
+align-items: center;
+gap: 6px;
+min-width: 0;
+padding: 0 2px;
+& img {
+flex: none;
+width: 16px;
+height: 16px;
+}
+& span {
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+}
+}
+& .zo-x {
+position: absolute;
+top: 10px;
+right: 10px;
+appearance: none;
+width: 24px;
+height: 24px;
+border: none;
+border-radius: 50%;
+background: rgb(0 0 0 / 0.55);
+color: white;
+font: inherit;
+cursor: pointer;
+opacity: 0;
+}
+&:hover .zo-x {
+opacity: 1;
+}
+}
+& .zo-empty {
+padding: 30px;
+text-align: center;
+opacity: 0.6;
+}
 }
 :is(.zb-i, .zs-i) {
 flex: none;
@@ -4136,6 +4445,98 @@ align-items: flex-start;
 padding-top: 14vh;
 &[hidden] {
 display: none;
+}
+}
+#zenith-switcher[look="dmenu"] {
+padding-top: 0;
+align-items: flex-start;
+& #zenith-switcher-box {
+display: flex;
+align-items: center;
+gap: 6px;
+width: 100%;
+height: 34px;
+padding: 0 8px;
+border-radius: 0;
+animation: none;
+}
+& #zenith-switcher-modes {
+display: none;
+}
+& #zenith-switcher-input {
+flex: 0 0 min(320px, 30%);
+width: auto;
+padding: 4px 8px !important;
+font-size: var(--zth-font) !important;
+}
+& #zenith-switcher-list {
+flex: 1;
+display: flex;
+gap: 4px;
+max-height: none;
+margin: 0;
+padding: 0;
+border: none;
+overflow: hidden;
+}
+& .zenith-switch-row {
+flex: none;
+min-height: 26px;
+max-width: 260px;
+padding: 0 10px;
+& .zenith-switch-sub, & .zenith-switch-space {
+display: none;
+}
+& .zenith-switch-title {
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+}
+}
+& #zenith-switcher-foot {
+display: none;
+}
+}
+#zenith-switcher[look="grid"] {
+& #zenith-switcher-box {
+width: min(780px, 90vw);
+}
+& #zenith-switcher-list {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+gap: 6px;
+max-height: 60vh;
+padding: 8px 0;
+}
+& .zenith-switch-row {
+flex-direction: column;
+justify-content: center;
+gap: 8px;
+min-height: 96px;
+padding: 10px 8px;
+text-align: center;
+& .zenith-switch-icon {
+width: 34px;
+height: 34px;
+font-size: 26px;
+& img {
+width: 32px;
+height: 32px;
+}
+}
+& .zenith-switch-text {
+max-width: 100%;
+}
+& .zenith-switch-title {
+display: -webkit-box;
+-webkit-line-clamp: 2;
+-webkit-box-orient: vertical;
+overflow: hidden;
+font-size: 0.92em;
+}
+& .zenith-switch-sub, & .zenith-switch-space {
+display: none;
+}
 }
 }
 #zenith-switcher-box {

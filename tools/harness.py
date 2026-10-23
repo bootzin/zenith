@@ -115,6 +115,9 @@ def setup_profile():
             if not entry["property"].startswith("zenith."):
                 continue
             prefs[entry["property"]] = entry.get("defaultValue", False) if entry["type"] == "checkbox" else ""
+    # The rice file's home: a folder of the test profile's, never your own
+    # ~/.config/zenith (a check writes and rewrites zenith.conf).
+    prefs["zenith.internal.rice.home"] = str(TEST_PROFILE / "rice-home")
     # A check can add its own prefs for this run (JSON in ZENITH_EXTRA_PREFS);
     # after the reset above, so Zenith settings can be among them.
     prefs.update(json.loads(os.environ.get("ZENITH_EXTRA_PREFS", "{}")))

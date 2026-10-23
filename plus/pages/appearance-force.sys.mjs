@@ -1,21 +1,48 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Pages forced dark or light (Zenith Plus, Pages › When pages are set dark
-// or light: Invert those that don't follow). Firefox asks every page for
-// dark or light (prefers-color-scheme); many sites don't listen. With pages
-// set dark (or light), a page that's still light (or dark) once it has
-// loaded is inverted, as Dark Reader's filter mode does: the page's colours
-// turned over, its pictures and videos turned back. A page that follows,
-// or a site in Pages › Sites left alone, is left as it is.
+// Pages forced dark or light (Zenith Plus, Pages › Pages set dark or light:
+// Invert those that don't follow). Firefox asks every page for dark or light
+// (prefers-color-scheme); many sites don't listen. With pages set dark (or
+// light), a page that's still light (or dark) once it has loaded is
+// inverted, as Dark Reader's filter mode does: the page's colours turned
+// over, its pictures and videos turned back. A page that follows, or a site
+// in Pages › Sites never inverted, is left as it is.
 //
-// A window actor: this file runs inside the page's process. It reads the
-// browser's settings there (they're shared with every process) and only
-// changes how the page is drawn; nothing goes back to the browser.
+// Two halves of a window actor. The browser's half decides (a page's own
+// process can't read Zenith's text settings: Firefox keeps those from it)
+// and tells the page's half, which measures the page and inverts it or
+// not, at once: when the page loads, when you change the setting, when the
+// page changes its own colours. Nothing goes back but the question.
 
 const { setTimeout, clearTimeout } = ChromeUtils.importESModule("resource://gre/modules/Timer.sys.mjs");
 
 const OVERRIDE = "layout.css.prefers-color-scheme.content-override"; // 0 dark, 1 light
 const HOW = "zenith.plus.appearance-force"; // "invert" (as it comes), "palette", "off"
 const SKIP = "zenith.plus.appearance-skip"; // sites left alone, comma-separated
+
+/* --- The browser's half: what a page should be ------------------------------------ */
+
+export function wanted(host = "") {
+  const P = Services.prefs;
+  if ((P.getStringPref(HOW, "") || "invert") !== "invert" || !P.prefHasUserValue(OVERRIDE)) return null;
+  const mode = { 0: "dark", 1: "light" }[P.getIntPref(OVERRIDE, 2)] ?? null;
+  if (!mode) return null;
+  host = host.replace(/^www\./, "");
+  const skip = P.getStringPref(SKIP, "").split(",").map(s => s.trim().replace(/^www\./, "")).filter(Boolean);
+  return host && skip.some(s => host === s || host.endsWith(`.${s}`)) ? null : mode;
+}
+
+export class ZenithForceParent extends JSWindowActorParent {
+  receiveMessage(msg) {
+    if (msg.name !== "want") return null;
+    let host = "";
+    try {
+      host = this.manager.documentURI?.host ?? "";
+    } catch {}
+    return wanted(host);
+  }
+}
+
+/* --- The page's half ------------------------------------------------------------------ */
 
 // The page's colours turned over (hue turned back, so a red stays red),
 // and what's a picture turned back again.
@@ -40,47 +67,40 @@ function lightness(colour) {
 
 export class ZenithForceChild extends JSWindowActorChild {
   handleEvent(e) {
-    if (e.type === "DOMContentLoaded" || e.type === "pageshow") this.start();
+    if (e.type === "DOMContentLoaded" || e.type === "pageshow") this.ask();
   }
 
-  start() {
-    if (this.on) return this.check();
-    this.on = true;
-    this.follow = () => this.check();
-    for (const p of [OVERRIDE, HOW, SKIP]) Services.prefs.addObserver(p, this.follow);
-    // (A page may change its own colours as the scheme it's asked for
-    // changes, or a moment after loading: looked at again then.)
+  // (The browser's half says "update" when the setting changes.)
+  receiveMessage(msg) {
+    if (msg.name === "update") this.ask();
+  }
+
+  async ask() {
     try {
-      this.media = this.contentWindow.matchMedia("(prefers-color-scheme: dark)");
-      this.media.addEventListener("change", this.follow);
-    } catch {}
+      this.want = await this.sendQuery("want");
+    } catch {
+      return;
+    }
+    if (!this.watching) {
+      this.watching = true;
+      // A page may change its own colours as the scheme it's asked for
+      // changes, or a moment after loading: looked at again then.
+      this.follow = () => this.check();
+      try {
+        this.media = this.contentWindow.matchMedia("(prefers-color-scheme: dark)");
+        this.media.addEventListener("change", this.follow);
+      } catch {}
+    }
     this.check();
-    this.later = setTimeout(() => this.check(), 1500);
+    clearTimeout(this.later);
+    if (this.want) this.later = setTimeout(() => this.check(), 1500);
   }
 
   didDestroy() {
-    if (!this.on) return;
-    for (const p of [OVERRIDE, HOW, SKIP]) Services.prefs.removeObserver(p, this.follow);
     try {
       this.media?.removeEventListener("change", this.follow);
     } catch {}
     clearTimeout(this.later);
-  }
-
-  // "dark", "light" or null: what pages are set to, if Zenith inverts.
-  wanted() {
-    const P = Services.prefs;
-    if (P.getStringPref(HOW, "") !== "" && P.getStringPref(HOW, "") !== "invert") return null;
-    if (!P.prefHasUserValue(OVERRIDE)) return null;
-    const mode = { 0: "dark", 1: "light" }[P.getIntPref(OVERRIDE, 2)] ?? null;
-    if (!mode) return null;
-    let host = "";
-    try {
-      host = this.document.location.hostname.replace(/^www\./, "");
-    } catch {}
-    const skip = P.getStringPref(SKIP, "").split(",").map(s => s.trim().replace(/^www\./, "")).filter(Boolean);
-    if (host && skip.some(s => host === s || host.endsWith(`.${s}`))) return null;
-    return mode;
   }
 
   // Is the page itself dark? Its root's or body's background, else what
@@ -98,17 +118,12 @@ export class ZenithForceChild extends JSWindowActorChild {
   }
 
   check() {
-    let want = null;
-    try {
-      want = this.wanted();
-    } catch {}
     const doc = this.document;
-    if (!doc?.documentElement || (doc.contentType !== "text/html" && !doc.contentType?.includes("xml"))) return this.set(false);
-    if (!want) return this.set(false);
+    if (!this.want || !doc?.documentElement || (doc.contentType !== "text/html" && !doc.contentType?.includes("xml"))) return this.set(false);
     const dark = this.dark();
     if (dark === null) return;
     // (The page's own colours are measured: the filter doesn't change them.)
-    this.set(dark !== (want === "dark"));
+    this.set(dark !== (this.want === "dark"));
   }
 
   set(on) {

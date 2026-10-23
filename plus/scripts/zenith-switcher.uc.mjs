@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.15.3
+// @version        0.16.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -244,6 +244,11 @@ const COMMANDS = [
   { name: "appearance", arg: "dark, light or auto", text: "How pages look: dark, light or automatic", ok: () => !!window.ZenithAppearance,
     run: a => (/^d/i.test(a) ? window.ZenithAppearance.set("dark") : /^l/i.test(a) ? window.ZenithAppearance.set("light")
              : /^a/i.test(a) ? window.ZenithAppearance.set("auto") : window.ZenithAppearance.toggle()) },
+  { name: "fetch", text: "Your setup at a glance, as fastfetch prints a system's", ok: () => !!window.ZenithFetch, run: () => window.ZenithFetch.open() },
+  { name: "overview", text: "Every tab as a picture (Alt+O)", ok: () => !!window.ZenithOverview, run: () => window.ZenithOverview.toggle() },
+  { name: "layout", arg: "dwindle, master, scroller or monocle", text: "This space's layout (Alt+Y: the next)", ok: () => !!window.ZenithLayouts,
+    run: a => (a ? window.ZenithLayouts.set(window.ZenithLayouts.ALL.find(x => x.startsWith(a.toLowerCase())) ?? "") : window.ZenithLayouts.cycle()) },
+  { name: "rice", text: "Read ~/.config/zenith/zenith.conf again (Alt+Shift+C)", ok: () => !!window.ZenithRice, run: () => window.ZenithRice.reload(true) },
   { name: "dash", text: "The Dash: calendar, weather, media, timers, toggles (Alt+N)", ok: () => !!window.ZenithDash, run: () => window.ZenithDash.toggle() },
   { name: "focus", text: "Focus mode on or off (Alt+Z)", ok: () => !!window.ZenithFocus, run: () => window.ZenithFocus.toggle() },
   { name: "compact", text: "Compact mode on or off", ok: () => !!window.gZenCompactModeManager,
@@ -433,6 +438,8 @@ const Switcher = {
     // Fast start: whatever hasn't started yet starts now (a command may need it).
     window.zenithLater?.now();
     if (!this.host) this.build();
+    this.look = Services.prefs.getStringPref("zenith.launcher.look", "") || "centred";
+    this.host.setAttribute("look", this.look);
     this.host.hidden = false;
     this.input.value = text;
     this.setMode(mode, false);
@@ -538,11 +545,22 @@ const Switcher = {
       });
       this.list.append(row);
     });
-    this.list.children[this.selected]?.scrollIntoView({ block: "nearest" });
+    this.list.children[this.selected]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  },
+
+  // How many tiles a row of the grid holds.
+  across() {
+    const rows = [...this.list.children];
+    return rows.filter(r => Math.abs(r.offsetTop - rows[0]?.offsetTop) < 4).length || 1;
   },
 
   move(by) {
     if (!this.items.length) return;
+    // (The grid's up and down stop at its first and last rows.)
+    if (this.look === "grid" && Math.abs(by) > 1) {
+      const to = this.selected + by;
+      if (to < 0 || to >= this.items.length) return;
+    }
     this.selected = (this.selected + by + this.items.length) % this.items.length;
     this.render();
   },
@@ -585,12 +603,19 @@ const Switcher = {
     } else if (e.key === "Tab" && ctrl) {
       e.preventDefault();
       this.stepMode(e.shiftKey ? -1 : 1);
+    } else if (this.look === "grid" && (e.key === "ArrowRight" || e.key === "ArrowLeft") && this.input.selectionStart === this.input.value.length) {
+      // (In the grid: left and right along a row, up and down a row at a time.)
+      e.preventDefault();
+      this.move(e.key === "ArrowRight" ? 1 : -1);
+    } else if (this.look === "dmenu" && (e.key === "ArrowRight" || e.key === "ArrowLeft") && this.input.selectionStart === this.input.value.length) {
+      e.preventDefault();
+      this.move(e.key === "ArrowRight" ? 1 : -1);
     } else if (e.key === "ArrowDown" || (ctrl && e.key === "n") || (e.key === "Tab" && !e.shiftKey)) {
       e.preventDefault();
-      this.move(1);
+      this.move(this.look === "grid" && e.key === "ArrowDown" ? this.across() : 1);
     } else if (e.key === "ArrowUp" || (ctrl && e.key === "p") || (e.key === "Tab" && e.shiftKey)) {
       e.preventDefault();
-      this.move(-1);
+      this.move(this.look === "grid" && e.key === "ArrowUp" ? -this.across() : -1);
     } else if (e.key === "Enter") {
       e.preventDefault();
       // (Shift+Enter: a site or search opens in this tab.)

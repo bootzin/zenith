@@ -26,6 +26,7 @@
         <a href="#bar">The bar and the Dash</a>
         <a href="#reading">Reading and pages</a>
         <a href="#tabs">Tidy tabs</a>
+        <a href="#rice">Your rice file</a>
         <a href="#looks">Colours and wallpaper</a>
         <a href="#keys">Every key</a>
       </nav>
@@ -71,6 +72,9 @@
             <dt>Alt+E</dt><dd>Flip the split's direction</dd>
             <dt>Alt+R</dt><dd>Resize mode: H J K L or arrows, <kbd>=</kbd> evens out, Esc leaves</dd>
             <dt>Alt+F</dt><dd>The tile you're on fills the split, and back</dd>
+            <dt>Alt+Y</dt><dd>The space's next layout: dwindle, master and stack, scroller (niri's columns), monocle</dd>
+            <dt>Alt+Shift+Y</dt><dd>Master: the tile becomes the master · Scroller: the column's next width</dd>
+            <dt>Alt+O</dt><dd>The overview: every tab as a picture (also the window's top-left corner)</dd>
             <dt>Alt+drag</dt><dd>A tile onto another: the middle swaps, an edge puts it there</dd>
             <dt>Alt+right-drag</dt><dd>Resize a tile</dd>
           </dl>
@@ -150,6 +154,21 @@
           </dl>
           <div class="cards">
             <div class="card"><kbd>Alt+Shift+T</kbd><b>The tab manager</b><span>Nothing happens until you press something.</span><button type="button" data-try="tabs">Try it</button></div>
+          </div>
+        </section>
+
+        <section id="rice" data-words="rice config file dotfiles hyprlang hyprland conf share fetch neofetch fastfetch">
+          <h2>Your rice file</h2>
+          <p>Your whole setup can live in one file, <code>~/.config/zenith/zenith.conf</code>, in Hyprland's config language: palette, bars, layouts, keys. Keep it in your dotfiles, share it; Alt+Shift+C reads it again. Settings › Shell › The rice file writes yours.</p>
+          <dl class="rows">
+            <dt>palette = nord</dt><dd>Any setting: <code>section { name = value }</code>, or <code>section:name = value</code></dd>
+            <dt>bar { top { modules = … } }</dt><dd>A bar and what it shows: <code>spaces mode | tabs | clock</code></dd>
+            <dt>bind = $mod SHIFT, H, move-left</dt><dd>A Shell key (the names are Alt+Shift+/'s)</dd>
+            <dt>:fetch</dt><dd>Your setup as fastfetch prints a system's, for a screenshot</dd>
+          </dl>
+          <div class="cards">
+            <div class="card"><kbd>:fetch</kbd><b>Your setup at a glance</b><span>about:zenith-fetch.</span><button type="button" data-try="fetch">Try it</button></div>
+            <div class="card"><kbd>Alt+O</kbd><b>The overview</b><span>Esc, Alt+O or a click away closes it.</span><button type="button" data-try="overview">Try it</button></div>
           </div>
         </section>
 
