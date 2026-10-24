@@ -2344,7 +2344,7 @@ color: var(--zth-ink-dim);
 #zenith-peek {
 position: fixed;
 inset: 0;
-z-index: 200;
+z-index: 200 !important;
 display: flex;
 justify-content: center;
 align-items: flex-start;
@@ -3444,7 +3444,7 @@ inset: 6px auto 6px 0;
 .zenith-bar[vertical][width="rail"] .zb-task {
 min-height: 34px;
 }
-.zenith-bar[hint="top"] .zb-task[class*="identity-color-"]:not([current])::after {
+.zenith-bar:is([hint="top"], [hint="bottom"], [hint="left"], [hint="right"]) .zb-task[class*="identity-color-"]:not([current])::after {
 content: "";
 position: absolute;
 inset: 0 4px auto 4px;
@@ -3452,20 +3452,24 @@ height: 2px;
 border-radius: 0 0 2px 2px;
 background: var(--identity-tab-color);
 }
-.zenith-bar[vertical][hint="top"] .zb-task[class*="identity-color-"]:not([current])::after {
-inset: 6px 0 6px auto;
+.zenith-bar[hint="bottom"] .zb-task[class*="identity-color-"]:not([current])::after {
+inset: auto 4px 0 4px;
+border-radius: 2px 2px 0 0;
+}
+.zenith-bar:is([hint="left"], [hint="right"]) .zb-task[class*="identity-color-"]:not([current])::after {
+inset: 4px auto 4px 0;
 width: 2px;
 height: auto;
-border-radius: 2px 0 0 2px;
-}
-.zenith-bar[vertical][edge="right"][hint="top"] .zb-task[class*="identity-color-"]:not([current])::after {
-inset: 6px auto 6px 0;
 border-radius: 0 2px 2px 0;
+}
+.zenith-bar[hint="right"] .zb-task[class*="identity-color-"]:not([current])::after {
+inset: 4px 0 4px auto;
+border-radius: 2px 0 0 2px;
 }
 .zenith-bar[hint="ring"] .zb-task[class*="identity-color-"] img {
 border-radius: 50%;
 outline: 1.5px solid var(--identity-tab-color);
-outline-offset: 1.5px;
+outline-offset: 3px;
 }
 .zenith-bar[hint="tint"] .zb-task[class*="identity-color-"]:not([current]) {
 background: color-mix(in srgb, var(--identity-tab-color) 18%, transparent);
@@ -3532,6 +3536,88 @@ margin-block-end: auto;
 }
 .zenith-bar[vertical] .zb-mod[mod="buttons"] .titlebar-buttonbox {
 flex-direction: column;
+}
+.zenith-bar[vertical][width="wide"] .zb-mod[mod="buttons"] {
+justify-content: center;
+& :is(.titlebar-buttonbox-container, .titlebar-buttonbox) {
+flex: 1;
+flex-direction: row;
+justify-content: space-evenly;
+}
+}
+.zenith-bar .zb-label {
+display: none;
+}
+.zenith-bar[vertical][width="wide"] {
+& .zb-mod:not([mod="tasks"]) {
+gap: 8px;
+min-width: 0;
+}
+& .zb-mod[mod="spaces"] {
+flex-wrap: wrap;
+gap: 4px;
+}
+& .zb-mod[mod="title"] {
+justify-content: flex-start;
+overflow: hidden;
+}
+& .zb-mod :is(.zb-value, .zb-media-text, .zb-title-text) {
+min-width: 0;
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+}
+&[rows="labels"] {
+& .zb-label {
+display: block;
+flex: 1;
+min-width: 0;
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+text-align: start;
+}
+& .zb-value {
+flex: none;
+max-width: 55%;
+color: var(--zb-dim);
+}
+& .zb-value:empty {
+display: none;
+}
+& .zb-mod[mod="media"] .zb-media-text {
+display: block;
+flex: 1;
+}
+}
+&[rows="icons"] {
+& > :is(.zb-left, .zb-right) {
+flex-direction: row;
+flex-wrap: wrap;
+justify-content: flex-start;
+align-content: flex-start;
+padding-inline: 4px;
+box-sizing: border-box;
+}
+& > .zb-right {
+align-content: flex-end;
+}
+& > :is(.zb-left, .zb-right) > .zb-mod {
+flex: 1 1 100%;
+width: auto;
+}
+& > :is(.zb-left, .zb-right) > .zb-mod:is([mod="launcher"], [mod="overview"], [mod="tray"], [mod="appearance"], [mod="power"], [mod="downloads"], [mod="privacy"]) {
+flex: 0 0 auto;
+justify-content: center;
+padding-inline: 9px;
+}
+& > .zb-centre > .zb-mod:is([mod="launcher"], [mod="overview"], [mod="tray"], [mod="appearance"], [mod="power"]) {
+justify-content: center;
+}
+& .zb-mod[mod="appearance"] .zb-value {
+display: none;
+}
+}
 }
 :root[zenith-bar-buttons="none"] #zen-appcontent-navbar-container .titlebar-buttonbox-container {
 display: none !important;
@@ -4315,6 +4401,36 @@ background: color-mix(in srgb, currentColor 12%, transparent);
 background: var(--zs-accent);
 color: white;
 color: contrast-color(var(--zs-accent));
+}
+}
+& .zd-seg {
+grid-column: 1 / -1;
+display: flex;
+gap: 2px;
+padding: 2px;
+border-radius: 10px;
+background: color-mix(in srgb, currentColor 7%, transparent);
+& button {
+appearance: none;
+flex: 1;
+min-width: 0;
+margin: 0;
+padding: 5px 6px;
+border: none;
+border-radius: 8px;
+background: transparent;
+color: inherit;
+font: inherit;
+font-size: 12px;
+cursor: pointer;
+&:hover {
+background: color-mix(in srgb, currentColor 10%, transparent);
+}
+&[on] {
+background: var(--zs-accent);
+color: white;
+color: contrast-color(var(--zs-accent));
+}
 }
 }
 & .zd-sys .zs-row {

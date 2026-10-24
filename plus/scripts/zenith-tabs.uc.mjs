@@ -2,7 +2,7 @@
 // @name           Zenith Tab manager
 // @description    Zenith Plus: every tab of every space on one page (about:zenith-tabs), tidying up, and rules for grouping, sleeping and closing.
 // @include        main
-// @version        0.16.1
+// @version        0.16.2
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -529,6 +529,7 @@ const Act = {
   },
 
   go(tab) {
+    if (window.ZenithSpaceTabs) return void window.ZenithSpaceTabs.go(tab);
     const space = Look.space(tab);
     const W = window.gZenWorkspaces;
     const switched = space && !tab.hasAttribute("zen-essential") && space !== W?.activeWorkspace ? W.changeWorkspaceWithID(space) : null;

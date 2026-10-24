@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.16.1
+// @version        0.16.2
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -159,10 +159,8 @@ const Items = {
   // essentials).
   tabs() {
     const all = window.gZenWorkspaces?.allStoredTabs ?? gBrowser.tabs;
-    const active = gZenWorkspaces?.activeWorkspace;
     const here = Services.prefs.getStringPref(SCOPE, "") === "here";
-    return [...new Set(all)].filter(tab => !here || tab.hasAttribute("zen-essential") || !tab.getAttribute("zen-workspace-id") ||
-                                           tab.getAttribute("zen-workspace-id") === active);
+    return [...new Set(all)].filter(tab => !here || (window.ZenithSpaceTabs?.shows(tab) ?? true));
   },
 
   folders() {
@@ -177,14 +175,15 @@ const Items = {
     const out = [];
     for (const tab of this.tabs()) {
       if (!tab.isConnected || tab.hasAttribute("zen-empty-tab") || tab.hasAttribute("zen-glance-tab") || tab.closing) continue;
-      const space = tab.getAttribute("zen-workspace-id");
-      const elsewhere = space && space !== active && !tab.hasAttribute("zen-essential");
+      // (Another space's tab, or an essential of another container: that
+      // space's name beside it.)
+      const home = window.ZenithSpaceTabs?.home(tab);
       const site = this.site(tab);
       // A page without a title shows its address as one: the site reads better.
       const untitled = !tab.label || /^[a-z-]+:\/\//i.test(tab.label);
       out.push({
         kind: "tab", tab, title: untitled ? site || "New tab" : tab.label, sub: untitled ? "" : site,
-        space: elsewhere ? this.spaceName(space) : "", icon: tab.getAttribute("image") || "",
+        space: home ? home.name || this.spaceName(home.uuid) : "", icon: tab.getAttribute("image") || "",
         recent: tab.lastAccessed || 0, current: tab.selected,
       });
     }
@@ -220,12 +219,17 @@ const Items = {
     const target = item.kind === "tab" ? item.tab.getAttribute("zen-workspace-id")
       : item.kind === "folder" ? item.folder.getAttribute("zen-workspace-id")
       : item.ws.uuid;
-    const essential = item.kind === "tab" && item.tab.hasAttribute("zen-essential");
-    if (W?.workspaceEnabled && target && target !== W.activeWorkspace && !essential) await W.changeWorkspaceWithID(target);
     if (item.kind === "tab") {
-      // (A tab with a glance open: its glance, as a click on it would.)
+      // (Its space first, an essential's too: Zen undoes a tab selected
+      // where it doesn't show. A tab with a glance open: its glance, as a
+      // click on it would.)
+      if (window.ZenithSpaceTabs) await window.ZenithSpaceTabs.go(item.tab);
+      else if (W?.workspaceEnabled && target && target !== W.activeWorkspace) await W.changeWorkspaceWithID(target);
       gBrowser.selectedTab = item.tab.glanceTab ?? item.tab;
-    } else if (item.kind === "folder") {
+      return;
+    }
+    if (W?.workspaceEnabled && target && target !== W.activeWorkspace) await W.changeWorkspaceWithID(target);
+    if (item.kind === "folder") {
       item.folder.collapsed = false;
       const first = item.folder.tabs?.find(t => !t.hasAttribute("zen-empty-tab"));
       if (first) gBrowser.selectedTab = first;

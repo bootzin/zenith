@@ -208,7 +208,7 @@ function toggles(box, undo) {
   const palName = v => (v === "own" ? "Your colours" : v.replace(/-/g, " ").replace(/\b\w/g, m => m.toUpperCase()));
   const TILES = [
     { icon: "bell", label: "Do not disturb", ok: !!alerts, on: () => alerts.manualDoNotDisturb, run: () => (alerts.manualDoNotDisturb = !alerts.manualDoNotDisturb) },
-    { icon: () => (A?.isDark() ? "moon" : "sun"), label: () => `Pages: ${A?.forced() ?? "auto"}`, ok: !!A, on: () => !!A.forced(), run: () => A.toggle() },
+    { icon: () => (A?.isDark() ? "moon" : "sun"), label: () => `Pages: ${A?.forced() ?? "auto"}`, ok: !!A, on: () => !!A.forced(), run: () => A.toggle(), pages: true },
     { icon: "mute", label: "Mute all", ok: true, on: () => gBrowser.tabs.some(t => t.hasAttribute("muted")) && !audible().length,
       run: () => {
         const loud = audible();
@@ -229,8 +229,33 @@ function toggles(box, undo) {
         else P.setStringPref("zenith.palette", n);
       }, title: "Click: the next palette · Shift+click: the one before" },
   ];
-  const tiles = [];
-  for (const t of TILES.filter(t => t.ok)) {
+  const tiles = [], shown = TILES.filter(t => t.ok);
+  // Under the pages tile's row: how pages are made dark or light (Pages ›
+  // Pages set dark or light), one click each.
+  const at = shown.findIndex(t => t.pages), rowEnd = at < 0 ? -1 : Math.min(shown.length, Math.ceil((at + 1) / 3) * 3) - 1;
+  const WAYS = [["invert", "Invert", "Pages that don't follow are inverted (as Dark Reader's filter mode)"],
+                ["palette", "Palette", "Every page in your palette's colours"], ["off", "Only ask", "Pages are only asked (sites may not listen)"]];
+  const ways = node("div", { class: "zd-seg", role: "group" });
+  ways.setAttribute("aria-label", "Pages set dark or light");
+  for (const [v, label, tip] of WAYS) {
+    const b = node("button", { type: "button", way: v }, label);
+    b.title = tip;
+    b.addEventListener("click", () => {
+      if (v === "invert") P.clearUserPref(A.FORCE);
+      else P.setStringPref(A.FORCE, v);
+    });
+    ways.append(b);
+  }
+  const drawWays = () => {
+    const now = P.getStringPref(A?.FORCE ?? "", "") || "invert";
+    for (const b of ways.children) b.toggleAttribute("on", b.getAttribute("way") === now);
+  };
+  if (A) {
+    drawWays();
+    P.addObserver(A.FORCE, drawWays);
+    undo.push(() => P.removeObserver(A.FORCE, drawWays));
+  }
+  for (const [n, t] of shown.entries()) {
     const b = node("button", { type: "button", class: "zd-tile" });
     if (t.title) b.title = t.title;
     const i = ico(typeof t.icon === "function" ? t.icon() : t.icon), l = node("span");
@@ -255,6 +280,7 @@ function toggles(box, undo) {
     tiles.push(draw);
     draw();
     c.append(b);
+    if (n === rowEnd && A) c.append(ways);
   }
   const all = () => tiles.forEach(f => f());
   for (const p of ["zenith.palette", "layout.css.prefers-color-scheme.content-override"]) P.addObserver(p, all);

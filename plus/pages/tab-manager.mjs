@@ -198,7 +198,7 @@ function renderTabs(all) {
     ["all", "All", all],
     ["awake", "Awake", all.filter(t => Look.awake(t))],
     ["asleep", "Asleep", all.filter(t => !Look.awake(t))],
-    ["here", "This space", all.filter(t => Look.space(t) === here() || t.hasAttribute("zen-essential"))],
+    ["here", "This space", all.filter(t => win.ZenithSpaceTabs?.shows(t) ?? (Look.space(t) === here() || t.hasAttribute("zen-essential")))],
     ["idle", "Idle an hour+", all.filter(idle)],
     ["playing", "Playing", all.filter(playing)],
     ["picked", "Picked", all.filter(t => state.picked.has(t))],

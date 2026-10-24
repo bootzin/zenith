@@ -444,9 +444,8 @@ export const System = {
     const tabs = [...new Set(every)].filter(t => t.isConnected && !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
     const sleeping = t => t.hasAttribute("pending") || !t.linkedPanel;
     const asleep = tabs.filter(sleeping).length;
-    // (This space: its own tabs and the essentials, as its sidebar shows.)
-    const space = window.gZenWorkspaces?.activeWorkspace;
-    const here = tabs.filter(t => !space || t.hasAttribute("zen-essential") || t.getAttribute("zen-workspace-id") === space);
+    // (This space: as its sidebar shows it, essentials its container's.)
+    const here = tabs.filter(t => window.ZenithSpaceTabs?.shows(t) ?? true);
     const hereAsleep = here.filter(sleeping).length;
     return { memory, cpu: pc, awake: tabs.length - asleep, asleep, here: { awake: here.length - hereAsleep, asleep: hereAsleep }, processes: all.length };
   },
@@ -559,7 +558,7 @@ export function tabsCard(box) {
   box.append(field, list);
   const draw = () => {
     const words = field.value.toLowerCase().split(/\s+/).filter(Boolean);
-    const tabs = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"))
+    const tabs = window.ZenithSpaceTabs.tabs()
       .filter(t => words.every(w => `${t.label} ${t.linkedBrowser?.currentURI?.host ?? ""}`.toLowerCase().includes(w)));
     list.replaceChildren(...(tabs.length ? tabs.map(t => {
       const row = node("div", { class: "zs-row", action: "true" });
@@ -570,7 +569,7 @@ export function tabsCard(box) {
       row.toggleAttribute("current", t.selected);
       row.title = t.label;
       row.addEventListener("click", () => {
-        gBrowser.selectedTab = t;
+        window.ZenithSpaceTabs.go(t);
         Popup.close();
       });
       row.addEventListener("auxclick", e => {

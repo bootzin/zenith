@@ -125,7 +125,7 @@ function essentials() {
   const space = W?.getWorkspaces?.()?.find(w => w.uuid === W.activeWorkspace);
   const separate = W?.containerSpecificEssentials ?? Services.prefs.getBoolPref("zen.workspaces.separate-essentials", false);
   return win.gBrowser.tabs.filter(t => t.hasAttribute("zen-essential") && !t.closing &&
-      (!separate || parseInt(t.getAttribute("usercontextid") || "0", 10) === (space?.containerTabId || 0)))
+      (win.ZenithSpaceTabs?.shows(t) ?? (!separate || parseInt(t.getAttribute("usercontextid") || "0", 10) === (space?.containerTabId || 0))))
     .map(t => {
       let url = t.linkedBrowser?.currentURI?.spec ?? "";
       if (!/^https?:/.test(url)) {

@@ -165,13 +165,20 @@ function mod(id, tag = "div") {
   return node(tag, { class: "zb-mod", mod: id, ...(tag === "button" ? { type: "button" } : {}) });
 }
 
+// A module's name, shown on a side bar with titles (Bar › Small modules on
+// a wide side bar: each a row with its name); its value, if it has one, at
+// the row's end.
+function label(text) {
+  return node("span", { class: "zb-label" }, text);
+}
+
 /* --- The modules ----------------------------------------------------------- */
 
 // The switcher (Alt+W), as a launcher button.
 function launcher(box) {
   const b = mod("launcher", "button");
   b.title = "Switcher (Alt+W)";
-  b.append(icon("launcher"));
+  b.append(icon("launcher"), label("Switcher"));
   b.addEventListener("click", () => window.ZenithSwitcher?.toggle?.());
   box.append(b);
 }
@@ -278,12 +285,7 @@ function title(box) {
 // The tabs the sidebar shows for this space, in its order: essentials,
 // pinned tabs, then the others (those in folders too, open or closed).
 function sidebarTabs() {
-  const W = window.gZenWorkspaces, space = W?.activeWorkspace;
-  const every = [...new Set(W?.allStoredTabs ?? gBrowser.tabs)]
-    .filter(t => t.isConnected && !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
-  const here = t => t.hasAttribute("zen-essential") || !space || t.getAttribute("zen-workspace-id") === space;
-  const rank = t => (t.hasAttribute("zen-essential") ? 0 : t.pinned ? 1 : 2);
-  return every.filter(here).sort((a, b) => rank(a) - rank(b) || a._tPos - b._tPos);
+  return window.ZenithSpaceTabs.tabs();
 }
 
 function tasks(box) {
@@ -569,8 +571,8 @@ function media(box) {
 // they're done. A click opens Firefox's downloads.
 function downloads(box) {
   const m = mod("downloads", "button");
-  const ic = icon("download"), text = node("span");
-  m.append(ic, text);
+  const ic = icon("download"), text = node("span", { class: "zb-value" });
+  m.append(ic, label("Downloads"), text);
   const always = () => bool("zenith.bar.downloads-always", false);
   m.hidden = !always();
   m.title = "Downloads";
@@ -669,7 +671,7 @@ function tray(box) {
   const m = mod("tray", "button");
   m.id = "zenith-bar-tray";
   m.title = "Extensions";
-  m.append(icon("tray"));
+  m.append(icon("tray"), label("Extensions"));
   // Firefox's own extensions panel, dropping from here (not from its button
   // in the sidebar, which would bring the sidebar out).
   m.addEventListener("click", e => {
@@ -688,8 +690,8 @@ function tray(box) {
 function layout(box) {
   const L = window.ZenithLayouts;
   if (!L) return;
-  const m = mod("layout", "button"), ic = icon("dwindle"), text = node("span");
-  m.append(ic, text);
+  const m = mod("layout", "button"), ic = icon("dwindle"), text = node("span", { class: "zb-value" });
+  m.append(ic, label("Layout"), text);
   box.append(m);
   const draw = () => {
     const how = L.of();
@@ -706,7 +708,7 @@ function layout(box) {
 function overview(box) {
   const m = mod("overview", "button");
   m.title = "Overview (Alt+O)";
-  m.append(icon("overview"));
+  m.append(icon("overview"), label("Overview"));
   m.addEventListener("click", () => window.ZenithOverview?.toggle());
   box.append(m);
 }
@@ -804,8 +806,8 @@ function weather(box) {
 // What the browser uses (Settings › Bar › What the browser uses): its memory, read
 // every 30 seconds while the window is in front; a click opens the Dash.
 function resources(box) {
-  const m = mod("resources", "button"), text = node("span");
-  m.append(icon("memory"), text);
+  const m = mod("resources", "button"), text = node("span", { class: "zb-value" });
+  m.append(icon("memory"), label("Memory"), text);
   box.append(m);
   m.addEventListener("click", () => window.ZenithDash?.toggle(m));
   const draw = async () => {
@@ -822,8 +824,8 @@ function resources(box) {
 // Trackers Firefox blocked on the page you're on: a shield and how many
 // (none: hidden); a click lists them.
 function privacy(box) {
-  const m = mod("privacy", "button"), text = node("span");
-  m.append(icon("shield"), text);
+  const m = mod("privacy", "button"), text = node("span", { class: "zb-value" });
+  m.append(icon("shield"), label("Trackers blocked"), text);
   m.hidden = true;
   box.append(m);
   let timer = null;
@@ -856,12 +858,13 @@ function privacy(box) {
 function appearance(box) {
   const A = window.ZenithAppearance;
   if (!A) return;
-  const m = mod("appearance", "button"), ic = icon("moon");
-  m.append(ic);
+  const m = mod("appearance", "button"), ic = icon("moon"), value = node("span", { class: "zb-value" });
+  m.append(ic, label("Pages"), value);
   box.append(m);
   const draw = () => {
     const dark = A.isDark(), forced = A.forced();
     setIcon(ic, dark ? "moon" : "sun");
+    put(value, forced ?? `auto · ${dark ? "dark" : "light"}`);
     m.toggleAttribute("forced", !!forced);
     m.title = `${A.describe()} · click: ${forced ? "automatic" : dark ? "light" : "dark"} · right-click: more`;
   };
@@ -885,7 +888,7 @@ function appearance(box) {
 function power(box) {
   const m = mod("power", "button");
   m.title = "Window and Zen";
-  m.append(icon("power"));
+  m.append(icon("power"), label("Power"));
   m.addEventListener("click", () => Popup.open(m, powerCard, { kind: "power" }));
   box.append(m);
 }
@@ -984,6 +987,7 @@ const Bar = {
       // (0.16.0's dot and short line: now the ring and the top line.)
       const hint = pref("zenith.bar.container-hint", "top");
       bar.setAttribute("hint", { dot: "ring", line: "top" }[hint] ?? hint);
+      bar.setAttribute("rows", pref("zenith.bar.side-rows", "labels"));
     }
     // (Another look, size or font: the fixed-width modules measured again.)
     requestAnimationFrame(() => {
@@ -1030,7 +1034,7 @@ const Bar = {
     const hides = this.bars.filter(b => b.hasAttribute("collapsible")).map(b => b.getAttribute("edge"));
     if (hides.length) document.documentElement.setAttribute("zenith-bar-hides", hides.join(" "));
     this.look();
-    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width", "zenith.bar.marker", "zenith.bar.container-hint"]) Undo.pref(p, () => this.look());
+    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width", "zenith.bar.marker", "zenith.bar.container-hint", "zenith.bar.side-rows"]) Undo.pref(p, () => this.look());
     this.mark();
     const mark = () => this.mark();
     window.gZenWorkspaces?.addChangeListeners?.(mark);

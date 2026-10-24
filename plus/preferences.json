@@ -1280,6 +1280,55 @@
     "zenithWhy": "There's no bar on the left or right"
   },
   {
+    "property": "zenith.bar.side-rows",
+    "label": "Small modules on a side bar with titles",
+    "type": "dropdown",
+    "placeholder": "Default (Each a row with its name)",
+    "options": [
+      {
+        "label": "Each a row with its name",
+        "value": "labels"
+      },
+      {
+        "label": "Icons side by side",
+        "value": "icons"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.bar.left",
+                  "value": "on"
+                }
+              },
+              {
+                "if": {
+                  "property": "zenith.bar.right",
+                  "value": "on"
+                }
+              }
+            ],
+            "operator": "OR"
+          },
+          {
+            "if": {
+              "property": "zenith.bar.side-width",
+              "value": "wide"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Side bars are a rail (or there's none)"
+  },
+  {
     "property": "zenith.bar.style",
     "label": "The bar's look",
     "type": "dropdown",
@@ -2202,6 +2251,18 @@
       {
         "label": "A line along the top",
         "value": "top"
+      },
+      {
+        "label": "A line along the bottom",
+        "value": "bottom"
+      },
+      {
+        "label": "A line on the left",
+        "value": "left"
+      },
+      {
+        "label": "A line on the right",
+        "value": "right"
       },
       {
         "label": "A ring around the icon",

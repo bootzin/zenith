@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.16.1
+// @version        0.16.2
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -4214,6 +4214,58 @@ const SCHEMA = [
         }
        ]
       }
+     },
+     {
+      "property": "zenith.bar.side-rows",
+      "label": "Small modules on a side bar with titles",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "On a bar on the left or right with titles, the modules that are only an icon (the switcher, the overview, downloads, pages dark or light, extensions, power): each a row with its icon, its name and its value (memory, the layout, how pages are), as a sidebar's list; or side by side as icons, a toolbar at either end of the bar. The window's buttons lie in one row either way.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Each a row with its name",
+        "value": "labels"
+       },
+       {
+        "label": "Icons side by side",
+        "value": "icons"
+       }
+      ],
+      "default": "labels",
+      "rule": {
+       "why": "Side bars are a rail (or there's none)",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "conditions": [
+            {
+             "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+             }
+            },
+            {
+             "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+             }
+            }
+           ],
+           "operator": "OR"
+          },
+          {
+           "if": {
+            "property": "zenith.bar.side-width",
+            "value": "wide"
+           }
+          }
+         ],
+         "operator": "AND"
+        }
+       ]
+      }
      }
     ]
    },
@@ -4905,12 +4957,24 @@ const SCHEMA = [
       "label": "Containers of other tabs",
       "type": "dropdown",
       "extra": false,
-      "desc": "Tabs in a Firefox container that you're not on: a thin line in the container's colour along the tab's top (Firefox's own; on a side bar, its inner edge), a ring around the icon, the tab faintly tinted, or nothing (the tab you're on is marked in its container's colour either way).",
+      "desc": "Tabs in a Firefox container that you're not on: a thin line in the container's colour along the tab's top, bottom, left or right (as named, on every bar), a ring around the icon, the tab faintly tinted, or nothing (the tab you're on is marked in its container's colour either way).",
       "host": "Zenith Plus",
       "options": [
        {
         "label": "A line along the top",
         "value": "top"
+       },
+       {
+        "label": "A line along the bottom",
+        "value": "bottom"
+       },
+       {
+        "label": "A line on the left",
+        "value": "left"
+       },
+       {
+        "label": "A line on the right",
+        "value": "right"
        },
        {
         "label": "A ring around the icon",
@@ -5219,7 +5283,7 @@ const SCHEMA = [
       "label": "The clock on a side bar",
       "type": "dropdown",
       "extra": false,
-      "desc": "On a bar on the left or right, the clock stands up: the hours over the minutes, with (as the bar's clock has it) the date under them, or nothing, the weekday, the seconds, the date, or the day over the month's name.",
+      "desc": "On a rail (a bar on the left or right of icons), the clock stands up: the hours over the minutes, with (as the bar's clock has it) the date under them, or nothing, the weekday, the seconds, the date, or the day over the month's name.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -6553,7 +6617,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.16.1";
+const SCHEMA_VERSION = "0.16.2";
 
 class SettingsView {
   constructor(kind) {
