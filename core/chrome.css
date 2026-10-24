@@ -361,7 +361,7 @@
    (The :not() of two IDs outranks Zen's own frosted-sidebar rule.) */
 :root:not(:has(#theme-Zenith-Core[zenith-core-floating-sidebar="zen"]))
   #navigator-toolbox:not(#zth-a, #zth-b) .zen-toolbar-background {
-  background: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-sidebar-alpha) * 100%), transparent) !important;
+  background: color-mix(in srgb, var(--zth-glass-color) calc(max(var(--zth-sidebar-alpha), 0.96) * 100%), transparent) !important;
   backdrop-filter: var(--zth-panel-filter) !important;
   transition: background-color 0.3s ease !important;
 

@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.16.0
+// @version        0.16.1
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -20,6 +20,8 @@
 // Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
 // work without any of this. Peek has its own script, zenith-peek.uc.mjs.
 
+const ZENITH_VERSION = "0.16.1"; // (tools/bump_version.py keeps it)
+window.ZenithVersion = ZENITH_VERSION; // about:zenith-fetch, the rice file
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const root = document.documentElement;
 root.setAttribute("zenith-script", "1");
@@ -120,12 +122,11 @@ function onUnload(fn) {
 /* --- Load edge: real page-load progress ---------------------------------- */
 
 const LoadEdge = {
-  edge: null,
   state: new WeakMap(), // browser -> { value, loading }
+  edges: new WeakMap(), // browser -> its edge, at the top of its tile
   creep: null,
 
   init() {
-    this.edge = el("div", { id: "zenith-load-edge", state: "idle" });
     this.listener = {
       onStateChange: (browser, webProgress, request, flags) => {
         if (!webProgress.isTopLevel || !(flags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
@@ -137,18 +138,18 @@ const LoadEdge = {
         } else if (flags & Ci.nsIWebProgressListener.STATE_STOP) {
           this.state.set(browser, { value: 1, loading: false });
         }
-        if (browser === gBrowser.selectedBrowser) this.render();
+        if (this.shown(browser)) this.render(browser);
       },
       onProgressChange: (browser, webProgress, request, curSelf, maxSelf, curTotal, maxTotal) => {
         const s = this.state.get(browser);
         if (!s?.loading || maxTotal <= 0) return;
         s.value = Math.max(s.value, 0.1 + 0.85 * Math.min(1, curTotal / maxTotal));
-        if (browser === gBrowser.selectedBrowser) this.render();
+        if (this.shown(browser)) this.render(browser);
       },
     };
     gBrowser.addTabsProgressListener(this.listener);
     const onSelect = () => {
-      this.render(true);
+      for (const b of this.visible()) this.render(b, true);
       this.creeping(true);
     };
     gBrowser.tabContainer.addEventListener("TabSelect", onSelect);
@@ -159,41 +160,62 @@ const LoadEdge = {
     });
   },
 
+  // The browsers on screen: the tab you're on, and the other tiles of its
+  // split view (each has its own edge, along its own top).
+  visible() {
+    const tab = gBrowser.selectedTab, data = window.gZenViewSplitter?._data?.find(d => d.tabs.includes(tab));
+    return (data ? data.tabs : [tab]).map(t => t.linkedBrowser).filter(Boolean);
+  },
+
+  shown(browser) {
+    return browser === gBrowser.selectedBrowser || this.visible().includes(browser);
+  },
+
   // Pages rarely report their total size, so progress also creeps towards
-  // 90% on its own while the tab you're on loads (the timer stops when it
-  // isn't loading).
+  // 90% on its own while a page on screen loads (the timer stops when none is).
   creeping(on) {
     if (!on || this.creep) return;
     this.creep = setInterval(() => {
-      const s = this.state.get(gBrowser.selectedBrowser);
-      if (!s?.loading) {
+      let any = false;
+      for (const b of this.visible()) {
+        const s = this.state.get(b);
+        if (!s?.loading) continue;
+        any = true;
+        s.value += (0.9 - s.value) * 0.05;
+        this.render(b);
+      }
+      if (!any) {
         clearInterval(this.creep);
         this.creep = null;
-        return;
       }
-      s.value += (0.9 - s.value) * 0.05;
-      this.render();
     }, 250);
   },
 
-  render(jump = false) {
-    const browser = gBrowser.selectedBrowser;
-    const panel = document.getElementById(gBrowser.selectedTab.linkedPanel);
-    if (panel && this.edge.parentNode !== panel) {
-      panel.prepend(this.edge);
+  render(browser = gBrowser.selectedBrowser, jump = false) {
+    const tab = gBrowser.getTabForBrowser(browser);
+    const panel = tab && document.getElementById(tab.linkedPanel);
+    if (!panel) return;
+    let edge = this.edges.get(browser);
+    if (!edge) {
+      edge = el("div", { class: "zenith-load-edge", state: "idle" });
+      this.edges.set(browser, edge);
+      if (browser === gBrowser.selectedBrowser) edge.id = "zenith-load-edge"; // (the first one: for tools/checks)
+    }
+    if (edge.parentNode !== panel) {
+      panel.prepend(edge);
       jump = true;
     }
     const s = this.state.get(browser) ?? { value: 0, loading: browser.webProgress?.isLoadingDocument };
-    this.edge.toggleAttribute("jump", jump);
-    this.edge.style.setProperty("--zth-load-progress", s.value.toFixed(3));
+    edge.toggleAttribute("jump", jump);
+    edge.style.setProperty("--zth-load-progress", s.value.toFixed(3));
     const next = s.loading ? "loading" : s.value >= 1 ? "done" : "idle";
-    this.edge.setAttribute("state", next);
+    edge.setAttribute("state", next);
     if (next === "done") {
-      clearTimeout(this.doneTimer);
-      this.doneTimer = setTimeout(() => {
+      clearTimeout(edge.doneTimer);
+      edge.doneTimer = setTimeout(() => {
         if (this.state.get(browser)?.loading === false) {
           this.state.set(browser, { value: 0, loading: false });
-          if (browser === gBrowser.selectedBrowser) this.edge.setAttribute("state", "idle");
+          edge.setAttribute("state", "idle");
         }
       }, 500);
     }
@@ -600,7 +622,7 @@ const ZoomPills = {
    turning it off (or Zenith Motion's "Follow Windows") hands control back. */
 
 const MotionBridge = {
-  PREFS: ["zenith.plus.animate-zen"],
+  PREFS: ["zenith.plus.animate-zen", "zenith.motion.space-switch", "zenith.motion.preset"],
   OWN: "zenith.internal.motion-override",
   SYSTEM: "ui.prefersReducedMotion",
 
@@ -611,7 +633,16 @@ const MotionBridge = {
     this.apply();
   },
 
+  // Zen's slide between spaces (250 ms): as Motion's preset has it (Quick:
+  // 120 ms, Smooth: Zen's, Off: none), or as Motion › Switching spaces says.
+  spaces() {
+    const P = Services.prefs, own = P.getStringPref("zenith.motion.space-switch", ""), preset = P.getStringPref("zenith.motion.preset", "") || "quick";
+    const how = (own !== "preset" && own) || { quick: "quick", smooth: "zen", off: "instant" }[preset] || "quick";
+    Bridge.apply("space-switch", { "zen.workspaces.switch-animation-duration": how === "zen" ? null : how === "instant" ? 0 : 120 });
+  },
+
   apply() {
+    this.spaces();
     // This makes Firefox report "no reduced motion" everywhere, so while it's
     // on, Zenith Motion's "Follow Windows" has nothing to follow (the
     // settings page greys it out).
@@ -5115,6 +5146,10 @@ const ShellKeys = {
     ["resize", "Alt+KeyR", "Resize mode (hjkl or arrows, = to even out, Esc)", "Tiles"],
     ["layout", "Alt+KeyY", "The space's next layout (dwindle, master, scroller, monocle)", "Tiles"],
     ["layout-action", "Alt+Shift+KeyY", "Master: the tile becomes the master · Scroller: the column's next width", "Tiles"],
+    ["scroll-left", "Ctrl+Alt+KeyH", "Scroll the page left", "Pages"],
+    ["scroll-down", "Ctrl+Alt+KeyJ", "Scroll the page down", "Pages"],
+    ["scroll-up", "Ctrl+Alt+KeyK", "Scroll the page up", "Pages"],
+    ["scroll-right", "Ctrl+Alt+KeyL", "Scroll the page right", "Pages"],
     ["new-tab", "Alt+Enter", "New tab", "Tabs"],
     ["close", "Alt+Shift+KeyQ", "Close the tab", "Tabs"],
     ["sleep", "Alt+KeyU", "Put the tab to sleep", "Tabs"],
@@ -5136,7 +5171,7 @@ const ShellKeys = {
     ["quit", "Alt+Shift+KeyE", "Quit Zen", "Zenith"],
   ],
   // (Held down, these repeat; the rest happen once a press.)
-  REPEAT: new Set(["focus-left", "focus-down", "focus-up", "focus-right"]),
+  REPEAT: new Set(["focus-left", "focus-down", "focus-up", "focus-right", "scroll-left", "scroll-down", "scroll-up", "scroll-right"]),
 
   init() {
     this.byName = new Map(this.LIST.map(e => [e[0], e]));
@@ -5218,6 +5253,8 @@ const ShellKeys = {
     if (space) return space[1] === "space" ? ShellSpaces.go(+space[2]) : ShellSpaces.send(+space[2]);
     const dir = name.match(/^(focus|move)-(left|down|up|right)$/);
     if (dir) return Tiler[dir[1]](dir[2]);
+    const scroll = name.match(/^scroll-(left|down|up|right)$/);
+    if (scroll) return PageScroll.by(scroll[1]);
     switch (name) {
       case "new-tab": return BrowserCommands.openTab();
       case "new-tile": return Tiler.newTile();
@@ -5565,6 +5602,19 @@ const Tiler = {
    sees an Alt+press over a page first (r79); the page, told by Zenith,
    starts no selection or drag from it, and still gets its click (so
    Alt+click is still Zen's Glance). */
+/* --- Scrolling the page by keys (Ctrl+Alt+H/J/K/L) ---------------------------------
+   The page's helper (link hints') scrolls what's under the middle of the
+   page (a scrolling box there, else the page), smoothly; held, it keeps on. */
+const PageScroll = {
+  async by(dir) {
+    const actor = await PageActors.in(gBrowser.selectedBrowser, "ZenithHints", "link-hints.sys.mjs");
+    const step = 80, now = Date.now(), held = now - (this.last ?? 0) < 120;
+    this.last = now;
+    const [x, y] = { left: [-step, 0], right: [step, 0], up: [0, -step], down: [0, step] }[dir];
+    actor?.sendAsyncMessage("scroll", { x, y, smooth: !held });
+  },
+};
+
 /* --- Layouts: each space's own (Shell › Layout; Alt+Y the next one) ---------------
    Dwindle: a new tile splits the one you're on along its longer side
    (Hyprland's). Master: one master tile and a stack (dwm's: the master on
@@ -5580,7 +5630,7 @@ const Layouts = {
   PREF: "zenith.shell.layout",
   SPACES: "zenith.internal.layout.spaces", // { space: layout }
   WIDTHS: [100 / 3, 50, 200 / 3, 100],
-  strips: new Map(), // space → { cols: [{ tab, w }], first, last }
+  widths: new WeakMap(), // a scroller column's tab → its width (% of the view)
 
   init() {
     window.ZenithLayouts = this; // the bar's module, the settings page, tools/checks
@@ -5598,11 +5648,24 @@ const Layouts = {
     const select = () => {
       const how = this.of(), tab = gBrowser.selectedTab;
       if (how === "monocle") this.solo();
-      else if (how === "scroller" && !this.arranging) {
-        const s = this.strips.get(this.space()), i = s?.cols.findIndex(c => c.tab === tab) ?? -1;
-        if (i >= 0 && (i < s.first || i > s.last)) this.arrange(this.space(), tab, s);
-      }
+      else if (how === "scroller" && !this.arranging && Tiler.data(tab)) this.arrange(tab);
     };
+    // The scroller: Zen lays a split out (sizes that add up to the view);
+    // a scroller's columns are then moved to where they are on the strip,
+    // those beyond either edge out of sight.
+    const S = window.gZenViewSplitter, grid = S?.applyGridLayout;
+    if (grid) {
+      S.applyGridLayout = function (node) {
+        const done = grid.apply(this, arguments);
+        try {
+          Layouts.after(node);
+        } catch (e) {
+          console.error("[Zenith] scroller", e);
+        }
+        return done;
+      };
+      onUnload(() => (S.applyGridLayout = grid));
+    }
     // A tile closed: the master layout laid out again; a column off its strip.
     const closed = e => setTimeout(() => this.closed(e.target), 0);
     gBrowser.tabContainer.addEventListener("TabSelect", select);
@@ -5666,13 +5729,23 @@ const Layouts = {
   enter(how) {
     const data = Tiler.data();
     if (how === "master" && data) this.master(data);
-    else if (how === "scroller") this.arrange(this.space(), gBrowser.selectedTab, this.adopt(this.space()));
+    else if (how === "scroller" && data) {
+      this.row(data);
+      this.arrange(gBrowser.selectedTab);
+    }
     else if (how === "monocle") this.solo();
   },
 
   leave(was) {
     if (was === "monocle") SplitSolo.off();
-    if (was === "scroller") this.strips.delete(this.space());
+    if (was === "scroller") {
+      const data = Tiler.data();
+      gBrowser.tabpanels.removeAttribute("zenith-scroller");
+      if (data) {
+        data.zenithOffset = 0;
+        Tiler.even(data.layoutTree);
+      }
+    }
   },
 
   solo() {
@@ -5736,86 +5809,78 @@ const Layouts = {
     } else this.build(data, ["row", [m, col(rest)], [ratio, 100 - ratio]]);
   },
 
-  /* The scroller's strip */
-  strip(space) {
-    let s = this.strips.get(space);
-    if (!s) this.strips.set(space, (s = { cols: [], first: 0, last: -1 }));
-    s.cols = s.cols.filter(c => c.tab.isConnected && !c.tab.closing);
-    return s;
+  /* The scroller: every column stays in the split (one group in the
+     sidebar); a column's width is its own, the strip is as wide as they
+     are, and it slides to show the column you're on, as niri's. */
+  width(tab) {
+    return this.widths.get(tab) ?? { third: 100 / 3, half: 50, twothirds: 200 / 3, full: 100 }[Services.prefs.getStringPref("zenith.shell.scroller-width", "")] ?? 50;
   },
 
-  width() {
-    return { third: 100 / 3, half: 50, twothirds: 200 / 3, full: 100 }[Services.prefs.getStringPref("zenith.shell.scroller-width", "")] ?? 50;
+  // The split as one row of its columns, in order.
+  row(data, order = this.order(data)) {
+    this.build(data, ["row", order, order.map(() => 100 / order.length)]);
   },
 
-  // A strip from what's on screen: the split's tiles (or the tab you're on).
-  adopt(space) {
-    const s = this.strip(space);
-    if (s.cols.some(c => c.tab === gBrowser.selectedTab)) return s;
-    const data = Tiler.data();
-    s.cols = (data ? this.order(data) : [gBrowser.selectedTab]).map(tab => ({ tab, w: this.width() }));
-    s.first = 0;
-    s.last = -1;
-    return s;
+  scroller(data) {
+    const tab = data?.tabs?.[0];
+    return !!tab && this.of(tab.getAttribute("zen-workspace-id") ?? this.space()) === "scroller";
   },
 
-  // Which columns show: as before while `focus` is among them (and more if
-  // there's room); else from `focus` out, as niri scrolls.
-  arrange(space, focus, s = this.strip(space)) {
-    const n = s.cols.length, i = s.cols.findIndex(c => c.tab === focus);
-    if (i < 0) return;
-    const fits = (a, b) => s.cols.slice(a, b + 1).reduce((x, c) => x + c.w, 0) <= 100.5;
-    let a = s.first, b = s.last;
-    if (!(i >= a && i <= b && fits(a, b))) {
-      a = b = i;
-      if (i < s.first) while (b + 1 < n && fits(a, b + 1)) b++;
-      else while (a - 1 >= 0 && fits(a - 1, b)) a--;
-    }
-    while (b + 1 < n && fits(a, b + 1)) b++;
-    while (a - 1 >= 0 && fits(a - 1, b)) a--;
-    s.first = a;
-    s.last = b;
-    this.show(s.cols.slice(a, b + 1), focus);
-  },
-
-  show(cols, focus) {
+  // The strip slid as little as shows `focus` whole (or as much of it as fits).
+  arrange(focus) {
+    const data = Tiler.data(focus);
+    if (!data) return;
+    const order = this.order(data), widths = order.map(t => this.width(t)), i = order.indexOf(focus);
+    const x = widths.slice(0, i).reduce((a, b) => a + b, 0), w = widths[i], total = widths.reduce((a, b) => a + b, 0);
+    let off = data.zenithOffset ?? 0;
+    if (x < off) off = x;
+    else if (x + w > off + 100) off = x + w - 100;
+    data.zenithOffset = Math.max(0, Math.min(off, Math.max(0, total - 100)));
     this.arranging = true;
     try {
-      this.place(cols, focus);
+      if (gBrowser.selectedTab !== focus) gBrowser.selectedTab = focus;
+      Tiler.S.applyGridLayout(data.layoutTree);
     } finally {
       this.arranging = false;
     }
   },
 
-  place(cols, focus) {
-    const S = Tiler.S, tabs = cols.map(c => c.tab);
-    let data = Tiler.data(focus);
-    // Columns leaving the view leave the split (plain tabs till they're back).
-    if (data) for (const t of [...data.tabs]) if (!tabs.includes(t)) S.removeTabFromGroup(t);
-    if (tabs.length === 1) {
-      if (Tiler.data(focus)) S.removeTabFromGroup(focus);
-      gBrowser.selectedTab = focus;
+  // After Zen's layout: a scroller's columns where the strip puts them.
+  after(node) {
+    const data = Tiler.S?._data?.find(d => d.layoutTree === node);
+    if (!data) return;
+    const shown = data.tabs.includes(gBrowser.selectedTab);
+    if (!this.scroller(data)) {
+      if (shown) gBrowser.tabpanels.removeAttribute("zenith-scroller");
       return;
     }
-    data = Tiler.data(focus);
-    if (!data || tabs.some(t => !data.tabs.includes(t)) || data.tabs.length !== tabs.length) {
-      for (const t of tabs) if (Tiler.data(t)) S.removeTabFromGroup(t);
-      S.splitTabs(tabs, "vsep", tabs.indexOf(focus));
-      data = Tiler.data(focus);
+    if (shown) gBrowser.tabpanels.setAttribute("zenith-scroller", "true");
+    let x = -(data.zenithOffset ?? 0);
+    for (const tab of this.order(data)) {
+      const w = this.width(tab), box = tab.linkedBrowser?.closest(".browserSidebarContainer");
+      if (box) {
+        box.style.inset = `0% ${(100 - x - w).toFixed(3)}% 0% ${x.toFixed(3)}%`;
+        box.toggleAttribute("zenith-off-strip", x >= 99.9 || x + w <= 0.1);
+      }
+      x += w;
     }
-    if (!data) return;
-    const total = cols.reduce((x, c) => x + c.w, 0);
-    gBrowser.selectedTab = focus;
-    this.build(data, ["row", tabs, cols.map(c => (c.w * 100) / total)]);
   },
 
   /* Tiler's hooks: a new tile, focus, moving, the layout's own action */
   insert(tab, anchor) {
     const how = this.of(), S = Tiler.S;
     if (how === "scroller") {
-      const space = this.space(), s = this.adopt(space), i = s.cols.findIndex(c => c.tab === anchor);
-      s.cols.splice(i < 0 ? s.cols.length : i + 1, 0, { tab, w: this.width() });
-      this.arrange(space, tab, s);
+      let data = Tiler.data(anchor);
+      if (data && data.tabs.length >= S.MAX_TABS) return Tiler.full(), true;
+      if (Tiler.data(tab)) S.removeTabFromGroup(tab);
+      const order = data ? this.order(data) : [anchor];
+      if (!data) S.splitTabs([anchor, tab], "vsep", 1);
+      else S.splitTabs([anchor, tab], undefined, -1, { activate: false });
+      data = Tiler.data(anchor);
+      if (!data) return false;
+      order.splice(order.indexOf(anchor) + 1, 0, tab);
+      this.row(data, order.filter(t => data.tabs.includes(t)));
+      this.arrange(tab);
       return true;
     }
     if (how === "master") {
@@ -5837,10 +5902,10 @@ const Layouts = {
   focus(dir) {
     const how = this.of(), tab = gBrowser.selectedTab;
     if (how === "scroller" && (dir === "left" || dir === "right")) {
-      const space = this.space(), s = this.strip(space), i = s.cols.findIndex(c => c.tab === tab);
-      if (i < 0) return false;
-      const j = i + (dir === "left" ? -1 : 1);
-      if (j >= 0 && j < s.cols.length) this.arrange(space, s.cols[j].tab, s);
+      const data = Tiler.data(tab);
+      if (!data) return false;
+      const order = this.order(data), j = order.indexOf(tab) + (dir === "left" ? -1 : 1);
+      if (j >= 0 && j < order.length) this.arrange(order[j]);
       return true;
     }
     if (how === "monocle") {
@@ -5856,11 +5921,13 @@ const Layouts = {
 
   move(dir) {
     if (this.of() !== "scroller" || (dir !== "left" && dir !== "right")) return false;
-    const space = this.space(), s = this.strip(space), tab = gBrowser.selectedTab, i = s.cols.findIndex(c => c.tab === tab);
-    const j = i + (dir === "left" ? -1 : 1);
-    if (i < 0 || j < 0 || j >= s.cols.length) return false;
-    [s.cols[i], s.cols[j]] = [s.cols[j], s.cols[i]];
-    this.arrange(space, tab, s);
+    const tab = gBrowser.selectedTab, data = Tiler.data(tab);
+    if (!data) return false;
+    const order = this.order(data), i = order.indexOf(tab), j = i + (dir === "left" ? -1 : 1);
+    if (j < 0 || j >= order.length) return true;
+    [order[i], order[j]] = [order[j], order[i]];
+    this.row(data, order);
+    this.arrange(tab);
     return true;
   },
 
@@ -5875,12 +5942,11 @@ const Layouts = {
       return this.master(data);
     }
     if (how === "scroller") {
-      const space = this.space(), s = this.adopt(space), c = s.cols.find(x => x.tab === tab);
-      if (!c) return;
-      const k = this.WIDTHS.findIndex(w => Math.abs(w - c.w) < 1);
-      c.w = this.WIDTHS[(k + 1) % this.WIDTHS.length];
-      hint(`Column: ${{ 33: "a third", 50: "half", 67: "two thirds", 100: "all" }[Math.round(c.w)]} of the view`);
-      return this.arrange(space, tab, s);
+      if (!Tiler.data(tab)) return hint("Scroller: a split's column gets its next width");
+      const k = this.WIDTHS.findIndex(w => Math.abs(w - this.width(tab)) < 1), w = this.WIDTHS[(k + 1) % this.WIDTHS.length];
+      this.widths.set(tab, w);
+      hint(`Column: ${{ 33: "a third", 50: "half", 67: "two thirds", 100: "all" }[Math.round(w)]} of the view`);
+      return this.arrange(tab);
     }
     hint(`${this.NAMES[how]}: Alt+Shift+Y does nothing here (in master, the master; in scroller, a column's width)`);
   },
@@ -5890,10 +5956,7 @@ const Layouts = {
     if (how === "master") {
       const data = Tiler.data(gBrowser.selectedTab);
       if (data) this.master(data);
-    } else if (how === "scroller") {
-      const space = this.space(), s = this.strip(space);
-      if (s.cols.some(c => c.tab === gBrowser.selectedTab)) this.arrange(space, gBrowser.selectedTab, s);
-    }
+    } else if (how === "scroller" && Tiler.data(gBrowser.selectedTab)) this.arrange(gBrowser.selectedTab);
   },
 };
 
@@ -6447,12 +6510,15 @@ const InkContrast = {
     const soon = () => this.soon();
     const mo = new MutationObserver(soon);
     mo.observe(root, { attributes: true, attributeFilter: ["style", "zen-should-be-dark-mode", "zen-compact-mode", "zenith-wallpaper"] });
+    const palette = new MutationObserver(() => this.measure(true));
+    palette.observe(root, { attributes: true, attributeFilter: ["zenith-palette"] });
     this.media = window.matchMedia("(prefers-color-scheme: dark)");
     this.media.addEventListener("change", soon);
     for (const t of ["ZenithWallpaperDrawn", "activate", "sizemodechange"]) window.addEventListener(t, soon);
     for (const p of [this.PREF, "zenith.plus.material-windows"]) Services.prefs.addObserver(p, soon);
     onUnload(() => {
       mo.disconnect();
+      palette.disconnect();
       this.media.removeEventListener("change", soon);
       for (const t of ["ZenithWallpaperDrawn", "activate", "sizemodechange"]) window.removeEventListener(t, soon);
       for (const p of [this.PREF, "zenith.plus.material-windows"]) Services.prefs.removeObserver(p, soon);
@@ -6477,6 +6543,13 @@ const InkContrast = {
       root.removeAttribute("zenith-ink");
       this.last = null;
       return null;
+    }
+    const pal = root.getAttribute("zenith-palette");
+    if (pal) {
+      const ink = pal === "light" ? "dark" : "light";
+      if (root.getAttribute("zenith-ink") !== ink) root.setAttribute("zenith-ink", ink);
+      this.last = null;
+      return { ink, palette: pal };
     }
     if (document.hidden) return null;
     const sig = this.sig();
@@ -6570,12 +6643,47 @@ const SiteAppearance = {
     return f ? f === "dark" : this.autoDark();
   },
 
-  // For tooltips: what pages are now, and why.
-  describe() {
+  // Why automatic is dark or light now.
+  reason() {
+    const os = Services.appinfo.OS === "WINNT" ? "Windows" : "your system", dark = this.autoDark() ? "dark" : "light";
+    if (this.follows() === "system") return `${os} is ${dark}`;
+    const zen = Services.prefs.getIntPref("zen.view.window.scheme", 2);
+    if (zen === 2) return `${os} is ${dark} (the browser follows it)`;
+    return root.hasAttribute("zenith-palette") ? `your palette is ${dark}` : `Zen is set to ${dark}`;
+  },
+
+  // For tooltips: what pages are now, why, and what's done for sites that
+  // don't listen (and whether this one is left alone).
+  describe(host = (() => {
+    try {
+      return gBrowser.currentURI?.host ?? "";
+    } catch {
+      return "";
+    }
+  })()) {
     const f = this.forced(), here = this.space() !== "auto" ? " (this space's own)" : "";
-    if (f) return `Pages: ${f}${here}`;
-    const by = this.follows() === "system" ? (Services.appinfo.OS === "WINNT" ? "Windows" : "the system") : "the browser";
-    return `Pages: automatic, ${this.autoDark() ? "dark" : "light"} as ${by}`;
+    const now = f ? `Pages: ${f}${here}` : `Pages: ${this.autoDark() ? "dark" : "light"}, automatic: ${this.reason()}`;
+    const how = Services.prefs.getStringPref(this.FORCE, "") || "invert";
+    const done = how === "off" ? "sites only asked" : this.alone(host) ? "this site left alone"
+      : how === "palette" ? "every page in your palette's colours" : "sites that don't follow are inverted";
+    return `${now} · ${done}`;
+  },
+
+  // A site left alone (never inverted), or not.
+  alone(host) {
+    host = (host ?? "").replace(/^www\./, "");
+    const list = Services.prefs.getStringPref("zenith.plus.appearance-skip", "").split(",").map(s => s.trim().replace(/^www\./, "")).filter(Boolean);
+    return !!host && list.some(s => host === s || host.endsWith(`.${s}`));
+  },
+
+  leaveAlone(host, on) {
+    host = (host ?? "").replace(/^www\./, "");
+    if (!host) return;
+    const P = Services.prefs, list = P.getStringPref("zenith.plus.appearance-skip", "").split(",").map(s => s.trim()).filter(Boolean)
+      .filter(s => s.replace(/^www\./, "") !== host);
+    if (on) list.push(host);
+    if (list.length) P.setStringPref("zenith.plus.appearance-skip", list.join(", "));
+    else P.clearUserPref("zenith.plus.appearance-skip");
   },
 
   write(mode) {
@@ -6636,7 +6744,7 @@ const SiteAppearance = {
   // every page in the palette's colours (Firefox's own colour override,
   // through the bridge: yours come back when pages are automatic again).
   force() {
-    const P = Services.prefs, how = P.getStringPref(this.FORCE, "") || "invert", mode = this.forced();
+    const P = Services.prefs, how = P.getStringPref(this.FORCE, "") || "invert", mode = this.forced() ?? (this.isDark() ? "dark" : "light");
     // The page helper, both halves (its page half can't read text settings:
     // the browser half decides), registered once it's wanted; every page
     // of this window is told at once, no reload needed.
@@ -6644,7 +6752,7 @@ const SiteAppearance = {
       this.helper ??= PageActors.url("appearance-force.sys.mjs").then(url => {
         try {
           ChromeUtils.registerWindowActor("ZenithForce", {
-            parent: { esModuleURI: url }, child: { esModuleURI: url, events: { DOMContentLoaded: {}, pageshow: {} } },
+            parent: { esModuleURI: url }, child: { esModuleURI: url, events: { DOMContentLoaded: {}, pageshow: {}, load: { capture: true } } },
             matches: ["*://*/*", "file:///*"], safeForUntrustedWebProcess: true,
           });
         } catch (e) {
@@ -6684,10 +6792,14 @@ const SiteAppearance = {
     const W = window.gZenWorkspaces, P = Services.prefs;
     window.ZenithAppearance = this; // the bar, the Dash, the switcher, tools/checks
     const force = () => this.force();
-    const FORCE = [this.FORCE, this.PREF, "zenith.palette", "zenith.plus.appearance-skip"];
+    // (What automatic is follows these: the palette, Zen's scheme, Windows'.)
+    const FORCE = [this.FORCE, this.PREF, this.AUTO, "zenith.palette", "zenith.plus.appearance-skip", "zen.view.window.scheme", "browser.theme.toolbar-theme"];
     for (const p of FORCE) P.addObserver(p, force);
+    const scheme = window.matchMedia("(prefers-color-scheme: dark)");
+    scheme.addEventListener("change", force);
     onUnload(() => {
       for (const p of FORCE) P.removeObserver(p, force);
+      scheme.removeEventListener("change", force);
     });
     force();
     // (0.15: dark or light set before there was a choice of your own.)
@@ -6890,7 +7002,7 @@ const SidebarMode = {
 
   apply() {
     if (window.zenithFloatFrom || root.hasAttribute("popup-window")) return;
-    const P = Services.prefs, C = window.gZenCompactModeManager, how = P.getStringPref(this.PREF, "") || "shown";
+    const P = Services.prefs, C = window.gZenCompactModeManager, how = P.getStringPref(this.PREF, "") || "hover";
     if (how === "shown") {
       Bridge.apply("bar-tabs", { "zen.view.compact.show-sidebar-and-toolbar-on-hover": null });
       if (!C || !P.prefHasUserValue(this.KEPT)) return;
@@ -7232,7 +7344,10 @@ const Palettes = {
     // The whole window light or dark as the palette is (Zen's own Window
     // scheme, given back with no palette), so Zen's colours, its text and
     // the bar's background agree with the palette's.
-    Bridge.apply("palette-scheme", { "zen.view.window.scheme": pal ? (pal.light ? 1 : 0) : null });
+    Bridge.apply("palette-scheme", {
+      "zen.view.window.scheme": pal ? (pal.light ? 1 : 0) : null,
+      "browser.theme.toolbar-theme": pal ? (pal.light ? 1 : 0) : null,
+    });
     // The spaces are shared: the window in front changes them, once per palette (and its colours).
     if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
     const all = Services.prefs.getStringPref("zenith.plus.palette-spaces", "") !== "current";
@@ -9325,6 +9440,13 @@ start("shell tiles", () => Tiler.init(), true);
 start("shell layouts", () => Layouts.init());
 start("overview", () => OverviewLoader.init());
 start("rice file", () => RiceLoader.init());
+start("ready ahead", () => {
+  const ahead = () => {
+    BarLoader.page("dash.mjs").then(u => import(u)).then(m => (DashLoader.mod ??= m)).catch(() => {});
+    window.requestIdleCallback(() => window.ZenithLive && !window.ZenithLive.host && window.ZenithLive.build?.(), { timeout: 20000 });
+  };
+  setTimeout(() => window.requestIdleCallback(ahead, { timeout: 15000 }), 6000);
+});
 start("shell spaces", () => ShellSpaces.init());
 start("shell mouse", () => ShellMouse.init());
 start("link clicks", () => LinkClicks.init());

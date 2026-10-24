@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.16.0
+// @version        0.16.1
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 

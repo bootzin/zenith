@@ -166,11 +166,11 @@ export class ZenithCookiesChild extends JSWindowActorChild {
       if (this.timer) return;
       this.timer = setTimeout(() => {
         this.timer = null;
-        this.sweep();
-      }, 250);
+        if (!this.document?.hidden) this.sweep();
+      }, 600);
     });
     this.observer.observe(doc.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style", "hidden"] });
-    this.stopTimer = setTimeout(() => this.stop(), 20000);
+    this.stopTimer = setTimeout(() => this.stop(), 12000);
   }
 
   stop() {

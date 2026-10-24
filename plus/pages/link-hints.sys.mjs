@@ -22,6 +22,7 @@ const TYPING = "input:not([type=button], [type=submit], [type=reset], [type=chec
 
 export class ZenithHintsChild extends JSWindowActorChild {
   receiveMessage(msg) {
+    if (msg.name === "scroll") return void this.scroll(msg.data);
     if (msg.name === "show") this.show(msg.data);
     else if (msg.name === "hide") this.hide();
     // (What's showing, for tools/checks.)
@@ -31,6 +32,22 @@ export class ZenithHintsChild extends JSWindowActorChild {
 
   didDestroy() {
     this.hide();
+  }
+
+  // Ctrl+Alt+H/J/K/L: what scrolls under the middle of the page (a box
+  // that scrolls that way), else the page.
+  scroll({ x = 0, y = 0, smooth = true } = {}) {
+    const win = this.contentWindow, doc = this.document;
+    if (!win || !doc) return;
+    const can = el => {
+      if (!el || el === doc.documentElement || el === doc.body) return false;
+      const cs = win.getComputedStyle(el), over = y ? cs.overflowY : cs.overflowX;
+      return /auto|scroll|overlay/.test(over) && (y ? el.scrollHeight > el.clientHeight + 4 : el.scrollWidth > el.clientWidth + 4);
+    };
+    let el = doc.elementFromPoint(win.innerWidth / 2, win.innerHeight / 2);
+    while (el && !can(el)) el = el.parentElement;
+    const target = el ?? doc.scrollingElement ?? doc.documentElement;
+    target.scrollBy({ left: x, top: y, behavior: smooth ? "smooth" : "instant" });
   }
 
   // What can be followed and is on screen (and not covered by something).

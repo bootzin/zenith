@@ -304,7 +304,7 @@ transition: background-color 0.3s ease !important;
 }
 @media not -moz-pref("zenith.core.floating-sidebar", "zen") {
 :root:not(#zth-s[zth-s]) #navigator-toolbox:not(#zth-a, #zth-b) .zen-toolbar-background {
-background: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-sidebar-alpha) * 100%), transparent) !important;
+background: color-mix(in srgb, var(--zth-glass-color) calc(max(var(--zth-sidebar-alpha), 0.96) * 100%), transparent) !important;
 backdrop-filter: var(--zth-panel-filter) !important;
 transition: background-color 0.3s ease !important;
 &::before, &::after {
@@ -707,8 +707,10 @@ visibility: visible !important;
 }
 @media not (-moz-pref("zenith.tabs.unloaded", "italic") or -moz-pref("zenith.tabs.unloaded", "nofavicon") or -moz-pref("zenith.tabs.unloaded", "off")) {
 :root:not(#zth-s[zth-s]) .tabbrowser-tab[pending]:not([selected]) > .tab-stack > .tab-content {
+opacity: 0.78;
+& .tab-icon-image {
 filter: grayscale(1);
-opacity: 0.55;
+}
 }
 }
 @media -moz-pref("zenith.tabs.unloaded", "italic") {
@@ -2140,7 +2142,7 @@ box-shadow: 0 6px 20px rgb(0 0 0 / 0.45);
 & #zen-loading-progress-bar {
 display: none !important;
 }
-& #zenith-load-edge {
+& .zenith-load-edge {
 position: absolute;
 inset: 0 auto auto 0;
 z-index: 9;
@@ -2755,7 +2757,7 @@ background: transparent !important;
 }
 :root[zenith-focus] {
 --zth-edge-opacity: 0 !important;
-& :is(#zenith-load-edge, #zenith-download-edge, #zenith-insecure-hint, #zenith-minimap, .zenith-zoom-pill, #zenith-dots, #zenith-ready, #statuspanel, #PersonalToolbar) {
+& :is(.zenith-load-edge, #zenith-download-edge, #zenith-insecure-hint, #zenith-minimap, .zenith-zoom-pill, #zenith-dots, #zenith-ready, #statuspanel, #PersonalToolbar) {
 display: none !important;
 }
 }
@@ -3125,13 +3127,14 @@ display: none;
 background: color-mix(in srgb, var(--zb-ink) 9%, transparent);
 }
 &[current] {
-background: color-mix(in srgb, var(--zb-task-mark, var(--zb-mark)) 22%, transparent);
+background: color-mix(in srgb, var(--zb-ink) 15%, transparent);
 color: var(--zb-ink);
+font-weight: 700;
 &::before {
 content: "";
 position: absolute;
-inset: auto 6px 0 6px;
-height: 2px;
+inset: auto 5px 0 5px;
+height: 3px;
 border-radius: 1px;
 background: var(--zb-task-mark, var(--zb-mark));
 }
@@ -3441,38 +3444,38 @@ inset: 6px auto 6px 0;
 .zenith-bar[vertical][width="rail"] .zb-task {
 min-height: 34px;
 }
-.zenith-bar:is([hint="dot"], [hint="line"]) .zb-task[class*="identity-color-"]:not([current])::after {
+.zenith-bar[hint="top"] .zb-task[class*="identity-color-"]:not([current])::after {
 content: "";
 position: absolute;
+inset: 0 4px auto 4px;
+height: 2px;
+border-radius: 0 0 2px 2px;
 background: var(--identity-tab-color);
 }
-.zenith-bar[hint="dot"] .zb-task[class*="identity-color-"]:not([current])::after {
-width: 5px;
-height: 5px;
-border-radius: 50%;
-inset: auto 3px 3px auto;
-}
-.zenith-bar[hint="line"] .zb-task[class*="identity-color-"]:not([current])::after {
-inset: auto 30% 0 30%;
-height: 1.5px;
-border-radius: 1px;
-}
-.zenith-bar[vertical][hint="dot"] .zb-task[class*="identity-color-"]:not([current])::after {
-inset: auto auto 2px calc(50% - 2.5px);
-}
-.zenith-bar[vertical][hint="line"] .zb-task[class*="identity-color-"]:not([current])::after {
-inset: 30% 0 30% auto;
-width: 1.5px;
+.zenith-bar[vertical][hint="top"] .zb-task[class*="identity-color-"]:not([current])::after {
+inset: 6px 0 6px auto;
+width: 2px;
 height: auto;
+border-radius: 2px 0 0 2px;
 }
-.zenith-bar[vertical][edge="right"][hint="line"] .zb-task[class*="identity-color-"]:not([current])::after {
-inset: 30% auto 30% 0;
+.zenith-bar[vertical][edge="right"][hint="top"] .zb-task[class*="identity-color-"]:not([current])::after {
+inset: 6px auto 6px 0;
+border-radius: 0 2px 2px 0;
+}
+.zenith-bar[hint="ring"] .zb-task[class*="identity-color-"] img {
+border-radius: 50%;
+outline: 1.5px solid var(--identity-tab-color);
+outline-offset: 1.5px;
+}
+.zenith-bar[hint="tint"] .zb-task[class*="identity-color-"]:not([current]) {
+background: color-mix(in srgb, var(--identity-tab-color) 18%, transparent);
 }
 .zenith-bar .zb-mod[mod="tasks"][crowd="shrink"] > .zb-task:not(.zb-task-more) {
 flex: 0 1 auto;
 min-width: 30px;
 }
 .zenith-bar .zb-task.zb-task-more {
+justify-content: center;
 min-width: 0;
 padding: 0 7px;
 color: var(--zb-ink);
@@ -3480,9 +3483,12 @@ font-weight: 600;
 opacity: 0.8;
 }
 .zenith-bar[vertical] .zb-task.zb-task-more {
+justify-content: center;
 min-height: 24px;
 padding: 0;
 font-size: 10.5px;
+border-radius: 6px;
+background: color-mix(in srgb, var(--zb-ink) 7%, transparent);
 }
 .zenith-bar[vertical] .zb-mod[mod="clock"] {
 & > span {
@@ -3496,6 +3502,9 @@ font-weight: 700;
 }
 &[side="seconds"] > span:first-child {
 font-size: 11.5px;
+}
+& .zb-clock-date:empty {
+display: none;
 }
 &[side="stacked"] .zb-clock-date {
 padding-top: 3px;
@@ -3608,6 +3617,24 @@ place-items: center;
 width: 28px;
 height: 26px;
 padding: 0;
+}
+.zs-pop.zs-preview {
+width: 300px;
+padding: 8px;
+& .zs-preview-pic {
+aspect-ratio: 16 / 10;
+margin-bottom: 8px;
+border-radius: 8px;
+background: color-mix(in srgb, currentColor 8%, transparent) top left / cover no-repeat;
+&[hidden] {
+display: none;
+}
+}
+& .zs-title {
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+}
 }
 .zs-pop {
 & .zs-row[action] {
@@ -4990,7 +5017,19 @@ cursor: grabbing !important;
 inset: 0 !important;
 z-index: 2 !important;
 }
-#tabbrowser-tabpanels[zenith-solo] > [zen-split]:not([zenith-split-solo]), #tabbrowser-tabpanels[zenith-solo] > .zen-split-view-splitter {
+#tabbrowser-tabpanels[zenith-solo] > [zen-split]:not([zenith-split-solo]), #tabbrowser-tabpanels[zenith-scroller] {
+overflow: clip;
+& > .zen-split-view-splitter {
+display: none !important;
+}
+& > .browserSidebarContainer {
+transition: inset 0.22s var(--zth-ease, ease) !important;
+&[zenith-off-strip] {
+visibility: hidden;
+}
+}
+}
+#tabbrowser-tabpanels[zenith-solo] > .zen-split-view-splitter {
 visibility: hidden !important;
 }
 #zenith-split-ghost {

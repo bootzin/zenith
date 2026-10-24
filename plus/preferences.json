@@ -1224,7 +1224,7 @@
     "property": "zenith.sidebar",
     "label": "The sidebar",
     "type": "dropdown",
-    "placeholder": "Default (Shown)",
+    "placeholder": "Default (On hover (Zen's compact mode))",
     "options": [
       {
         "label": "Shown",
@@ -2197,19 +2197,73 @@
     "property": "zenith.bar.container-hint",
     "label": "Containers of the other tabs",
     "type": "dropdown",
-    "placeholder": "Default (Not shown)",
+    "placeholder": "Default (A line along the top)",
     "options": [
+      {
+        "label": "A line along the top",
+        "value": "top"
+      },
+      {
+        "label": "A ring around the icon",
+        "value": "ring"
+      },
+      {
+        "label": "The tab tinted",
+        "value": "tint"
+      },
       {
         "label": "Not shown",
         "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.tab-preview",
+    "label": "Hovering a tab in a bar",
+    "type": "dropdown",
+    "placeholder": "Default (Its preview)",
+    "options": [
+      {
+        "label": "Its preview",
+        "value": "on"
       },
       {
-        "label": "A dot",
-        "value": "dot"
-      },
-      {
-        "label": "A short line",
-        "value": "line"
+        "label": "Nothing",
+        "value": "off"
       }
     ],
     "usedBy": "zenith-plus",
@@ -2508,10 +2562,10 @@
   },
   {
     "property": "zenith.plus.appearance-skip",
-    "label": "Sites never inverted",
+    "label": "Sites left alone",
     "type": "string",
     "placeholder": "example.com, another.site",
-    "zenithList": "Sites never inverted",
+    "zenithList": "Sites left alone",
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -3392,6 +3446,31 @@
       {
         "label": "No bin",
         "value": "off"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.motion.space-switch",
+    "label": "Switching spaces",
+    "type": "dropdown",
+    "placeholder": "Default (As the preset)",
+    "options": [
+      {
+        "label": "As the preset",
+        "value": "preset"
+      },
+      {
+        "label": "Zen's slide (250 ms)",
+        "value": "zen"
+      },
+      {
+        "label": "Quick (120 ms)",
+        "value": "quick"
+      },
+      {
+        "label": "Instant",
+        "value": "instant"
       }
     ],
     "usedBy": "zenith-plus"

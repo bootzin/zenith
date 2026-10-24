@@ -89,8 +89,11 @@
 
 :root:not(:has(#theme-Zenith-Tabs:is([zenith-tabs-unloaded="italic"], [zenith-tabs-unloaded="nofavicon"], [zenith-tabs-unloaded="off"])))
   .tabbrowser-tab[pending]:not([selected]) > .tab-stack > .tab-content {
-  filter: grayscale(1);
-  opacity: 0.55;
+  opacity: 0.78;
+
+  & .tab-icon-image {
+    filter: grayscale(1);
+  }
 }
 
 :root:has(#theme-Zenith-Tabs[zenith-tabs-unloaded="italic"]) .tabbrowser-tab[pending]:not([selected]) .tab-label {

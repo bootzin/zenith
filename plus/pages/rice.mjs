@@ -255,7 +255,7 @@ export async function exportFile(path = PATH()) {
   const names = P.getChildList("zenith.").filter(n => !n.startsWith("zenith.internal.") && n !== "zenith.rice.mode" && P.prefHasUserValue(n) && !asItComes(n));
   let version = "";
   try {
-    version = (await (await fetch(new URL("../scripts/zenith-plus.uc.mjs", import.meta.url))).text()).match(/@version\s+(\S+)/)?.[1] ?? "";
+    version = window.ZenithVersion ?? "";
   } catch {}
   const out = ["# Zenith's rice file: hyprlang (Hyprland's config language). Alt+Shift+C reads it again.",
                `# Written by Zenith ${version} on ${new Date().toISOString().slice(0, 10)}.`, "", "$mod = ALT", ""];

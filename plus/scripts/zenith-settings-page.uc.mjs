@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.16.0
+// @version        0.16.1
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -2571,6 +2571,33 @@ const SCHEMA = [
       }
      },
      {
+      "property": "zenith.motion.space-switch",
+      "label": "Switching spaces",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How long Zen's slide from one space to the next takes: Zen's own 250 ms, 120 ms (as the Quick preset has it), or no slide at all. Left as the preset: Quick 120 ms, Smooth Zen's, Off none.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As the preset",
+        "value": "preset"
+       },
+       {
+        "label": "Zen's slide (250 ms)",
+        "value": "zen"
+       },
+       {
+        "label": "Quick (120 ms)",
+        "value": "quick"
+       },
+       {
+        "label": "Instant",
+        "value": "instant"
+       }
+      ],
+      "default": "preset"
+     },
+     {
       "property": "zenith.motion.swipe",
       "label": "Swipe animation",
       "type": "dropdown",
@@ -3837,14 +3864,6 @@ const SCHEMA = [
      "taskbar": "",
      "rail": "",
      "minimal": ""
-    },
-    "zenith.sidebar": {
-     "zen": "shown",
-     "top": "shown",
-     "split": "hidden",
-     "taskbar": "hidden",
-     "rail": "hidden",
-     "minimal": "hover"
     }
    },
    "values": [
@@ -4153,7 +4172,7 @@ const SCHEMA = [
         "value": "hidden"
        }
       ],
-      "default": "shown"
+      "default": "hover"
      },
      {
       "property": "zenith.bar.side-width",
@@ -4886,23 +4905,80 @@ const SCHEMA = [
       "label": "Containers of other tabs",
       "type": "dropdown",
       "extra": false,
-      "desc": "Tabs in a Firefox container that you're not on: nothing (only the tab you're on is marked in its container's colour), a small dot in the container's colour by the icon, or a short line in it where the marker goes.",
+      "desc": "Tabs in a Firefox container that you're not on: a thin line in the container's colour along the tab's top (Firefox's own; on a side bar, its inner edge), a ring around the icon, the tab faintly tinted, or nothing (the tab you're on is marked in its container's colour either way).",
       "host": "Zenith Plus",
       "options": [
        {
+        "label": "A line along the top",
+        "value": "top"
+       },
+       {
+        "label": "A ring around the icon",
+        "value": "ring"
+       },
+       {
+        "label": "The tab tinted",
+        "value": "tint"
+       },
+       {
         "label": "Not shown",
         "value": "off"
-       },
-       {
-        "label": "A dot",
-        "value": "dot"
-       },
-       {
-        "label": "A short line",
-        "value": "line"
        }
       ],
-      "default": "off",
+      "default": "top",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-preview",
+      "label": "Hovering a tab",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Resting the pointer on a tab in a bar shows its picture (a sleeping tab: its title and address only), as the sidebar's tab previews.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Its preview",
+        "value": "on"
+       },
+       {
+        "label": "Nothing",
+        "value": "off"
+       }
+      ],
+      "default": "on",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5847,7 +5923,7 @@ const SCHEMA = [
       "label": "Pages set dark or light",
       "type": "dropdown",
       "extra": false,
-      "desc": "When you set pages dark or light (the bar's sun or moon, the Dash, :appearance), Firefox asks every page for it, and many sites don't listen. Invert: a page still in the other mode once it has loaded is inverted, its pictures and videos turned back, as Dark Reader's filter mode does (pages that follow are left alone). Every page in your palette's colours: Firefox draws every page in the palette's background, text and link colours (or plain dark or light ones without a palette), as a high-contrast mode does: the same everywhere, but pages lose their own design. Only ask them: as Firefox does on its own.",
+      "desc": "Pages are dark or light: as you set them (the bar's sun or moon, the Dash, :appearance), or automatic (the browser's or Windows', as you choose above). Firefox asks every page for it, and many sites don't listen. Invert: a page still in the other mode once it has loaded is inverted, its pictures and videos turned back, as Dark Reader's filter mode does (pages that follow are left alone). Every page in your palette's colours: Firefox draws every page in the palette's background, text and link colours (or plain dark or light ones without a palette), as a high-contrast mode does: the same everywhere, but pages lose their own design. Only ask them: as Firefox does on its own.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -5867,13 +5943,13 @@ const SCHEMA = [
      },
      {
       "property": "zenith.plus.appearance-skip",
-      "label": "Sites never inverted",
+      "label": "Sites left alone",
       "type": "string",
       "extra": false,
-      "desc": "Sites that are never inverted (a site and its subdomains), for those that look wrong inverted.",
+      "desc": "Sites left as they are, dark or light, automatic or not (a site and its subdomains): never inverted. The sun or moon's right-click menu adds or takes away the site you're on.",
       "host": "Zenith Plus",
       "placeholder": "example.com, another.site",
-      "zenithList": "Sites never inverted",
+      "zenithList": "Sites left alone",
       "parent": "zenith.plus.appearance-force",
       "rule": {
        "why": "Pages aren't inverted",
@@ -6477,7 +6553,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.16.0";
+const SCHEMA_VERSION = "0.16.1";
 
 class SettingsView {
   constructor(kind) {

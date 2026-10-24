@@ -38,16 +38,6 @@ function colours() {
   document.documentElement.style.colorScheme = dark === "true" ? "dark" : dark === "false" ? "light" : "light dark";
 }
 
-async function zenithVersion() {
-  for (const d of ["../scripts/zenith-plus.uc.mjs", "../zenith-plus.uc.mjs"]) {
-    try {
-      const text = await (await fetch(new URL(d, document.baseURI))).text();
-      const m = text.match(/@version\s+(\S+)/);
-      if (m) return m[1];
-    } catch {}
-  }
-  return "";
-}
 
 // Windows 11 24H2 (26200), from the registry; elsewhere what the platform says.
 function os() {
@@ -73,24 +63,20 @@ function since(ms) {
   return [part(d, "day"), part(h % 24, "hour"), part(min % 60, "min")].filter(Boolean).join(", ") || "just now";
 }
 
-async function lines() {
+function lines() {
   const P = Services.prefs, out = [];
   const W = win.gZenWorkspaces, tabs = [...new Set(W?.allStoredTabs ?? gBrowser.tabs)].filter(t => !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
   const asleep = tabs.filter(t => t.hasAttribute("pending") || !t.linkedPanel).length;
   const app = Services.appinfo;
   out.push(["Browser", `${app.name} ${app.version} (Firefox ${app.platformVersion.split(".")[0]})`]);
-  out.push(["Zenith", `${(await zenithVersion()) || "?"}${win.ZenithBar ? " + Plus" : ""}`]);
+  out.push(["Zenith", `${win.ZenithVersion ?? "?"}${win.ZenithBar ? " + Plus" : ""}`]);
   out.push(["OS", os()]);
   try {
     out.push(["Uptime", since(Date.now() - Services.startup.getStartupInfo().process.getTime())]);
   } catch {}
   out.push(["Spaces", `${W?.getWorkspaces?.().length ?? 1}`]);
   out.push(["Tabs", `${tabs.length - asleep} awake, ${asleep} asleep`]);
-  try {
-    const S = (await import(await win.ZenithBar.page("shell-ui.mjs"))).System;
-    const s = await S.sample();
-    out.push(["Memory", `${Math.round(s.memory / 1048576)} MB in ${s.processes} processes`]);
-  } catch {}
+  out.push(["Memory", "…"]);
   const L = win.ZenithLayouts;
   if (L) out.push(["Layout", `${L.NAMES[L.of()]} (this space)`]);
   const bars = ["top", "bottom", "left", "right"].filter(e => (P.getStringPref(`zenith.bar.${e}`, "") || "off") !== "off");
@@ -115,15 +101,26 @@ async function lines() {
   return out;
 }
 
-async function draw() {
+function draw() {
   colours();
   $("logo").textContent = LOGO;
   const user = Services.env.get("USERNAME") || Services.env.get("USER") || "you";
   const who = $("who");
   who.append(make("b", user), "@", make("b", "zenith"));
   $("rule").textContent = "-".repeat(user.length + 7);
-  const list = await lines(), dl = $("lines");
+  const list = lines(), dl = $("lines");
   for (const [k, v] of list) dl.append(make("dt", k), make("dd", v));
+  // (Memory: measured after the card is up.)
+  const at = list.findIndex(([k]) => k === "Memory");
+  // (Counted as the bar's memory module does: Windows' private working set
+  // where Zenith can read it, Firefox's own figure otherwise.)
+  win.ChromeUtils.requestProcInfo().then(info => {
+    const all = [info, ...info.children], own = win.ZenithTabs?.Look?.privateSet?.();
+    const s = { memory: all.reduce((a, p) => a + ((own && own(p.pid)) ?? p.memory ?? 0), 0), processes: all.length };
+    const text = `${Math.round(s.memory / 1048576)} MB in ${s.processes} processes`;
+    list[at][1] = text;
+    dl.querySelectorAll("dd")[at].textContent = text;
+  }).catch(() => {});
   // The palette's colours, as the two rows of a terminal's.
   const cs = getComputedStyle(document.documentElement), sw = $("swatches");
   const keys = ["base", "red", "green", "yellow", "accent", "second", "overlay", "text", "mantle", "surface"];

@@ -526,7 +526,29 @@ export function appearanceCard(box) {
   const say = () => put(now, A.describe());
   box.append(node("div", { class: "zs-head" }, "How pages look"),
              row("Everywhere", () => A.global(), v => (A.set(v), say())),
-             row("In this space", () => A.space(), v => (A.setSpace(v), say())), now);
+             row("In this space", () => A.space(), v => (A.setSpace(v), say())));
+  // This site: made dark or light like the rest, or left as it is.
+  let host = "";
+  try {
+    host = (gBrowser.currentURI?.host ?? "").replace(/^www\./, "");
+  } catch {}
+  if (host) {
+    const r = node("div", { class: "zs-seg-row" }), seg = node("div", { class: "zs-seg" });
+    r.append(node("span", { class: "zs-grow", title: host }, host.length > 22 ? `${host.slice(0, 21)}…` : host));
+    for (const [alone, label] of [[false, "As the rest"], [true, "Left alone"]]) {
+      const b = button(label, "zs-btn");
+      b.toggleAttribute("on", A.alone(host) === alone);
+      b.addEventListener("click", () => {
+        A.leaveAlone(host, alone);
+        for (const x of seg.children) x.toggleAttribute("on", x === b);
+        setTimeout(say, 50);
+      });
+      seg.append(b);
+    }
+    r.append(seg);
+    box.append(r);
+  }
+  box.append(now);
   say();
 }
 
@@ -645,4 +667,77 @@ export function barMenu(box, edge, mod) {
   }
   look.append(seg);
   box.append(node("div", { class: "zs-head" }, `The ${edge} bar`), list, look);
+}
+
+/* --- Pictures ------------------------------------------------------------------------ */
+// Each awake tab, drawn small (kept 30 s; the tab you're on always again).
+export const Pictures = {
+  cache: new Map(), // tab → { url, at }
+
+  async take(tab, width = 360) {
+    if (!tab?.linkedPanel || tab.hasAttribute("pending") || tab.closing) return null;
+    const had = this.cache.get(tab);
+    if (had && !tab.selected && Date.now() - had.at < 30000) return had.url;
+    const b = tab.linkedBrowser, ref = gBrowser.selectedBrowser;
+    const w = Math.round(b.clientWidth || ref.clientWidth), h = Math.round(b.clientHeight || ref.clientHeight);
+    if (!b || w < 50 || h < 50) return null;
+    try {
+      const bmp = await b.drawSnapshot(0, 0, w, h, Math.min(1, width / w), "white");
+      const c = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+      c.width = bmp.width;
+      c.height = bmp.height;
+      const g = c.getContext("2d", { willReadFrequently: true });
+      g.drawImage(bmp, 0, 0);
+      bmp.close?.();
+      // (A tab in the background may not be painted yet, in part or at all: its
+      // icon card instead; the picture comes when you've been on it.)
+      let black = 0;
+      for (let y = 1; y < 5; y++) {
+        for (let x = 1; x < 5; x++) {
+          const [r, gr, b, a] = g.getImageData(Math.floor((c.width * x) / 5), Math.floor((c.height * y) / 5), 1, 1).data;
+          if (a < 50 || r + gr + b < 6) black++;
+        }
+      }
+      if (black > 2 && !tab.selected) return had?.url ?? null;
+      const blob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.82));
+      if (!blob) return null;
+      const url = URL.createObjectURL(blob);
+      if (had) URL.revokeObjectURL(had.url);
+      this.cache.set(tab, { url, at: Date.now() });
+      return url;
+    } catch {
+      return null;
+    }
+  },
+
+  forget() {
+    for (const [tab, { url, at }] of this.cache) {
+      if (!tab.isConnected || Date.now() - at > 120000) {
+        URL.revokeObjectURL(url);
+        this.cache.delete(tab);
+      }
+    }
+  },
+};
+
+/* --- A tab's preview (hovering a tab in a bar) ------------------------------------------ */
+export function previewCard(box, tab) {
+  box.classList.add("zs-preview");
+  const pic = node("div", { class: "zs-preview-pic" });
+  const title = node("div", { class: "zs-title" }, tab.label);
+  let host = "";
+  try {
+    host = tab.linkedBrowser?.currentURI?.displayHost || tab.linkedBrowser?.currentURI?.spec || "";
+  } catch {}
+  const sub = node("div", { class: "zs-sub" }, `${host}${tab.hasAttribute("pending") ? " · asleep" : ""}`);
+  box.append(pic, title, sub);
+  const had = Pictures.cache.get(tab)?.url;
+  if (had) pic.style.backgroundImage = `url("${had}")`;
+  else if (tab.hasAttribute("pending") || !tab.linkedPanel) pic.hidden = true;
+  Pictures.take(tab, 320).then(url => {
+    if (url && box.isConnected) {
+      pic.hidden = false;
+      pic.style.backgroundImage = `url("${url}")`;
+    } else if (!url && !had) pic.hidden = true;
+  });
 }

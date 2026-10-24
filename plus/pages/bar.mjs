@@ -15,7 +15,7 @@
 //   - each module is boxed off (contain), so a ticking clock restyles one
 //     node, never the bar.
 
-import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard, tabsCard, powerCard, barMenu } from "./shell-ui.mjs";
+import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard, tabsCard, powerCard, barMenu, previewCard } from "./shell-ui.mjs";
 
 const P = Services.prefs;
 const HTML = "http://www.w3.org/1999/xhtml";
@@ -275,6 +275,17 @@ function title(box) {
 
 // Tabs in the bar (Bar › Tabs: in the bar), as waybar's taskbar: this
 // space's tabs as icons, and titles as the look and the room allow.
+// The tabs the sidebar shows for this space, in its order: essentials,
+// pinned tabs, then the others (those in folders too, open or closed).
+function sidebarTabs() {
+  const W = window.gZenWorkspaces, space = W?.activeWorkspace;
+  const every = [...new Set(W?.allStoredTabs ?? gBrowser.tabs)]
+    .filter(t => t.isConnected && !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
+  const here = t => t.hasAttribute("zen-essential") || !space || t.getAttribute("zen-workspace-id") === space;
+  const rank = t => (t.hasAttribute("zen-essential") ? 0 : t.pinned ? 1 : 2);
+  return every.filter(here).sort((a, b) => rank(a) - rank(b) || a._tPos - b._tPos);
+}
+
 function tasks(box) {
   const m = mod("tasks"), more = mod("tasks-more", "button"), count = node("span");
   more.append(icon("tabs"), count);
@@ -297,7 +308,7 @@ function tasks(box) {
   const before = edge("before"), after = edge("after");
   // How much room a tab takes in each look (a side bar's rows: their height).
   const SIZE = vertical ? { icons: 38, current: 38, titles: 38, numbers: 38 } : { icons: 33, current: 33, titles: 163, numbers: 31 };
-  let room = 0, start = 0, selected = null;
+  let room = 0, start = 0, selected = null, scrolled = false;
   const button = t => {
     let b = items.get(t);
     if (!b) {
@@ -330,7 +341,7 @@ function tasks(box) {
   };
   const draw = soon(() => {
     if (Bar.gone) return;
-    const all = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
+    const all = sidebarTabs();
     // (Bar › Only awake tabs: sleeping ones are in the chip's list.)
     const tabs = bool("zenith.bar.tab-awake", false) ? all.filter(t => t.selected || !t.hasAttribute("pending")) : all;
     for (const [t, b] of items) if (!tabs.includes(t)) items.delete(t);
@@ -356,7 +367,9 @@ function tasks(box) {
       if (look === "titles") look = "icons";
       const k = Math.max(1, Math.floor((room - 2 * (vertical ? 30 : 40)) / each));
       const centre = pref("zenith.bar.tab-scroll", "nearest") === "centre";
-      if (centre || cur < start || cur >= start + k || selected === null) start = cur - Math.floor(k / 2);
+      const moved = selected !== gBrowser.selectedTab;
+      if (moved) scrolled = false;
+      if (!scrolled && (centre || cur < start || cur >= start + k || selected === null)) start = cur - Math.floor(k / 2);
       start = Math.max(0, Math.min(start, n - k));
       shown = tabs.slice(start, start + k);
       hiddenBefore = start;
@@ -365,8 +378,9 @@ function tasks(box) {
     selected = gBrowser.selectedTab;
     const nodes = shown.map(t => button(t));
     shown.forEach((t, i) => paint(nodes[i], t, tabs.indexOf(t)));
-    put(before, `+${hiddenBefore}`);
-    put(after, `+${hiddenAfter}`);
+    const wide = vertical && !rail();
+    put(before, wide ? `+${hiddenBefore} more` : `+${hiddenBefore}`);
+    put(after, wide ? `+${hiddenAfter} more` : `+${hiddenAfter}`);
     before.title = `${hiddenBefore} more before`;
     after.title = `${hiddenAfter} more after`;
     const want2 = [...(hiddenBefore ? [before] : []), ...nodes, ...(hiddenAfter ? [after] : [])];
@@ -382,7 +396,7 @@ function tasks(box) {
       more.hidden = !(over || missing > 0);
       put(count, `${all.length}`);
       const b = items.get(gBrowser.selectedTab);
-      if (b?.isConnected && (b !== m.zbShown || pref("zenith.bar.tab-scroll", "nearest") === "centre")) {
+      if (b?.isConnected && !scrolled && (b !== m.zbShown || pref("zenith.bar.tab-scroll", "nearest") === "centre")) {
         m.zbShown = b;
         const centre = pref("zenith.bar.tab-scroll", "nearest") === "centre";
         b.scrollIntoView({ block: centre ? "center" : "nearest", inline: centre ? "center" : "nearest" });
@@ -397,6 +411,33 @@ function tasks(box) {
     const t = e.button === 1 && e.target.closest(".zb-task")?.zbTab;
     if (t?.isConnected) gBrowser.removeTab(t, { animate: true });
   });
+  m.addEventListener("contextmenu", e => {
+    const t = e.target.closest(".zb-task")?.zbTab;
+    if (!t?.isConnected) return;
+    e.preventDefault();
+    e.stopPropagation();
+    Popup.close();
+    // (The tab's own menu, as if the tab itself were right-clicked there.)
+    t.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2, buttons: 2,
+                                                   screenX: e.screenX, screenY: e.screenY, clientX: e.clientX, clientY: e.clientY }));
+  });
+  let hovering = null;
+  m.addEventListener("mouseover", e => {
+    const b = e.target.closest(".zb-task:not(.zb-task-more)");
+    if (!b?.zbTab || pref("zenith.bar.tab-preview", "on") === "off") return;
+    clearTimeout(hovering);
+    hovering = setTimeout(() => {
+      if (!b.matches(":hover") || !b.zbTab.isConnected || (Popup.kind === "preview" && Popup.anchor === b)) return;
+      if (Popup.node && Popup.kind !== "preview") return;
+      Popup.open(b, box => previewCard(box, b.zbTab), { kind: "preview", hover: true });
+    }, Popup.kind === "preview" ? 80 : 450);
+  });
+  m.addEventListener("mouseleave", () => clearTimeout(hovering));
+  m.addEventListener("mousedown", () => {
+    clearTimeout(hovering);
+    if (Popup.kind === "preview") Popup.close();
+  });
+  Undo.add(() => clearTimeout(hovering));
   // The wheel scrolls the strip, as a browser's tab strip does (a window of
   // tabs moves along), or (Bar › The wheel over tabs) goes to the next tab.
   m.addEventListener("wheel", e => {
@@ -405,9 +446,10 @@ function tasks(box) {
     if (pref("zenith.bar.tab-wheel", "scroll") === "switch") return gBrowser.tabContainer.advanceSelectedTab(d > 0 ? 1 : -1, true);
     if (before.isConnected || after.isConnected) {
       start += d > 0 ? 1 : -1;
-      selected = gBrowser.selectedTab;
+      scrolled = true;
       return void draw();
     }
+    scrolled = true;
     const px = d * (e.deltaMode === 1 ? 24 : e.deltaMode === 2 ? 200 : 1);
     if (vertical) m.scrollTop += px;
     else m.scrollLeft += px;
@@ -688,7 +730,8 @@ function clock(box) {
   const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "short" }), MONTH = new Intl.DateTimeFormat(undefined, { month: "short" });
   // On a side bar (Bar › The clock on a side bar): stacked, and under the
   // time nothing, the weekday, the seconds, the date, or the day over the month.
-  const sideLook = () => (m.closest(".zenith-bar[vertical]") ? pref("zenith.bar.side-clock", "auto") : null);
+  // (A wide side bar has room for the clock's own one line: the side looks are the rail's.)
+  const sideLook = () => (m.closest('.zenith-bar[vertical][width="rail"]') ? pref("zenith.bar.side-clock", "auto") : null);
   const draw = () => {
     const now = new Date(), p = n => `${n}`.padStart(2, "0");
     const rail = !!m.closest('.zenith-bar[vertical][width="rail"]'), side = sideLook();
@@ -938,7 +981,9 @@ const Bar = {
       bar.setAttribute("size", pref("zenith.bar.size", "30"));
       bar.setAttribute("font", pref("zenith.bar.font", "mono"));
       bar.setAttribute("marker", pref("zenith.bar.marker", "container"));
-      bar.setAttribute("hint", pref("zenith.bar.container-hint", "off"));
+      // (0.16.0's dot and short line: now the ring and the top line.)
+      const hint = pref("zenith.bar.container-hint", "top");
+      bar.setAttribute("hint", { dot: "ring", line: "top" }[hint] ?? hint);
     }
     // (Another look, size or font: the fixed-width modules measured again.)
     requestAnimationFrame(() => {

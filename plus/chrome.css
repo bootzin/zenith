@@ -16,7 +16,7 @@
     display: none !important;
   }
 
-  & #zenith-load-edge {
+  & .zenith-load-edge {
     position: absolute;
     inset: 0 auto auto 0;
     z-index: 9;
@@ -776,7 +776,7 @@ browser[zenith-see-through] {
 :root[zenith-focus] {
   --zth-edge-opacity: 0 !important;
 
-  & :is(#zenith-load-edge, #zenith-download-edge, #zenith-insecure-hint, #zenith-minimap, .zenith-zoom-pill,
+  & :is(.zenith-load-edge, #zenith-download-edge, #zenith-insecure-hint, #zenith-minimap, .zenith-zoom-pill,
         #zenith-dots, #zenith-ready, #statuspanel, #PersonalToolbar) {
     display: none !important;
   }
@@ -1233,14 +1233,15 @@ browser[zenith-see-through] {
     }
 
     &[current] {
-      background: color-mix(in srgb, var(--zb-task-mark, var(--zb-mark)) 22%, transparent);
+      background: color-mix(in srgb, var(--zb-ink) 15%, transparent);
       color: var(--zb-ink);
+      font-weight: 700;
 
       &::before {
         content: "";
         position: absolute;
-        inset: auto 6px 0 6px;
-        height: 2px;
+        inset: auto 5px 0 5px;
+        height: 3px;
         border-radius: 1px;
         background: var(--zb-task-mark, var(--zb-mark));
       }
@@ -1645,38 +1646,37 @@ browser[zenith-see-through] {
 }
 
 /* Tabs in a container you're not on (Bar › Containers of other tabs): a
-   dot by the icon, or a short line where the marker would be. */
-.zenith-bar:is([hint="dot"], [hint="line"]) .zb-task[class*="identity-color-"]:not([current])::after {
+   line along the top (Firefox's own), a ring around the icon, the tab
+   tinted, or nothing. On a side bar the line is on the inner edge. */
+.zenith-bar[hint="top"] .zb-task[class*="identity-color-"]:not([current])::after {
   content: "";
   position: absolute;
+  inset: 0 4px auto 4px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
   background: var(--identity-tab-color);
 }
 
-.zenith-bar[hint="dot"] .zb-task[class*="identity-color-"]:not([current])::after {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  inset: auto 3px 3px auto;
-}
-
-.zenith-bar[hint="line"] .zb-task[class*="identity-color-"]:not([current])::after {
-  inset: auto 30% 0 30%;
-  height: 1.5px;
-  border-radius: 1px;
-}
-
-.zenith-bar[vertical][hint="dot"] .zb-task[class*="identity-color-"]:not([current])::after {
-  inset: auto auto 2px calc(50% - 2.5px);
-}
-
-.zenith-bar[vertical][hint="line"] .zb-task[class*="identity-color-"]:not([current])::after {
-  inset: 30% 0 30% auto;
-  width: 1.5px;
+.zenith-bar[vertical][hint="top"] .zb-task[class*="identity-color-"]:not([current])::after {
+  inset: 6px 0 6px auto;
+  width: 2px;
   height: auto;
+  border-radius: 2px 0 0 2px;
 }
 
-.zenith-bar[vertical][edge="right"][hint="line"] .zb-task[class*="identity-color-"]:not([current])::after {
-  inset: 30% auto 30% 0;
+.zenith-bar[vertical][edge="right"][hint="top"] .zb-task[class*="identity-color-"]:not([current])::after {
+  inset: 6px auto 6px 0;
+  border-radius: 0 2px 2px 0;
+}
+
+.zenith-bar[hint="ring"] .zb-task[class*="identity-color-"] img {
+  border-radius: 50%;
+  outline: 1.5px solid var(--identity-tab-color);
+  outline-offset: 1.5px;
+}
+
+.zenith-bar[hint="tint"] .zb-task[class*="identity-color-"]:not([current]) {
+  background: color-mix(in srgb, var(--identity-tab-color) 18%, transparent);
 }
 
 /* Crowded: shrinking as Chrome's tabs, down to an icon; "+12" at the ends of
@@ -1687,6 +1687,7 @@ browser[zenith-see-through] {
 }
 
 .zenith-bar .zb-task.zb-task-more {
+  justify-content: center;
   min-width: 0;
   padding: 0 7px;
   color: var(--zb-ink);
@@ -1695,9 +1696,12 @@ browser[zenith-see-through] {
 }
 
 .zenith-bar[vertical] .zb-task.zb-task-more {
+  justify-content: center;
   min-height: 24px;
   padding: 0;
   font-size: 10.5px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--zb-ink) 7%, transparent);
 }
 
 /* The clock on a side bar: just the time, bigger; or with something under it. */
@@ -1715,6 +1719,10 @@ browser[zenith-see-through] {
 
   &[side="seconds"] > span:first-child {
     font-size: 11.5px;
+  }
+
+  & .zb-clock-date:empty {
+    display: none;
   }
 
   &[side="stacked"] .zb-clock-date {
@@ -1876,6 +1884,29 @@ browser[zenith-see-through] {
   width: 28px;
   height: 26px;
   padding: 0;
+}
+
+/* A tab's preview, hovering it in a bar. */
+.zs-pop.zs-preview {
+  width: 300px;
+  padding: 8px;
+
+  & .zs-preview-pic {
+    aspect-ratio: 16 / 10;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background: color-mix(in srgb, currentColor 8%, transparent) top left / cover no-repeat;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  & .zs-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 /* Popups: rows you can click, the tab you're on, a favicon, a field at the top. */
@@ -3615,6 +3646,25 @@ tab-group[split-view-group]:hover {
 }
 
 #tabbrowser-tabpanels[zenith-solo] > [zen-split]:not([zenith-split-solo]),
+/* The scroller (Shell › Layout): columns slide along the strip; the ones
+   beyond the edges are out of sight (and not drawn); no splitters (a
+   column's width is Alt+Shift+Y's). */
+#tabbrowser-tabpanels[zenith-scroller] {
+  overflow: clip;
+
+  & > .zen-split-view-splitter {
+    display: none !important;
+  }
+
+  & > .browserSidebarContainer {
+    transition: inset 0.22s var(--zth-ease, ease) !important;
+
+    &[zenith-off-strip] {
+      visibility: hidden;
+    }
+  }
+}
+
 #tabbrowser-tabpanels[zenith-solo] > .zen-split-view-splitter {
   visibility: hidden !important;
 }

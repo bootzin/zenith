@@ -15,6 +15,8 @@
 // while; a sleeping tab shows its icon and title. Nothing of it is kept
 // when it's closed.
 
+import { Pictures } from "./shell-ui.mjs";
+
 const HTML = "http://www.w3.org/1999/xhtml";
 const P = Services.prefs;
 
@@ -27,57 +29,6 @@ function node(tag, attrs = {}, text = "") {
 
 const W = () => window.gZenWorkspaces;
 const S = () => window.gZenViewSplitter;
-
-/* --- Pictures ------------------------------------------------------------------------ */
-// Each awake tab, drawn small (kept 30 s; the tab you're on always again).
-const Pictures = {
-  cache: new Map(), // tab → { url, at }
-
-  async take(tab, width = 360) {
-    if (!tab?.linkedPanel || tab.hasAttribute("pending") || tab.closing) return null;
-    const had = this.cache.get(tab);
-    if (had && !tab.selected && Date.now() - had.at < 30000) return had.url;
-    const b = tab.linkedBrowser, ref = gBrowser.selectedBrowser;
-    const w = Math.round(b.clientWidth || ref.clientWidth), h = Math.round(b.clientHeight || ref.clientHeight);
-    if (!b || w < 50 || h < 50) return null;
-    try {
-      const bmp = await b.drawSnapshot(0, 0, w, h, Math.min(1, width / w), "white");
-      const c = document.createElementNS(HTML, "canvas");
-      c.width = bmp.width;
-      c.height = bmp.height;
-      const g = c.getContext("2d", { willReadFrequently: true });
-      g.drawImage(bmp, 0, 0);
-      bmp.close?.();
-      // (A tab in the background may not be painted yet, in part or at all: its
-      // icon card instead; the picture comes when you've been on it.)
-      let black = 0;
-      for (let y = 1; y < 5; y++) {
-        for (let x = 1; x < 5; x++) {
-          const [r, gr, b, a] = g.getImageData(Math.floor((c.width * x) / 5), Math.floor((c.height * y) / 5), 1, 1).data;
-          if (a < 50 || r + gr + b < 6) black++;
-        }
-      }
-      if (black > 2 && !tab.selected) return had?.url ?? null;
-      const blob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.82));
-      if (!blob) return null;
-      const url = URL.createObjectURL(blob);
-      if (had) URL.revokeObjectURL(had.url);
-      this.cache.set(tab, { url, at: Date.now() });
-      return url;
-    } catch {
-      return null;
-    }
-  },
-
-  forget() {
-    for (const [tab, { url, at }] of this.cache) {
-      if (!tab.isConnected || Date.now() - at > 120000) {
-        URL.revokeObjectURL(url);
-        this.cache.delete(tab);
-      }
-    }
-  },
-};
 
 // Once the overview has been used: the tab you go to, pictured a moment
 // after it's drawn (small, when the browser is idle), so its picture is
