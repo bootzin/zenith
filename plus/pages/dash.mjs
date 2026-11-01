@@ -101,11 +101,8 @@ function calendar(box) {
 export function mediaCard(box, undo) {
   const c = card("", "zd-media");
   box.append(c);
-  const find = () => {
-    const tabs = gBrowser.tabs;
-    return tabs.find(t => t.hasAttribute("soundplaying"))
-      ?? tabs.find(t => { try { return t.linkedBrowser?.browsingContext?.mediaController?.isActive; } catch { return false; } });
-  };
+  // (The media hub's source, as the bar shows it: zenith-plus, MediaHub.)
+  const find = () => window.ZenithMedia?.current?.tab ?? null;
   let ctrl = null;
   const draw = async () => {
     const tab = find(), C = tab?.linkedBrowser?.browsingContext?.mediaController ?? null;
@@ -146,10 +143,10 @@ export function mediaCard(box, undo) {
     text.append(keys);
     c.replaceChildren(art, text);
   };
-  const follow = e => e.detail?.changed?.includes("soundplaying") && draw();
-  gBrowser.tabContainer.addEventListener("TabAttrModified", follow);
+  const follow = () => draw();
+  window.addEventListener("ZenithMedia", follow);
   undo.push(() => {
-    gBrowser.tabContainer.removeEventListener("TabAttrModified", follow);
+    window.removeEventListener("ZenithMedia", follow);
     for (const t of ["metadatachange", "playbackstatechange", "deactivated"]) ctrl?.removeEventListener(t, draw);
   });
   draw();

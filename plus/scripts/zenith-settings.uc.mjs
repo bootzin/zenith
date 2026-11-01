@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.16.2
+// @version        0.16.3
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -690,6 +690,312 @@ const RULES = {
       }
     ]
   },
+  "zenith.bar.length": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.margin": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.corners": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.opacity": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.module-corners": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.spacing": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.border": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.separators": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.side-px": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
   "zenith.bar.font": {
     "why": "The bar is off",
     "conditions": [
@@ -1031,6 +1337,74 @@ const RULES = {
     ]
   },
   "zenith.bar.media-hover": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.tab-marks": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.media-pick": {
     "why": "The bar is off",
     "conditions": [
       {

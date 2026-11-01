@@ -3481,6 +3481,56 @@
     "zenithWhy": "The bar is off"
   },
   {
+    "property": "zenith.bar.media-pick",
+    "label": "Which source the bar shows",
+    "type": "dropdown",
+    "placeholder": "Default (The newest playing (any space))",
+    "options": [
+      {
+        "label": "The newest playing (any space)",
+        "value": "newest"
+      },
+      {
+        "label": "Keep the one I chose",
+        "value": "kept"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
     "property": "zenith.bar.tab-crowd",
     "label": "Tabs that don't fit in a bar",
     "type": "dropdown",
@@ -4532,6 +4582,23 @@
       {
         "label": "Always below",
         "value": "below"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.split-background",
+    "label": "Links opened in the background from a split",
+    "type": "dropdown",
+    "placeholder": "Default (A new tile)",
+    "options": [
+      {
+        "label": "A new tile",
+        "value": "tile"
+      },
+      {
+        "label": "A normal tab",
+        "value": "tab"
       }
     ],
     "usedBy": "zenith-plus"

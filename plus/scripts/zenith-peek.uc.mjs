@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.16.2
+// @version        0.16.3
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -477,9 +477,14 @@ const Peek = {
     if (!result) return;
     const root = document.documentElement;
     root.setAttribute("zenith-peek-open", "true");
+    // (Its pages keep every link click: plus/pages/peek-link.sys.mjs.)
+    Services.ppmm.sharedData.set("zenith-peek-browser", result.browser.browserId);
+    Services.ppmm.sharedData.flush();
     // The page behind: as it is, or faded the way Zen's Glance fades it.
     root.toggleAttribute("zenith-peek-fade", Services.prefs.getStringPref("zenith.peek.behind", "") === "fade");
     result.closed.then(() => {
+      Services.ppmm.sharedData.delete("zenith-peek-browser");
+      Services.ppmm.sharedData.flush();
       root.removeAttribute("zenith-peek-open");
       root.removeAttribute("zenith-peek-fade");
     });
@@ -515,7 +520,7 @@ async function watchPeekLinks() {
     try {
       ChromeUtils.registerWindowActor("ZenithPeekLink", {
         parent: { esModuleURI: url },
-        child: { esModuleURI: url, events: { click: { capture: true }, mousedown: { capture: true } } },
+        child: { esModuleURI: url, events: { click: { capture: true }, auxclick: { capture: true }, mousedown: { capture: true } } },
         allFrames: true,
         matches: ["http://*/*", "https://*/*"],
         safeForUntrustedWebProcess: true,
@@ -1286,6 +1291,24 @@ function watchUrlbar() {
   gURLBar.addEventListener("keydown", onKey, true);
 }
 
+// Ctrl+W closes the Peek; reload and zoom act on its page. True when done.
+function peekKey(e) {
+  const b = gZenGlanceManager.detachedBrowser, k = e.key.toLowerCase(), ctrl = (e.ctrlKey || e.metaKey) && !e.altKey;
+  if (!b) return false;
+  if (ctrl && !e.shiftKey && (k === "w" || e.code === "KeyW" || k === "f4")) return Peek.close(), true;
+  if ((k === "f5" && !e.ctrlKey && !e.altKey) || (ctrl && (k === "r" || e.code === "KeyR"))) {
+    if (e.shiftKey || (k === "f5" && e.ctrlKey)) b.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE);
+    else b.reload();
+    return true;
+  }
+  if (ctrl && !e.shiftKey && ["+", "=", "-", "0"].includes(e.key)) {
+    if (e.key === "0") ZoomManager.setZoomForBrowser(b, 1);
+    else ZoomManager[e.key === "-" ? "reduce" : "enlarge"](b);
+    return true;
+  }
+  return false;
+}
+
 function watchPeekKeys() {
   // Keys pressed inside the Peek reach the window after the page sees them.
   const onKey = e => {
@@ -1296,6 +1319,10 @@ function watchPeekKeys() {
     } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
       e.preventDefault();
       Peek.keep();
+    } else if (peekKey(e)) {
+      // Keys act on the Peek, not the tab beneath (docs/reference.md §4).
+      e.preventDefault();
+      e.stopPropagation();
     } else if (gZenGlanceManager.detachedBrowser && !e.target.closest?.("#zenith-peek") &&
                (((e.code === "KeyL" || e.key === "l" || e.key === "L") && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) ||
                 (e.key === "F4" && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey))) {

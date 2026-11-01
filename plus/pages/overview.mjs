@@ -42,13 +42,17 @@ window.gBrowser?.tabContainer.addEventListener("TabSelect", () => {
 });
 
 /* --- What's where ------------------------------------------------------------------------ */
-const real = t => t.isConnected && !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab") && !t.hasAttribute("zen-essential");
+const real = t => t.isConnected && !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab");
 
 function spaces() {
   return W()?.getWorkspaces?.() ?? [];
 }
 
+// A space's tabs as its sidebar shows them: its essentials (its container's)
+// first, then pinned, then the rest (docs/reference.md §2).
 function tabsOf(uuid) {
+  const T = window.ZenithSpaceTabs;
+  if (uuid && T) return T.tabs(uuid).filter(real);
   const all = [...new Set(W()?.allStoredTabs ?? gBrowser.tabs)].filter(real);
   return uuid ? all.filter(t => t.getAttribute("zen-workspace-id") === uuid) : all;
 }
@@ -58,13 +62,14 @@ function splitOf(tab) {
 }
 
 async function go(tab) {
+  if (tab.hasAttribute("zen-essential") && window.ZenithSpaceTabs) return window.ZenithSpaceTabs.go(tab);
   const uuid = tab.getAttribute("zen-workspace-id");
   if (uuid && uuid !== W()?.activeWorkspace) await W().changeWorkspaceWithID(uuid);
   gBrowser.selectedTab = tab;
 }
 
 function sendTo(tab, uuid) {
-  if (!uuid || tab.getAttribute("zen-workspace-id") === uuid) return;
+  if (!uuid || tab.hasAttribute("zen-essential") || tab.getAttribute("zen-workspace-id") === uuid) return;
   if (splitOf(tab)) S().removeTabFromGroup(tab);
   W()?.moveTabToWorkspace?.(tab, uuid);
 }

@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.16.2
+// @version        0.16.3
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -1187,7 +1187,7 @@ const SCHEMA = [
   "id": "tabs",
   "title": "Tabs",
   "icon": "tabs",
-  "blurb": "The sidebar: how it appears, and the small signals on each tab.",
+  "blurb": "Tabs wherever they are: the sidebar and the bars (their looks, signals and containers in one place), and what's playing.",
   "preset": {
    "property": "zenith.tabs.preset",
    "host": "Zenith Tabs",
@@ -1665,8 +1665,802 @@ const SCHEMA = [
     ]
    },
    {
-    "title": "Media",
+    "title": "In the bars",
     "settings": [
+     {
+      "property": "zenith.bar.tab-look",
+      "label": "Tabs in the bar",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How each tab shows in a bar: icons with the current tab's title, icons only, icon and short title, icon and title while they fit (then only the current one's, then icons), or numbers as i3's workspaces. A click goes to a tab, a middle click closes it.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Icons, the current one with its title",
+        "value": "current"
+       },
+       {
+        "label": "Icons only",
+        "value": "icons"
+       },
+       {
+        "label": "Icon and short title",
+        "value": "titles"
+       },
+       {
+        "label": "Icon and short title while they fit, then fewer titles",
+        "value": "fit"
+       },
+       {
+        "label": "Numbers (i3)",
+        "value": "numbers"
+       }
+      ],
+      "default": "current",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-crowd",
+      "label": "Tabs that don't fit",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "When this space's tabs don't fit in a bar. Titles go, then a window: first the titles go (icons only), and past that only the tabs around the one you're on show, with \"+12\" at either end listing the rest (the wheel moves the window). Shrink: every tab gets narrower, down to its icon, then the strip scrolls. Past a count: up to the count the tabs show as usual; past it, only the tab you're on, with its title, and the chip listing them all.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Titles go, then a window around the tab you're on",
+        "value": "window"
+       },
+       {
+        "label": "Shrink, as Chrome's (then scroll)",
+        "value": "shrink"
+       },
+       {
+        "label": "Past a count, only the tab you're on",
+        "value": "title"
+       }
+      ],
+      "default": "window",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-crowd-count",
+      "label": "The count",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Past how many tabs a bar shows only the tab you're on.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "10 tabs",
+        "value": "10"
+       },
+       {
+        "label": "15 tabs",
+        "value": "15"
+       },
+       {
+        "label": "20 tabs",
+        "value": "20"
+       },
+       {
+        "label": "30 tabs",
+        "value": "30"
+       }
+      ],
+      "default": "15",
+      "parent": "zenith.bar.tab-crowd",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-awake",
+      "label": "Only awake tabs",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A bar shows the tabs that are loaded (and the one you're on); sleeping ones are in the list the chip opens.",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-align",
+      "label": "Where tabs sit",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Where this space's tabs sit in a bar when they don't fill it: at the start (left, or top on a side bar), in the middle, or at the end.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "At the start (left or top)",
+        "value": "start"
+       },
+       {
+        "label": "In the middle",
+        "value": "centre"
+       },
+       {
+        "label": "At the end (right or bottom)",
+        "value": "end"
+       }
+      ],
+      "default": "start",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-scroll",
+      "label": "The tab you're on",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Kept in view: the strip moves only when the tab you're on would leave it. Kept in the middle: the strip (or the window of tabs) moves to keep it centred, except near either end.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Kept in view",
+        "value": "nearest"
+       },
+       {
+        "label": "Kept in the middle (when there's room either side)",
+        "value": "centre"
+       }
+      ],
+      "default": "nearest",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-wheel",
+      "label": "The wheel over tabs",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Scrolls them: the wheel moves along the tabs when there are more than fit, as a browser's tab strip does. Goes to the next or previous tab: the wheel switches tabs instead.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Scrolls them",
+        "value": "scroll"
+       },
+       {
+        "label": "Goes to the next or previous tab",
+        "value": "switch"
+       }
+      ],
+      "default": "scroll",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.marker",
+      "label": "The marker's colour",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The line under the tab you're on (on a side bar, along its inner edge) and the pill of the space you're in. The tab's container: a tab in a Firefox container is marked in its colour (others in the space's); the space's colour: the colour Zen gives the space (its container's, if it opens tabs in one); or the theme's accent everywhere.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The tab's container (else the space's colour)",
+        "value": "container"
+       },
+       {
+        "label": "The space's colour",
+        "value": "space"
+       },
+       {
+        "label": "The theme's accent",
+        "value": "accent"
+       }
+      ],
+      "default": "container",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.container-hint",
+      "label": "Containers of other tabs",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Tabs in a Firefox container that you're not on: a thin line in the container's colour along the tab's top, bottom, left or right (as named, on every bar), a ring around the icon, the tab faintly tinted, or nothing (the tab you're on is marked in its container's colour either way).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "A line along the top",
+        "value": "top"
+       },
+       {
+        "label": "A line along the bottom",
+        "value": "bottom"
+       },
+       {
+        "label": "A line on the left",
+        "value": "left"
+       },
+       {
+        "label": "A line on the right",
+        "value": "right"
+       },
+       {
+        "label": "A ring around the icon",
+        "value": "ring"
+       },
+       {
+        "label": "The tab tinted",
+        "value": "tint"
+       },
+       {
+        "label": "Not shown",
+        "value": "off"
+       }
+      ],
+      "default": "top",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-marks",
+      "label": "Marks on a bar's tabs",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The sidebar's signals on a bar's tabs: essentials (a diamond) and pinned tabs (a dot) first, a folder's tabs underlined together, a note for one playing (crossed when muted), a dot for one asking for attention, a pulse while loading.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As the sidebar's (essential, pinned, folder, sound, attention)",
+        "value": "on"
+       },
+       {
+        "label": "None",
+        "value": "off"
+       }
+      ],
+      "default": "on",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-preview",
+      "label": "Hovering a tab",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Resting the pointer on a tab in a bar shows its picture (a sleeping tab: its title and address only), as the sidebar's tab previews.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Its preview",
+        "value": "on"
+       },
+       {
+        "label": "Nothing",
+        "value": "off"
+       }
+      ],
+      "default": "on",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "What's playing",
+    "settings": [
+     {
+      "property": "zenith.bar.media-pick",
+      "label": "Which source the bar shows",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "With media in several tabs (any space): the newest that's playing aloud, then muted ones, then paused ones; or the one you last played, paused or picked, while it's still there. Shift+wheel over the player goes to the next source, a middle click mutes it, \"+N\" says how many others there are.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The newest playing (any space)",
+        "value": "newest"
+       },
+       {
+        "label": "Keep the one I chose",
+        "value": "kept"
+       }
+      ],
+      "default": "newest",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.media-look",
+      "label": "What's playing",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "What's playing: a play button only (its title on hover), the button and the title (a click goes to its tab), or previous and next buttons too. The wheel over it skips either way.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Just a play button",
+        "value": "button"
+       },
+       {
+        "label": "Play button and title",
+        "value": "title"
+       },
+       {
+        "label": "Previous, play, next and title",
+        "value": "detailed"
+       }
+      ],
+      "default": "title",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.media-hover",
+      "label": "Hovering what's playing",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A mini player (the cover, the title, previous, play and next) when the pointer rests on what's playing in a bar; it goes when the pointer leaves it.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Nothing",
+        "value": "off"
+       },
+       {
+        "label": "A mini player",
+        "value": "player"
+       }
+      ],
+      "default": "off",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
      {
       "property": "zenith.tabs.mini-player",
       "label": "Slim media card",
@@ -3723,6 +4517,44 @@ const SCHEMA = [
       "default": "dwindle"
      },
      {
+      "property": "zenith.shell.split-background",
+      "label": "Background links from a split",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "While you're on a split's tab, every new tab (Ctrl+T, a link to a new tab) becomes a tile of that split, placed by the space's layout. Links opened in the background (Ctrl+click, a middle click) do too, or stay normal tabs. Past the split's tile limit, a normal tab.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "A new tile",
+        "value": "tile"
+       },
+       {
+        "label": "A normal tab",
+        "value": "tab"
+       }
+      ],
+      "default": "tile"
+     },
+     {
+      "property": "zenith.shell.essential-split",
+      "label": "Splitting an essential",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen splits a copy of an essential (a normal tab, beside the essential that stays). No copy splits the essential itself: still one tab, still an essential (experimental: Zen hasn't finished essentials in splits).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "No copy: the essential itself (experimental)",
+        "value": "own"
+       },
+       {
+        "label": "A copy of it (Zen's own)",
+        "value": "copy"
+       }
+      ],
+      "default": "own"
+     },
+     {
       "property": "zenith.shell.tiles",
       "label": "Tiles in one split",
       "type": "dropdown",
@@ -4285,6 +5117,14 @@ const SCHEMA = [
         "value": "islands"
        },
        {
+        "label": "Floating (a rounded bar off the edges)",
+        "value": "floating"
+       },
+       {
+        "label": "Bare (modules on the window, no bar)",
+        "value": "bare"
+       },
+       {
         "label": "Strip (polybar)",
         "value": "strip"
        },
@@ -4298,63 +5138,6 @@ const SCHEMA = [
        }
       ],
       "default": "islands",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.size",
-      "label": "Height",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How tall the bar is.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Compact (24px)",
-        "value": "24"
-       },
-       {
-        "label": "Normal (30px)",
-        "value": "30"
-       },
-       {
-        "label": "Roomy (36px)",
-        "value": "36"
-       }
-      ],
-      "default": "30",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -4503,157 +5286,54 @@ const SCHEMA = [
     ]
    },
    {
-    "title": "Tabs in a bar",
+    "title": "Shape",
     "settings": [
      {
-      "property": "zenith.bar.tab-look",
-      "label": "Tabs in the bar",
+      "property": "zenith.bar.size",
+      "label": "Height",
       "type": "dropdown",
       "extra": false,
-      "desc": "How each tab shows in a bar: icons with the current tab's title, icons only, icon and short title, icon and title while they fit (then only the current one's, then icons), or numbers as i3's workspaces. A click goes to a tab, a middle click closes it.",
+      "desc": "How tall the bar is.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Icons, the current one with its title",
-        "value": "current"
-       },
-       {
-        "label": "Icons only",
-        "value": "icons"
-       },
-       {
-        "label": "Icon and short title",
-        "value": "titles"
-       },
-       {
-        "label": "Icon and short title while they fit, then fewer titles",
-        "value": "fit"
-       },
-       {
-        "label": "Numbers (i3)",
-        "value": "numbers"
-       }
-      ],
-      "default": "current",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-crowd",
-      "label": "Tabs that don't fit",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "When this space's tabs don't fit in a bar. Titles go, then a window: first the titles go (icons only), and past that only the tabs around the one you're on show, with \"+12\" at either end listing the rest (the wheel moves the window). Shrink: every tab gets narrower, down to its icon, then the strip scrolls. Past a count: up to the count the tabs show as usual; past it, only the tab you're on, with its title, and the chip listing them all.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Titles go, then a window around the tab you're on",
-        "value": "window"
-       },
-       {
-        "label": "Shrink, as Chrome's (then scroll)",
-        "value": "shrink"
-       },
-       {
-        "label": "Past a count, only the tab you're on",
-        "value": "title"
-       }
-      ],
-      "default": "window",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-crowd-count",
-      "label": "The count",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Past how many tabs a bar shows only the tab you're on.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "10 tabs",
-        "value": "10"
-       },
-       {
-        "label": "15 tabs",
-        "value": "15"
-       },
-       {
-        "label": "20 tabs",
+        "label": "20px",
         "value": "20"
        },
        {
-        "label": "30 tabs",
+        "label": "24px",
+        "value": "24"
+       },
+       {
+        "label": "28px",
+        "value": "28"
+       },
+       {
+        "label": "30px",
         "value": "30"
+       },
+       {
+        "label": "32px",
+        "value": "32"
+       },
+       {
+        "label": "36px",
+        "value": "36"
+       },
+       {
+        "label": "40px",
+        "value": "40"
+       },
+       {
+        "label": "44px",
+        "value": "44"
+       },
+       {
+        "label": "48px",
+        "value": "48"
        }
       ],
-      "default": "15",
-      "parent": "zenith.bar.tab-crowd",
+      "default": "30",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -4690,70 +5370,47 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.tab-awake",
-      "label": "Only awake tabs",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "A bar shows the tabs that are loaded (and the one you're on); sleeping ones are in the list the chip opens.",
-      "host": "Zenith Plus",
-      "default": false,
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-align",
-      "label": "Where tabs sit",
+      "property": "zenith.bar.side-px",
+      "label": "A side bar's width",
       "type": "dropdown",
       "extra": false,
-      "desc": "Where this space's tabs sit in a bar when they don't fill it: at the start (left, or top on a side bar), in the middle, or at the end.",
+      "desc": "How wide a bar on the left or right is.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "At the start (left or top)",
-        "value": "start"
+        "label": "As its kind has it (44px rail, 210px with titles)",
+        "value": "auto"
        },
        {
-        "label": "In the middle",
-        "value": "centre"
+        "label": "36px",
+        "value": "36"
        },
        {
-        "label": "At the end (right or bottom)",
-        "value": "end"
+        "label": "52px",
+        "value": "52"
+       },
+       {
+        "label": "60px",
+        "value": "60"
+       },
+       {
+        "label": "180px",
+        "value": "180"
+       },
+       {
+        "label": "240px",
+        "value": "240"
+       },
+       {
+        "label": "280px",
+        "value": "280"
+       },
+       {
+        "label": "320px",
+        "value": "320"
        }
       ],
-      "default": "start",
+      "default": "auto",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -4790,23 +5447,31 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.tab-scroll",
-      "label": "The tab you're on",
+      "property": "zenith.bar.length",
+      "label": "The bar's length",
       "type": "dropdown",
       "extra": false,
-      "desc": "Kept in view: the strip moves only when the tab you're on would leave it. Kept in the middle: the strip (or the window of tabs) moves to keep it centred, except near either end.",
+      "desc": "A bar along its whole edge, as long as its modules (centred, as Hyprland rices' floating bars), or part of the edge.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Kept in view",
-        "value": "nearest"
+        "label": "The whole edge",
+        "value": "full"
        },
        {
-        "label": "Kept in the middle (when there's room either side)",
-        "value": "centre"
+        "label": "As long as its modules",
+        "value": "fit"
+       },
+       {
+        "label": "80% of the edge",
+        "value": "80"
+       },
+       {
+        "label": "60% of the edge",
+        "value": "60"
        }
       ],
-      "default": "nearest",
+      "default": "full",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -4843,23 +5508,39 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.tab-wheel",
-      "label": "The wheel over tabs",
+      "property": "zenith.bar.margin",
+      "label": "Space around the bar",
       "type": "dropdown",
       "extra": false,
-      "desc": "Scrolls them: the wheel moves along the tabs when there are more than fit, as a browser's tab strip does. Goes to the next or previous tab: the wheel switches tabs instead.",
+      "desc": "Space between the bar and the window's edges: with some, the bar floats (Hyprland's gaps).",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Scrolls them",
-        "value": "scroll"
+        "label": "As its look has it",
+        "value": "auto"
        },
        {
-        "label": "Goes to the next or previous tab",
-        "value": "switch"
+        "label": "None",
+        "value": "0"
+       },
+       {
+        "label": "4px",
+        "value": "4"
+       },
+       {
+        "label": "8px",
+        "value": "8"
+       },
+       {
+        "label": "12px",
+        "value": "12"
+       },
+       {
+        "label": "16px",
+        "value": "16"
        }
       ],
-      "default": "scroll",
+      "default": "auto",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -4896,27 +5577,165 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.marker",
-      "label": "The marker's colour",
+      "property": "zenith.bar.corners",
+      "label": "The bar's corners",
       "type": "dropdown",
       "extra": false,
-      "desc": "The line under the tab you're on (on a side bar, along its inner edge) and the pill of the space you're in. The tab's container: a tab in a Firefox container is marked in its colour (others in the space's); the space's colour: the colour Zen gives the space (its container's, if it opens tabs in one); or the theme's accent everywhere.",
+      "desc": "The bar's own corners (a floating bar looks best round).",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "The tab's container (else the space's colour)",
-        "value": "container"
+        "label": "As its look has it",
+        "value": "auto"
        },
        {
-        "label": "The space's colour",
-        "value": "space"
+        "label": "Square",
+        "value": "0"
        },
        {
-        "label": "The theme's accent",
+        "label": "Slightly round",
+        "value": "6"
+       },
+       {
+        "label": "Round",
+        "value": "12"
+       },
+       {
+        "label": "Fully round",
+        "value": "999"
+       }
+      ],
+      "default": "auto",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.opacity",
+      "label": "The bar's background",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How much of the bar's background shows: none leaves the modules on the window, as bare waybar rices.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As its look has it",
+        "value": "auto"
+       },
+       {
+        "label": "Solid",
+        "value": "100"
+       },
+       {
+        "label": "90%",
+        "value": "90"
+       },
+       {
+        "label": "75%",
+        "value": "75"
+       },
+       {
+        "label": "50%",
+        "value": "50"
+       },
+       {
+        "label": "25%",
+        "value": "25"
+       },
+       {
+        "label": "None",
+        "value": "0"
+       }
+      ],
+      "default": "auto",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.border",
+      "label": "The bar's border",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A border around the bar: a hairline, or the accent colour.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "None",
+        "value": "off"
+       },
+       {
+        "label": "A hairline",
+        "value": "hairline"
+       },
+       {
+        "label": "The accent",
         "value": "accent"
        }
       ],
-      "default": "container",
+      "default": "off",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -4953,43 +5772,35 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.container-hint",
-      "label": "Containers of other tabs",
+      "property": "zenith.bar.module-corners",
+      "label": "The modules' corners",
       "type": "dropdown",
       "extra": false,
-      "desc": "Tabs in a Firefox container that you're not on: a thin line in the container's colour along the tab's top, bottom, left or right (as named, on every bar), a ring around the icon, the tab faintly tinted, or nothing (the tab you're on is marked in its container's colour either way).",
+      "desc": "The corners of each module's pill (islands, floating, bare).",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "A line along the top",
-        "value": "top"
+        "label": "As its look has it",
+        "value": "auto"
        },
        {
-        "label": "A line along the bottom",
-        "value": "bottom"
+        "label": "Square",
+        "value": "0"
        },
        {
-        "label": "A line on the left",
-        "value": "left"
+        "label": "Slightly round",
+        "value": "4"
        },
        {
-        "label": "A line on the right",
-        "value": "right"
+        "label": "Round",
+        "value": "8"
        },
        {
-        "label": "A ring around the icon",
-        "value": "ring"
-       },
-       {
-        "label": "The tab tinted",
-        "value": "tint"
-       },
-       {
-        "label": "Not shown",
-        "value": "off"
+        "label": "Pills",
+        "value": "999"
        }
       ],
-      "default": "top",
+      "default": "auto",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5026,23 +5837,104 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.tab-preview",
-      "label": "Hovering a tab",
+      "property": "zenith.bar.spacing",
+      "label": "Space between modules",
       "type": "dropdown",
       "extra": false,
-      "desc": "Resting the pointer on a tab in a bar shows its picture (a sleeping tab: its title and address only), as the sidebar's tab previews.",
+      "desc": "The gap between modules.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Its preview",
-        "value": "on"
+        "label": "As its look has it",
+        "value": "auto"
+       },
+       {
+        "label": "None",
+        "value": "0"
+       },
+       {
+        "label": "2px",
+        "value": "2"
+       },
+       {
+        "label": "4px",
+        "value": "4"
+       },
+       {
+        "label": "6px",
+        "value": "6"
+       },
+       {
+        "label": "8px",
+        "value": "8"
+       },
+       {
+        "label": "12px",
+        "value": "12"
+       }
+      ],
+      "default": "auto",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.separators",
+      "label": "Between modules",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Something between modules: a line or a dot (powerline has its arrows).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As its look has it",
+        "value": "auto"
        },
        {
         "label": "Nothing",
         "value": "off"
+       },
+       {
+        "label": "A line",
+        "value": "line"
+       },
+       {
+        "label": "A dot",
+        "value": "dot"
        }
       ],
-      "default": "on",
+      "default": "auto",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5312,116 +6204,6 @@ const SCHEMA = [
        }
       ],
       "default": "auto",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.media-look",
-      "label": "What's playing",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "What's playing: a play button only (its title on hover), the button and the title (a click goes to its tab), or previous and next buttons too. The wheel over it skips either way.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Just a play button",
-        "value": "button"
-       },
-       {
-        "label": "Play button and title",
-        "value": "title"
-       },
-       {
-        "label": "Previous, play, next and title",
-        "value": "detailed"
-       }
-      ],
-      "default": "title",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.media-hover",
-      "label": "Hovering what's playing",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A mini player (the cover, the title, previous, play and next) when the pointer rests on what's playing in a bar; it goes when the pointer leaves it.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Nothing",
-        "value": "off"
-       },
-       {
-        "label": "A mini player",
-        "value": "player"
-       }
-      ],
-      "default": "off",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -6617,7 +7399,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.16.2";
+const SCHEMA_VERSION = "0.16.3";
 
 class SettingsView {
   constructor(kind) {

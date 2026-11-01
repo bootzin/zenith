@@ -993,7 +993,9 @@ browser[zenith-see-through] {
   contain: strict;
   position: relative;
   z-index: 3;
-  background: var(--zb-bg);
+  margin: var(--zb-margin, 0);
+  border-radius: var(--zb-bar-radius, 0);
+  background: color-mix(in srgb, var(--zb-bg) var(--zb-alpha, 100%), transparent);
   color: var(--zb-ink);
   font: 600 12px / 1 var(--zb-font);
   font-variant-numeric: tabular-nums;
@@ -1019,7 +1021,7 @@ browser[zenith-see-through] {
   & > div {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--zb-gap, 6px);
     min-width: 0;
     height: 100%;
   }
@@ -1403,8 +1405,13 @@ browser[zenith-see-through] {
     }
   }
 
-  /* Powerline: segments joined by arrows. */
+  /* Powerline: segments joined by arrows. Neighbouring segments take turns
+     between two shades (an arrow between two of one colour vanishes), each
+     one's arrow overlaps the next (earlier ones drawn on top, so the arrow
+     shows whole: no gaps, no notches), and nothing inside is rounded. */
   &[look="powerline"] {
+    --zb-arrow: calc(var(--zb-h) / 2.6);
+    --zb-radius: 0px;
     gap: 0;
     padding: 0;
 
@@ -1414,34 +1421,201 @@ browser[zenith-see-through] {
 
     & .zb-mod {
       height: 100%;
+      position: relative;
     }
 
-    & > .zb-left > .zb-mod:not([mod="mode"]) {
-      padding-inline: 10px 18px;
-      margin-inline-end: -8px;
-      background: var(--zb-surface);
-      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%);
+    & :is(.zb-space, .zb-task, .zb-mod) {
+      border-radius: 0 !important;
+    }
+
+    & > :is(.zb-left, .zb-right) > .zb-mod:not([mod="mode"], [mod="buttons"], [hidden]) {
+      --zb-seg: var(--zb-surface);
+      background: var(--zb-seg);
+    }
+
+    & > :is(.zb-left, .zb-right) > .zb-mod:not([mod="mode"], [mod="buttons"], [hidden]):nth-child(even) {
+      --zb-seg: color-mix(in srgb, var(--zb-surface) 55%, var(--zb-bg));
+    }
+
+    & > .zb-left > .zb-mod:not([mod="mode"], [mod="buttons"], [hidden]) {
+      padding-inline: 10px calc(var(--zb-arrow) + 8px);
+      margin-inline-end: calc(-1 * var(--zb-arrow));
+      clip-path: polygon(0 0, calc(100% - var(--zb-arrow)) 0, 100% 50%, calc(100% - var(--zb-arrow)) 100%, 0 100%);
 
       &:first-child {
-        background: var(--zb-accent);
+        --zb-seg: var(--zb-accent);
         color: white;
         color: contrast-color(var(--zb-accent));
       }
     }
 
-    & > .zb-right > .zb-mod:not([mod="buttons"]) {
-      padding-inline: 18px 10px;
-      margin-inline-start: -8px;
-      background: var(--zb-surface);
-      clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+    & > .zb-left > .zb-mod:not([mod="mode"], [mod="buttons"], [hidden]) + .zb-mod:not([hidden]) {
+      padding-inline-start: calc(var(--zb-arrow) + 8px);
+    }
 
-      &[mod="clock"] {
-        background: var(--zb-accent);
+    & > .zb-left > .zb-mod:nth-child(1) { z-index: 9; }
+    & > .zb-left > .zb-mod:nth-child(2) { z-index: 8; }
+    & > .zb-left > .zb-mod:nth-child(3) { z-index: 7; }
+    & > .zb-left > .zb-mod:nth-child(4) { z-index: 6; }
+    & > .zb-left > .zb-mod:nth-child(5) { z-index: 5; }
+    & > .zb-left > .zb-mod:nth-child(6) { z-index: 4; }
+
+    & > .zb-right > .zb-mod:not([mod="buttons"], [hidden]) {
+      padding-inline: calc(var(--zb-arrow) + 8px) 10px;
+      margin-inline-start: calc(-1 * var(--zb-arrow));
+      clip-path: polygon(var(--zb-arrow) 0, 100% 0, 100% 100%, var(--zb-arrow) 100%, 0 50%);
+
+      &:last-child, &:has(+ [mod="buttons"]) {
+        --zb-seg: var(--zb-accent);
         color: white;
         color: contrast-color(var(--zb-accent));
       }
+    }
+
+    & > .zb-right > .zb-mod:not([mod="buttons"], [hidden]):has(+ .zb-mod:not([hidden], [mod="buttons"])) {
+      padding-inline-end: 10px;
+    }
+
+    /* The middle: one segment, arrows facing out on both ends. */
+    & > .zb-centre > .zb-mod:not([mod="tasks"], [hidden]) {
+      background: var(--zb-surface);
+      padding-inline: calc(var(--zb-arrow) + 8px);
+      clip-path: polygon(var(--zb-arrow) 0, calc(100% - var(--zb-arrow)) 0, 100% 50%, calc(100% - var(--zb-arrow)) 100%, var(--zb-arrow) 100%, 0 50%);
+    }
+
+    & > .zb-centre > .zb-mod:not([hidden]) + .zb-mod:not([hidden]) {
+      margin-inline-start: calc(-0.6 * var(--zb-arrow));
+    }
+
+    /* The tabs: the one you're on is a segment of its own. */
+    & .zb-task[current] {
+      background: var(--zb-surface);
+      clip-path: polygon(var(--zb-arrow) 0, calc(100% - var(--zb-arrow)) 0, 100% 50%, calc(100% - var(--zb-arrow)) 100%, var(--zb-arrow) 100%, 0 50%);
+      padding-inline: calc(var(--zb-arrow) + 6px);
     }
   }
+}
+
+/* Floating (Hyprland's floating waybar): a rounded bar off the window's
+   edges. Bare: no bar, each module a translucent pill on the window. */
+.zenith-bar[look="floating"] {
+  --zb-margin: 6px 8px;
+  --zb-bar-radius: 12px;
+  outline: 1px solid var(--zth-hairline, transparent);
+  outline-offset: -1px;
+
+  & .zb-mod:is([mod="launcher"], [mod="clock"]) {
+    border-radius: var(--zb-radius);
+    background: var(--zb-surface);
+  }
+}
+
+.zenith-bar[look="bare"] {
+  --zb-alpha: 0%;
+  --zb-margin: 4px 6px;
+
+  & .zb-mod:not([mod="buttons"], [mod="tasks"]) {
+    background: color-mix(in srgb, var(--zb-pill) 82%, transparent);
+    border-radius: var(--zb-radius);
+    backdrop-filter: blur(8px);
+  }
+}
+
+.zenith-bar[vertical][look="floating"] {
+  --zb-margin: 8px 6px;
+}
+
+/* The bar's length (Bar › Shape): as long as its modules, or part of the
+   edge, centred (Hyprland rices' floating bars). */
+.zenith-bar:not([vertical]):is([length="fit"], [length="80"], [length="60"]) {
+  align-self: center;
+  width: auto;
+  contain: layout paint style;
+  grid-template-columns: auto auto auto;
+}
+
+.zenith-bar:not([vertical])[length="80"] { width: 80%; grid-template-columns: auto minmax(0, 1fr) auto; }
+.zenith-bar:not([vertical])[length="60"] { width: 60%; grid-template-columns: auto minmax(0, 1fr) auto; }
+.zenith-bar[vertical][length="80"] { align-self: center; height: 80%; }
+.zenith-bar[vertical][length="60"] { align-self: center; height: 60%; }
+
+.zenith-bar[border="hairline"] {
+  box-shadow: inset 0 0 0 1px var(--zth-hairline, color-mix(in srgb, var(--zb-ink) 18%, transparent));
+}
+
+.zenith-bar[border="accent"] {
+  box-shadow: inset 0 0 0 1.5px var(--zb-accent);
+}
+
+/* Between modules (Bar › Shape): a line or a dot. */
+.zenith-bar:not([look="powerline"]):is([separators="line"], [separators="dot"]) > div > .zb-mod:not([hidden], [mod="buttons"]) + .zb-mod:not([hidden], [mod="buttons"])::before {
+  content: "";
+  flex: none;
+  margin-inline: calc(-1 * var(--zb-gap, 6px) / 2 - 6px) 4px;
+  background: var(--zb-dim);
+}
+
+.zenith-bar[separators="line"] > div > .zb-mod + .zb-mod::before {
+  width: 1px;
+  height: 50%;
+}
+
+.zenith-bar[separators="dot"] > div > .zb-mod + .zb-mod::before {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+}
+
+.zenith-bar[separators="off"][look="minimal"] > .zb-right > .zb-mod::before {
+  display: none !important;
+}
+
+/* Marks on a bar's tabs, as the sidebar's (Bar › Marks on a bar's tabs). */
+.zenith-bar .zb-task {
+  & .zb-task-mark {
+    display: none;
+  }
+
+  &:is([kind], [sound], [attention]) .zb-task-mark {
+    display: block;
+    position: absolute;
+    inset: 2px auto auto 3px;
+    font: 700 8px / 1 system-ui, sans-serif;
+    color: var(--zb-accent);
+    pointer-events: none;
+  }
+
+  &[kind="essential"] .zb-task-mark::before { content: "\25C6"; }
+  &[kind="pinned"] .zb-task-mark::before { content: "\2022"; color: var(--zb-dim); }
+  &[sound="playing"] .zb-task-mark::after { content: "\266A"; margin-inline-start: 1px; }
+  &[sound="paused"] .zb-task-mark::after { content: "\266A"; opacity: 0.5; }
+  &[sound="muted"] .zb-task-mark::after { content: "\266A"; text-decoration: line-through; color: var(--zb-dim); }
+  &[attention]:not([current]) .zb-task-mark { inset: 2px 3px auto auto; }
+  &[attention]:not([current]) .zb-task-mark::before { content: "\25CF"; color: var(--zb-urgent); }
+
+  &[folder] {
+    box-shadow: inset 0 -2px color-mix(in srgb, var(--zb-ink) 35%, transparent);
+  }
+
+  &[busy] img {
+    animation: zb-busy 1s ease-in-out infinite alternate;
+  }
+}
+
+.zenith-bar[vertical] .zb-task[folder] {
+  box-shadow: inset 2px 0 color-mix(in srgb, var(--zb-ink) 35%, transparent);
+}
+
+.zenith-bar[vertical][edge="right"] .zb-task[folder] {
+  box-shadow: inset -2px 0 color-mix(in srgb, var(--zb-ink) 35%, transparent);
+}
+
+.zenith-bar[marks="off"] .zb-task .zb-task-mark {
+  display: none !important;
+}
+
+@keyframes zb-busy {
+  to { opacity: 0.35; }
 }
 
 /* The bar lives in Zen's own app wrapper (on the window's background,
@@ -4179,4 +4353,24 @@ tab-group[split-view-group]:hover {
 @keyframes zenith-bin-nudge {
   30% { transform: rotate(-12deg); }
   60% { transform: rotate(9deg); }
+}
+
+/* What's playing, from the media hub: how many other sources (Shift+wheel
+   goes to the next), a muted one, one in another space. */
+.zenith-bar .zb-mod[mod="media"] {
+  &[more]::after {
+    content: attr(more);
+    margin-inline-start: 4px;
+    font-size: 0.85em;
+    color: var(--zb-dim);
+  }
+
+  &[state="muted"] .zb-media-text {
+    opacity: 0.6;
+    text-decoration: line-through;
+  }
+
+  &[elsewhere] .zb-media-play {
+    opacity: 0.85;
+  }
 }

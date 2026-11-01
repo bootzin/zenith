@@ -251,7 +251,10 @@ class Zen:
                 f"--window-size={self.width},{self.height}"]
         if self.headless:
             args.append("--headless")
-        self.proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # (Marionette's chrome context needs this since Firefox 138; set here
+        # so the checks don't depend on the machine's environment.)
+        env = {**os.environ, "MOZ_REMOTE_ALLOW_SYSTEM_ACCESS": "1"}
+        self.proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
         deadline = time.time() + 60
         while time.time() < deadline:
             try:

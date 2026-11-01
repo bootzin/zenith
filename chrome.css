@@ -5426,3 +5426,18 @@ animation: zenith-bin-nudge 260ms ease;
   30% { transform: rotate(-12deg); }
   60% { transform: rotate(9deg); }
 }
+.zenith-bar .zb-mod[mod="media"] {
+&[more]::after {
+content: attr(more);
+margin-inline-start: 4px;
+font-size: 0.85em;
+color: var(--zb-dim);
+}
+&[state="muted"] .zb-media-text {
+opacity: 0.6;
+text-decoration: line-through;
+}
+&[elsewhere] .zb-media-play {
+opacity: 0.85;
+}
+}

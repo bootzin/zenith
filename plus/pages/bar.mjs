@@ -316,7 +316,7 @@ function tasks(box) {
     if (!b) {
       b = node("button", { type: "button", class: "zb-task" });
       b.zbTab = t;
-      b.append(node("img", { alt: "" }), node("span", { class: "zb-task-label" }), node("span", { class: "zb-task-n" }));
+      b.append(node("img", { alt: "" }), node("span", { class: "zb-task-label" }), node("span", { class: "zb-task-n" }), node("span", { class: "zb-task-mark", "aria-hidden": "true" }));
       items.set(t, b);
     }
     return b;
@@ -332,8 +332,21 @@ function tasks(box) {
     b.title = t.label;
     b.toggleAttribute("current", t.selected);
     b.toggleAttribute("asleep", t.hasAttribute("pending"));
-    b.toggleAttribute("loud", t.hasAttribute("soundplaying"));
+    b.toggleAttribute("loud", t.hasAttribute("soundplaying") && !t.hasAttribute("muted"));
     b.toggleAttribute("split", !!t.splitView);
+    // The sidebar's signals (Bar › Marks on a bar's tabs; docs/reference.md §2).
+    const kind = t.hasAttribute("zen-essential") ? "essential" : t.pinned ? "pinned" : "";
+    if (kind) b.setAttribute("kind", kind);
+    else b.removeAttribute("kind");
+    const sound = window.ZenithMedia?.state?.(t) ?? (t.hasAttribute("soundplaying") ? "playing" : null);
+    if (sound) b.setAttribute("sound", t.hasAttribute("muted") ? "muted" : sound);
+    else b.removeAttribute("sound");
+    b.toggleAttribute("attention", t.hasAttribute("attention") || t.hasAttribute("titlechanged"));
+    b.toggleAttribute("busy", t.hasAttribute("busy"));
+    const folder = t.group && !t.group.hasAttribute?.("split-view-group") ? t.group : null;
+    b.zbFolder = folder;
+    b.toggleAttribute("folder", !!folder);
+    if (folder) b.title = `${t.label} · ${folder.label || "Folder"}${folder.collapsed ? " (folded)" : ""}`;
     const box = [...t.classList].find(c => c.startsWith("identity-color-")) ?? "";
     if (b.zbBox !== box) {
       if (b.zbBox) b.classList.remove(b.zbBox);
@@ -469,8 +482,10 @@ function tasks(box) {
   Undo.add(() => ro.disconnect());
   for (const t of ["TabOpen", "TabClose", "TabMove", "TabSelect", "TabShow", "TabHide"]) Undo.on(gBrowser.tabContainer, t, draw);
   Undo.on(gBrowser.tabContainer, "TabAttrModified", e => {
-    if (e.detail?.changed?.some(a => a === "label" || a === "image" || a === "pending" || a === "soundplaying")) draw();
+    if (e.detail?.changed?.some(a => ["label", "image", "pending", "soundplaying", "muted", "busy", "attention", "titlechanged"].includes(a))) draw();
   });
+  Undo.on(window, "ZenithMedia", draw);
+  for (const t of ["TabGrouped", "TabUngrouped", "TabGroupCollapse", "TabGroupExpand", "TabPinned", "TabUnpinned"]) Undo.on(window, t, draw);
   window.gZenWorkspaces?.addChangeListeners?.(draw);
   Undo.add(() => window.gZenWorkspaces?.removeChangeListeners?.(draw));
   for (const p of ["zenith.bar.tab-look", "zenith.bar.tab-crowd", "zenith.bar.tab-crowd-count", "zenith.bar.tab-awake", "zenith.bar.tab-scroll"]) Undo.pref(p, draw);
@@ -514,22 +529,20 @@ function media(box) {
   });
   m.addEventListener("mouseleave", () => clearTimeout(hovering));
   Undo.add(() => clearTimeout(hovering));
+  // (What's playing is the media hub's answer, in every space: zenith-plus,
+  // MediaHub.)
+  const H = () => window.ZenithMedia; // (started after the bar: looked up each time)
   let tab = null, ctrl = null;
-  const watch = c => {
-    if (ctrl === c) return;
-    for (const t of ["metadatachange", "playbackstatechange", "deactivated"]) {
-      ctrl?.removeEventListener(t, draw);
-      c?.addEventListener(t, draw);
-    }
-    ctrl = c;
-  };
   const draw = soon(() => {
-    if (tab && (!tab.isConnected || !ctrl?.isActive)) {
-      tab = null;
-      watch(null);
-    }
-    m.hidden = !tab;
-    if (!tab) return;
+    const Hub = H(), cur = Hub?.current, all = Hub?.list() ?? [];
+    tab = cur?.tab ?? null;
+    ctrl = tab ? Hub.ctrl(tab) : null;
+    m.hidden = !tab || !ctrl;
+    if (!tab || !ctrl) return;
+    m.setAttribute("state", cur.state);
+    m.toggleAttribute("elsewhere", !window.ZenithSpaceTabs?.shows(tab));
+    if (all.length > 1) m.setAttribute("more", `+${all.length - 1}`);
+    else m.removeAttribute("more");
     let meta = null;
     try {
       meta = ctrl.getMetadata();
@@ -540,31 +553,25 @@ function media(box) {
     setIcon(ic, ctrl.isPlaying ? "pause" : "play");
     m.toggleAttribute("playing", !!ctrl.isPlaying);
   });
-  const follow = e => {
-    if (!e.detail?.changed?.includes("soundplaying")) return;
-    const t = e.target;
-    if (t.hasAttribute("soundplaying")) {
-      tab = t;
-      watch(t.linkedBrowser?.browsingContext?.mediaController ?? null);
-    }
-    draw();
-  };
-  Undo.on(gBrowser.tabContainer, "TabAttrModified", follow);
-  Undo.add(() => watch(null));
+  Undo.on(window, "ZenithMedia", draw);
   btn.addEventListener("click", () => {
     if (!ctrl) return;
+    H()?.touch(tab);
     // (pause() needs who asked; Zen's own media controls say "user".)
     if (ctrl.isPlaying) ctrl.pause("user");
     else ctrl.play();
   });
-  text.addEventListener("click", () => tab?.isConnected && (gBrowser.selectedTab = tab));
+  text.addEventListener("click", () => tab?.isConnected && window.ZenithSpaceTabs.go(tab));
+  // (A middle click mutes or unmutes it.)
+  m.addEventListener("auxclick", e => e.button === 1 && tab?.isConnected && tab.toggleMuteAudio());
   m.addEventListener("wheel", e => {
+    // (With Shift: the next source.)
+    if (e.shiftKey && Math.abs(e.deltaY || e.deltaX) >= 1) return H()?.cycle();
     if (!ctrl || Math.abs(e.deltaY) < 1) return;
     if (e.deltaY > 0) ctrl.nextTrack();
     else ctrl.prevTrack();
   }, { passive: true });
-  const playing = gBrowser.tabs.find(t => t.hasAttribute("soundplaying"));
-  if (playing) follow({ target: playing, detail: { changed: ["soundplaying"] } });
+  draw();
 }
 
 // Downloads under way: how many and how far; a tick for a moment once
@@ -988,6 +995,30 @@ const Bar = {
       const hint = pref("zenith.bar.container-hint", "top");
       bar.setAttribute("hint", { dot: "ring", line: "top" }[hint] ?? hint);
       bar.setAttribute("rows", pref("zenith.bar.side-rows", "labels"));
+      bar.setAttribute("marks", pref("zenith.bar.tab-marks", "on"));
+      // The shape (Bar › Shape), Hyprland rices' knobs: inline, so they beat
+      // the look's own values; "As its look has it" leaves the look's.
+      const px = (p, unit = "px") => {
+        const v = pref(p, "auto");
+        return v === "auto" || v === "" || isNaN(parseInt(v, 10)) ? null : `${parseInt(v, 10)}${unit}`;
+      };
+      const set = (k, v) => (v == null ? bar.style.removeProperty(k) : bar.style.setProperty(k, v));
+      const h = parseInt(pref("zenith.bar.size", "30"), 10) || 30;
+      set("--zb-h", `${h}px`);
+      set("--zb-pad", `${Math.max(2, Math.round(h * 0.13))}px`);
+      set("font-size", `${Math.round(9 + h / 7.5)}px`);
+      const vertical = bar.hasAttribute("vertical"), wide = pref("zenith.bar.side-width", "rail") === "wide";
+      const side = parseInt(pref("zenith.bar.side-px", "auto"), 10);
+      set("--zb-w", vertical && !isNaN(side) && (wide ? side >= 120 : side < 120) ? `${side}px` : null);
+      set("--zb-margin", px("zenith.bar.margin"));
+      set("--zb-bar-radius", px("zenith.bar.corners"));
+      const o = pref("zenith.bar.opacity", "auto");
+      set("--zb-alpha", o === "auto" ? null : `${parseInt(o, 10)}%`);
+      set("--zb-radius", px("zenith.bar.module-corners"));
+      set("--zb-gap", px("zenith.bar.spacing"));
+      bar.setAttribute("length", pref("zenith.bar.length", "full"));
+      bar.setAttribute("border", pref("zenith.bar.border", "off"));
+      bar.setAttribute("separators", pref("zenith.bar.separators", "auto"));
     }
     // (Another look, size or font: the fixed-width modules measured again.)
     requestAnimationFrame(() => {
@@ -1034,7 +1065,9 @@ const Bar = {
     const hides = this.bars.filter(b => b.hasAttribute("collapsible")).map(b => b.getAttribute("edge"));
     if (hides.length) document.documentElement.setAttribute("zenith-bar-hides", hides.join(" "));
     this.look();
-    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width", "zenith.bar.marker", "zenith.bar.container-hint", "zenith.bar.side-rows"]) Undo.pref(p, () => this.look());
+    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width", "zenith.bar.marker", "zenith.bar.container-hint", "zenith.bar.side-rows", "zenith.bar.tab-marks", "zenith.bar.length", "zenith.bar.margin",
+                     "zenith.bar.corners", "zenith.bar.opacity", "zenith.bar.module-corners", "zenith.bar.spacing", "zenith.bar.border",
+                     "zenith.bar.separators", "zenith.bar.side-px"]) Undo.pref(p, () => this.look());
     this.mark();
     const mark = () => this.mark();
     window.gZenWorkspaces?.addChangeListeners?.(mark);

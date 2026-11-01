@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.16.2
+// @version        0.16.3
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -20,7 +20,7 @@
 // Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
 // work without any of this. Peek has its own script, zenith-peek.uc.mjs.
 
-const ZENITH_VERSION = "0.16.2"; // (tools/bump_version.py keeps it)
+const ZENITH_VERSION = "0.16.3"; // (tools/bump_version.py keeps it)
 window.ZenithVersion = ZENITH_VERSION; // about:zenith-fetch, the rice file
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const root = document.documentElement;
@@ -5082,7 +5082,53 @@ const NewTabBelow = {
       };
       onUnload(() => (gBrowser._findTabToBlurTo = blur));
     }
+    // Any new tab while you're on a split's tab becomes a tile of that split
+    // (docs/reference.md §5): Ctrl+T (the address bar), a link to a new tab,
+    // window.open. Background ones too, unless Shell › Background links in
+    // a split says they stay tabs. Past the split's limit: a normal tab.
+    const open = window.BrowserCommands?.openTab;
+    if (open) {
+      BrowserCommands.openTab = function (...args) {
+        const anchor = gBrowser.selectedTab;
+        if (self.splitOf(anchor) && !self.unwatch) self.watch(made => self.grow(made, anchor, true));
+        return open.apply(this, args);
+      };
+      onUnload(() => (BrowserCommands.openTab = open));
+    }
+    const opened = e => {
+      const tab = e.target, anchor = gBrowser.selectedTab;
+      if (self.unwatch || !self.splitOf(anchor) || !window.gZenWorkspaces?._hasInitializedTabsStrip) return;
+      Promise.resolve().then(() => self.grow(tab, anchor, gBrowser.selectedTab === tab));
+    };
+    gBrowser.tabContainer.addEventListener("TabOpen", opened);
+    onUnload(() => gBrowser.tabContainer.removeEventListener("TabOpen", opened));
+    // Splitting an essential (Shell › Splitting an essential): Zen splits a
+    // copy of any pinned tab; "no copy" splits the essential itself, which
+    // stays one tab (Zen copies only tabs it sees pinned: the essential's
+    // pin is hidden from it for that moment).
+    const split = S?.splitTabs;
+    if (split) {
+      S.splitTabs = function (tabs, ...rest) {
+        const ess = Services.prefs.getStringPref("zenith.shell.essential-split", "") !== "copy" ? (tabs ?? []).filter(t => t?.hasAttribute?.("zen-essential") && t.hasAttribute("pinned")) : [];
+        for (const t of ess) t.removeAttribute("pinned");
+        try {
+          return split.call(this, tabs, ...rest);
+        } finally {
+          for (const t of ess) if (t.isConnected) t.setAttribute("pinned", "true");
+        }
+      };
+      onUnload(() => (S.splitTabs = split));
+    }
     window.ZenithNewTabBelow = this; // for tools/checks
+  },
+
+  grow(tab, anchor, shown) {
+    const S = window.gZenViewSplitter, data = this.splitOf(anchor);
+    if (!tab?.isConnected || !data || this.splitOf(tab) || tab.pinned || tab.hasAttribute("zen-essential") || tab.hasAttribute("zen-glance-tab") || tab.hasAttribute("zen-empty-tab")) return;
+    if (!shown && Services.prefs.getStringPref("zenith.shell.split-background", "") === "tab") return;
+    if (data.tabs.length >= (S?.MAX_TABS ?? 4)) return;
+    this.join(tab, anchor);
+    if (!shown && gBrowser.selectedTab === tab) gBrowser.selectedTab = anchor;
   },
 
   splitOf(tab) {
@@ -9101,6 +9147,125 @@ const PageBlend = {
   },
 };
 
+/* --- What's playing, one answer for everything (docs/reference.md §3) ----
+   Every tab with media, in every space: the bar, its hover player, the Dash
+   and Media art read this, never their own guess. Ranked: playing and
+   audible first (the newest to start), then playing but muted, then paused
+   (the latest touched). A sound under a second never takes over; a muted
+   or paused source never displaces an audible one. "Keep the one I chose"
+   (Bar › Which source the bar shows) holds the source you last played,
+   paused or picked while it still has media. */
+const MediaHub = {
+  sources: new Map(), // tab → { started, touched }
+  picked: null,
+
+  init() {
+    window.ZenithMedia = this;
+    const changed = e => {
+      const c = e.detail?.changed ?? [];
+      if (!c.includes("soundplaying") && !c.includes("muted")) return;
+      const s = this.add(e.target);
+      if (s && c.includes("soundplaying") && e.target.hasAttribute("soundplaying")) s.started = Date.now();
+      this.soon(c.includes("soundplaying") ? 1100 : 0);
+    };
+    const gone = e => {
+      this.sources.delete(e.target);
+      if (this.picked === e.target) this.picked = null;
+      this.soon();
+    };
+    // (On the window, not the tab strip: tabs of other spaces and the
+    // essentials send theirs too, as Zen's own media cards rely on.)
+    window.addEventListener("TabAttrModified", changed);
+    window.addEventListener("TabClose", gone);
+    window.addEventListener("TabBrowserDiscarded", gone);
+    onUnload(() => {
+      window.removeEventListener("TabAttrModified", changed);
+      window.removeEventListener("TabClose", gone);
+      window.removeEventListener("TabBrowserDiscarded", gone);
+    });
+    // Media already playing (or paused) in any space when Zen starts.
+    for (const t of new Set(window.gZenWorkspaces?.allStoredTabs ?? gBrowser.tabs)) if (this.ctrl(t)?.isActive || t.hasAttribute("soundplaying")) this.add(t);
+    this.soon();
+  },
+
+  ctrl(tab) {
+    try {
+      return tab?.linkedBrowser?.browsingContext?.mediaController ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  add(tab) {
+    if (!tab?.isConnected) return null;
+    let s = this.sources.get(tab);
+    if (!s) {
+      s = { started: tab.hasAttribute("soundplaying") ? Date.now() - 2000 : 0, touched: 0 };
+      this.sources.set(tab, s);
+      const c = this.ctrl(tab);
+      for (const t of ["playbackstatechange", "metadatachange", "deactivated", "activated"]) c?.addEventListener(t, () => this.soon());
+    }
+    return s;
+  },
+
+  state(tab) {
+    const c = this.ctrl(tab), sound = tab.hasAttribute("soundplaying");
+    const playing = !!c?.isPlaying || sound;
+    if (playing && sound && !tab.hasAttribute("muted")) return "playing";
+    if (playing) return tab.hasAttribute("muted") ? "muted" : "playing";
+    return c?.isActive ? "paused" : null;
+  },
+
+  // Every source, best first.
+  list() {
+    const now = Date.now(), out = [];
+    for (const [tab, s] of this.sources) {
+      if (!tab.isConnected) {
+        this.sources.delete(tab);
+        continue;
+      }
+      const state = this.state(tab);
+      if (!state) continue;
+      // (Playing for under a second: below everything playing, so a ping
+      // never takes the bar.)
+      const settled = state !== "playing" || now - s.started >= 1000;
+      const rank = state === "playing" ? (settled ? 0 : 2) : state === "muted" ? 1 : 3;
+      out.push({ tab, state, rank, at: state === "paused" ? s.touched || s.started : s.started });
+    }
+    return out.sort((a, b) => a.rank - b.rank || b.at - a.at);
+  },
+
+  // The source the bar shows.
+  get current() {
+    const all = this.list();
+    if (this.picked && Services.prefs.getStringPref("zenith.bar.media-pick", "") === "kept") {
+      const kept = all.find(s => s.tab === this.picked);
+      if (kept && (kept.state !== "paused" || !all.some(s => s.rank === 0 && s.tab !== this.picked))) return kept;
+    }
+    return all[0] ?? null;
+  },
+
+  // You played, paused or chose it: it stays (with "Keep the one I chose").
+  touch(tab) {
+    const s = this.add(tab);
+    if (s) s.touched = Date.now();
+    this.picked = tab;
+    this.soon();
+  },
+
+  // The next source after the shown one (a wheel with Shift, a key).
+  cycle() {
+    const all = this.list(), i = all.findIndex(s => s.tab === this.current?.tab);
+    if (all.length > 1) this.touch(all[(i + 1) % all.length].tab);
+  },
+
+  soon(ms = 0) {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => window.dispatchEvent(new CustomEvent("ZenithMedia")), ms);
+    if (ms) setTimeout(() => window.dispatchEvent(new CustomEvent("ZenithMedia")), 0);
+  },
+};
+
 /* --- Media art: the cover of what's playing, behind its media card -------
    Most music and video sites give the browser cover art (Media Session
    metadata); Firefox uses it for the system's media controls. Zen's media
@@ -9467,6 +9632,7 @@ start("download edge", () => DownloadEdge.init().catch(e => console.error("[Zeni
 start("minimap", () => Minimap.init());
 start("page accent", () => PageAccent.init());
 start("zoom pills", () => ZoomPills.init());
+start("media hub", () => MediaHub.init());
 start("media art", () => MediaArt.init());
 start("window material", () => WindowMaterial.init(), true);
 start("live settings", () => LiveSettings.init());
