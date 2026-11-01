@@ -5141,6 +5141,40 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.shell.scroller-tabs",
+    "label": "The scroller's strip holds",
+    "type": "dropdown",
+    "placeholder": "Default (Every tab of the space (niri))",
+    "options": [
+      {
+        "label": "Every tab of the space (niri)",
+        "value": "all"
+      },
+      {
+        "label": "Only a split's tabs",
+        "value": "split"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.scroller-focus",
+    "label": "The scroller keeps the column you're on",
+    "type": "dropdown",
+    "placeholder": "Default (In view)",
+    "options": [
+      {
+        "label": "In view",
+        "value": "view"
+      },
+      {
+        "label": "In the middle",
+        "value": "centre"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.launcher.look",
     "label": "The launcher's look (Alt+D, Alt+W)",
     "type": "dropdown",

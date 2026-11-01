@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.16.4
+// @version        0.17.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -11,7 +11,7 @@
 //   Alt+Q               looks up the selected text, or opens the Peek prompt
 //   Shift+Enter         in the URL bar, peeks what you typed (or the
 //                       highlighted result) instead of navigating
-//   Alt+Shift+click     a link peeks it (Keys › Peek: Ctrl+Alt, Alt instead
+//   Alt+Shift+click     a link peeks it (Tools › Peek: Ctrl+Alt, Alt instead
 //                       of Zen's Glance, or swapped: Alt peeks, Alt+Shift
 //                       Glances); any link's right-click menu too
 // Inside a Peek: Escape closes it, Ctrl+Enter keeps it as a real tab.
@@ -530,7 +530,7 @@ async function watchPeekLinks() {
     }
     break;
   }
-  // (Which keys peek a link is Zenith Plus's LinkClicks: Shell › Mouse.)
+  // (Which keys peek a link is Zenith Plus's LinkClicks: Tiling and keys › Mouse.)
   // Back and forward (Alt+Left/Right, the mouse's side buttons) in a Peek:
   // its page's, not the tab's behind it.
   const B = window.BrowserCommands;

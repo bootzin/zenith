@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.16.4
+// @version        0.17.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -31,7 +31,7 @@ const SCHEMA = [
   "id": "look",
   "title": "Theme",
   "icon": "palette",
-  "blurb": "How Zenith looks: open the rice picker (Alt+Shift+P) to try themes, colours, glass, bars and a font with every click shown at once; the details are below.",
+  "blurb": "Colours, glass, shape and font for the whole browser. The rice picker (Alt+Shift+P) shows each choice as you click it.",
   "groups": [
    {
     "title": "Looks",
@@ -46,75 +46,6 @@ const SCHEMA = [
       "command": "zenith-rice-picker",
       "host": "Zen"
      },
-     {
-      "property": "zenith.core.font",
-      "label": "Font",
-      "type": "string",
-      "extra": false,
-      "desc": "One font for the whole browser (the sidebar, menus, panels, the URL bar, Zenith's popups and a bar whose font isn't monospace): the name of any installed font, or empty for your system's. The rice picker lists them, each drawn in its own face.",
-      "host": "Zenith Plus",
-      "placeholder": "Your system's"
-     }
-    ]
-   },
-   {
-    "title": "Size",
-    "settings": [
-     {
-      "property": "zenith.core.density",
-      "label": "Density",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How tall sidebar tabs and URL bar results are.",
-      "host": "Zenith Core",
-      "options": [
-       {
-        "label": "Tight",
-        "value": "tight"
-       },
-       {
-        "label": "Compact",
-        "value": "compact"
-       },
-       {
-        "label": "Cozy",
-        "value": "cozy"
-       }
-      ],
-      "default": "tight"
-     },
-     {
-      "property": "zenith.core.scale",
-      "label": "Screen scale",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Sizes follow the window's width; pick one to fix them.",
-      "host": "Zenith Core",
-      "options": [
-       {
-        "label": "Auto by window width",
-        "value": "auto"
-       },
-       {
-        "label": "Small screen",
-        "value": "small"
-       },
-       {
-        "label": "Medium screen",
-        "value": "medium"
-       },
-       {
-        "label": "Large screen",
-        "value": "large"
-       }
-      ],
-      "default": "auto"
-     }
-    ]
-   },
-   {
-    "title": "Colour and shape",
-    "settings": [
      {
       "property": "zenith.palette",
       "label": "Palette",
@@ -247,6 +178,285 @@ const SCHEMA = [
       "default": "workspace"
      },
      {
+      "property": "zenith.core.font",
+      "label": "Font",
+      "type": "string",
+      "extra": false,
+      "desc": "One font for the whole browser (the sidebar, menus, panels, the URL bar, Zenith's popups and a bar whose font isn't monospace): the name of any installed font, or empty for your system's. The rice picker lists them, each drawn in its own face.",
+      "host": "Zenith Plus",
+      "placeholder": "Your system's"
+     }
+    ],
+    "blurb": "Start here: a theme in the picker, or a palette and an accent."
+   },
+   {
+    "title": "Glass",
+    "settings": [
+     {
+      "property": "zenith.core.window-transparency",
+      "label": "Window transparency",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How much shows through every see-through surface: the sidebar, docked or floating, and the panels. All of them use the same colour and strength.",
+      "host": "Zenith Core",
+      "options": [
+       {
+        "label": "Solid",
+        "value": "solid"
+       },
+       {
+        "label": "Dense",
+        "value": "dense"
+       },
+       {
+        "label": "Balanced",
+        "value": "balanced"
+       },
+       {
+        "label": "Airy",
+        "value": "airy"
+       },
+       {
+        "label": "Sheer",
+        "value": "sheer"
+       },
+       {
+        "label": "Glass",
+        "value": "glass"
+       }
+      ],
+      "default": "airy",
+      "picture": true
+     },
+     {
+      "property": "zenith.core.glass",
+      "label": "Frost",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How much see-through surfaces blur what's behind them: the page, or (with Window material on Wallpaper) the wallpaper behind the docked sidebar. Acrylic and Mica are blurred by Windows, at its own strength.",
+      "host": "Zenith Core",
+      "options": [
+       {
+        "label": "Off",
+        "value": "off"
+       },
+       {
+        "label": "Subtle",
+        "value": "subtle"
+       },
+       {
+        "label": "Strong",
+        "value": "strong"
+       }
+      ],
+      "default": "subtle"
+     },
+     {
+      "property": "zenith.core.glass-edge",
+      "label": "Glass edge",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The rim of glass surfaces: a fine highlight along the top, or liquid glass that catches the light around its edge, on panels, the selected tab and essentials, and lights up where you press (with Zenith Plus).",
+      "host": "Zenith Core",
+      "options": [
+       {
+        "label": "None",
+        "value": "off"
+       },
+       {
+        "label": "Shine",
+        "value": "shine"
+       },
+       {
+        "label": "Liquid",
+        "value": "liquid"
+       }
+      ],
+      "default": "off",
+      "picture": true
+     },
+     {
+      "property": "zenith.core.floating-sidebar",
+      "label": "Sidebar",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "See-through like every panel, always solid, or Zen's own colours and blur.",
+      "host": "Zenith Core",
+      "options": [
+       {
+        "label": "See-through",
+        "value": "glass"
+       },
+       {
+        "label": "Solid",
+        "value": "solid"
+       },
+       {
+        "label": "Zen's own",
+        "value": "zen"
+       }
+      ],
+      "default": "glass",
+      "picture": true
+     },
+     {
+      "property": "zenith.plus.see-through-pages",
+      "label": "See-through Zen pages",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Zen's own pages (Settings, Add-ons, about:config, Downloads) show the window's glass behind them, like the docked sidebar. Web pages stay as they are.",
+      "host": "Zenith Plus",
+      "default": false
+     },
+     {
+      "property": "zenith.plus.blend",
+      "label": "Blend with the page",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the page you're on, so the window runs into the page.",
+      "host": "Zenith Plus",
+      "warn": "Overrides your theme: while it's on, the glass shows the page's colour instead of your space's. If colours aren't what you expect, check this first.",
+      "options": [
+       {
+        "label": "Off",
+        "value": "off"
+       },
+       {
+        "label": "On",
+        "value": "on"
+       }
+      ],
+      "default": "off"
+     }
+    ],
+    "blurb": "How much of the wallpaper shows through, and how blurred."
+   },
+   {
+    "title": "Size and shape",
+    "settings": [
+     {
+      "property": "zenith.core.density",
+      "label": "Density",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How tall sidebar tabs and URL bar results are.",
+      "host": "Zenith Core",
+      "options": [
+       {
+        "label": "Tight",
+        "value": "tight"
+       },
+       {
+        "label": "Compact",
+        "value": "compact"
+       },
+       {
+        "label": "Cozy",
+        "value": "cozy"
+       }
+      ],
+      "default": "tight"
+     },
+     {
+      "property": "zenith.core.scale",
+      "label": "Screen scale",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Sizes follow the window's width; pick one to fix them.",
+      "host": "Zenith Core",
+      "options": [
+       {
+        "label": "Auto by window width",
+        "value": "auto"
+       },
+       {
+        "label": "Small screen",
+        "value": "small"
+       },
+       {
+        "label": "Medium screen",
+        "value": "medium"
+       },
+       {
+        "label": "Large screen",
+        "value": "large"
+       }
+      ],
+      "default": "auto"
+     },
+     {
+      "property": "zenith.core.corners",
+      "label": "Corners",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How rounded panels, tabs and cards are.",
+      "host": "Zenith Core",
+      "options": [
+       {
+        "label": "Square",
+        "value": "square"
+       },
+       {
+        "label": "Soft",
+        "value": "soft"
+       },
+       {
+        "label": "Round",
+        "value": "round"
+       }
+      ],
+      "default": "soft",
+      "picture": true
+     },
+     {
+      "property": "zenith.core.pills",
+      "label": "Pills and badges",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Small badges like the zoom pill and number chips.",
+      "host": "Zenith Core",
+      "options": [
+       {
+        "label": "Round",
+        "value": "round"
+       },
+       {
+        "label": "Match the corner setting",
+        "value": "match"
+       }
+      ],
+      "default": "round"
+     },
+     {
+      "property": "zenith.core.page",
+      "label": "Page frame",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The page flush against the window, rounded with a small gap, or Zen's own frame.",
+      "host": "Zenith Core",
+      "options": [
+       {
+        "label": "Flush and square",
+        "value": "flush"
+       },
+       {
+        "label": "Rounded with a slim gap",
+        "value": "flush-round"
+       },
+       {
+        "label": "Zen default",
+        "value": "zen"
+       }
+      ],
+      "default": "flush",
+      "picture": true
+     }
+    ]
+   },
+   {
+    "title": "Colours from your spaces and pictures",
+    "settings": [
+     {
       "property": "zenith.plus.ink",
       "label": "Sidebar text",
       "type": "dropdown",
@@ -377,162 +587,14 @@ const SCHEMA = [
       "button": "Undo colours",
       "command": "zenith-colours-undo",
       "host": "Zen"
-     },
-     {
-      "property": "zenith.core.corners",
-      "label": "Corners",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How rounded panels, tabs and cards are.",
-      "host": "Zenith Core",
-      "options": [
-       {
-        "label": "Square",
-        "value": "square"
-       },
-       {
-        "label": "Soft",
-        "value": "soft"
-       },
-       {
-        "label": "Round",
-        "value": "round"
-       }
-      ],
-      "default": "soft",
-      "picture": true
-     },
-     {
-      "property": "zenith.core.pills",
-      "label": "Pills and badges",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Small badges like the zoom pill and number chips.",
-      "host": "Zenith Core",
-      "options": [
-       {
-        "label": "Round",
-        "value": "round"
-       },
-       {
-        "label": "Match the corner setting",
-        "value": "match"
-       }
-      ],
-      "default": "round"
      }
-    ]
+    ],
+    "more": true,
+    "blurb": "Each space's own colour, or colours taken from an image."
    },
    {
-    "title": "Glass",
+    "title": "The wallpaper and the system's glass",
     "settings": [
-     {
-      "property": "zenith.core.window-transparency",
-      "label": "Window transparency",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How much shows through every see-through surface: the sidebar, docked or floating, and the panels. All of them use the same colour and strength.",
-      "host": "Zenith Core",
-      "options": [
-       {
-        "label": "Solid",
-        "value": "solid"
-       },
-       {
-        "label": "Dense",
-        "value": "dense"
-       },
-       {
-        "label": "Balanced",
-        "value": "balanced"
-       },
-       {
-        "label": "Airy",
-        "value": "airy"
-       },
-       {
-        "label": "Sheer",
-        "value": "sheer"
-       },
-       {
-        "label": "Glass",
-        "value": "glass"
-       }
-      ],
-      "default": "airy",
-      "picture": true
-     },
-     {
-      "property": "zenith.core.glass",
-      "label": "Frost",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How much see-through surfaces blur what's behind them: the page, or (with Window material on Wallpaper) the wallpaper behind the docked sidebar. Acrylic and Mica are blurred by Windows, at its own strength.",
-      "host": "Zenith Core",
-      "options": [
-       {
-        "label": "Off",
-        "value": "off"
-       },
-       {
-        "label": "Subtle",
-        "value": "subtle"
-       },
-       {
-        "label": "Strong",
-        "value": "strong"
-       }
-      ],
-      "default": "subtle"
-     },
-     {
-      "property": "zenith.core.glass-edge",
-      "label": "Glass edge",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The rim of glass surfaces: a fine highlight along the top, or liquid glass that catches the light around its edge, on panels, the selected tab and essentials, and lights up where you press (with Zenith Plus).",
-      "host": "Zenith Core",
-      "options": [
-       {
-        "label": "None",
-        "value": "off"
-       },
-       {
-        "label": "Shine",
-        "value": "shine"
-       },
-       {
-        "label": "Liquid",
-        "value": "liquid"
-       }
-      ],
-      "default": "off",
-      "picture": true
-     },
-     {
-      "property": "zenith.core.floating-sidebar",
-      "label": "Sidebar",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "See-through like every panel, always solid, or Zen's own colours and blur.",
-      "host": "Zenith Core",
-      "options": [
-       {
-        "label": "See-through",
-        "value": "glass"
-       },
-       {
-        "label": "Solid",
-        "value": "solid"
-       },
-       {
-        "label": "Zen's own",
-        "value": "zen"
-       }
-      ],
-      "default": "glass",
-      "picture": true
-     },
      {
       "property": "zenith.plus.material-windows",
       "label": "Window material",
@@ -690,65 +752,14 @@ const SCHEMA = [
        "conditions": [],
        "platform": "Linux"
       }
-     },
-     {
-      "property": "zenith.plus.see-through-pages",
-      "label": "See-through Zen pages",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Zen's own pages (Settings, Add-ons, about:config, Downloads) show the window's glass behind them, like the docked sidebar. Web pages stay as they are.",
-      "host": "Zenith Plus",
-      "default": false
-     },
-     {
-      "property": "zenith.plus.blend",
-      "label": "Blend with the page",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "The glass (sidebar, the frame around the page, panels) takes the colour along the top of the page you're on, so the window runs into the page.",
-      "host": "Zenith Plus",
-      "warn": "Overrides your theme: while it's on, the glass shows the page's colour instead of your space's. If colours aren't what you expect, check this first.",
-      "options": [
-       {
-        "label": "Off",
-        "value": "off"
-       },
-       {
-        "label": "On",
-        "value": "on"
-       }
-      ],
-      "default": "off"
      }
-    ]
+    ],
+    "more": true,
+    "blurb": "Where the wallpaper comes from, and Windows', macOS' and Linux's own window materials."
    },
    {
     "title": "Window",
     "settings": [
-     {
-      "property": "zenith.core.page",
-      "label": "Page frame",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The page flush against the window, rounded with a small gap, or Zen's own frame.",
-      "host": "Zenith Core",
-      "options": [
-       {
-        "label": "Flush and square",
-        "value": "flush"
-       },
-       {
-        "label": "Rounded with a slim gap",
-        "value": "flush-round"
-       },
-       {
-        "label": "Zen default",
-        "value": "zen"
-       }
-      ],
-      "default": "flush",
-      "picture": true
-     },
      {
       "property": "zen.tabs.vertical.right-side",
       "label": "Sidebar on the right",
@@ -767,3872 +778,16 @@ const SCHEMA = [
       "host": "Zenith Core",
       "default": null
      }
-    ]
-   }
-  ]
- },
- {
-  "id": "edges",
-  "title": "Edges",
-  "icon": "border",
-  "blurb": "Hairlines on the page's edges that say what's going on, then get out of the way.",
-  "preset": {
-   "property": "zenith.edges.preset",
-   "host": "Zenith Edges",
-   "default": "full",
-   "sets": {
-    "zenith.edges.load": {
-     "off": "off",
-     "quiet": "on",
-     "full": "on"
-    },
-    "zenith.edges.download": {
-     "off": "off",
-     "quiet": "off",
-     "full": "on"
-    },
-    "zenith.edges.container": {
-     "off": "off",
-     "quiet": "off",
-     "full": "on"
-    },
-    "zenith.edges.sharing": {
-     "off": "off",
-     "quiet": "on",
-     "full": "on"
-    },
-    "zenith.edges.private": {
-     "off": "off",
-     "quiet": "on",
-     "full": "on"
-    },
-    "zenith.edges.insecure": {
-     "off": "off",
-     "quiet": "on",
-     "full": "on"
-    },
-    "zenith.edges.unfocused": {
-     "off": "off",
-     "quiet": "off",
-     "full": "on"
-    },
-    "zenith.edges.muted": {
-     "off": "off",
-     "quiet": "off",
-     "full": "off"
-    },
-    "zenith.edges.focus-border": {
-     "off": "off",
-     "quiet": "off",
-     "full": "off"
-    }
-   },
-   "values": [
-    {
-     "value": "off",
-     "label": "Off",
-     "blurb": "No edges at all"
-    },
-    {
-     "value": "quiet",
-     "label": "Quiet",
-     "blurb": "Loading, sharing, private and not-secure only"
-    },
-    {
-     "value": "full",
-     "label": "Full",
-     "blurb": "Every edge, including downloads and containers"
-    }
-   ]
-  },
-  "groups": [
-   {
-    "title": "Lines",
-    "settings": [
-     {
-      "property": "zenith.edges.load",
-      "label": "Load line",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A line across the top grows as the page loads.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.edges.download",
-      "label": "Download line",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A line along the bottom fills as downloads progress.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.edges.insecure",
-      "label": "Not-secure warning",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "An amber line on top for pages without HTTPS; hover it for a note.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.edges.container",
-      "label": "Container line",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A line in the container's colour down the left edge.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.edges.container-style",
-      "label": "Line style",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Straight, curling round the page's corners, or a short rounded bar.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "Straight",
-        "value": "straight"
-       },
-       {
-        "label": "Wrap the corners",
-        "value": "wrap"
-       },
-       {
-        "label": "Short bar",
-        "value": "inset"
-       }
-      ],
-      "default": "straight",
-      "parent": "zenith.edges.container",
-      "picture": true,
-      "rule": {
-       "why": "Container colour is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.edges.container",
-            "value": "on"
-           }
-          },
-          {
-           "conditions": [
-            {
-             "if": {
-              "property": "zenith.edges.container",
-              "value": ""
-             }
-            },
-            {
-             "conditions": [
-              {
-               "if": {
-                "property": "zenith.edges.preset",
-                "value": ""
-               }
-              },
-              {
-               "if": {
-                "property": "zenith.edges.preset",
-                "value": "full"
-               }
-              }
-             ],
-             "operator": "OR"
-            }
-           ],
-           "operator": "AND"
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.edges.sharing",
-      "label": "Sharing alarm",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Red edges while the camera, microphone or screen is shared.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.edges.private",
-      "label": "Private frame",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A frame around private windows.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.edges.private-colour",
-      "label": "Frame colour",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The private frame's colour.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "Purple",
-        "value": "purple"
-       },
-       {
-        "label": "Accent",
-        "value": "accent"
-       },
-       {
-        "label": "Blue",
-        "value": "blue"
-       },
-       {
-        "label": "Teal",
-        "value": "teal"
-       },
-       {
-        "label": "Green",
-        "value": "green"
-       },
-       {
-        "label": "Orange",
-        "value": "orange"
-       },
-       {
-        "label": "Red",
-        "value": "red"
-       },
-       {
-        "label": "Pink",
-        "value": "pink"
-       }
-      ],
-      "default": "purple",
-      "parent": "zenith.edges.private",
-      "rule": {
-       "why": "Private window frame is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.edges.private",
-            "value": "on"
-           }
-          },
-          {
-           "conditions": [
-            {
-             "if": {
-              "property": "zenith.edges.private",
-              "value": ""
-             }
-            },
-            {
-             "not": {
-              "property": "zenith.edges.preset",
-              "value": "off"
-             }
-            }
-           ],
-           "operator": "AND"
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     }
-    ]
-   },
-   {
-    "title": "How they look",
-    "settings": [
-     {
-      "property": "zenith.edges.thickness",
-      "label": "Thickness",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How thick the lines are.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "Auto",
-        "value": "auto"
-       },
-       {
-        "label": "1px",
-        "value": "1"
-       },
-       {
-        "label": "2px",
-        "value": "2"
-       },
-       {
-        "label": "3px",
-        "value": "3"
-       }
-      ],
-      "default": "auto"
-     },
-     {
-      "property": "zenith.edges.unfocused",
-      "label": "Fade in the background",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Lines fade while the window is in the background.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     }
-    ]
-   },
-   {
-    "title": "Extras",
-    "settings": [
-     {
-      "property": "zenith.edges.muted",
-      "label": "Muted marker",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "A short mark in the top-left corner while the tab is muted.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.edges.focus-border",
-      "label": "Focus frame",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "A thin accent frame while the window is focused.",
-      "host": "Zenith Edges",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     }
-    ]
-   }
-  ]
- },
- {
-  "id": "tabs",
-  "title": "Tabs",
-  "icon": "tabs",
-  "blurb": "Tabs wherever they are: the sidebar and the bars (their looks, signals and containers in one place), and what's playing.",
-  "preset": {
-   "property": "zenith.tabs.preset",
-   "host": "Zenith Tabs",
-   "default": "informative",
-   "sets": {
-    "zenith.tabs.attention": {
-     "plain": "off",
-     "informative": "on",
-     "everything": "on"
-    },
-    "zenith.tabs.pin-mark": {
-     "plain": "off",
-     "informative": "on",
-     "everything": "on"
-    },
-    "zenith.tabs.folder-activity": {
-     "plain": "off",
-     "informative": "on",
-     "everything": "on"
-    },
-    "zenith.tabs.container": {
-     "plain": "off",
-     "informative": "subtle",
-     "everything": "subtle"
-    },
-    "zenith.tabs.split-vertical": {
-     "plain": "off",
-     "informative": "on",
-     "everything": "on"
-    },
-    "zenith.tabs.audio-wave": {
-     "plain": "off",
-     "informative": "on",
-     "everything": "on"
-    },
-    "zenith.tabs.mini-player": {
-     "plain": "off",
-     "informative": "on",
-     "everything": "on"
-    },
-    "zenith.tabs.hover-mute": {
-     "plain": "off",
-     "informative": "off",
-     "everything": "on"
-    },
-    "zenith.tabs.pinned-drift": {
-     "plain": "off",
-     "informative": "off",
-     "everything": "on"
-    },
-    "zenith.tabs.numbers": {
-     "plain": "off",
-     "informative": "off",
-     "everything": "on"
-    },
-    "zenith.tabs.lowercase": {
-     "plain": "off",
-     "informative": "off",
-     "everything": "on"
-    },
-    "zenith.tabs.badge-only": {
-     "plain": "off",
-     "informative": "off",
-     "everything": "on"
-    }
-   },
-   "values": [
-    {
-     "value": "plain",
-     "label": "Plain",
-     "blurb": "Density and sleeping tabs, nothing else"
-    },
-    {
-     "value": "informative",
-     "label": "Informative",
-     "blurb": "Dots, stripes, the audio wave and the slim player"
-    },
-    {
-     "value": "everything",
-     "label": "Everything",
-     "blurb": "All of that, plus every extra"
-    }
-   ]
-  },
-  "groups": [
-   {
-    "title": "The sidebar",
-    "settings": [
-     {
-      "property": "zenith.tabs.reveal",
-      "label": "Revealed sidebar",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "When the hidden sidebar slides out: over the page, pushing the page aside by exactly its width, or dimming the page.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "Overlay",
-        "value": "overlay"
-       },
-       {
-        "label": "Push the page",
-        "value": "push"
-       },
-       {
-        "label": "Dim",
-        "value": "dim"
-       }
-      ],
-      "default": "overlay"
-     },
-     {
-      "property": "zenith.tabs.reveal-delay",
-      "label": "Reveal delay",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "A short wait before the sidebar slides out on hover.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "No delay",
-        "value": "0"
-       },
-       {
-        "label": "100ms",
-        "value": "100"
-       },
-       {
-        "label": "200ms",
-        "value": "200"
-       },
-       {
-        "label": "300ms",
-        "value": "300"
-       },
-       {
-        "label": "500ms",
-        "value": "500"
-       }
-      ],
-      "default": "0",
-      "parent": "zenith.tabs.reveal"
-     },
-     {
-      "property": "zenith.tabs.close-hover",
-      "label": "Close buttons on hover",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Close buttons show only on the tab under the mouse.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": "on"
-     },
-     {
-      "property": "zen.tabs.open-pinned-in-new-tab",
-      "label": "Pinned tabs open sites in new tabs",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Zen's own setting. Off: a pinned tab goes to the other site itself.",
-      "host": "Zenith Tabs",
-      "default": null
-     },
-     {
-      "property": "zenith.plus.unpinned-groups",
-      "label": "Groups that don't pin",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Zen's folders pin the tabs you put in them. Right-click a folder › Tabs act unpinned: Ctrl+W closes its tabs, they keep the page they're on, and the folder sits below the pinned tabs' line, with your other tabs. Off hides the choice.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Zen's folders, set per folder",
-        "value": "folders"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": "folders"
-     },
-     {
-      "property": "zenith.plus.minimap",
-      "label": "Minimap",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Small ticks at the edge for tabs that are loading, playing or want attention.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.plus.key-switch-flash",
-      "label": "Show the sidebar on key switches",
-      "type": "checkbox",
-      "extra": true,
-      "desc": "In compact mode, the sidebar shows for a moment when you switch tabs from the keyboard, so you see where you landed.",
-      "host": "Zenith Plus",
-      "default": false
-     }
-    ]
-   },
-   {
-    "title": "Spaces",
-    "settings": [
-     {
-      "property": "zenith.plus.workspace-dots",
-      "label": "Workspace dots",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Waybar-style dots at the top of the page, one per space, with the current one's name: for a moment when you switch, or always.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Off",
-        "value": "off"
-       },
-       {
-        "label": "On switch",
-        "value": "switch"
-       },
-       {
-        "label": "Always",
-        "value": "always"
-       }
-      ],
-      "default": "switch"
-     },
-     {
-      "property": "zenith.plus.workspace-flash",
-      "label": "Workspace flash",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "The page's top edge lights up in the new space's colour as you switch.",
-      "host": "Zenith Plus",
-      "default": true
-     }
-    ]
-   },
-   {
-    "title": "Extensions",
-    "settings": [
-     {
-      "property": "zenith.plus.extension-copies",
-      "label": "Extension copies",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Right-click an extension › Copy for other spaces: a second copy with its own storage (another account in the same password manager), running in your other spaces while the original runs in this one (Runs in spaces, as with any extension). Zenith loads copies as temporary add-ons at each start, from your profile folder; nothing in about:config changes.",
-      "host": "Zenith Plus",
-      "warn": "Experimental. A copy doesn't update itself (right-click it › Refresh from the original), loads a moment after Zen starts, may not talk to the extension's desktop app, and Firefox lists it as temporary.",
-      "default": false
-     }
-    ]
-   },
-   {
-    "title": "Links",
-    "settings": [
-     {
-      "property": "zenith.plus.external-links",
-      "label": "Where they open",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Ask each time: a link from another app that no Space routing rule sends somewhere stops at a small card to pick its space (and so its container), with an option to always send that site there.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Where Zen's Space routing sends them",
-        "value": "zen"
-       },
-       {
-        "label": "Ask when no Space routing rule matches",
-        "value": "ask"
-       }
-      ],
-      "default": "zen"
-     },
-     {
-      "property": "zenith.action.space-routing",
-      "label": "Space routing",
-      "type": "action",
-      "extra": false,
-      "desc": "Zen's Space routing sends links from other apps (and any site you choose, like a login page) to a space, and so to that space's container.",
-      "button": "Space routing",
-      "command": "cmd_zenOpenSpaceRoutingSettings",
-      "host": "Zen"
-     }
-    ]
-   },
-   {
-    "title": "Signals",
-    "settings": [
-     {
-      "property": "zenith.tabs.unloaded",
-      "label": "Sleeping tabs",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How sleeping tabs look.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "Grey and dim",
-        "value": "grey"
-       },
-       {
-        "label": "Italic title",
-        "value": "italic"
-       },
-       {
-        "label": "Hide favicon",
-        "value": "nofavicon"
-       },
-       {
-        "label": "No change",
-        "value": "off"
-       }
-      ],
-      "default": "grey"
-     },
-     {
-      "property": "zenith.tabs.pin-mark",
-      "label": "Pin mark",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A small pin on pinned tabs, where the sleeping moon goes (not on essentials or tabs in a folder).",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.tabs.attention",
-      "label": "Attention dots",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A dot on tabs that want attention.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.tabs.attention-for",
-      "label": "Dots for",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Alerts: a tab waiting on a dialog. Changed titles: a background tab whose title changed (a pinned mail or chat tab with something new).",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "Alerts and changed titles",
-        "value": "all"
-       },
-       {
-        "label": "Alerts only (a dialog waiting)",
-        "value": "alerts"
-       }
-      ],
-      "default": "all",
-      "rule": {
-       "why": "Attention dots are off",
-       "conditions": [
-        {
-         "not": {
-          "property": "zenith.tabs.attention",
-          "value": "off"
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.tabs.folder-activity",
-      "label": "Folder activity dot",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A dot on closed folders when a tab inside is playing or wants attention.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.tabs.container",
-      "label": "Container stripe",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A coloured stripe on tabs in a container.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "Off",
-        "value": "off"
-       },
-       {
-        "label": "Subtle",
-        "value": "subtle"
-       },
-       {
-        "label": "Strong",
-        "value": "strong"
-       }
-      ],
-      "default": "subtle"
-     },
-     {
-      "property": "zenith.tabs.audio-wave",
-      "label": "Audio wave",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A moving equaliser behind tabs that play sound.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.tabs.split-vertical",
-      "label": "Split-view groups",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Tabs in a split view stay together as a group.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     }
-    ]
-   },
-   {
-    "title": "In the bars",
-    "settings": [
-     {
-      "property": "zenith.bar.tab-look",
-      "label": "Tabs in the bar",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How each tab shows in a bar: icons with the current tab's title, icons only, icon and short title, icon and title while they fit (then only the current one's, then icons), or numbers as i3's workspaces. A click goes to a tab, a middle click closes it.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Icons, the current one with its title",
-        "value": "current"
-       },
-       {
-        "label": "Icons only",
-        "value": "icons"
-       },
-       {
-        "label": "Icon and short title",
-        "value": "titles"
-       },
-       {
-        "label": "Icon and short title while they fit, then fewer titles",
-        "value": "fit"
-       },
-       {
-        "label": "Numbers (i3)",
-        "value": "numbers"
-       }
-      ],
-      "default": "current",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-crowd",
-      "label": "Tabs that don't fit",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "When this space's tabs don't fit in a bar. Titles go, then a window: first the titles go (icons only), and past that only the tabs around the one you're on show, with \"+12\" at either end listing the rest (the wheel moves the window). Shrink: every tab gets narrower, down to its icon, then the strip scrolls. Past a count: up to the count the tabs show as usual; past it, only the tab you're on, with its title, and the chip listing them all.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Titles go, then a window around the tab you're on",
-        "value": "window"
-       },
-       {
-        "label": "Shrink, as Chrome's (then scroll)",
-        "value": "shrink"
-       },
-       {
-        "label": "Past a count, only the tab you're on",
-        "value": "title"
-       }
-      ],
-      "default": "window",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-crowd-count",
-      "label": "The count",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Past how many tabs a bar shows only the tab you're on.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "10 tabs",
-        "value": "10"
-       },
-       {
-        "label": "15 tabs",
-        "value": "15"
-       },
-       {
-        "label": "20 tabs",
-        "value": "20"
-       },
-       {
-        "label": "30 tabs",
-        "value": "30"
-       }
-      ],
-      "default": "15",
-      "parent": "zenith.bar.tab-crowd",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-awake",
-      "label": "Only awake tabs",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "A bar shows the tabs that are loaded (and the one you're on); sleeping ones are in the list the chip opens.",
-      "host": "Zenith Plus",
-      "default": false,
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-align",
-      "label": "Where tabs sit",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Where this space's tabs sit in a bar when they don't fill it: at the start (left, or top on a side bar), in the middle, or at the end.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "At the start (left or top)",
-        "value": "start"
-       },
-       {
-        "label": "In the middle",
-        "value": "centre"
-       },
-       {
-        "label": "At the end (right or bottom)",
-        "value": "end"
-       }
-      ],
-      "default": "start",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-scroll",
-      "label": "The tab you're on",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Kept in view: the strip moves only when the tab you're on would leave it. Kept in the middle: the strip (or the window of tabs) moves to keep it centred, except near either end.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Kept in view",
-        "value": "nearest"
-       },
-       {
-        "label": "Kept in the middle (when there's room either side)",
-        "value": "centre"
-       }
-      ],
-      "default": "nearest",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-wheel",
-      "label": "The wheel over tabs",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Scrolls them: the wheel moves along the tabs when there are more than fit, as a browser's tab strip does. Goes to the next or previous tab: the wheel switches tabs instead.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Scrolls them",
-        "value": "scroll"
-       },
-       {
-        "label": "Goes to the next or previous tab",
-        "value": "switch"
-       }
-      ],
-      "default": "scroll",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.marker",
-      "label": "The marker's colour",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The line under the tab you're on (on a side bar, along its inner edge) and the pill of the space you're in. The tab's container: a tab in a Firefox container is marked in its colour (others in the space's); the space's colour: the colour Zen gives the space (its container's, if it opens tabs in one); or the theme's accent everywhere.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "The tab's container (else the space's colour)",
-        "value": "container"
-       },
-       {
-        "label": "The space's colour",
-        "value": "space"
-       },
-       {
-        "label": "The theme's accent",
-        "value": "accent"
-       }
-      ],
-      "default": "container",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.container-hint",
-      "label": "Containers of other tabs",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Tabs in a Firefox container that you're not on: a thin line in the container's colour along the tab's top, bottom, left or right (as named, on every bar), a ring around the icon, the tab faintly tinted, or nothing (the tab you're on is marked in its container's colour either way).",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "A line along the top",
-        "value": "top"
-       },
-       {
-        "label": "A line along the bottom",
-        "value": "bottom"
-       },
-       {
-        "label": "A line on the left",
-        "value": "left"
-       },
-       {
-        "label": "A line on the right",
-        "value": "right"
-       },
-       {
-        "label": "A ring around the icon",
-        "value": "ring"
-       },
-       {
-        "label": "The tab tinted",
-        "value": "tint"
-       },
-       {
-        "label": "Not shown",
-        "value": "off"
-       }
-      ],
-      "default": "top",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-marks",
-      "label": "Marks on a bar's tabs",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The sidebar's signals on a bar's tabs: essentials (a diamond) and pinned tabs (a dot) first, a folder's tabs underlined together, a note for one playing (crossed when muted), a dot for one asking for attention, a pulse while loading.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "As the sidebar's (essential, pinned, folder, sound, attention)",
-        "value": "on"
-       },
-       {
-        "label": "None",
-        "value": "off"
-       }
-      ],
-      "default": "on",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.tab-preview",
-      "label": "Hovering a tab",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Resting the pointer on a tab in a bar shows its picture (a sleeping tab: its title and address only), as the sidebar's tab previews.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Its preview",
-        "value": "on"
-       },
-       {
-        "label": "Nothing",
-        "value": "off"
-       }
-      ],
-      "default": "on",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     }
-    ]
-   },
-   {
-    "title": "What's playing",
-    "settings": [
-     {
-      "property": "zenith.bar.media-pick",
-      "label": "Which source the bar shows",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "With media in several tabs (any space): the newest that's playing aloud, then muted ones, then paused ones; or the one you last played, paused or picked, while it's still there. Shift+wheel over the player goes to the next source, a middle click mutes it, \"+N\" says how many others there are.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "The newest playing (any space)",
-        "value": "newest"
-       },
-       {
-        "label": "Keep the one I chose",
-        "value": "kept"
-       }
-      ],
-      "default": "newest",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.media-look",
-      "label": "What's playing",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "What's playing: a play button only (its title on hover), the button and the title (a click goes to its tab), or previous and next buttons too. The wheel over it skips either way.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Just a play button",
-        "value": "button"
-       },
-       {
-        "label": "Play button and title",
-        "value": "title"
-       },
-       {
-        "label": "Previous, play, next and title",
-        "value": "detailed"
-       }
-      ],
-      "default": "title",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.media-hover",
-      "label": "Hovering what's playing",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A mini player (the cover, the title, previous, play and next) when the pointer rests on what's playing in a bar; it goes when the pointer leaves it.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Nothing",
-        "value": "off"
-       },
-       {
-        "label": "A mini player",
-        "value": "player"
-       }
-      ],
-      "default": "off",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.tabs.mini-player",
-      "label": "Slim media card",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Zen's media controls as a slim card.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.plus.media-art",
-      "label": "Cover art",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "The playing site's cover art behind the media card, blurred as much as Frost says.",
-      "host": "Zenith Plus",
-      "default": true
-     }
-    ]
-   },
-   {
-    "title": "Numbers",
-    "settings": [
-     {
-      "property": "zenith.tabs.numbers",
-      "label": "Numbered tabs",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Numbers 1–9 on the tabs Ctrl+1–9 jump to: always, or while you hold Ctrl (Cmd on macOS).",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "Off",
-        "value": "off"
-       },
-       {
-        "label": "Always",
-        "value": "on"
-       },
-       {
-        "label": "While holding Ctrl",
-        "value": "ctrl"
-       }
-      ],
-      "default": null
-     }
-    ]
-   },
-   {
-    "title": "Extras",
-    "settings": [
-     {
-      "property": "zenith.tabs.hover-mute",
-      "label": "Hover to mute",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "Hover a playing tab's icon to mute it.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.tabs.pinned-drift",
-      "label": "Pinned drift marker",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "Marks pinned tabs that have wandered off their page.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.tabs.lowercase",
-      "label": "Lowercase titles",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "Tab titles in lowercase.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.tabs.badge-only",
-      "label": "Extension buttons only with a badge",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "Pinned extension buttons hide unless they show a badge, like an unread count. Hovering the toolbar shows them all.",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.plus.ready-pulse",
-      "label": "Background tab ready",
-      "type": "checkbox",
-      "extra": true,
-      "desc": "A tab opened in the background has finished loading: the page's edge glows once.",
-      "host": "Zenith Plus",
-      "default": false
-     }
-    ]
-   }
-  ]
- },
- {
-  "id": "urlbar",
-  "title": "URL bar",
-  "icon": "search",
-  "blurb": "Where the URL bar floats and how its results read.",
-  "preset": {
-   "property": "zenith.urlbar.preset",
-   "host": "Zenith URL bar",
-   "default": "spotlight",
-   "sets": {
-    "zenith.urlbar.results": {
-     "zen": "list",
-     "spotlight": "dense",
-     "top": "dense"
-    },
-    "zenith.urlbar.mono": {
-     "zen": "off",
-     "spotlight": "off",
-     "top": "off"
-    }
-   },
-   "values": [
-    {
-     "value": "zen",
-     "label": "Zen default",
-     "blurb": "Zen's own URL bar"
-    },
-    {
-     "value": "spotlight",
-     "label": "Spotlight",
-     "blurb": "Floating in the middle of the window"
-    },
-    {
-     "value": "top",
-     "label": "Top",
-     "blurb": "Floating just below the top edge"
-    }
-   ]
-  },
-  "groups": [
-   {
-    "title": "Results",
-    "settings": [
-     {
-      "property": "zenith.urlbar.results",
-      "label": "Results layout",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Dense rows, Zen's list, or tiles for your top sites.",
-      "host": "Zenith URL bar",
-      "options": [
-       {
-        "label": "Dense list",
-        "value": "dense"
-       },
-       {
-        "label": "Zen list",
-        "value": "list"
-       },
-       {
-        "label": "Tiles for top sites",
-        "value": "tiles"
-       }
-      ],
-      "default": "dense",
-      "picture": true,
-      "rule": {
-       "why": "The URL bar preset is Zen default",
-       "conditions": [
-        {
-         "not": {
-          "property": "zenith.urlbar.preset",
-          "value": "zen"
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.urlbar.mono",
-      "label": "Monospace addresses",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "Web addresses in a monospace font.",
-      "host": "Zenith URL bar",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     }
-    ]
-   }
-  ]
- },
- {
-  "id": "panels",
-  "title": "Panels",
-  "icon": "panels",
-  "blurb": "Everything that floats over the page: find bar, Library, notices, split view, menus.",
-  "preset": {
-   "property": "zenith.panels.preset",
-   "host": "Zenith Panels",
-   "default": "zenith",
-   "sets": {
-    "zenith.panels.findbar": {
-     "zen": "off",
-     "zenith": "bottom",
-     "compact": "bottom"
-    },
-    "zenith.panels.history": {
-     "zen": "off",
-     "zenith": "card",
-     "compact": "card"
-    },
-    "zenith.panels.split": {
-     "zen": "zen",
-     "zenith": "gaps",
-     "compact": "gaps"
-    },
-    "zenith.panels.notifications": {
-     "zen": "zen",
-     "zenith": "dunst",
-     "compact": "dunst"
-    },
-    "zenith.panels.compact-menus": {
-     "zen": "off",
-     "zenith": "off",
-     "compact": "on"
-    },
-    "zenith.panels.glance": {
-     "zen": "off",
-     "zenith": "off",
-     "compact": "off"
-    },
-    "zenith.panels.menu-icons": {
-     "zen": "off",
-     "zenith": "off",
-     "compact": "off"
-    }
-   },
-   "values": [
-    {
-     "value": "zen",
-     "label": "Zen default",
-     "blurb": "Zen's own find bar, Library, menus and notices"
-    },
-    {
-     "value": "zenith",
-     "label": "Zenith",
-     "blurb": "Floating, glass and quiet"
-    },
-    {
-     "value": "compact",
-     "label": "Zenith, compact menus",
-     "blurb": "The same, with tighter menus"
-    }
-   ]
-  },
-  "groups": [
-   {
-    "title": "Find and history",
-    "settings": [
-     {
-      "property": "zenith.panels.findbar",
-      "label": "Find bar",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Where the find bar floats.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "Zen default",
-        "value": "off"
-       },
-       {
-        "label": "Bottom",
-        "value": "bottom"
-       },
-       {
-        "label": "Top",
-        "value": "top"
-       }
-      ],
-      "default": "bottom",
-      "picture": true
-     },
-     {
-      "property": "zenith.panels.history",
-      "label": "Library",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The Library (Ctrl+H) as a floating card.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "Zen default",
-        "value": "off"
-       },
-       {
-        "label": "Floating card",
-        "value": "card"
-       }
-      ],
-      "default": "card"
-     }
-    ]
-   },
-   {
-    "title": "Split view",
-    "settings": [
-     {
-      "property": "zenith.panels.split",
-      "label": "Split view",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Thin dividers, i3-style gaps, or Zen's own split view.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "Hairlines",
-        "value": "hairlines"
-       },
-       {
-        "label": "Tiling gaps",
-        "value": "gaps"
-       },
-       {
-        "label": "Zen default",
-        "value": "zen"
-       }
-      ],
-      "default": "gaps",
-      "picture": true
-     },
-     {
-      "property": "zenith.panels.gap",
-      "label": "Tiling gap size",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The size of the gaps between split panes.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "2px",
-        "value": "2"
-       },
-       {
-        "label": "4px",
-        "value": "4"
-       },
-       {
-        "label": "6px",
-        "value": "6"
-       },
-       {
-        "label": "8px",
-        "value": "8"
-       },
-       {
-        "label": "12px",
-        "value": "12"
-       },
-       {
-        "label": "16px",
-        "value": "16"
-       },
-       {
-        "label": "24px",
-        "value": "24"
-       }
-      ],
-      "default": "6",
-      "parent": "zenith.panels.split",
-      "rule": {
-       "why": "Only with Split view: Tiling gaps",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.panels.split",
-            "value": "gaps"
-           }
-          },
-          {
-           "conditions": [
-            {
-             "if": {
-              "property": "zenith.panels.split",
-              "value": ""
-             }
-            },
-            {
-             "not": {
-              "property": "zenith.panels.preset",
-              "value": "zen"
-             }
-            }
-           ],
-           "operator": "AND"
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     }
-    ]
-   },
-   {
-    "title": "Notices and links",
-    "settings": [
-     {
-      "property": "zenith.panels.notifications",
-      "label": "Notifications",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Zen's notices, small toasts, or dunst-style cards.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "Zen default",
-        "value": "zen"
-       },
-       {
-        "label": "Small toasts",
-        "value": "small"
-       },
-       {
-        "label": "dunst cards",
-        "value": "dunst"
-       }
-      ],
-      "default": "dunst",
-      "picture": true
-     },
-     {
-      "property": "zenith.panels.status-delay",
-      "label": "Link address delay",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How long a link waits before its address shows at the bottom.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "Instant",
-        "value": "0"
-       },
-       {
-        "label": "150ms",
-        "value": "150"
-       },
-       {
-        "label": "300ms",
-        "value": "300"
-       },
-       {
-        "label": "500ms",
-        "value": "500"
-       },
-       {
-        "label": "800ms",
-        "value": "800"
-       }
-      ],
-      "default": "300"
-     }
-    ]
-   },
-   {
-    "title": "Media",
-    "settings": [
-     {
-      "property": "zenith.panels.pip",
-      "label": "Picture-in-picture controls",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Glass controls on picture-in-picture, or Firefox's own.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "Glass",
-        "value": "zenith"
-       },
-       {
-        "label": "Firefox default",
-        "value": "firefox"
-       }
-      ],
-      "default": "zenith"
-     },
-     {
-      "property": "zenith.plus.pip-extras",
-      "label": "Move and tuck",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near an edge and it settles against it; drop it more than halfway past the left or right edge and it tucks away, a sliver with an arrow staying in view while it plays. Rest the pointer on the sliver (or click it) and it comes out; a click anywhere else, or the pointer away from it for a few seconds, tucks it again. Drag it away from the edge to keep it out.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.plus.pip-within",
-      "label": "Within",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The screen: its edges are the screen's, above every app. The Zen window: it stays inside the window it came from and moves with it, above that window only (not other apps), minimised with it (Windows).",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "The screen",
-        "value": "screen"
-       },
-       {
-        "label": "The Zen window (it follows the window)",
-        "value": "zen"
-       }
-      ],
-      "default": "screen",
-      "rule": {
-       "why": "Move and tuck is off",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.plus.pip-extras",
-          "value": true
-         }
-        }
-       ]
-      }
-     }
-    ]
-   },
-   {
-    "title": "Downloads",
-    "settings": [
-     {
-      "property": "zenith.plus.download-delete",
-      "label": "Delete button",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A bin beside Show in folder on each finished download, in the sidebar's downloads, Zen's Library and Firefox's Library window: it deletes the file and takes it off the list. With two clicks, the first turns it red and asks.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "One click",
-        "value": "one"
-       },
-       {
-        "label": "Two clicks (asks first)",
-        "value": "confirm"
-       },
-       {
-        "label": "No bin",
-        "value": "off"
-       }
-      ],
-      "default": "one"
-     }
-    ]
-   },
-   {
-    "title": "Menus",
-    "settings": [
-     {
-      "property": "zenith.panels.compact-menus",
-      "label": "Compact menus",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Tighter right-click and app menus.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     },
-     {
-      "property": "zenith.plus.more-menu",
-      "label": "More submenu",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Rare items in the right-click menus (view source, send to device, set as desktop background and so on) move into a More submenu at the end. Nothing is removed.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.panels.menu-icons",
-      "label": "Menu icons",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "Small icons on the right-click items you use most (open, copy, paste, save, close, pin) and on More, from Zen's own icon set.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     }
-    ]
-   },
-   {
-    "title": "Tab previews",
-    "settings": [
-     {
-      "property": "zenith.panels.tab-preview",
-      "label": "Tab previews",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Firefox's card with a picture of the page when you rest on a tab, in Zenith's corners and colours, or left as Firefox draws it.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "Zenith",
-        "value": "zenith"
-       },
-       {
-        "label": "Firefox's own",
-        "value": "firefox"
-       }
-      ],
-      "default": "zenith"
-     }
-    ]
-   },
-   {
-    "title": "Bookmarks",
-    "settings": [
-     {
-      "property": "zenith.plus.bookmarks-look",
-      "label": "Bookmarks look",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Ctrl+B opens your bookmarks in Zenith's look: rows like the tab list, with folders that open in place, or a grid of tiles. Drop a tab on it to bookmark it. \"Firefox's tree\" keeps Firefox's own sidebar, in Zenith's colours.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Like the tab list",
-        "value": "list"
-       },
-       {
-        "label": "Tiles",
-        "value": "tiles"
-       },
-       {
-        "label": "Firefox's tree, restyled",
-        "value": "firefox"
-       }
-      ],
-      "default": "list"
-     },
-     {
-      "property": "zenith.plus.bookmarks-place",
-      "label": "Where they open",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Floating over the page on the side across from the sidebar, docked there (the page gets narrower), or docked beside the sidebar. It follows the sidebar when that changes sides. Drag its inner edge to make it wider.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Over the page, across from the sidebar",
-        "value": "float"
-       },
-       {
-        "label": "Across from the sidebar, the page makes room",
-        "value": "far"
-       },
-       {
-        "label": "Beside the sidebar",
-        "value": "near"
-       }
-      ],
-      "default": "float"
-     },
-     {
-      "property": "zenith.plus.bookmarks-space-first",
-      "label": "This space first",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "A section for the space you're in: its own folder (made when you first drop something there) and the bookmarks Zen's edit dialog gives to this space. Bookmarks given only to other spaces are left out, as in Zen's menus.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.plus.bookmarks-library",
-      "label": "In Zen's Library",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "The same bookmarks as a section of Zen's Library, next to History.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.plus.bookmarks-bar",
-      "label": "Bookmarks bar",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "When the bookmarks bar is on (Ctrl+Shift+B): Zen's own place beside the window buttons, a slim strip above the page, or the same strip over the page that shows when the pointer reaches the top.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Zen's own, with the window buttons",
-        "value": "zen"
-       },
-       {
-        "label": "Above the page",
-        "value": "above"
-       },
-       {
-        "label": "Over the page, on hover",
-        "value": "hover"
-       }
-      ],
-      "default": "zen"
-     },
-     {
-      "property": "zenith.plus.bookmarks-import",
-      "label": "Import button",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Firefox's \"Import bookmarks…\" button on the bookmarks bar.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Hidden",
-        "value": "hidden"
-       },
-       {
-        "label": "Shown",
-        "value": "shown"
-       }
-      ],
-      "default": "hidden"
-     }
-    ]
-   },
-   {
-    "title": "Extras",
-    "settings": [
-     {
-      "property": "zenith.panels.glance",
-      "label": "Glance card",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "Glance as a lifted, rounded card.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null
-     }
-    ]
-   }
-  ]
- },
- {
-  "id": "motion",
-  "title": "Motion",
-  "icon": "motion",
-  "blurb": "How things move.",
-  "preset": {
-   "property": "zenith.motion.preset",
-   "host": "Zenith Motion",
-   "default": "quick",
-   "sets": {
-    "zenith.motion.swipe": {
-     "off": "off",
-     "quick": "on",
-     "smooth": "on"
-    },
-    "zenith.motion.swipe-round": {
-     "off": "off",
-     "quick": "off",
-     "smooth": "off"
-    }
-   },
-   "values": [
-    {
-     "value": "off",
-     "label": "Off",
-     "blurb": "Everything moves instantly"
-    },
-    {
-     "value": "quick",
-     "label": "Quick",
-     "blurb": "Short, light motion"
-    },
-    {
-     "value": "smooth",
-     "label": "Smooth",
-     "blurb": "Softer, springier motion"
-    }
-   ]
-  },
-  "groups": [
-   {
-    "title": "Movement",
-    "settings": [
-     {
-      "property": "zenith.motion.tab-switch",
-      "label": "Tab switch",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Switch tabs instantly, or with a quick crossfade.",
-      "host": "Zenith Motion",
-      "options": [
-       {
-        "label": "Instant",
-        "value": "instant"
-       },
-       {
-        "label": "Crossfade",
-        "value": "fade"
-       }
-      ],
-      "default": "instant",
-      "rule": {
-       "why": "Motion is off",
-       "conditions": [
-        {
-         "not": {
-          "property": "zenith.motion.preset",
-          "value": "off"
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.motion.space-switch",
-      "label": "Switching spaces",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How long Zen's slide from one space to the next takes: Zen's own 250 ms, 120 ms (as the Quick preset has it), or no slide at all. Left as the preset: Quick 120 ms, Smooth Zen's, Off none.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "As the preset",
-        "value": "preset"
-       },
-       {
-        "label": "Zen's slide (250 ms)",
-        "value": "zen"
-       },
-       {
-        "label": "Quick (120 ms)",
-        "value": "quick"
-       },
-       {
-        "label": "Instant",
-        "value": "instant"
-       }
-      ],
-      "default": "preset"
-     },
-     {
-      "property": "zenith.motion.swipe",
-      "label": "Swipe animation",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The page follows your fingers when you swipe back and forward.",
-      "host": "Zenith Motion",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null,
-      "rule": {
-       "why": "Motion is off",
-       "conditions": [
-        {
-         "not": {
-          "property": "zenith.motion.preset",
-          "value": "off"
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.motion.swipe-round",
-      "label": "Round and lift while swiping",
-      "type": "dropdown",
-      "extra": true,
-      "desc": "The page rounds and lifts a little while you swipe.",
-      "host": "Zenith Motion",
-      "options": [
-       {
-        "label": "On",
-        "value": "on"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": null,
-      "parent": "zenith.motion.swipe",
-      "rule": {
-       "why": "Swipe animation is off",
-       "conditions": [
-        {
-         "not": {
-          "property": "zenith.motion.preset",
-          "value": "off"
-         }
-        },
-        {
-         "not": {
-          "property": "zenith.motion.swipe",
-          "value": "off"
-         }
-        }
-       ]
-      }
-     }
-    ]
-   },
-   {
-    "title": "Scrolling",
-    "settings": [
-     {
-      "property": "zenith.plus.scroll",
-      "label": "Scroll feel",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How the mouse wheel and the keyboard scroll pages: Zen's own short glide, instant jumps, a crisp quick ease, a slower even one, or a macOS-like glide that goes further and bounces at the ends. A touchpad follows your fingers and isn't changed.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Zen's own",
-        "value": ""
-       },
-       {
-        "label": "Instant",
-        "value": "instant"
-       },
-       {
-        "label": "Quick",
-        "value": "quick"
-       },
-       {
-        "label": "Smooth",
-        "value": "smooth"
-       },
-       {
-        "label": "macOS-like",
-        "value": "glide"
-       }
-      ],
-      "default": ""
-     }
-    ]
-   },
-   {
-    "title": "Less motion",
-    "settings": [
-     {
-      "property": "zenith.motion.reduced",
-      "label": "When the system asks for less motion",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "When your system asks for less motion: keep Zenith's, or stop it.",
-      "host": "Zenith Motion",
-      "options": [
-       {
-        "label": "Keep Zenith's motion",
-        "value": "zenith"
-       },
-       {
-        "label": "Follow the system",
-        "value": "follow"
-       }
-      ],
-      "default": "zenith",
-      "rule": {
-       "why": "Zenith Plus keeps everything animated",
-       "conditions": [
-        {
-         "not": {
-          "property": "zenith.plus.animate-zen",
-          "value": true
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.plus.animate-zen",
-      "label": "Keep Zen's animations",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Keep Zen's own animations too, whatever the system says.",
-      "host": "Zenith Plus",
-      "default": true
-     }
-    ]
-   }
-  ]
- },
- {
-  "id": "keys",
-  "title": "Keys",
-  "icon": "keys",
-  "blurb": "Jump anywhere with Alt+W, follow links with Alt+;, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
-  "groups": [
-   {
-    "title": "Switcher",
-    "settings": [
-     {
-      "property": "zenith.plus.switcher",
-      "label": "Switcher (Alt+W)",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Alt+W: type part of a tab's title or site, a folder or a space, and Enter goes there. Start with : for commands, like :focus or :timer 10m tea.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.plus.switcher-scope",
-      "label": "Finds tabs in",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Every space, so Enter switches space when it has to, or only this space's tabs (and the essentials).",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Every space",
-        "value": "all"
-       },
-       {
-        "label": "This space only",
-        "value": "here"
-       }
-      ],
-      "default": "all",
-      "parent": "zenith.plus.switcher",
-      "rule": {
-       "why": "The switcher is off",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.plus.switcher",
-          "value": true
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.plus.switcher-peek",
-      "label": "Peek in the switcher",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The switcher's last row is Peek: what you typed, looked up without leaving the page; when nothing else matches, it's the first, so Enter peeks.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Last, and first when nothing else matches",
-        "value": "fallback"
-       },
-       {
-        "label": "Off",
-        "value": "off"
-       }
-      ],
-      "default": "fallback",
-      "rule": {
-       "why": "The switcher is off",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.plus.switcher",
-          "value": true
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.plus.switcher-colon",
-      "label": ": opens it",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Pressing : anywhere you aren't typing (a page, the sidebar) opens the switcher with : already there, ready for a command.",
-      "host": "Zenith Plus",
-      "default": true,
-      "rule": {
-       "why": "The switcher is off",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.plus.switcher",
-          "value": true
-         }
-        }
-       ]
-      }
-     }
-    ]
-   },
-   {
-    "title": "Ctrl+Tab",
-    "settings": [
-     {
-      "property": "zenith.plus.ctrl-tab",
-      "label": "Ctrl+Tab",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "In order, as Zen does (with or without a row of pictures), or recently used like Alt+Tab: hold Ctrl and press Tab to step through the tabs, with pictures of them, and let go to land.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "In order",
-        "value": "order"
-       },
-       {
-        "label": "In order, with pictures",
-        "value": "pictures"
-       },
-       {
-        "label": "Recently used, with pictures (like Alt+Tab)",
-        "value": "recent"
-       }
-      ],
-      "default": "order"
-     }
-    ]
-   },
-   {
-    "title": "Tab manager",
-    "settings": [
-     {
-      "property": "zenith.plus.tab-manager",
-      "label": "Tab manager (Alt+Shift+T)",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Alt+Shift+T (or :tabs in the switcher) opens about:zenith-tabs: every tab in a table to sort and filter, with where the memory and CPU go; each space's tabs in columns; tidying up (duplicates, unused, awake tabs, busy sites, by topic) and rules. Move, sleep, wake, put in folders or close, with Undo. Nothing happens until you press a button or set a rule.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.plus.tabs-auto-sleep",
-      "label": "Sleep on their own",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Off unless you choose: tabs you haven't been to for this long are unloaded (not the one you're on, playing tabs or tabs sharing your camera or screen).",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Never",
-        "value": "off"
-       },
-       {
-        "label": "After 15 minutes",
-        "value": "15"
-       },
-       {
-        "label": "After 30 minutes",
-        "value": "30"
-       },
-       {
-        "label": "After an hour",
-        "value": "60"
-       },
-       {
-        "label": "After 2 hours",
-        "value": "120"
-       },
-       {
-        "label": "After 4 hours",
-        "value": "240"
-       }
-      ],
-      "default": "off"
-     },
-     {
-      "property": "zenith.plus.tabs-auto-close",
-      "label": "Close on their own",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Off unless you choose: loose tabs (not pinned, not essentials, not in a folder) you haven't been to for this long close. The tab manager's Rules list them to bring back.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Never",
-        "value": "off"
-       },
-       {
-        "label": "After a day",
-        "value": "1"
-       },
-       {
-        "label": "After 3 days",
-        "value": "3"
-       },
-       {
-        "label": "After a week",
-        "value": "7"
-       },
-       {
-        "label": "After 2 weeks",
-        "value": "14"
-       },
-       {
-        "label": "After a month",
-        "value": "30"
-       }
-      ],
-      "default": "off"
-     }
-    ]
-   },
-   {
-    "title": "Focus mode",
-    "settings": [
-     {
-      "property": "zenith.plus.focus-key",
-      "label": "Focus mode (Alt+Z)",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Alt+Z puts everything away but the page, for reading or watching: the sidebar, the top toolbar, the edges, the minimap, pills, the bookmarks bar and the link address hide, and whatever's open closes (bookmarks, the Library, this panel, the find bar). You can open any of them again. The sharing alarm still shows. Alt+Z again brings it all back.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.plus.focus-scope",
-      "label": "Focus mode is on for",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Alt+Z focuses the site you're on: its tabs, and pages on it you go to; on another site's tab the browser is as it was. Every site: all tabs, until Alt+Z again.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "The site you're on",
-        "value": "site"
-       },
-       {
-        "label": "Every site",
-        "value": "all"
-       }
-      ],
-      "default": "site"
-     },
-     {
-      "property": "zenith.plus.focus-pages",
-      "label": "Pages in focus mode",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Focus mode clears the browser around the page (and closes whatever was open); this is what it does to the page. An article gets a calm reading view over the page; other pages that are mostly reading lose cookie banners, newsletter boxes, share bars, comments, sponsored blocks, ads, side columns and bars stuck to the window's edges. A pill offers Show the page and Not on this site. Leaving focus mode puts it all back, without reloading.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Articles in a reading view, the rest tidied",
-        "value": "tidy"
-       },
-       {
-        "label": "Articles in a reading view only",
-        "value": "reader"
-       },
-       {
-        "label": "Leave pages alone",
-        "value": "off"
-       }
-      ],
-      "default": "tidy"
-     },
-     {
-      "property": "zenith.plus.focus-skip",
-      "label": "Sites left alone",
-      "type": "string",
-      "extra": false,
-      "desc": "Sites focus mode leaves as they are (a site covers its subdomains). The pill's Not on this site adds to the list; remove one with its ✕.",
-      "host": "Zenith Plus",
-      "placeholder": "example.com, another.site",
-      "zenithList": "Add a site (example.com)",
-      "rule": {
-       "why": "Focus mode leaves every page alone",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "not": {
-            "property": "zenith.plus.focus-pages",
-            "value": "off"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.plus.focus-video",
-            "value": true
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     }
-    ]
-   },
-   {
-    "title": "Focus mode › Video sites",
-    "settings": [
-     {
-      "property": "zenith.plus.focus-video",
-      "label": "Video sites",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "On a video site, focus mode turns a feed into a place to watch: you come for something, and the page helps you find it and watch it without offering the next thing. On YouTube the home feed, recommendations, Shorts, end screens, autoplay and the bell go, and the video gets the room (theatre, everything else under it); what you keep is below. Elsewhere, blocks of recommended videos go. Leaving focus mode puts it all back.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.plus.focus-video-search",
-      "label": "Search",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "The search box stays; the home page is just a search box, with the cursor in it.",
-      "host": "Zenith Plus",
-      "default": true,
-      "rule": {
-       "why": "Video sites are left as they are",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.plus.focus-video",
-          "value": true
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.plus.focus-video-description",
-      "label": "Description and chapters",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "The video's description and its chapters stay under the video.",
-      "host": "Zenith Plus",
-      "default": true,
-      "rule": {
-       "why": "Video sites are left as they are",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.plus.focus-video",
-          "value": true
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.plus.focus-video-playlist",
-      "label": "Your playlist",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "A playlist or course you're watching stays, under the video (never beside it).",
-      "host": "Zenith Plus",
-      "default": true,
-      "rule": {
-       "why": "Video sites are left as they are",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.plus.focus-video",
-          "value": true
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.plus.focus-video-comments",
-      "label": "Comments",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Comments stay, folded behind a Show comments button.",
-      "host": "Zenith Plus",
-      "default": false,
-      "rule": {
-       "why": "Video sites are left as they are",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.plus.focus-video",
-          "value": true
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.plus.focus-video-subscriptions",
-      "label": "Subscriptions",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "The side menu, with only your channels (and Home and Subscriptions); Shorts still go.",
-      "host": "Zenith Plus",
-      "default": false,
-      "rule": {
-       "why": "Video sites are left as they are",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.plus.focus-video",
-          "value": true
-         }
-        }
-       ]
-      }
-     }
-    ]
-   },
-   {
-    "title": "Link hints",
-    "settings": [
-     {
-      "property": "zenith.plus.link-hints",
-      "label": "Link hints",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Alt+; (the key right of L, whatever your layout prints on it) puts a few letters on every link, button and field you can see; type them to follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+; opens a link in a new tab in the background. Its keys are the Shell's: change them under Shell › Keys.",
-      "host": "Zenith Plus",
-      "default": true
-     }
-    ]
-   },
-   {
-    "title": "Split views",
-    "settings": [
-     {
-      "property": "zenith.plus.split-solo",
-      "label": "One pane of a split",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "For a moment's attention: the pane of the tab you're on fills the split view, the others wait behind it (nothing moves or reloads). Alt+F again, or a tab outside the split, and it's as it was.",
-      "host": "Zenith Plus",
-      "default": true
-     }
-    ]
-   },
-   {
-    "title": "Float a tab",
-    "settings": [
-     {
-      "property": "zenith.plus.float-tab",
-      "label": "Float a tab",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Alt+Shift+F (or right-click a tab › Float this tab) moves the tab you're on into a small window of its own, which takes the focus; the page carries on as it was, and Alt+Shift+F there puts it back. Its bar: the title (click it, or Ctrl+L, Alt+D or F4, to type an address), a pin (the bar stays above the page, or slides down when the pointer comes in), back into the window, minimise or roll up, and close (Ctrl+Shift+T brings it back floating). A floating tab floats again after Zen restarts.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.plus.float-above",
-      "label": "Stays above",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Its Zen window only: the float stays above that window but not above other apps; it closes with the window (Ctrl+Shift+T floats it again; after Zen quits, it floats again at start). Every app: it stays on top of everything (a call while you work elsewhere), and can be minimised.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Its Zen window only",
-        "value": "zen"
-       },
-       {
-        "label": "Every app",
-        "value": "all"
-       }
-      ],
-      "default": "zen",
-      "rule": {
-       "why": "Float a tab is off",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.plus.float-tab",
-          "value": true
-         }
-        }
-       ]
-      }
-     }
-    ]
-   }
-  ]
- },
- {
-  "id": "shell",
-  "title": "Shell",
-  "icon": "keys",
-  "blurb": "The browser as a tiling window manager: i3's keys with Alt (Alt+Shift+/ lists them), tiles you move and resize with the mouse, spaces as workspaces.",
-  "groups": [
-   {
-    "title": "Keys",
-    "settings": [
-     {
-      "property": "zenith.shell.keys",
-      "label": "The Shell's keys",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "i3's keys (sway's, with hjkl), Alt in place of the Windows key. Alt+H/J/K/L focus the tile that way (past the edge, the tab before or after), Alt+Shift+H/J/K/L move it (past the edge, out of the split), Alt+Shift+Enter a new tile, Alt+B/V where the next goes, Alt+E flips a split, Alt+R resizes, Alt+1…0 goes to a space and Alt+Shift+1…0 sends the tab there, Alt+- is the scratchpad, Alt+P passthrough. Alt+Shift+/ shows them all. Keys are matched by where they are, so they're the same on any layout. Alt+←/→ stay back and forward.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.shell.bindings",
-      "label": "Keys",
-      "type": "string",
-      "extra": false,
-      "desc": "Every Shell key, and a button to press another for it (Backspace leaves one without a key). A key another action had moves over.",
-      "host": "Zenith Plus",
-      "placeholder": "focus-left=Alt+KeyH, …",
-      "zenithKeys": true,
-      "parent": "zenith.shell.keys",
-      "rule": {
-       "why": "The Shell's keys are off",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.shell.keys",
-          "value": true
-         }
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.shell.passthrough-sites",
-      "label": "Sites that keep their Alt keys",
-      "type": "string",
-      "extra": false,
-      "desc": "On these sites the page keeps its Alt keys (Google Docs, an online editor or terminal). Alt+P does the same anywhere, until you press it again.",
-      "host": "Zenith Plus",
-      "placeholder": "example.com, another.site",
-      "zenithList": "Add a site (docs.google.com)",
-      "parent": "zenith.shell.keys",
-      "rule": {
-       "why": "The Shell's keys are off",
-       "conditions": [
-        {
-         "if": {
-          "property": "zenith.shell.keys",
-          "value": true
-         }
-        }
-       ]
-      }
-     }
-    ]
-   },
-   {
-    "title": "Clicking a link with keys",
-    "settings": [
-     {
-      "property": "zenith.links.alt",
-      "label": "Alt+click a link",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). While Zenith answers link clicks, Zen's own Glance key (Settings › Glance) moves to ⊞ (the Windows key); it's given back if every combo here is nothing.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Zen's Glance",
-        "value": "glance"
-       },
-       {
-        "label": "Peek",
-        "value": "peek"
-       },
-       {
-        "label": "A tile beside this one",
-        "value": "tile"
-       },
-       {
-        "label": "Nothing (the page's and Firefox's own)",
-        "value": "nothing"
-       }
-      ],
-      "default": "glance"
-     },
-     {
-      "property": "zenith.links.alt-shift",
-      "label": "Alt+Shift+click a link",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). ",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Zen's Glance",
-        "value": "glance"
-       },
-       {
-        "label": "Peek",
-        "value": "peek"
-       },
-       {
-        "label": "A tile beside this one",
-        "value": "tile"
-       },
-       {
-        "label": "Nothing (the page's and Firefox's own)",
-        "value": "nothing"
-       }
-      ],
-      "default": "tile"
-     },
-     {
-      "property": "zenith.links.ctrl-alt",
-      "label": "Ctrl+Alt+click a link",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). AltGr (the right Alt on layouts that have one, like ABNT2) counts as Ctrl+Alt.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Zen's Glance",
-        "value": "glance"
-       },
-       {
-        "label": "Peek",
-        "value": "peek"
-       },
-       {
-        "label": "A tile beside this one",
-        "value": "tile"
-       },
-       {
-        "label": "Nothing (the page's and Firefox's own)",
-        "value": "nothing"
-       }
-      ],
-      "default": "peek"
-     },
-     {
-      "property": "zenith.links.ctrl-shift",
-      "label": "Ctrl+Shift+click a link",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). Firefox's own opens the link in a new tab in front.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Zen's Glance",
-        "value": "glance"
-       },
-       {
-        "label": "Peek",
-        "value": "peek"
-       },
-       {
-        "label": "A tile beside this one",
-        "value": "tile"
-       },
-       {
-        "label": "Nothing (the page's and Firefox's own)",
-        "value": "nothing"
-       }
-      ],
-      "default": "nothing"
-     }
-    ]
-   },
-   {
-    "title": "Mouse",
-    "settings": [
-     {
-      "property": "zenith.shell.mouse",
-      "label": "Alt+drag and Alt+right-drag",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Hold Alt and drag a tile: onto the middle of another, they swap; onto its edge, it goes there. Hold Alt and drag with the right button: the tile's nearest edges follow. Esc puts it back. Alt+click still opens Zen's Glance.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.shell.wheel",
-      "label": "Alt+wheel: spaces",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Alt and the wheel (or two fingers) over the page: the next or previous space. Firefox's own Alt+wheel (back and forward) is off while this is on, and comes back when it's off.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.shell.follow-mouse",
-      "label": "Focus follows the mouse",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "As i3 does: rest the pointer on a tile for a moment and it's the one you're on.",
-      "host": "Zenith Plus",
-      "default": false
-     }
-    ]
-   },
-   {
-    "title": "Layouts",
-    "settings": [
-     {
-      "property": "zenith.shell.layout",
-      "label": "Layout",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How a space lays out its tiles, unless you've picked another one there with Alt+Y (or the bar's layout module). Dwindle: a new tile splits the one you're on along its longer side, as Hyprland's. Master and stack: one big tile (the master) and the rest stacked beside it, as dwm's; Alt+Shift+Y makes the tile you're on the master. Scroller: tiles are columns on a strip, as niri's: those that fit show, the others wait to the side until Alt+H or Alt+L brings them in; Alt+Shift+Y gives a column its next width. Monocle: the tile you're on fills the view, Alt+H and Alt+L go to the others.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Dwindle (Hyprland's)",
-        "value": "dwindle"
-       },
-       {
-        "label": "Master and stack (dwm's)",
-        "value": "master"
-       },
-       {
-        "label": "Scroller (niri's)",
-        "value": "scroller"
-       },
-       {
-        "label": "Monocle (one tile at a time)",
-        "value": "monocle"
-       }
-      ],
-      "default": "dwindle"
-     },
-     {
-      "property": "zenith.shell.master",
-      "label": "Master and stack",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The master on the left with the stack on the right (dwm's), or the master in the middle with the stack either side (better on a wide screen).",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "The master on the left (dwm)",
-        "value": "dwm"
-       },
-       {
-        "label": "The master in the middle, the stack either side",
-        "value": "centred"
-       }
-      ],
-      "default": "dwm"
-     },
-     {
-      "property": "zenith.shell.master-ratio",
-      "label": "The master's width",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How much of the width the master takes.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "50%",
-        "value": "50"
-       },
-       {
-        "label": "55%",
-        "value": "55"
-       },
-       {
-        "label": "60%",
-        "value": "60"
-       },
-       {
-        "label": "65%",
-        "value": "65"
-       },
-       {
-        "label": "70%",
-        "value": "70"
-       }
-      ],
-      "default": "55"
-     },
-     {
-      "property": "zenith.shell.scroller-width",
-      "label": "A new column",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How wide a new column is in the scroller; Alt+Shift+Y gives the one you're on the next width (a third, half, two thirds, all).",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "A third of the view",
-        "value": "third"
-       },
-       {
-        "label": "Half the view",
-        "value": "half"
-       },
-       {
-        "label": "Two thirds",
-        "value": "twothirds"
-       },
-       {
-        "label": "All of it",
-        "value": "full"
-       }
-      ],
-      "default": "half"
-     }
-    ]
-   },
-   {
-    "title": "The overview",
-    "settings": [
-     {
-      "property": "zenith.overview.look",
-      "label": "The overview shows",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Alt+O (or the hot corner, or the bar's overview button) shows every tab as a picture: go to one with a click or Enter, close one with its ✕, Delete or a middle click, drag one onto another space to move it there, type to find one in any space. This space with every space in a strip above it (the wheel over the strip walks them), every space as a row of its own, or this space with a split's tiles in one picture, as they're laid out.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "This space, every space above it",
-        "value": "space"
-       },
-       {
-        "label": "Every space, a row each",
-        "value": "all"
-       },
-       {
-        "label": "This space, a split's tiles together",
-        "value": "tiles"
-       }
-      ],
-      "default": "space"
-     },
-     {
-      "property": "zenith.overview.corner",
-      "label": "Hot corner",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Pushing the pointer into this corner of the window opens the overview, as niri's and GNOME's hot corners. (On a window that isn't maximised, Windows keeps its corners for resizing: maximised, it's easy to reach.)",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "The top left",
-        "value": "top-left"
-       },
-       {
-        "label": "The top right",
-        "value": "top-right"
-       },
-       {
-        "label": "The bottom left",
-        "value": "bottom-left"
-       },
-       {
-        "label": "The bottom right",
-        "value": "bottom-right"
-       },
-       {
-        "label": "None",
-        "value": "off"
-       }
-      ],
-      "default": "top-left"
-     }
-    ]
-   },
-   {
-    "title": "The launcher",
-    "settings": [
-     {
-      "property": "zenith.launcher.look",
-      "label": "Look",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Centred: a box in the middle of the window, a list under it. dmenu: one line across the top of the window (over a top bar), the results along it as dmenu's and tofi's; left and right (at the end of what you typed) or up and down choose. A grid: big tiles with their pictures, as rofi's grid themes; the arrows move around it.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Centred",
-        "value": "centred"
-       },
-       {
-        "label": "dmenu: one line across the top",
-        "value": "dmenu"
-       },
-       {
-        "label": "A grid of tiles",
-        "value": "grid"
-       }
-      ],
-      "default": "centred"
-     }
-    ]
-   },
-   {
-    "title": "The rice file",
-    "settings": [
-     {
-      "property": "zenith.rice.mode",
-      "label": "Settings the file holds",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A setting your rice file (~/.config/zenith/zenith.conf, Hyprland's language) holds: changing it here changes its line in the file too (the rest of the line and its comments stay; a value made of a $variable is left to you), or it's locked here and changed only in the file.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Changed here are changed in the file too",
-        "value": "write"
-       },
-       {
-        "label": "Locked: change them in the file",
-        "value": "locked"
-       }
-      ],
-      "default": "write"
-     },
-     {
-      "property": "zenith.action.rice-export",
-      "label": "Write my setup to zenith.conf",
-      "type": "action",
-      "extra": false,
-      "desc": "Every Zenith setting you've changed, written as a rice file in Hyprland's language at ~/.config/zenith/zenith.conf (a copy of the one there is kept beside it first). From then on it's read as Zen starts and on Alt+Shift+C.",
-      "button": "Write zenith.conf",
-      "command": "zenith-rice-export-command",
-      "host": "Zen"
-     },
-     {
-      "property": "zenith.action.rice-reload",
-      "label": "Read zenith.conf again",
-      "type": "action",
-      "extra": false,
-      "desc": "As Alt+Shift+C: the file's settings set again (it's also read when the window comes back to the front after you saved it).",
-      "button": "Read it",
-      "command": "zenith-rice-reload-command",
-      "host": "Zen"
-     },
-     {
-      "property": "zenith.action.rice-open",
-      "label": "Open zenith.conf",
-      "type": "action",
-      "extra": false,
-      "desc": "In the app your system opens .conf files with (written first if there isn't one).",
-      "button": "Open it",
-      "command": "zenith-rice-open-command",
-      "host": "Zen"
-     }
-    ]
-   },
-   {
-    "title": "Tiles",
-    "settings": [
-     {
-      "property": "zenith.shell.new-tile",
-      "label": "New tiles",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Along the longer side, as Hyprland's dwindle: a wide tile splits side by side, a tall one top and bottom. Alt+B (right) or Alt+V (below) decides for the next one only.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Along the tile's longer side",
-        "value": "dwindle"
-       },
-       {
-        "label": "Always to the right",
-        "value": "right"
-       },
-       {
-        "label": "Always below",
-        "value": "below"
-       }
-      ],
-      "default": "dwindle"
-     },
-     {
-      "property": "zenith.shell.split-background",
-      "label": "Background links from a split",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "While you're on a split's tab, every new tab (Ctrl+T, a link to a new tab) becomes a tile of that split, placed by the space's layout. Links opened in the background (Ctrl+click, a middle click) do too, or stay normal tabs. Past the split's tile limit, a normal tab.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "A new tile",
-        "value": "tile"
-       },
-       {
-        "label": "A normal tab",
-        "value": "tab"
-       }
-      ],
-      "default": "tile"
-     },
-     {
-      "property": "zenith.shell.tiles",
-      "label": "Tiles in one split",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How many tabs one split view takes. Each tile is a page drawn on screen, so more tiles use more of your computer. No limit is experimental: Zen's split view was made for four, a big split uses a lot of memory and CPU, and tiles can get too small to use.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "4 (Zen's own)",
-        "value": "4"
-       },
-       {
-        "label": "6",
-        "value": "6"
-       },
-       {
-        "label": "8",
-        "value": "8"
-       },
-       {
-        "label": "No limit (experimental)",
-        "value": "0"
-       }
-      ],
-      "default": "4"
-     },
-     {
-      "property": "zenith.panels.tile-focus",
-      "label": "The tile you're on",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "In a split view, the tile you're on: as Zen draws it, or with a border in the accent colour.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "As Zen draws it",
-        "value": "zen"
-       },
-       {
-        "label": "An accent border",
-        "value": "accent"
-       }
-      ],
-      "default": "zen"
-     },
-     {
-      "property": "zenith.panels.tile-dim",
-      "label": "The other tiles",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "In a split view, the tiles you're not on: as they are, or dimmed a little.",
-      "host": "Zenith Panels",
-      "options": [
-       {
-        "label": "As they are",
-        "value": "keep"
-       },
-       {
-        "label": "Dimmed",
-        "value": "dim"
-       }
-      ],
-      "default": "keep"
-     }
-    ]
+    ],
+    "more": true
    }
   ]
  },
  {
   "id": "bar",
-  "title": "Bar",
+  "title": "Bars",
   "icon": "panels",
-  "blurb": "Bars on any edge of the window, as polybar and waybar are: spaces, the tab you're on (or all of them), what's playing, downloads, timers and a clock. Start from a layout, then change any edge.",
+  "blurb": "Bars on any edge of the window, as polybar and waybar: spaces, tabs, what's playing, downloads, timers, a clock. Everything about them is here; pick a layout, then change any edge.",
   "preset": {
    "property": "zenith.bar.layout",
    "host": "Zenith Plus",
@@ -4987,127 +1142,12 @@ const SCHEMA = [
         }
        ]
       }
-     },
-     {
-      "property": "zenith.sidebar",
-      "label": "The sidebar",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Shown, as Zen has it. On hover: it slides in at the window's edge (Zen's compact mode). Hidden: for tabs in a bar (compact mode, its edge hover off); Ctrl+L and Ctrl+Alt+S still bring it. Compact mode comes back as it was with Shown.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Shown",
-        "value": "shown"
-       },
-       {
-        "label": "On hover (Zen's compact mode)",
-        "value": "hover"
-       },
-       {
-        "label": "Hidden (tabs in a bar)",
-        "value": "hidden"
-       }
-      ],
-      "default": "hover"
-     },
-     {
-      "property": "zenith.bar.side-width",
-      "label": "Bars on the left or right",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A rail: icons only, slim as a sidebar's edge (titles on hover). With titles: wider, each tab with its title.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "A rail of icons",
-        "value": "rail"
-       },
-       {
-        "label": "With titles",
-        "value": "wide"
-       }
-      ],
-      "default": "rail",
-      "rule": {
-       "why": "There's no bar on the left or right",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.side-rows",
-      "label": "Small modules on a side bar with titles",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "On a bar on the left or right with titles, the modules that are only an icon (the switcher, the overview, downloads, pages dark or light, extensions, power): each a row with its icon, its name and its value (memory, the layout, how pages are), as a sidebar's list; or side by side as icons, a toolbar at either end of the bar. The window's buttons lie in one row either way.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Each a row with its name",
-        "value": "labels"
-       },
-       {
-        "label": "Icons side by side",
-        "value": "icons"
-       }
-      ],
-      "default": "labels",
-      "rule": {
-       "why": "Side bars are a rail (or there's none)",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "conditions": [
-            {
-             "if": {
-              "property": "zenith.bar.left",
-              "value": "on"
-             }
-            },
-            {
-             "if": {
-              "property": "zenith.bar.right",
-              "value": "on"
-             }
-            }
-           ],
-           "operator": "OR"
-          },
-          {
-           "if": {
-            "property": "zenith.bar.side-width",
-            "value": "wide"
-           }
-          }
-         ],
-         "operator": "AND"
-        }
-       ]
-      }
      }
-    ]
+    ],
+    "blurb": "Which edges have a bar, and what's on each."
    },
    {
-    "title": "Look",
+    "title": "Look and size",
     "settings": [
      {
       "property": "zenith.bar.style",
@@ -5143,6 +1183,148 @@ const SCHEMA = [
        }
       ],
       "default": "islands",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.size",
+      "label": "Height",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How tall the bar is.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "20px",
+        "value": "20"
+       },
+       {
+        "label": "24px",
+        "value": "24"
+       },
+       {
+        "label": "28px",
+        "value": "28"
+       },
+       {
+        "label": "30px",
+        "value": "30"
+       },
+       {
+        "label": "32px",
+        "value": "32"
+       },
+       {
+        "label": "36px",
+        "value": "36"
+       },
+       {
+        "label": "40px",
+        "value": "40"
+       },
+       {
+        "label": "44px",
+        "value": "44"
+       },
+       {
+        "label": "48px",
+        "value": "48"
+       }
+      ],
+      "default": "30",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.length",
+      "label": "The bar's length",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A bar along its whole edge, as long as its modules (centred, as Hyprland rices' floating bars), or part of the edge.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The whole edge",
+        "value": "full"
+       },
+       {
+        "label": "As long as its modules",
+        "value": "fit"
+       },
+       {
+        "label": "80% of the edge",
+        "value": "80"
+       },
+       {
+        "label": "60% of the edge",
+        "value": "60"
+       }
+      ],
+      "default": "full",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5287,75 +1469,30 @@ const SCHEMA = [
         }
        ]
       }
-     }
-    ]
-   },
-   {
-    "title": "Shape",
-    "settings": [
+     },
      {
-      "property": "zenith.bar.size",
-      "label": "Height",
+      "property": "zenith.bar.side-width",
+      "label": "Bars on the left or right",
       "type": "dropdown",
       "extra": false,
-      "desc": "How tall the bar is.",
+      "desc": "A rail: icons only, slim as a sidebar's edge (titles on hover). With titles: wider, each tab with its title.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "20px",
-        "value": "20"
+        "label": "A rail of icons",
+        "value": "rail"
        },
        {
-        "label": "24px",
-        "value": "24"
-       },
-       {
-        "label": "28px",
-        "value": "28"
-       },
-       {
-        "label": "30px",
-        "value": "30"
-       },
-       {
-        "label": "32px",
-        "value": "32"
-       },
-       {
-        "label": "36px",
-        "value": "36"
-       },
-       {
-        "label": "40px",
-        "value": "40"
-       },
-       {
-        "label": "44px",
-        "value": "44"
-       },
-       {
-        "label": "48px",
-        "value": "48"
+        "label": "With titles",
+        "value": "wide"
        }
       ],
-      "default": "30",
+      "default": "rail",
       "rule": {
-       "why": "The bar is off",
+       "why": "There's no bar on the left or right",
        "conditions": [
         {
          "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
           {
            "if": {
             "property": "zenith.bar.left",
@@ -5452,31 +1589,93 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.length",
-      "label": "The bar's length",
+      "property": "zenith.bar.side-rows",
+      "label": "Small modules on a side bar with titles",
       "type": "dropdown",
       "extra": false,
-      "desc": "A bar along its whole edge, as long as its modules (centred, as Hyprland rices' floating bars), or part of the edge.",
+      "desc": "On a bar on the left or right with titles, the modules that are only an icon (the switcher, the overview, downloads, pages dark or light, extensions, power): each a row with its icon, its name and its value (memory, the layout, how pages are), as a sidebar's list; or side by side as icons, a toolbar at either end of the bar. The window's buttons lie in one row either way.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "The whole edge",
-        "value": "full"
+        "label": "Each a row with its name",
+        "value": "labels"
        },
        {
-        "label": "As long as its modules",
+        "label": "Icons side by side",
+        "value": "icons"
+       }
+      ],
+      "default": "labels",
+      "rule": {
+       "why": "Side bars are a rail (or there's none)",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "conditions": [
+            {
+             "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+             }
+            },
+            {
+             "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+             }
+            }
+           ],
+           "operator": "OR"
+          },
+          {
+           "if": {
+            "property": "zenith.bar.side-width",
+            "value": "wide"
+           }
+          }
+         ],
+         "operator": "AND"
+        }
+       ]
+      }
+     }
+    ],
+    "blurb": "A look brings its own spacing and corners; fine-tune them below, or try them in the picker."
+   },
+   {
+    "title": "Tabs in the bars",
+    "settings": [
+     {
+      "property": "zenith.bar.tab-look",
+      "label": "Tabs in the bar",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How each tab shows in a bar: icons with the current tab's title, icons only, icon and short title, icon and title while they fit (then only the current one's, then icons), or numbers as i3's workspaces. A click goes to a tab, a middle click closes it.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Icons, the current one with its title",
+        "value": "current"
+       },
+       {
+        "label": "Icons only",
+        "value": "icons"
+       },
+       {
+        "label": "Icon and short title",
+        "value": "titles"
+       },
+       {
+        "label": "Icon and short title while they fit, then fewer titles",
         "value": "fit"
        },
        {
-        "label": "80% of the edge",
-        "value": "80"
-       },
-       {
-        "label": "60% of the edge",
-        "value": "60"
+        "label": "Numbers (i3)",
+        "value": "numbers"
        }
       ],
-      "default": "full",
+      "default": "current",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5513,234 +1712,80 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.margin",
-      "label": "Space around the bar",
+      "property": "zenith.bar.tab-marks",
+      "label": "Marks on a bar's tabs",
       "type": "dropdown",
       "extra": false,
-      "desc": "Space between the bar and the window's edges: with some, the bar floats (Hyprland's gaps).",
+      "desc": "The sidebar's signals on a bar's tabs: essentials (a diamond) and pinned tabs (a dot) first, a folder's tabs underlined together, a note for one playing (crossed when muted), a dot for one asking for attention, a pulse while loading.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As its look has it",
-        "value": "auto"
+        "label": "As the sidebar's (essential, pinned, folder, sound, attention)",
+        "value": "on"
        },
-       {
-        "label": "None",
-        "value": "0"
-       },
-       {
-        "label": "4px",
-        "value": "4"
-       },
-       {
-        "label": "8px",
-        "value": "8"
-       },
-       {
-        "label": "12px",
-        "value": "12"
-       },
-       {
-        "label": "16px",
-        "value": "16"
-       }
-      ],
-      "default": "auto",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.corners",
-      "label": "The bar's corners",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "The bar's own corners (a floating bar looks best round).",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "As its look has it",
-        "value": "auto"
-       },
-       {
-        "label": "Square",
-        "value": "0"
-       },
-       {
-        "label": "Slightly round",
-        "value": "6"
-       },
-       {
-        "label": "Round",
-        "value": "12"
-       },
-       {
-        "label": "Fully round",
-        "value": "999"
-       }
-      ],
-      "default": "auto",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.opacity",
-      "label": "The bar's background",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "How much of the bar's background shows: none leaves the modules on the window, as bare waybar rices.",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "As its look has it",
-        "value": "auto"
-       },
-       {
-        "label": "Solid",
-        "value": "100"
-       },
-       {
-        "label": "90%",
-        "value": "90"
-       },
-       {
-        "label": "75%",
-        "value": "75"
-       },
-       {
-        "label": "50%",
-        "value": "50"
-       },
-       {
-        "label": "25%",
-        "value": "25"
-       },
-       {
-        "label": "None",
-        "value": "0"
-       }
-      ],
-      "default": "auto",
-      "rule": {
-       "why": "The bar is off",
-       "conditions": [
-        {
-         "conditions": [
-          {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
-           }
-          }
-         ],
-         "operator": "OR"
-        }
-       ]
-      }
-     },
-     {
-      "property": "zenith.bar.border",
-      "label": "The bar's border",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "A border around the bar: a hairline, or the accent colour.",
-      "host": "Zenith Plus",
-      "options": [
        {
         "label": "None",
         "value": "off"
+       }
+      ],
+      "default": "on",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.marker",
+      "label": "The marker's colour",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The line under the tab you're on (on a side bar, along its inner edge) and the pill of the space you're in. The tab's container: a tab in a Firefox container is marked in its colour (others in the space's); the space's colour: the colour Zen gives the space (its container's, if it opens tabs in one); or the theme's accent everywhere.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The tab's container (else the space's colour)",
+        "value": "container"
        },
        {
-        "label": "A hairline",
-        "value": "hairline"
+        "label": "The space's colour",
+        "value": "space"
        },
        {
-        "label": "The accent",
+        "label": "The theme's accent",
         "value": "accent"
        }
       ],
-      "default": "off",
+      "default": "container",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5777,35 +1822,43 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.module-corners",
-      "label": "The modules' corners",
+      "property": "zenith.bar.container-hint",
+      "label": "Containers of other tabs",
       "type": "dropdown",
       "extra": false,
-      "desc": "The corners of each module's pill (islands, floating, bare).",
+      "desc": "Tabs in a Firefox container that you're not on: a thin line in the container's colour along the tab's top, bottom, left or right (as named, on every bar), a ring around the icon, the tab faintly tinted, or nothing (the tab you're on is marked in its container's colour either way).",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As its look has it",
-        "value": "auto"
+        "label": "A line along the top",
+        "value": "top"
        },
        {
-        "label": "Square",
-        "value": "0"
+        "label": "A line along the bottom",
+        "value": "bottom"
        },
        {
-        "label": "Slightly round",
-        "value": "4"
+        "label": "A line on the left",
+        "value": "left"
        },
        {
-        "label": "Round",
-        "value": "8"
+        "label": "A line on the right",
+        "value": "right"
        },
        {
-        "label": "Pills",
-        "value": "999"
+        "label": "A ring around the icon",
+        "value": "ring"
+       },
+       {
+        "label": "The tab tinted",
+        "value": "tint"
+       },
+       {
+        "label": "Not shown",
+        "value": "off"
        }
       ],
-      "default": "auto",
+      "default": "top",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5842,43 +1895,23 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.spacing",
-      "label": "Space between modules",
+      "property": "zenith.bar.tab-preview",
+      "label": "Hovering a tab",
       "type": "dropdown",
       "extra": false,
-      "desc": "The gap between modules.",
+      "desc": "Resting the pointer on a tab in a bar shows its picture (a sleeping tab: its title and address only), as the sidebar's tab previews.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As its look has it",
-        "value": "auto"
+        "label": "Its preview",
+        "value": "on"
        },
        {
-        "label": "None",
-        "value": "0"
-       },
-       {
-        "label": "2px",
-        "value": "2"
-       },
-       {
-        "label": "4px",
-        "value": "4"
-       },
-       {
-        "label": "6px",
-        "value": "6"
-       },
-       {
-        "label": "8px",
-        "value": "8"
-       },
-       {
-        "label": "12px",
-        "value": "12"
+        "label": "Nothing",
+        "value": "off"
        }
       ],
-      "default": "auto",
+      "default": "on",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -5915,31 +1948,257 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.separators",
-      "label": "Between modules",
+      "property": "zenith.bar.tab-crowd",
+      "label": "Tabs that don't fit",
       "type": "dropdown",
       "extra": false,
-      "desc": "Something between modules: a line or a dot (powerline has its arrows).",
+      "desc": "When this space's tabs don't fit in a bar. Titles go, then a window: first the titles go (icons only), and past that only the tabs around the one you're on show, with \"+12\" at either end listing the rest (the wheel moves the window). Shrink: every tab gets narrower, down to its icon, then the strip scrolls. Past a count: up to the count the tabs show as usual; past it, only the tab you're on, with its title, and the chip listing them all.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As its look has it",
-        "value": "auto"
+        "label": "Titles go, then a window around the tab you're on",
+        "value": "window"
        },
+       {
+        "label": "Shrink, as Chrome's (then scroll)",
+        "value": "shrink"
+       },
+       {
+        "label": "Past a count, only the tab you're on",
+        "value": "title"
+       }
+      ],
+      "default": "window",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-crowd-count",
+      "label": "The count",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Past how many tabs a bar shows only the tab you're on.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "10 tabs",
+        "value": "10"
+       },
+       {
+        "label": "15 tabs",
+        "value": "15"
+       },
+       {
+        "label": "20 tabs",
+        "value": "20"
+       },
+       {
+        "label": "30 tabs",
+        "value": "30"
+       }
+      ],
+      "default": "15",
+      "parent": "zenith.bar.tab-crowd",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "What's playing",
+    "settings": [
+     {
+      "property": "zenith.bar.media-pick",
+      "label": "Which source the bar shows",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "With media in several tabs (any space): the newest that's playing aloud, then muted ones, then paused ones; or the one you last played, paused or picked, while it's still there. Shift+wheel over the player goes to the next source, a middle click mutes it, \"+N\" says how many others there are.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The newest playing (any space)",
+        "value": "newest"
+       },
+       {
+        "label": "Keep the one I chose",
+        "value": "kept"
+       }
+      ],
+      "default": "newest",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.media-look",
+      "label": "What's playing",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "What's playing: a play button only (its title on hover), the button and the title (a click goes to its tab), or previous and next buttons too. The wheel over it skips either way.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Just a play button",
+        "value": "button"
+       },
+       {
+        "label": "Play button and title",
+        "value": "title"
+       },
+       {
+        "label": "Previous, play, next and title",
+        "value": "detailed"
+       }
+      ],
+      "default": "title",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.media-hover",
+      "label": "Hovering what's playing",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A mini player (the cover, the title, previous, play and next) when the pointer rests on what's playing in a bar; it goes when the pointer leaves it.",
+      "host": "Zenith Plus",
+      "options": [
        {
         "label": "Nothing",
         "value": "off"
        },
        {
-        "label": "A line",
-        "value": "line"
-       },
-       {
-        "label": "A dot",
-        "value": "dot"
+        "label": "A mini player",
+        "value": "player"
        }
       ],
-      "default": "auto",
+      "default": "off",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -6403,6 +2662,2417 @@ const SCHEMA = [
       "default": false
      }
     ]
+   },
+   {
+    "title": "Fine-tuning the shape",
+    "settings": [
+     {
+      "property": "zenith.bar.margin",
+      "label": "Space around the bar",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Space between the bar and the window's edges: with some, the bar floats (Hyprland's gaps).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As its look has it",
+        "value": "auto"
+       },
+       {
+        "label": "None",
+        "value": "0"
+       },
+       {
+        "label": "4px",
+        "value": "4"
+       },
+       {
+        "label": "8px",
+        "value": "8"
+       },
+       {
+        "label": "12px",
+        "value": "12"
+       },
+       {
+        "label": "16px",
+        "value": "16"
+       }
+      ],
+      "default": "auto",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.corners",
+      "label": "The bar's corners",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The bar's own corners (a floating bar looks best round).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As its look has it",
+        "value": "auto"
+       },
+       {
+        "label": "Square",
+        "value": "0"
+       },
+       {
+        "label": "Slightly round",
+        "value": "6"
+       },
+       {
+        "label": "Round",
+        "value": "12"
+       },
+       {
+        "label": "Fully round",
+        "value": "999"
+       }
+      ],
+      "default": "auto",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.opacity",
+      "label": "The bar's background",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How much of the bar's background shows: none leaves the modules on the window, as bare waybar rices.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As its look has it",
+        "value": "auto"
+       },
+       {
+        "label": "Solid",
+        "value": "100"
+       },
+       {
+        "label": "90%",
+        "value": "90"
+       },
+       {
+        "label": "75%",
+        "value": "75"
+       },
+       {
+        "label": "50%",
+        "value": "50"
+       },
+       {
+        "label": "25%",
+        "value": "25"
+       },
+       {
+        "label": "None",
+        "value": "0"
+       }
+      ],
+      "default": "auto",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.border",
+      "label": "The bar's border",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A border around the bar: a hairline, or the accent colour.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "None",
+        "value": "off"
+       },
+       {
+        "label": "A hairline",
+        "value": "hairline"
+       },
+       {
+        "label": "The accent",
+        "value": "accent"
+       }
+      ],
+      "default": "off",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.module-corners",
+      "label": "The modules' corners",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The corners of each module's pill (islands, floating, bare).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As its look has it",
+        "value": "auto"
+       },
+       {
+        "label": "Square",
+        "value": "0"
+       },
+       {
+        "label": "Slightly round",
+        "value": "4"
+       },
+       {
+        "label": "Round",
+        "value": "8"
+       },
+       {
+        "label": "Pills",
+        "value": "999"
+       }
+      ],
+      "default": "auto",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.spacing",
+      "label": "Space between modules",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The gap between modules.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As its look has it",
+        "value": "auto"
+       },
+       {
+        "label": "None",
+        "value": "0"
+       },
+       {
+        "label": "2px",
+        "value": "2"
+       },
+       {
+        "label": "4px",
+        "value": "4"
+       },
+       {
+        "label": "6px",
+        "value": "6"
+       },
+       {
+        "label": "8px",
+        "value": "8"
+       },
+       {
+        "label": "12px",
+        "value": "12"
+       }
+      ],
+      "default": "auto",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.separators",
+      "label": "Between modules",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Something between modules: a line or a dot (powerline has its arrows).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As its look has it",
+        "value": "auto"
+       },
+       {
+        "label": "Nothing",
+        "value": "off"
+       },
+       {
+        "label": "A line",
+        "value": "line"
+       },
+       {
+        "label": "A dot",
+        "value": "dot"
+       }
+      ],
+      "default": "auto",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     }
+    ],
+    "more": true,
+    "blurb": "Each is the look's own until you change it."
+   },
+   {
+    "title": "Fine-tuning the tabs",
+    "settings": [
+     {
+      "property": "zenith.bar.tab-awake",
+      "label": "Only awake tabs",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A bar shows the tabs that are loaded (and the one you're on); sleeping ones are in the list the chip opens.",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-align",
+      "label": "Where tabs sit",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Where this space's tabs sit in a bar when they don't fill it: at the start (left, or top on a side bar), in the middle, or at the end.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "At the start (left or top)",
+        "value": "start"
+       },
+       {
+        "label": "In the middle",
+        "value": "centre"
+       },
+       {
+        "label": "At the end (right or bottom)",
+        "value": "end"
+       }
+      ],
+      "default": "start",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-scroll",
+      "label": "The tab you're on",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Kept in view: the strip moves only when the tab you're on would leave it. Kept in the middle: the strip (or the window of tabs) moves to keep it centred, except near either end.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Kept in view",
+        "value": "nearest"
+       },
+       {
+        "label": "Kept in the middle (when there's room either side)",
+        "value": "centre"
+       }
+      ],
+      "default": "nearest",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.tab-wheel",
+      "label": "The wheel over tabs",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Scrolls them: the wheel moves along the tabs when there are more than fit, as a browser's tab strip does. Goes to the next or previous tab: the wheel switches tabs instead.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Scrolls them",
+        "value": "scroll"
+       },
+       {
+        "label": "Goes to the next or previous tab",
+        "value": "switch"
+       }
+      ],
+      "default": "scroll",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     }
+    ],
+    "more": true
+   }
+  ]
+ },
+ {
+  "id": "tabs",
+  "title": "Sidebar and tabs",
+  "icon": "tabs",
+  "blurb": "Zen's sidebar and its tabs: when it shows, what a tab tells you, and spaces.",
+  "preset": {
+   "property": "zenith.tabs.preset",
+   "host": "Zenith Tabs",
+   "default": "informative",
+   "sets": {
+    "zenith.tabs.attention": {
+     "plain": "off",
+     "informative": "on",
+     "everything": "on"
+    },
+    "zenith.tabs.pin-mark": {
+     "plain": "off",
+     "informative": "on",
+     "everything": "on"
+    },
+    "zenith.tabs.folder-activity": {
+     "plain": "off",
+     "informative": "on",
+     "everything": "on"
+    },
+    "zenith.tabs.container": {
+     "plain": "off",
+     "informative": "subtle",
+     "everything": "subtle"
+    },
+    "zenith.tabs.split-vertical": {
+     "plain": "off",
+     "informative": "on",
+     "everything": "on"
+    },
+    "zenith.tabs.audio-wave": {
+     "plain": "off",
+     "informative": "on",
+     "everything": "on"
+    },
+    "zenith.tabs.mini-player": {
+     "plain": "off",
+     "informative": "on",
+     "everything": "on"
+    },
+    "zenith.tabs.hover-mute": {
+     "plain": "off",
+     "informative": "off",
+     "everything": "on"
+    },
+    "zenith.tabs.pinned-drift": {
+     "plain": "off",
+     "informative": "off",
+     "everything": "on"
+    },
+    "zenith.tabs.numbers": {
+     "plain": "off",
+     "informative": "off",
+     "everything": "on"
+    },
+    "zenith.tabs.lowercase": {
+     "plain": "off",
+     "informative": "off",
+     "everything": "on"
+    },
+    "zenith.tabs.badge-only": {
+     "plain": "off",
+     "informative": "off",
+     "everything": "on"
+    }
+   },
+   "values": [
+    {
+     "value": "plain",
+     "label": "Plain",
+     "blurb": "Density and sleeping tabs, nothing else"
+    },
+    {
+     "value": "informative",
+     "label": "Informative",
+     "blurb": "Dots, stripes, the audio wave and the slim player"
+    },
+    {
+     "value": "everything",
+     "label": "Everything",
+     "blurb": "All of that, plus every extra"
+    }
+   ]
+  },
+  "groups": [
+   {
+    "title": "The sidebar",
+    "settings": [
+     {
+      "property": "zenith.sidebar",
+      "label": "The sidebar",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Shown, as Zen has it. On hover: it slides in at the window's edge (Zen's compact mode). Hidden: for tabs in a bar (compact mode, its edge hover off); Ctrl+L and Ctrl+Alt+S still bring it. Compact mode comes back as it was with Shown.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Shown",
+        "value": "shown"
+       },
+       {
+        "label": "On hover (Zen's compact mode)",
+        "value": "hover"
+       },
+       {
+        "label": "Hidden (tabs in a bar)",
+        "value": "hidden"
+       }
+      ],
+      "default": "hover"
+     },
+     {
+      "property": "zenith.tabs.reveal",
+      "label": "Revealed sidebar",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "When the hidden sidebar slides out: over the page, pushing the page aside by exactly its width, or dimming the page.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "Overlay",
+        "value": "overlay"
+       },
+       {
+        "label": "Push the page",
+        "value": "push"
+       },
+       {
+        "label": "Dim",
+        "value": "dim"
+       }
+      ],
+      "default": "overlay"
+     },
+     {
+      "property": "zenith.tabs.reveal-delay",
+      "label": "Reveal delay",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "A short wait before the sidebar slides out on hover.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "No delay",
+        "value": "0"
+       },
+       {
+        "label": "100ms",
+        "value": "100"
+       },
+       {
+        "label": "200ms",
+        "value": "200"
+       },
+       {
+        "label": "300ms",
+        "value": "300"
+       },
+       {
+        "label": "500ms",
+        "value": "500"
+       }
+      ],
+      "default": "0",
+      "parent": "zenith.tabs.reveal"
+     },
+     {
+      "property": "zenith.tabs.close-hover",
+      "label": "Close buttons on hover",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Close buttons show only on the tab under the mouse.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": "on"
+     },
+     {
+      "property": "zenith.tabs.mini-player",
+      "label": "Slim media card",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen's media controls as a slim card.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.plus.media-art",
+      "label": "Cover art",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The playing site's cover art behind the media card, blurred as much as Frost says.",
+      "host": "Zenith Plus",
+      "default": true
+     }
+    ]
+   },
+   {
+    "title": "What a tab tells you",
+    "settings": [
+     {
+      "property": "zenith.tabs.unloaded",
+      "label": "Sleeping tabs",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How sleeping tabs look.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "Grey and dim",
+        "value": "grey"
+       },
+       {
+        "label": "Italic title",
+        "value": "italic"
+       },
+       {
+        "label": "Hide favicon",
+        "value": "nofavicon"
+       },
+       {
+        "label": "No change",
+        "value": "off"
+       }
+      ],
+      "default": "grey"
+     },
+     {
+      "property": "zenith.tabs.pin-mark",
+      "label": "Pin mark",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A small pin on pinned tabs, where the sleeping moon goes (not on essentials or tabs in a folder).",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.tabs.attention",
+      "label": "Attention dots",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A dot on tabs that want attention.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.tabs.attention-for",
+      "label": "Dots for",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Alerts: a tab waiting on a dialog. Changed titles: a background tab whose title changed (a pinned mail or chat tab with something new).",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "Alerts and changed titles",
+        "value": "all"
+       },
+       {
+        "label": "Alerts only (a dialog waiting)",
+        "value": "alerts"
+       }
+      ],
+      "default": "all",
+      "rule": {
+       "why": "Attention dots are off",
+       "conditions": [
+        {
+         "not": {
+          "property": "zenith.tabs.attention",
+          "value": "off"
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.tabs.folder-activity",
+      "label": "Folder activity dot",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A dot on closed folders when a tab inside is playing or wants attention.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.tabs.container",
+      "label": "Container stripe",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A coloured stripe on tabs in a container.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "Off",
+        "value": "off"
+       },
+       {
+        "label": "Subtle",
+        "value": "subtle"
+       },
+       {
+        "label": "Strong",
+        "value": "strong"
+       }
+      ],
+      "default": "subtle"
+     },
+     {
+      "property": "zenith.tabs.audio-wave",
+      "label": "Audio wave",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A moving equaliser behind tabs that play sound.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.tabs.split-vertical",
+      "label": "Split-view groups",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Tabs in a split view stay together as a group.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     }
+    ]
+   },
+   {
+    "title": "Spaces",
+    "settings": [
+     {
+      "property": "zenith.plus.workspace-dots",
+      "label": "Workspace dots",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Waybar-style dots at the top of the page, one per space, with the current one's name: for a moment when you switch, or always.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Off",
+        "value": "off"
+       },
+       {
+        "label": "On switch",
+        "value": "switch"
+       },
+       {
+        "label": "Always",
+        "value": "always"
+       }
+      ],
+      "default": "switch"
+     },
+     {
+      "property": "zenith.plus.workspace-flash",
+      "label": "Workspace flash",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The page's top edge lights up in the new space's colour as you switch.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.key-switch-flash",
+      "label": "Show the sidebar on key switches",
+      "type": "checkbox",
+      "extra": true,
+      "desc": "In compact mode, the sidebar shows for a moment when you switch tabs from the keyboard, so you see where you landed.",
+      "host": "Zenith Plus",
+      "default": false
+     },
+     {
+      "property": "zenith.plus.minimap",
+      "label": "Minimap",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Small ticks at the edge for tabs that are loading, playing or want attention.",
+      "host": "Zenith Plus",
+      "default": true
+     }
+    ]
+   },
+   {
+    "title": "Links from other apps",
+    "settings": [
+     {
+      "property": "zenith.plus.external-links",
+      "label": "Where they open",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Ask each time: a link from another app that no Space routing rule sends somewhere stops at a small card to pick its space (and so its container), with an option to always send that site there.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Where Zen's Space routing sends them",
+        "value": "zen"
+       },
+       {
+        "label": "Ask when no Space routing rule matches",
+        "value": "ask"
+       }
+      ],
+      "default": "zen"
+     },
+     {
+      "property": "zenith.action.space-routing",
+      "label": "Space routing",
+      "type": "action",
+      "extra": false,
+      "desc": "Zen's Space routing sends links from other apps (and any site you choose, like a login page) to a space, and so to that space's container.",
+      "button": "Space routing",
+      "command": "cmd_zenOpenSpaceRoutingSettings",
+      "host": "Zen"
+     }
+    ]
+   },
+   {
+    "title": "Fine-tuning",
+    "settings": [
+     {
+      "property": "zen.tabs.open-pinned-in-new-tab",
+      "label": "Pinned tabs open sites in new tabs",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Zen's own setting. Off: a pinned tab goes to the other site itself.",
+      "host": "Zenith Tabs",
+      "default": null
+     },
+     {
+      "property": "zenith.plus.unpinned-groups",
+      "label": "Groups that don't pin",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen's folders pin the tabs you put in them. Right-click a folder › Tabs act unpinned: Ctrl+W closes its tabs, they keep the page they're on, and the folder sits below the pinned tabs' line, with your other tabs. Off hides the choice.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Zen's folders, set per folder",
+        "value": "folders"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": "folders"
+     },
+     {
+      "property": "zenith.tabs.numbers",
+      "label": "Numbered tabs",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Numbers 1–9 on the tabs Ctrl+1–9 jump to: always, or while you hold Ctrl (Cmd on macOS).",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "Off",
+        "value": "off"
+       },
+       {
+        "label": "Always",
+        "value": "on"
+       },
+       {
+        "label": "While holding Ctrl",
+        "value": "ctrl"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.tabs.hover-mute",
+      "label": "Hover to mute",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "Hover a playing tab's icon to mute it.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.tabs.pinned-drift",
+      "label": "Pinned drift marker",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "Marks pinned tabs that have wandered off their page.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.tabs.lowercase",
+      "label": "Lowercase titles",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "Tab titles in lowercase.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.tabs.badge-only",
+      "label": "Extension buttons only with a badge",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "Pinned extension buttons hide unless they show a badge, like an unread count. Hovering the toolbar shows them all.",
+      "host": "Zenith Tabs",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.plus.ready-pulse",
+      "label": "Background tab ready",
+      "type": "checkbox",
+      "extra": true,
+      "desc": "A tab opened in the background has finished loading: the page's edge glows once.",
+      "host": "Zenith Plus",
+      "default": false
+     },
+     {
+      "property": "zenith.plus.extension-copies",
+      "label": "Extension copies",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Right-click an extension › Copy for other spaces: a second copy with its own storage (another account in the same password manager), running in your other spaces while the original runs in this one (Runs in spaces, as with any extension). Zenith loads copies as temporary add-ons at each start, from your profile folder; nothing in about:config changes.",
+      "host": "Zenith Plus",
+      "warn": "Experimental. A copy doesn't update itself (right-click it › Refresh from the original), loads a moment after Zen starts, may not talk to the extension's desktop app, and Firefox lists it as temporary.",
+      "default": false
+     }
+    ],
+    "more": true
+   }
+  ]
+ },
+ {
+  "id": "shell",
+  "title": "Tiling and keys",
+  "icon": "keys",
+  "blurb": "The browser as a tiling window manager: i3's keys with Alt (Alt+Shift+/ lists them), layouts per space, tiles you move and resize with the mouse.",
+  "groups": [
+   {
+    "title": "Keys",
+    "settings": [
+     {
+      "property": "zenith.shell.keys",
+      "label": "The Shell's keys",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "i3's keys (sway's, with hjkl), Alt in place of the Windows key. Alt+H/J/K/L focus the tile that way (past the edge, the tab before or after), Alt+Shift+H/J/K/L move it (past the edge, out of the split), Alt+Shift+Enter a new tile, Alt+B/V where the next goes, Alt+E flips a split, Alt+R resizes, Alt+1…0 goes to a space and Alt+Shift+1…0 sends the tab there, Alt+- is the scratchpad, Alt+P passthrough. Alt+Shift+/ shows them all. Keys are matched by where they are, so they're the same on any layout. Alt+←/→ stay back and forward.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.shell.bindings",
+      "label": "Keys",
+      "type": "string",
+      "extra": false,
+      "desc": "Every Shell key, and a button to press another for it (Backspace leaves one without a key). A key another action had moves over.",
+      "host": "Zenith Plus",
+      "placeholder": "focus-left=Alt+KeyH, …",
+      "zenithKeys": true,
+      "parent": "zenith.shell.keys",
+      "rule": {
+       "why": "The Shell's keys are off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.shell.keys",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.shell.passthrough-sites",
+      "label": "Sites that keep their Alt keys",
+      "type": "string",
+      "extra": false,
+      "desc": "On these sites the page keeps its Alt keys (Google Docs, an online editor or terminal). Alt+P does the same anywhere, until you press it again.",
+      "host": "Zenith Plus",
+      "placeholder": "example.com, another.site",
+      "zenithList": "Add a site (docs.google.com)",
+      "parent": "zenith.shell.keys",
+      "rule": {
+       "why": "The Shell's keys are off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.shell.keys",
+          "value": true
+         }
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "Layouts",
+    "settings": [
+     {
+      "property": "zenith.shell.layout",
+      "label": "Layout",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How a space lays out its tiles, unless you've picked another one there with Alt+Y (or the bar's layout module). Dwindle: a new tile splits the one you're on along its longer side, as Hyprland's. Master and stack: one big tile (the master) and the rest stacked beside it, as dwm's; Alt+Shift+Y makes the tile you're on the master. Scroller: tiles are columns on a strip, as niri's: those that fit show, the others wait to the side until Alt+H or Alt+L brings them in; Alt+Shift+Y gives a column its next width. Monocle: the tile you're on fills the view, Alt+H and Alt+L go to the others.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Dwindle (Hyprland's)",
+        "value": "dwindle"
+       },
+       {
+        "label": "Master and stack (dwm's)",
+        "value": "master"
+       },
+       {
+        "label": "Scroller (niri's)",
+        "value": "scroller"
+       },
+       {
+        "label": "Monocle (one tile at a time)",
+        "value": "monocle"
+       }
+      ],
+      "default": "dwindle"
+     },
+     {
+      "property": "zenith.shell.scroller-tabs",
+      "label": "The strip holds",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Every tab of the space: as niri, each tab you open is a column on one strip, with no limit (essentials, pinned tabs and Firefox's groups stay out); the columns out of sight sleep. Only a split's tabs: the strip is a split you make, up to Shell › Tiles in one split.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Every tab of the space (niri)",
+        "value": "all"
+       },
+       {
+        "label": "Only a split's tabs",
+        "value": "split"
+       }
+      ],
+      "default": "all"
+     },
+     {
+      "property": "zenith.shell.scroller-width",
+      "label": "A new column",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How wide a new column is in the scroller; Alt+Shift+Y gives the one you're on the next width (a third, half, two thirds, all).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "A third of the view",
+        "value": "third"
+       },
+       {
+        "label": "Half the view",
+        "value": "half"
+       },
+       {
+        "label": "Two thirds",
+        "value": "twothirds"
+       },
+       {
+        "label": "All of it",
+        "value": "full"
+       }
+      ],
+      "default": "half"
+     },
+     {
+      "property": "zenith.shell.scroller-focus",
+      "label": "Keep the column",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "In view: the strip slides as little as shows the column you're on. In the middle: it always slides that column to the middle (niri's centre-focused-column).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "In view",
+        "value": "view"
+       },
+       {
+        "label": "In the middle",
+        "value": "centre"
+       }
+      ],
+      "default": "view"
+     },
+     {
+      "property": "zenith.shell.master",
+      "label": "Master and stack",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The master on the left with the stack on the right (dwm's), or the master in the middle with the stack either side (better on a wide screen).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The master on the left (dwm)",
+        "value": "dwm"
+       },
+       {
+        "label": "The master in the middle, the stack either side",
+        "value": "centred"
+       }
+      ],
+      "default": "dwm"
+     },
+     {
+      "property": "zenith.shell.master-ratio",
+      "label": "The master's width",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How much of the width the master takes.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "50%",
+        "value": "50"
+       },
+       {
+        "label": "55%",
+        "value": "55"
+       },
+       {
+        "label": "60%",
+        "value": "60"
+       },
+       {
+        "label": "65%",
+        "value": "65"
+       },
+       {
+        "label": "70%",
+        "value": "70"
+       }
+      ],
+      "default": "55"
+     }
+    ],
+    "blurb": "Each space has its own (Alt+Y): dwindle, master and stack, the scroller (niri's strip), monocle."
+   },
+   {
+    "title": "Tiles",
+    "settings": [
+     {
+      "property": "zenith.shell.new-tile",
+      "label": "New tiles",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Along the longer side, as Hyprland's dwindle: a wide tile splits side by side, a tall one top and bottom. Alt+B (right) or Alt+V (below) decides for the next one only.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Along the tile's longer side",
+        "value": "dwindle"
+       },
+       {
+        "label": "Always to the right",
+        "value": "right"
+       },
+       {
+        "label": "Always below",
+        "value": "below"
+       }
+      ],
+      "default": "dwindle"
+     },
+     {
+      "property": "zenith.shell.split-background",
+      "label": "Background links from a split",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "While you're on a split's tab, every new tab (Ctrl+T, a link to a new tab) becomes a tile of that split, placed by the space's layout. Links opened in the background (Ctrl+click, a middle click) do too, or stay normal tabs. Past the split's tile limit, a normal tab.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "A new tile",
+        "value": "tile"
+       },
+       {
+        "label": "A normal tab",
+        "value": "tab"
+       }
+      ],
+      "default": "tile"
+     },
+     {
+      "property": "zenith.shell.tiles",
+      "label": "Tiles in one split",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How many tabs one split view takes. Each tile is a page drawn on screen, so more tiles use more of your computer. No limit is experimental: Zen's split view was made for four, a big split uses a lot of memory and CPU, and tiles can get too small to use.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "4 (Zen's own)",
+        "value": "4"
+       },
+       {
+        "label": "6",
+        "value": "6"
+       },
+       {
+        "label": "8",
+        "value": "8"
+       },
+       {
+        "label": "No limit (experimental)",
+        "value": "0"
+       }
+      ],
+      "default": "4"
+     },
+     {
+      "property": "zenith.panels.tile-focus",
+      "label": "The tile you're on",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "In a split view, the tile you're on: as Zen draws it, or with a border in the accent colour.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "As Zen draws it",
+        "value": "zen"
+       },
+       {
+        "label": "An accent border",
+        "value": "accent"
+       }
+      ],
+      "default": "zen"
+     },
+     {
+      "property": "zenith.panels.tile-dim",
+      "label": "The other tiles",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "In a split view, the tiles you're not on: as they are, or dimmed a little.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "As they are",
+        "value": "keep"
+       },
+       {
+        "label": "Dimmed",
+        "value": "dim"
+       }
+      ],
+      "default": "keep"
+     }
+    ]
+   },
+   {
+    "title": "The overview and the launcher",
+    "settings": [
+     {
+      "property": "zenith.overview.look",
+      "label": "The overview shows",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Alt+O (or the hot corner, or the bar's overview button) shows every tab as a picture: go to one with a click or Enter, close one with its ✕, Delete or a middle click, drag one onto another space to move it there, type to find one in any space. This space with every space in a strip above it (the wheel over the strip walks them), every space as a row of its own, or this space with a split's tiles in one picture, as they're laid out.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "This space, every space above it",
+        "value": "space"
+       },
+       {
+        "label": "Every space, a row each",
+        "value": "all"
+       },
+       {
+        "label": "This space, a split's tiles together",
+        "value": "tiles"
+       }
+      ],
+      "default": "space"
+     },
+     {
+      "property": "zenith.overview.corner",
+      "label": "Hot corner",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Pushing the pointer into this corner of the window opens the overview, as niri's and GNOME's hot corners. (On a window that isn't maximised, Windows keeps its corners for resizing: maximised, it's easy to reach.)",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The top left",
+        "value": "top-left"
+       },
+       {
+        "label": "The top right",
+        "value": "top-right"
+       },
+       {
+        "label": "The bottom left",
+        "value": "bottom-left"
+       },
+       {
+        "label": "The bottom right",
+        "value": "bottom-right"
+       },
+       {
+        "label": "None",
+        "value": "off"
+       }
+      ],
+      "default": "top-left"
+     },
+     {
+      "property": "zenith.launcher.look",
+      "label": "Look",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Centred: a box in the middle of the window, a list under it. dmenu: one line across the top of the window (over a top bar), the results along it as dmenu's and tofi's; left and right (at the end of what you typed) or up and down choose. A grid: big tiles with their pictures, as rofi's grid themes; the arrows move around it.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Centred",
+        "value": "centred"
+       },
+       {
+        "label": "dmenu: one line across the top",
+        "value": "dmenu"
+       },
+       {
+        "label": "A grid of tiles",
+        "value": "grid"
+       }
+      ],
+      "default": "centred"
+     }
+    ]
+   },
+   {
+    "title": "Mouse",
+    "settings": [
+     {
+      "property": "zenith.shell.mouse",
+      "label": "Alt+drag and Alt+right-drag",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Hold Alt and drag a tile: onto the middle of another, they swap; onto its edge, it goes there. Hold Alt and drag with the right button: the tile's nearest edges follow. Esc puts it back. Alt+click still opens Zen's Glance.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.shell.wheel",
+      "label": "Alt+wheel: spaces",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt and the wheel (or two fingers) over the page: the next or previous space. Firefox's own Alt+wheel (back and forward) is off while this is on, and comes back when it's off.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.shell.follow-mouse",
+      "label": "Focus follows the mouse",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "As i3 does: rest the pointer on a tile for a moment and it's the one you're on.",
+      "host": "Zenith Plus",
+      "default": false
+     }
+    ],
+    "more": true
+   },
+   {
+    "title": "Clicking a link with keys",
+    "settings": [
+     {
+      "property": "zenith.links.alt",
+      "label": "Alt+click a link",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). While Zenith answers link clicks, Zen's own Glance key (Settings › Glance) moves to ⊞ (the Windows key); it's given back if every combo here is nothing.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Zen's Glance",
+        "value": "glance"
+       },
+       {
+        "label": "Peek",
+        "value": "peek"
+       },
+       {
+        "label": "A tile beside this one",
+        "value": "tile"
+       },
+       {
+        "label": "Nothing (the page's and Firefox's own)",
+        "value": "nothing"
+       }
+      ],
+      "default": "glance"
+     },
+     {
+      "property": "zenith.links.alt-shift",
+      "label": "Alt+Shift+click a link",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). ",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Zen's Glance",
+        "value": "glance"
+       },
+       {
+        "label": "Peek",
+        "value": "peek"
+       },
+       {
+        "label": "A tile beside this one",
+        "value": "tile"
+       },
+       {
+        "label": "Nothing (the page's and Firefox's own)",
+        "value": "nothing"
+       }
+      ],
+      "default": "tile"
+     },
+     {
+      "property": "zenith.links.ctrl-alt",
+      "label": "Ctrl+Alt+click a link",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). AltGr (the right Alt on layouts that have one, like ABNT2) counts as Ctrl+Alt.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Zen's Glance",
+        "value": "glance"
+       },
+       {
+        "label": "Peek",
+        "value": "peek"
+       },
+       {
+        "label": "A tile beside this one",
+        "value": "tile"
+       },
+       {
+        "label": "Nothing (the page's and Firefox's own)",
+        "value": "nothing"
+       }
+      ],
+      "default": "peek"
+     },
+     {
+      "property": "zenith.links.ctrl-shift",
+      "label": "Ctrl+Shift+click a link",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). Firefox's own opens the link in a new tab in front.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Zen's Glance",
+        "value": "glance"
+       },
+       {
+        "label": "Peek",
+        "value": "peek"
+       },
+       {
+        "label": "A tile beside this one",
+        "value": "tile"
+       },
+       {
+        "label": "Nothing (the page's and Firefox's own)",
+        "value": "nothing"
+       }
+      ],
+      "default": "nothing"
+     }
+    ],
+    "more": true
+   },
+   {
+    "title": "The rice file",
+    "settings": [
+     {
+      "property": "zenith.rice.mode",
+      "label": "Settings the file holds",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A setting your rice file (~/.config/zenith/zenith.conf, Hyprland's language) holds: changing it here changes its line in the file too (the rest of the line and its comments stay; a value made of a $variable is left to you), or it's locked here and changed only in the file.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Changed here are changed in the file too",
+        "value": "write"
+       },
+       {
+        "label": "Locked: change them in the file",
+        "value": "locked"
+       }
+      ],
+      "default": "write"
+     },
+     {
+      "property": "zenith.action.rice-export",
+      "label": "Write my setup to zenith.conf",
+      "type": "action",
+      "extra": false,
+      "desc": "Every Zenith setting you've changed, written as a rice file in Hyprland's language at ~/.config/zenith/zenith.conf (a copy of the one there is kept beside it first). From then on it's read as Zen starts and on Alt+Shift+C.",
+      "button": "Write zenith.conf",
+      "command": "zenith-rice-export-command",
+      "host": "Zen"
+     },
+     {
+      "property": "zenith.action.rice-reload",
+      "label": "Read zenith.conf again",
+      "type": "action",
+      "extra": false,
+      "desc": "As Alt+Shift+C: the file's settings set again (it's also read when the window comes back to the front after you saved it).",
+      "button": "Read it",
+      "command": "zenith-rice-reload-command",
+      "host": "Zen"
+     },
+     {
+      "property": "zenith.action.rice-open",
+      "label": "Open zenith.conf",
+      "type": "action",
+      "extra": false,
+      "desc": "In the app your system opens .conf files with (written first if there isn't one).",
+      "button": "Open it",
+      "command": "zenith-rice-open-command",
+      "host": "Zen"
+     }
+    ],
+    "more": true,
+    "blurb": "~/.config/zenith/zenith.conf, in Hyprland's syntax: your whole rice as one file."
+   }
+  ]
+ },
+ {
+  "id": "keys",
+  "title": "Tools",
+  "icon": "keys",
+  "blurb": "Jump anywhere with Alt+W, follow links with Alt+;, read without distractions with Alt+Z, tidy your tabs with Alt+Shift+T.",
+  "groups": [
+   {
+    "title": "Switcher",
+    "settings": [
+     {
+      "property": "zenith.plus.switcher",
+      "label": "Switcher (Alt+W)",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt+W: type part of a tab's title or site, a folder or a space, and Enter goes there. Start with : for commands, like :focus or :timer 10m tea.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.switcher-scope",
+      "label": "Finds tabs in",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Every space, so Enter switches space when it has to, or only this space's tabs (and the essentials).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Every space",
+        "value": "all"
+       },
+       {
+        "label": "This space only",
+        "value": "here"
+       }
+      ],
+      "default": "all",
+      "parent": "zenith.plus.switcher",
+      "rule": {
+       "why": "The switcher is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.switcher",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.switcher-peek",
+      "label": "Peek in the switcher",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The switcher's last row is Peek: what you typed, looked up without leaving the page; when nothing else matches, it's the first, so Enter peeks.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Last, and first when nothing else matches",
+        "value": "fallback"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": "fallback",
+      "rule": {
+       "why": "The switcher is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.switcher",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.switcher-colon",
+      "label": ": opens it",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Pressing : anywhere you aren't typing (a page, the sidebar) opens the switcher with : already there, ready for a command.",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "The switcher is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.switcher",
+          "value": true
+         }
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "Tab manager",
+    "settings": [
+     {
+      "property": "zenith.plus.tab-manager",
+      "label": "Tab manager (Alt+Shift+T)",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt+Shift+T (or :tabs in the switcher) opens about:zenith-tabs: every tab in a table to sort and filter, with where the memory and CPU go; each space's tabs in columns; tidying up (duplicates, unused, awake tabs, busy sites, by topic) and rules. Move, sleep, wake, put in folders or close, with Undo. Nothing happens until you press a button or set a rule.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.tabs-auto-sleep",
+      "label": "Sleep on their own",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Off unless you choose: tabs you haven't been to for this long are unloaded (not the one you're on, playing tabs or tabs sharing your camera or screen).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Never",
+        "value": "off"
+       },
+       {
+        "label": "After 15 minutes",
+        "value": "15"
+       },
+       {
+        "label": "After 30 minutes",
+        "value": "30"
+       },
+       {
+        "label": "After an hour",
+        "value": "60"
+       },
+       {
+        "label": "After 2 hours",
+        "value": "120"
+       },
+       {
+        "label": "After 4 hours",
+        "value": "240"
+       }
+      ],
+      "default": "off"
+     },
+     {
+      "property": "zenith.plus.tabs-auto-close",
+      "label": "Close on their own",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Off unless you choose: loose tabs (not pinned, not essentials, not in a folder) you haven't been to for this long close. The tab manager's Rules list them to bring back.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Never",
+        "value": "off"
+       },
+       {
+        "label": "After a day",
+        "value": "1"
+       },
+       {
+        "label": "After 3 days",
+        "value": "3"
+       },
+       {
+        "label": "After a week",
+        "value": "7"
+       },
+       {
+        "label": "After 2 weeks",
+        "value": "14"
+       },
+       {
+        "label": "After a month",
+        "value": "30"
+       }
+      ],
+      "default": "off"
+     }
+    ]
+   },
+   {
+    "title": "Focus mode",
+    "settings": [
+     {
+      "property": "zenith.plus.focus-key",
+      "label": "Focus mode (Alt+Z)",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt+Z puts everything away but the page, for reading or watching: the sidebar, the top toolbar, the edges, the minimap, pills, the bookmarks bar and the link address hide, and whatever's open closes (bookmarks, the Library, this panel, the find bar). You can open any of them again. The sharing alarm still shows. Alt+Z again brings it all back.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.focus-scope",
+      "label": "Focus mode is on for",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Alt+Z focuses the site you're on: its tabs, and pages on it you go to; on another site's tab the browser is as it was. Every site: all tabs, until Alt+Z again.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The site you're on",
+        "value": "site"
+       },
+       {
+        "label": "Every site",
+        "value": "all"
+       }
+      ],
+      "default": "site"
+     },
+     {
+      "property": "zenith.plus.focus-pages",
+      "label": "Pages in focus mode",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Focus mode clears the browser around the page (and closes whatever was open); this is what it does to the page. An article gets a calm reading view over the page; other pages that are mostly reading lose cookie banners, newsletter boxes, share bars, comments, sponsored blocks, ads, side columns and bars stuck to the window's edges. A pill offers Show the page and Not on this site. Leaving focus mode puts it all back, without reloading.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Articles in a reading view, the rest tidied",
+        "value": "tidy"
+       },
+       {
+        "label": "Articles in a reading view only",
+        "value": "reader"
+       },
+       {
+        "label": "Leave pages alone",
+        "value": "off"
+       }
+      ],
+      "default": "tidy"
+     },
+     {
+      "property": "zenith.plus.focus-skip",
+      "label": "Sites left alone",
+      "type": "string",
+      "extra": false,
+      "desc": "Sites focus mode leaves as they are (a site covers its subdomains). The pill's Not on this site adds to the list; remove one with its ✕.",
+      "host": "Zenith Plus",
+      "placeholder": "example.com, another.site",
+      "zenithList": "Add a site (example.com)",
+      "rule": {
+       "why": "Focus mode leaves every page alone",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "not": {
+            "property": "zenith.plus.focus-pages",
+            "value": "off"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.focus-video",
+            "value": true
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "More tools",
+    "settings": [
+     {
+      "property": "zenith.plus.ctrl-tab",
+      "label": "Ctrl+Tab",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "In order, as Zen does (with or without a row of pictures), or recently used like Alt+Tab: hold Ctrl and press Tab to step through the tabs, with pictures of them, and let go to land.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "In order",
+        "value": "order"
+       },
+       {
+        "label": "In order, with pictures",
+        "value": "pictures"
+       },
+       {
+        "label": "Recently used, with pictures (like Alt+Tab)",
+        "value": "recent"
+       }
+      ],
+      "default": "order"
+     },
+     {
+      "property": "zenith.plus.link-hints",
+      "label": "Link hints",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt+; (the key right of L, whatever your layout prints on it) puts a few letters on every link, button and field you can see; type them to follow it, Backspace to take a letter back, Esc to stop. Alt+Shift+; opens a link in a new tab in the background. Its keys are the Shell's: change them under Shell › Keys.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.split-solo",
+      "label": "One pane of a split",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "For a moment's attention: the pane of the tab you're on fills the split view, the others wait behind it (nothing moves or reloads). Alt+F again, or a tab outside the split, and it's as it was.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.float-tab",
+      "label": "Float a tab",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Alt+Shift+F (or right-click a tab › Float this tab) moves the tab you're on into a small window of its own, which takes the focus; the page carries on as it was, and Alt+Shift+F there puts it back. Its bar: the title (click it, or Ctrl+L, Alt+D or F4, to type an address), a pin (the bar stays above the page, or slides down when the pointer comes in), back into the window, minimise or roll up, and close (Ctrl+Shift+T brings it back floating). A floating tab floats again after Zen restarts.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.float-above",
+      "label": "Stays above",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Its Zen window only: the float stays above that window but not above other apps; it closes with the window (Ctrl+Shift+T floats it again; after Zen quits, it floats again at start). Every app: it stays on top of everything (a call while you work elsewhere), and can be minimised.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Its Zen window only",
+        "value": "zen"
+       },
+       {
+        "label": "Every app",
+        "value": "all"
+       }
+      ],
+      "default": "zen",
+      "rule": {
+       "why": "Float a tab is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.float-tab",
+          "value": true
+         }
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "Focus mode on video sites",
+    "settings": [
+     {
+      "property": "zenith.plus.focus-video",
+      "label": "Video sites",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "On a video site, focus mode turns a feed into a place to watch: you come for something, and the page helps you find it and watch it without offering the next thing. On YouTube the home feed, recommendations, Shorts, end screens, autoplay and the bell go, and the video gets the room (theatre, everything else under it); what you keep is below. Elsewhere, blocks of recommended videos go. Leaving focus mode puts it all back.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.focus-video-search",
+      "label": "Search",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The search box stays; the home page is just a search box, with the cursor in it.",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "Video sites are left as they are",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.focus-video-description",
+      "label": "Description and chapters",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The video's description and its chapters stay under the video.",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "Video sites are left as they are",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.focus-video-playlist",
+      "label": "Your playlist",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A playlist or course you're watching stays, under the video (never beside it).",
+      "host": "Zenith Plus",
+      "default": true,
+      "rule": {
+       "why": "Video sites are left as they are",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.focus-video-comments",
+      "label": "Comments",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Comments stay, folded behind a Show comments button.",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "Video sites are left as they are",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.focus-video-subscriptions",
+      "label": "Subscriptions",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The side menu, with only your channels (and Home and Subscriptions); Shorts still go.",
+      "host": "Zenith Plus",
+      "default": false,
+      "rule": {
+       "why": "Video sites are left as they are",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.focus-video",
+          "value": true
+         }
+        }
+       ]
+      }
+     }
+    ],
+    "more": true
    }
   ]
  },
@@ -6420,7 +5090,7 @@ const SCHEMA = [
       "label": "Peek",
       "type": "checkbox",
       "extra": false,
-      "desc": "Alt+Q looks up the selected text or opens the Peek prompt; Shift+Enter in the URL bar peeks; Ctrl+Alt+click a link peeks it (Shell › Clicking a link with keys).",
+      "desc": "Alt+Q looks up the selected text or opens the Peek prompt; Shift+Enter in the URL bar peeks; Ctrl+Alt+click a link peeks it (Tiling and keys › Clicking a link with keys).",
       "host": "Zenith Plus",
       "default": true
      },
@@ -6669,12 +5339,7 @@ const SCHEMA = [
         }
        ]
       }
-     }
-    ]
-   },
-   {
-    "title": "Timers",
-    "settings": [
+     },
      {
       "property": "zenith.peek.pomodoro",
       "label": "Pomodoro",
@@ -6716,40 +5381,13 @@ const SCHEMA = [
  },
  {
   "id": "pages",
-  "title": "Pages",
+  "title": "Pages and privacy",
   "icon": "page",
-  "blurb": "Small touches inside web pages, a start page, and this settings page.",
+  "blurb": "Inside web pages: dark or light, small touches, a start page; and cookies, banners answered for you.",
   "groups": [
    {
-    "title": "In web pages",
+    "title": "Dark and light pages",
     "settings": [
-     {
-      "property": "zenith.page.selection",
-      "label": "Accent text selection",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Selected text in web pages takes the accent colour.",
-      "host": "Zenith Plus",
-      "default": true
-     },
-     {
-      "property": "zenith.page.thin-scrollbars",
-      "label": "Thin accent scrollbars",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "Thin scrollbars in the accent colour in web pages.",
-      "host": "Zenith Plus",
-      "default": false
-     },
-     {
-      "property": "zenith.plus.zoom-pill",
-      "label": "Zoom pill",
-      "type": "checkbox",
-      "extra": false,
-      "desc": "A small pill on zoomed pages; click it to reset.",
-      "host": "Zenith Plus",
-      "default": true
-     },
      {
       "property": "zenith.plus.appearance-auto",
       "label": "Pages on automatic follow",
@@ -6824,6 +5462,124 @@ const SCHEMA = [
         }
        ]
       }
+     }
+    ]
+   },
+   {
+    "title": "Cookies",
+    "settings": [
+     {
+      "property": "zenith.plus.cookie-banners",
+      "label": "Banners",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Consent banners answered as they appear, in pages and their frames: Reject (or Only necessary) pressed on the common consent tools (OneTrust, Cookiebot, Didomi, Quantcast, Usercentrics, Sourcepoint, TrustArc and more), and on any other banner a button that says no. Nothing is ever accepted. A banner with no way to refuse can be hidden instead (the page scrolls again).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Reject, or hide when there's no Reject",
+        "value": "reject-hide"
+       },
+       {
+        "label": "Reject only (leave the rest)",
+        "value": "reject"
+       },
+       {
+        "label": "Hide them, answer nothing",
+        "value": "hide"
+       },
+       {
+        "label": "Leave them",
+        "value": "off"
+       }
+      ],
+      "default": "reject-hide"
+     },
+     {
+      "property": "zenith.plus.cookie-banners-skip",
+      "label": "Sites left alone",
+      "type": "string",
+      "extra": false,
+      "desc": "Sites whose banners stay as they are (a site covers its subdomains). The cookies page's Banners left alone adds to it.",
+      "host": "Zenith Plus",
+      "placeholder": "example.com, another.site",
+      "zenithList": "Add a site (example.com)",
+      "rule": {
+       "why": "Cookie banners are left alone",
+       "conditions": [
+        {
+         "not": {
+          "property": "zenith.plus.cookie-banners",
+          "value": "off"
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.cookie-policy",
+      "label": "Which cookies",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Firefox's own cookie setting (yours comes back with Firefox's own). No cross-site: only the site you're on sets cookies. No trackers: cross-site cookies from known trackers are blocked. Only sites you allow: every cookie is blocked except sites you allow on the cookies page (logins elsewhere stop working).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Firefox's own (Total Cookie Protection)",
+        "value": "firefox"
+       },
+       {
+        "label": "No cross-site cookies",
+        "value": "cross"
+       },
+       {
+        "label": "No cookies from trackers",
+        "value": "trackers"
+       },
+       {
+        "label": "Only sites you allow",
+        "value": "all"
+       }
+      ],
+      "default": "firefox"
+     },
+     {
+      "property": "zenith.plus.cookie-keep",
+      "label": "Kept",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Until you close Zen: Firefox deletes cookies and site data when Zen closes (you're signed out), except sites you allow; history, downloads, the cache and site settings are kept.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Until they expire",
+        "value": "expire"
+       },
+       {
+        "label": "Until you close Zen (except sites you allow)",
+        "value": "session"
+       }
+      ],
+      "default": "expire"
+     },
+     {
+      "property": "zenith.plus.cookie-notices",
+      "label": "Notices with Undo",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The first time Zenith does something on a site (this run of Zen): a banner refused or hidden, or cookies blocked beyond what Firefox blocks on its own (No cross-site cookies, Only sites you allow), a notice says so, with Undo: the site is left alone (its banner back, or its cookies allowed), so no site stays broken by it. Nothing from private windows is kept.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.action.cookies",
+      "label": "Each site's cookies",
+      "type": "action",
+      "extra": false,
+      "desc": "Every site with cookies: allow it, keep its cookies until you close Zen, block it, leave its banners alone, or delete its cookies and data (:cookies in the switcher).",
+      "button": "Cookies by site",
+      "command": "zenith-cookies-command",
+      "host": "Zen"
      }
     ]
    },
@@ -6969,8 +5725,35 @@ const SCHEMA = [
     ]
    },
    {
-    "title": "Settings",
+    "title": "Small touches",
     "settings": [
+     {
+      "property": "zenith.page.selection",
+      "label": "Accent text selection",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Selected text in web pages takes the accent colour.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.page.thin-scrollbars",
+      "label": "Thin accent scrollbars",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Thin scrollbars in the accent colour in web pages.",
+      "host": "Zenith Plus",
+      "default": false
+     },
+     {
+      "property": "zenith.plus.zoom-pill",
+      "label": "Zoom pill",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A small pill on zoomed pages; click it to reset.",
+      "host": "Zenith Plus",
+      "default": true
+     },
      {
       "property": "zenith.plus.sine-mods-first",
       "label": "Tidy Sine's mods page",
@@ -6980,63 +5763,345 @@ const SCHEMA = [
       "host": "Zenith Plus",
       "default": true
      }
-    ]
+    ],
+    "more": true
    }
   ]
  },
  {
-  "id": "cookies",
-  "title": "Cookies",
-  "icon": "cookie",
-  "blurb": "Cookie banners answered for you, which cookies sites may set, how long they're kept, and each site's own rule.",
+  "id": "edges",
+  "title": "Edges",
+  "icon": "border",
+  "blurb": "Hairlines on the page's edges that say what's going on, then get out of the way.",
+  "preset": {
+   "property": "zenith.edges.preset",
+   "host": "Zenith Edges",
+   "default": "full",
+   "sets": {
+    "zenith.edges.load": {
+     "off": "off",
+     "quiet": "on",
+     "full": "on"
+    },
+    "zenith.edges.download": {
+     "off": "off",
+     "quiet": "off",
+     "full": "on"
+    },
+    "zenith.edges.container": {
+     "off": "off",
+     "quiet": "off",
+     "full": "on"
+    },
+    "zenith.edges.sharing": {
+     "off": "off",
+     "quiet": "on",
+     "full": "on"
+    },
+    "zenith.edges.private": {
+     "off": "off",
+     "quiet": "on",
+     "full": "on"
+    },
+    "zenith.edges.insecure": {
+     "off": "off",
+     "quiet": "on",
+     "full": "on"
+    },
+    "zenith.edges.unfocused": {
+     "off": "off",
+     "quiet": "off",
+     "full": "on"
+    },
+    "zenith.edges.muted": {
+     "off": "off",
+     "quiet": "off",
+     "full": "off"
+    },
+    "zenith.edges.focus-border": {
+     "off": "off",
+     "quiet": "off",
+     "full": "off"
+    }
+   },
+   "values": [
+    {
+     "value": "off",
+     "label": "Off",
+     "blurb": "No edges at all"
+    },
+    {
+     "value": "quiet",
+     "label": "Quiet",
+     "blurb": "Loading, sharing, private and not-secure only"
+    },
+    {
+     "value": "full",
+     "label": "Full",
+     "blurb": "Every edge, including downloads and containers"
+    }
+   ]
+  },
   "groups": [
    {
-    "title": "Banners",
+    "title": "Lines",
     "settings": [
      {
-      "property": "zenith.plus.cookie-banners",
-      "label": "Banners",
+      "property": "zenith.edges.load",
+      "label": "Load line",
       "type": "dropdown",
       "extra": false,
-      "desc": "Consent banners answered as they appear, in pages and their frames: Reject (or Only necessary) pressed on the common consent tools (OneTrust, Cookiebot, Didomi, Quantcast, Usercentrics, Sourcepoint, TrustArc and more), and on any other banner a button that says no. Nothing is ever accepted. A banner with no way to refuse can be hidden instead (the page scrolls again).",
-      "host": "Zenith Plus",
+      "desc": "A line across the top grows as the page loads.",
+      "host": "Zenith Edges",
       "options": [
        {
-        "label": "Reject, or hide when there's no Reject",
-        "value": "reject-hide"
+        "label": "On",
+        "value": "on"
        },
        {
-        "label": "Reject only (leave the rest)",
-        "value": "reject"
-       },
-       {
-        "label": "Hide them, answer nothing",
-        "value": "hide"
-       },
-       {
-        "label": "Leave them",
+        "label": "Off",
         "value": "off"
        }
       ],
-      "default": "reject-hide"
+      "default": null
      },
      {
-      "property": "zenith.plus.cookie-banners-skip",
-      "label": "Sites left alone",
-      "type": "string",
+      "property": "zenith.edges.download",
+      "label": "Download line",
+      "type": "dropdown",
       "extra": false,
-      "desc": "Sites whose banners stay as they are (a site covers its subdomains). The cookies page's Banners left alone adds to it.",
-      "host": "Zenith Plus",
-      "placeholder": "example.com, another.site",
-      "zenithList": "Add a site (example.com)",
+      "desc": "A line along the bottom fills as downloads progress.",
+      "host": "Zenith Edges",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.edges.insecure",
+      "label": "Not-secure warning",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "An amber line on top for pages without HTTPS; hover it for a note.",
+      "host": "Zenith Edges",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.edges.container",
+      "label": "Container line",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A line in the container's colour down the left edge.",
+      "host": "Zenith Edges",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.edges.container-style",
+      "label": "Line style",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Straight, curling round the page's corners, or a short rounded bar.",
+      "host": "Zenith Edges",
+      "options": [
+       {
+        "label": "Straight",
+        "value": "straight"
+       },
+       {
+        "label": "Wrap the corners",
+        "value": "wrap"
+       },
+       {
+        "label": "Short bar",
+        "value": "inset"
+       }
+      ],
+      "default": "straight",
+      "parent": "zenith.edges.container",
+      "picture": true,
       "rule": {
-       "why": "Cookie banners are left alone",
+       "why": "Container colour is off",
        "conditions": [
         {
-         "not": {
-          "property": "zenith.plus.cookie-banners",
-          "value": "off"
-         }
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.edges.container",
+            "value": "on"
+           }
+          },
+          {
+           "conditions": [
+            {
+             "if": {
+              "property": "zenith.edges.container",
+              "value": ""
+             }
+            },
+            {
+             "conditions": [
+              {
+               "if": {
+                "property": "zenith.edges.preset",
+                "value": ""
+               }
+              },
+              {
+               "if": {
+                "property": "zenith.edges.preset",
+                "value": "full"
+               }
+              }
+             ],
+             "operator": "OR"
+            }
+           ],
+           "operator": "AND"
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.edges.sharing",
+      "label": "Sharing alarm",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Red edges while the camera, microphone or screen is shared.",
+      "host": "Zenith Edges",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.edges.private",
+      "label": "Private frame",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A frame around private windows.",
+      "host": "Zenith Edges",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.edges.private-colour",
+      "label": "Frame colour",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The private frame's colour.",
+      "host": "Zenith Edges",
+      "options": [
+       {
+        "label": "Purple",
+        "value": "purple"
+       },
+       {
+        "label": "Accent",
+        "value": "accent"
+       },
+       {
+        "label": "Blue",
+        "value": "blue"
+       },
+       {
+        "label": "Teal",
+        "value": "teal"
+       },
+       {
+        "label": "Green",
+        "value": "green"
+       },
+       {
+        "label": "Orange",
+        "value": "orange"
+       },
+       {
+        "label": "Red",
+        "value": "red"
+       },
+       {
+        "label": "Pink",
+        "value": "pink"
+       }
+      ],
+      "default": "purple",
+      "parent": "zenith.edges.private",
+      "rule": {
+       "why": "Private window frame is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.edges.private",
+            "value": "on"
+           }
+          },
+          {
+           "conditions": [
+            {
+             "if": {
+              "property": "zenith.edges.private",
+              "value": ""
+             }
+            },
+            {
+             "not": {
+              "property": "zenith.edges.preset",
+              "value": "off"
+             }
+            }
+           ],
+           "operator": "AND"
+          }
+         ],
+         "operator": "OR"
         }
        ]
       }
@@ -7044,72 +6109,994 @@ const SCHEMA = [
     ]
    },
    {
-    "title": "Cookies",
+    "title": "How they look",
     "settings": [
      {
-      "property": "zenith.plus.cookie-policy",
-      "label": "Which cookies",
+      "property": "zenith.edges.thickness",
+      "label": "Thickness",
       "type": "dropdown",
       "extra": false,
-      "desc": "Firefox's own cookie setting (yours comes back with Firefox's own). No cross-site: only the site you're on sets cookies. No trackers: cross-site cookies from known trackers are blocked. Only sites you allow: every cookie is blocked except sites you allow on the cookies page (logins elsewhere stop working).",
-      "host": "Zenith Plus",
+      "desc": "How thick the lines are.",
+      "host": "Zenith Edges",
       "options": [
        {
-        "label": "Firefox's own (Total Cookie Protection)",
-        "value": "firefox"
+        "label": "Auto",
+        "value": "auto"
        },
        {
-        "label": "No cross-site cookies",
-        "value": "cross"
+        "label": "1px",
+        "value": "1"
        },
        {
-        "label": "No cookies from trackers",
-        "value": "trackers"
+        "label": "2px",
+        "value": "2"
        },
        {
-        "label": "Only sites you allow",
-        "value": "all"
+        "label": "3px",
+        "value": "3"
        }
       ],
-      "default": "firefox"
+      "default": "auto"
      },
      {
-      "property": "zenith.plus.cookie-keep",
-      "label": "Kept",
+      "property": "zenith.edges.unfocused",
+      "label": "Fade in the background",
       "type": "dropdown",
       "extra": false,
-      "desc": "Until you close Zen: Firefox deletes cookies and site data when Zen closes (you're signed out), except sites you allow; history, downloads, the cache and site settings are kept.",
-      "host": "Zenith Plus",
+      "desc": "Lines fade while the window is in the background.",
+      "host": "Zenith Edges",
       "options": [
        {
-        "label": "Until they expire",
-        "value": "expire"
+        "label": "On",
+        "value": "on"
        },
        {
-        "label": "Until you close Zen (except sites you allow)",
-        "value": "session"
+        "label": "Off",
+        "value": "off"
        }
       ],
-      "default": "expire"
+      "default": null
      },
      {
-      "property": "zenith.plus.cookie-notices",
-      "label": "Notices with Undo",
+      "property": "zenith.edges.muted",
+      "label": "Muted marker",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "A short mark in the top-left corner while the tab is muted.",
+      "host": "Zenith Edges",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.edges.focus-border",
+      "label": "Focus frame",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "A thin accent frame while the window is focused.",
+      "host": "Zenith Edges",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     }
+    ],
+    "more": true
+   }
+  ]
+ },
+ {
+  "id": "panels",
+  "title": "Panels",
+  "icon": "panels",
+  "blurb": "Everything that floats over the page: find bar, Library, notices, split view, menus, bookmarks.",
+  "preset": {
+   "property": "zenith.panels.preset",
+   "host": "Zenith Panels",
+   "default": "zenith",
+   "sets": {
+    "zenith.panels.findbar": {
+     "zen": "off",
+     "zenith": "bottom",
+     "compact": "bottom"
+    },
+    "zenith.panels.history": {
+     "zen": "off",
+     "zenith": "card",
+     "compact": "card"
+    },
+    "zenith.panels.split": {
+     "zen": "zen",
+     "zenith": "gaps",
+     "compact": "gaps"
+    },
+    "zenith.panels.notifications": {
+     "zen": "zen",
+     "zenith": "dunst",
+     "compact": "dunst"
+    },
+    "zenith.panels.compact-menus": {
+     "zen": "off",
+     "zenith": "off",
+     "compact": "on"
+    },
+    "zenith.panels.glance": {
+     "zen": "off",
+     "zenith": "off",
+     "compact": "off"
+    },
+    "zenith.panels.menu-icons": {
+     "zen": "off",
+     "zenith": "off",
+     "compact": "off"
+    }
+   },
+   "values": [
+    {
+     "value": "zen",
+     "label": "Zen default",
+     "blurb": "Zen's own find bar, Library, menus and notices"
+    },
+    {
+     "value": "zenith",
+     "label": "Zenith",
+     "blurb": "Floating, glass and quiet"
+    },
+    {
+     "value": "compact",
+     "label": "Zenith, compact menus",
+     "blurb": "The same, with tighter menus"
+    }
+   ]
+  },
+  "groups": [
+   {
+    "title": "Find, history and menus",
+    "settings": [
+     {
+      "property": "zenith.panels.findbar",
+      "label": "Find bar",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Where the find bar floats.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "Zen default",
+        "value": "off"
+       },
+       {
+        "label": "Bottom",
+        "value": "bottom"
+       },
+       {
+        "label": "Top",
+        "value": "top"
+       }
+      ],
+      "default": "bottom",
+      "picture": true
+     },
+     {
+      "property": "zenith.panels.history",
+      "label": "Library",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The Library (Ctrl+H) as a floating card.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "Zen default",
+        "value": "off"
+       },
+       {
+        "label": "Floating card",
+        "value": "card"
+       }
+      ],
+      "default": "card"
+     },
+     {
+      "property": "zenith.panels.compact-menus",
+      "label": "Compact menus",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Tighter right-click and app menus.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     },
+     {
+      "property": "zenith.plus.more-menu",
+      "label": "More submenu",
       "type": "checkbox",
       "extra": false,
-      "desc": "The first time Zenith does something on a site (this run of Zen): a banner refused or hidden, or cookies blocked beyond what Firefox blocks on its own (No cross-site cookies, Only sites you allow), a notice says so, with Undo: the site is left alone (its banner back, or its cookies allowed), so no site stays broken by it. Nothing from private windows is kept.",
+      "desc": "Rare items in the right-click menus (view source, send to device, set as desktop background and so on) move into a More submenu at the end. Nothing is removed.",
       "host": "Zenith Plus",
       "default": true
      },
      {
-      "property": "zenith.action.cookies",
-      "label": "Each site's cookies",
-      "type": "action",
+      "property": "zenith.panels.menu-icons",
+      "label": "Menu icons",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "Small icons on the right-click items you use most (open, copy, paste, save, close, pin) and on More, from Zen's own icon set.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     }
+    ]
+   },
+   {
+    "title": "Bookmarks",
+    "settings": [
+     {
+      "property": "zenith.plus.bookmarks-look",
+      "label": "Bookmarks look",
+      "type": "dropdown",
       "extra": false,
-      "desc": "Every site with cookies: allow it, keep its cookies until you close Zen, block it, leave its banners alone, or delete its cookies and data (:cookies in the switcher).",
-      "button": "Cookies by site",
-      "command": "zenith-cookies-command",
-      "host": "Zen"
+      "desc": "Ctrl+B opens your bookmarks in Zenith's look: rows like the tab list, with folders that open in place, or a grid of tiles. Drop a tab on it to bookmark it. \"Firefox's tree\" keeps Firefox's own sidebar, in Zenith's colours.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Like the tab list",
+        "value": "list"
+       },
+       {
+        "label": "Tiles",
+        "value": "tiles"
+       },
+       {
+        "label": "Firefox's tree, restyled",
+        "value": "firefox"
+       }
+      ],
+      "default": "list"
+     },
+     {
+      "property": "zenith.plus.bookmarks-place",
+      "label": "Where they open",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Floating over the page on the side across from the sidebar, docked there (the page gets narrower), or docked beside the sidebar. It follows the sidebar when that changes sides. Drag its inner edge to make it wider.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Over the page, across from the sidebar",
+        "value": "float"
+       },
+       {
+        "label": "Across from the sidebar, the page makes room",
+        "value": "far"
+       },
+       {
+        "label": "Beside the sidebar",
+        "value": "near"
+       }
+      ],
+      "default": "float"
+     },
+     {
+      "property": "zenith.plus.bookmarks-space-first",
+      "label": "This space first",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "A section for the space you're in: its own folder (made when you first drop something there) and the bookmarks Zen's edit dialog gives to this space. Bookmarks given only to other spaces are left out, as in Zen's menus.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.bookmarks-library",
+      "label": "In Zen's Library",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The same bookmarks as a section of Zen's Library, next to History.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.bookmarks-bar",
+      "label": "Bookmarks bar",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "When the bookmarks bar is on (Ctrl+Shift+B): Zen's own place beside the window buttons, a slim strip above the page, or the same strip over the page that shows when the pointer reaches the top.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Zen's own, with the window buttons",
+        "value": "zen"
+       },
+       {
+        "label": "Above the page",
+        "value": "above"
+       },
+       {
+        "label": "Over the page, on hover",
+        "value": "hover"
+       }
+      ],
+      "default": "zen"
+     },
+     {
+      "property": "zenith.plus.bookmarks-import",
+      "label": "Import button",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Firefox's \"Import bookmarks…\" button on the bookmarks bar.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Hidden",
+        "value": "hidden"
+       },
+       {
+        "label": "Shown",
+        "value": "shown"
+       }
+      ],
+      "default": "hidden"
+     }
+    ]
+   },
+   {
+    "title": "Video and downloads",
+    "settings": [
+     {
+      "property": "zenith.panels.pip",
+      "label": "Picture-in-picture controls",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Glass controls on picture-in-picture, or Firefox's own.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "Glass",
+        "value": "zenith"
+       },
+       {
+        "label": "Firefox default",
+        "value": "firefox"
+       }
+      ],
+      "default": "zenith"
+     },
+     {
+      "property": "zenith.plus.pip-extras",
+      "label": "Move and tuck",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "The mouse wheel over picture-in-picture makes it bigger or smaller. Let go of it near an edge and it settles against it; drop it more than halfway past the left or right edge and it tucks away, a sliver with an arrow staying in view while it plays. Rest the pointer on the sliver (or click it) and it comes out; a click anywhere else, or the pointer away from it for a few seconds, tucks it again. Drag it away from the edge to keep it out.",
+      "host": "Zenith Plus",
+      "default": true
+     },
+     {
+      "property": "zenith.plus.pip-within",
+      "label": "Within",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The screen: its edges are the screen's, above every app. The Zen window: it stays inside the window it came from and moves with it, above that window only (not other apps), minimised with it (Windows).",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "The screen",
+        "value": "screen"
+       },
+       {
+        "label": "The Zen window (it follows the window)",
+        "value": "zen"
+       }
+      ],
+      "default": "screen",
+      "rule": {
+       "why": "Move and tuck is off",
+       "conditions": [
+        {
+         "if": {
+          "property": "zenith.plus.pip-extras",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.download-delete",
+      "label": "Delete button",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A bin beside Show in folder on each finished download, in the sidebar's downloads, Zen's Library and Firefox's Library window: it deletes the file and takes it off the list. With two clicks, the first turns it red and asks.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "One click",
+        "value": "one"
+       },
+       {
+        "label": "Two clicks (asks first)",
+        "value": "confirm"
+       },
+       {
+        "label": "No bin",
+        "value": "off"
+       }
+      ],
+      "default": "one"
+     }
+    ]
+   },
+   {
+    "title": "Fine-tuning",
+    "settings": [
+     {
+      "property": "zenith.panels.split",
+      "label": "Split view",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Thin dividers, i3-style gaps, or Zen's own split view.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "Hairlines",
+        "value": "hairlines"
+       },
+       {
+        "label": "Tiling gaps",
+        "value": "gaps"
+       },
+       {
+        "label": "Zen default",
+        "value": "zen"
+       }
+      ],
+      "default": "gaps",
+      "picture": true
+     },
+     {
+      "property": "zenith.panels.gap",
+      "label": "Tiling gap size",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The size of the gaps between split panes.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "2px",
+        "value": "2"
+       },
+       {
+        "label": "4px",
+        "value": "4"
+       },
+       {
+        "label": "6px",
+        "value": "6"
+       },
+       {
+        "label": "8px",
+        "value": "8"
+       },
+       {
+        "label": "12px",
+        "value": "12"
+       },
+       {
+        "label": "16px",
+        "value": "16"
+       },
+       {
+        "label": "24px",
+        "value": "24"
+       }
+      ],
+      "default": "6",
+      "parent": "zenith.panels.split",
+      "rule": {
+       "why": "Only with Split view: Tiling gaps",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.panels.split",
+            "value": "gaps"
+           }
+          },
+          {
+           "conditions": [
+            {
+             "if": {
+              "property": "zenith.panels.split",
+              "value": ""
+             }
+            },
+            {
+             "not": {
+              "property": "zenith.panels.preset",
+              "value": "zen"
+             }
+            }
+           ],
+           "operator": "AND"
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.panels.notifications",
+      "label": "Notifications",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen's notices, small toasts, or dunst-style cards.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "Zen default",
+        "value": "zen"
+       },
+       {
+        "label": "Small toasts",
+        "value": "small"
+       },
+       {
+        "label": "dunst cards",
+        "value": "dunst"
+       }
+      ],
+      "default": "dunst",
+      "picture": true
+     },
+     {
+      "property": "zenith.panels.status-delay",
+      "label": "Link address delay",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How long a link waits before its address shows at the bottom.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "Instant",
+        "value": "0"
+       },
+       {
+        "label": "150ms",
+        "value": "150"
+       },
+       {
+        "label": "300ms",
+        "value": "300"
+       },
+       {
+        "label": "500ms",
+        "value": "500"
+       },
+       {
+        "label": "800ms",
+        "value": "800"
+       }
+      ],
+      "default": "300"
+     },
+     {
+      "property": "zenith.panels.tab-preview",
+      "label": "Tab previews",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Firefox's card with a picture of the page when you rest on a tab, in Zenith's corners and colours, or left as Firefox draws it.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "Zenith",
+        "value": "zenith"
+       },
+       {
+        "label": "Firefox's own",
+        "value": "firefox"
+       }
+      ],
+      "default": "zenith"
+     },
+     {
+      "property": "zenith.panels.glance",
+      "label": "Glance card",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "Glance as a lifted, rounded card.",
+      "host": "Zenith Panels",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     }
+    ],
+    "more": true
+   }
+  ]
+ },
+ {
+  "id": "urlbar",
+  "title": "URL bar",
+  "icon": "search",
+  "blurb": "Where the URL bar floats and how its results read.",
+  "preset": {
+   "property": "zenith.urlbar.preset",
+   "host": "Zenith URL bar",
+   "default": "spotlight",
+   "sets": {
+    "zenith.urlbar.results": {
+     "zen": "list",
+     "spotlight": "dense",
+     "top": "dense"
+    },
+    "zenith.urlbar.mono": {
+     "zen": "off",
+     "spotlight": "off",
+     "top": "off"
+    }
+   },
+   "values": [
+    {
+     "value": "zen",
+     "label": "Zen default",
+     "blurb": "Zen's own URL bar"
+    },
+    {
+     "value": "spotlight",
+     "label": "Spotlight",
+     "blurb": "Floating in the middle of the window"
+    },
+    {
+     "value": "top",
+     "label": "Top",
+     "blurb": "Floating just below the top edge"
+    }
+   ]
+  },
+  "groups": [
+   {
+    "title": "Results",
+    "settings": [
+     {
+      "property": "zenith.urlbar.results",
+      "label": "Results layout",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Dense rows, Zen's list, or tiles for your top sites.",
+      "host": "Zenith URL bar",
+      "options": [
+       {
+        "label": "Dense list",
+        "value": "dense"
+       },
+       {
+        "label": "Zen list",
+        "value": "list"
+       },
+       {
+        "label": "Tiles for top sites",
+        "value": "tiles"
+       }
+      ],
+      "default": "dense",
+      "picture": true,
+      "rule": {
+       "why": "The URL bar preset is Zen default",
+       "conditions": [
+        {
+         "not": {
+          "property": "zenith.urlbar.preset",
+          "value": "zen"
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.urlbar.mono",
+      "label": "Monospace addresses",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "Web addresses in a monospace font.",
+      "host": "Zenith URL bar",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "motion",
+  "title": "Motion",
+  "icon": "motion",
+  "blurb": "How things move.",
+  "preset": {
+   "property": "zenith.motion.preset",
+   "host": "Zenith Motion",
+   "default": "quick",
+   "sets": {
+    "zenith.motion.swipe": {
+     "off": "off",
+     "quick": "on",
+     "smooth": "on"
+    },
+    "zenith.motion.swipe-round": {
+     "off": "off",
+     "quick": "off",
+     "smooth": "off"
+    }
+   },
+   "values": [
+    {
+     "value": "off",
+     "label": "Off",
+     "blurb": "Everything moves instantly"
+    },
+    {
+     "value": "quick",
+     "label": "Quick",
+     "blurb": "Short, light motion"
+    },
+    {
+     "value": "smooth",
+     "label": "Smooth",
+     "blurb": "Softer, springier motion"
+    }
+   ]
+  },
+  "groups": [
+   {
+    "title": "Movement",
+    "settings": [
+     {
+      "property": "zenith.motion.tab-switch",
+      "label": "Tab switch",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Switch tabs instantly, or with a quick crossfade.",
+      "host": "Zenith Motion",
+      "options": [
+       {
+        "label": "Instant",
+        "value": "instant"
+       },
+       {
+        "label": "Crossfade",
+        "value": "fade"
+       }
+      ],
+      "default": "instant",
+      "rule": {
+       "why": "Motion is off",
+       "conditions": [
+        {
+         "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.motion.space-switch",
+      "label": "Switching spaces",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How long Zen's slide from one space to the next takes: Zen's own 250 ms, 120 ms (as the Quick preset has it), or no slide at all. Left as the preset: Quick 120 ms, Smooth Zen's, Off none.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "As the preset",
+        "value": "preset"
+       },
+       {
+        "label": "Zen's slide (250 ms)",
+        "value": "zen"
+       },
+       {
+        "label": "Quick (120 ms)",
+        "value": "quick"
+       },
+       {
+        "label": "Instant",
+        "value": "instant"
+       }
+      ],
+      "default": "preset"
+     },
+     {
+      "property": "zenith.motion.swipe",
+      "label": "Swipe animation",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The page follows your fingers when you swipe back and forward.",
+      "host": "Zenith Motion",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null,
+      "rule": {
+       "why": "Motion is off",
+       "conditions": [
+        {
+         "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.motion.swipe-round",
+      "label": "Round and lift while swiping",
+      "type": "dropdown",
+      "extra": true,
+      "desc": "The page rounds and lifts a little while you swipe.",
+      "host": "Zenith Motion",
+      "options": [
+       {
+        "label": "On",
+        "value": "on"
+       },
+       {
+        "label": "Off",
+        "value": "off"
+       }
+      ],
+      "default": null,
+      "parent": "zenith.motion.swipe",
+      "rule": {
+       "why": "Swipe animation is off",
+       "conditions": [
+        {
+         "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+         }
+        },
+        {
+         "not": {
+          "property": "zenith.motion.swipe",
+          "value": "off"
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.scroll",
+      "label": "Scroll feel",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How the mouse wheel and the keyboard scroll pages: Zen's own short glide, instant jumps, a crisp quick ease, a slower even one, or a macOS-like glide that goes further and bounces at the ends. A touchpad follows your fingers and isn't changed.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Zen's own",
+        "value": ""
+       },
+       {
+        "label": "Instant",
+        "value": "instant"
+       },
+       {
+        "label": "Quick",
+        "value": "quick"
+       },
+       {
+        "label": "Smooth",
+        "value": "smooth"
+       },
+       {
+        "label": "macOS-like",
+        "value": "glide"
+       }
+      ],
+      "default": ""
+     }
+    ]
+   },
+   {
+    "title": "Less motion",
+    "settings": [
+     {
+      "property": "zenith.motion.reduced",
+      "label": "When the system asks for less motion",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "When your system asks for less motion: keep Zenith's, or stop it.",
+      "host": "Zenith Motion",
+      "options": [
+       {
+        "label": "Keep Zenith's motion",
+        "value": "zenith"
+       },
+       {
+        "label": "Follow the system",
+        "value": "follow"
+       }
+      ],
+      "default": "zenith",
+      "rule": {
+       "why": "Zenith Plus keeps everything animated",
+       "conditions": [
+        {
+         "not": {
+          "property": "zenith.plus.animate-zen",
+          "value": true
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.plus.animate-zen",
+      "label": "Keep Zen's animations",
+      "type": "checkbox",
+      "extra": false,
+      "desc": "Keep Zen's own animations too, whatever the system says.",
+      "host": "Zenith Plus",
+      "default": true
      }
     ]
    }
@@ -7404,7 +7391,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.16.4";
+const SCHEMA_VERSION = "0.17.0";
 
 class SettingsView {
   constructor(kind) {
@@ -7550,8 +7537,17 @@ class SettingsView {
     for (const group of section.groups) {
       const settings = group.settings.filter(s => !s.rule?.platform || s.rule.platform === OS);
       if (!settings.length) continue;
-      const box = el("div", { class: "zp-group" });
-      box.append(el("h3", {}, group.title));
+      // Fine-tuning groups start closed: the few settings most people want
+      // stay in view, the rest a click away (search opens them).
+      const box = el(group.more ? "details" : "div", { class: "zp-group" });
+      const title = el("h3", {}, group.title);
+      if (group.more) {
+        box.setAttribute("zp-more", "");
+        const summary = el("summary", {});
+        summary.append(title, el("span", { class: "zp-count" }, `${settings.length} more`));
+        box.append(summary);
+      } else box.append(title);
+      if (group.blurb) box.append(el("p", { class: "zp-group-blurb" }, group.blurb));
       for (const s of settings) box.append(this.row(s, section));
       node.append(box);
     }
@@ -8051,6 +8047,16 @@ class SettingsView {
     for (const group of this.root.querySelectorAll(".zp-group, .zp-section")) {
       group.toggleAttribute("zp-hidden", !group.querySelector(".zp-row:not([zp-hidden]), .zp-presets:not([zp-hidden])"));
     }
+    // (A closed group with a match opens while searching, and closes after.)
+    for (const more of this.root.querySelectorAll("details.zp-group")) {
+      if (words.length) {
+        more.zpWasOpen ??= more.open;
+        more.open = !more.hasAttribute("zp-hidden");
+      } else if (more.zpWasOpen !== undefined) {
+        more.open = more.zpWasOpen;
+        delete more.zpWasOpen;
+      }
+    }
     this.root.querySelector(".zp-chips").toggleAttribute("zp-hidden", words.length > 0);
     this.empty.hidden = shown > 0;
   }
@@ -8109,7 +8115,16 @@ const STYLE = `
     color: var(--zp-dim); }
   .zp-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 11px 0;
     border-top: 1px solid var(--zp-border); }
-  .zp-group h3 + .zp-row { border-top: none; }
+  .zp-group h3 + .zp-row, .zp-group summary + .zp-row, .zp-group-blurb + .zp-row { border-top: none; }
+  .zp-group-blurb { margin: 0 0 4px; color: var(--zp-dim); font-size: 0.9em; }
+  details.zp-group { background: none; border-style: dashed; }
+  details.zp-group[open] { background: var(--zp-box); border-style: solid; }
+  details.zp-group > summary { display: flex; align-items: center; gap: 8px; padding: 8px 0; cursor: pointer; list-style: none; }
+  details.zp-group > summary::-webkit-details-marker { display: none; }
+  details.zp-group > summary::before { content: "›"; display: inline-block; width: 10px; color: var(--zp-dim); transition: transform 0.15s; }
+  details.zp-group[open] > summary::before { transform: rotate(90deg); }
+  details.zp-group > summary h3 { margin: 0; }
+  details.zp-group .zp-count { margin-inline-start: auto; color: var(--zp-dim); font-size: 0.85em; }
   .zp-row[child] { padding-inline-start: 18px; position: relative; }
   .zp-row[child]::before { content: ""; position: absolute; inset-inline-start: 4px; top: 12px; bottom: 12px; width: 2px;
     border-radius: 2px; background: var(--zp-border); }

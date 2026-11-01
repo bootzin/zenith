@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Pages made dark or light (Zenith Plus, Pages › Pages set dark or light:
+// Pages made dark or light (Zenith Plus, Pages and privacy › Pages set dark or light:
 // Invert those that don't follow). Firefox asks every page for dark or light
 // (prefers-color-scheme); many sites don't listen. Whatever pages are set to
 // (dark, light, or automatic, which is one of the two: the browser's or
 // Windows'), a page still in the other once it has settled is inverted, as
 // Dark Reader's filter mode does: its colours turned over, its pictures and
 // videos turned back. A page that follows, or a site you've left alone
-// (Pages › Sites left alone, or the sun-and-moon's menu), stays as it is.
+// (Pages and privacy › Sites left alone, or the sun-and-moon's menu), stays as it is.
 //
 // One decision per page: taken once it has loaded and settled (a moment
 // after "load"), from what's drawn where it shows (the backgrounds under a

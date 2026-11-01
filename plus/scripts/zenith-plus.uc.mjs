@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.16.4
+// @version        0.17.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -20,7 +20,7 @@
 // Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
 // work without any of this. Peek has its own script, zenith-peek.uc.mjs.
 
-const ZENITH_VERSION = "0.16.4"; // (tools/bump_version.py keeps it)
+const ZENITH_VERSION = "0.17.0"; // (tools/bump_version.py keeps it)
 window.ZenithVersion = ZENITH_VERSION; // about:zenith-fetch, the rice file
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const root = document.documentElement;
@@ -499,7 +499,7 @@ const Minimap = {
   },
 
   // As the tabs show it: no attention dots, no attention ticks; a title
-  // that changed counts only if it gets a dot (Tabs › Attention dots).
+  // that changed counts only if it gets a dot (Sidebar and tabs › Attention dots).
   attentionOn() {
     const P = Services.prefs, v = P.getStringPref("zenith.tabs.attention", "");
     return v ? v === "on" : (P.getStringPref("zenith.tabs.preset", "") || "informative") !== "plain";
@@ -2396,7 +2396,7 @@ const ZenithKeys = {
    The tab you're on (or the one you right-click › Float this tab) moves into
    a small window of its own, its page carrying on as it was (nothing
    reloads). The window has the focus once it opens, so Alt+Shift+F again
-   puts the tab back. It stays on top (Keys › Float a tab › Stays above):
+   puts the tab back. It stays on top (Tools › Float a tab › Stays above):
      zen  above its Zen window only, not other apps (the default); it closes
           with that window (Ctrl+Shift+T brings it back floating, or the next start does);
      all  above every app (a call or a stream while you work elsewhere).
@@ -2956,7 +2956,7 @@ const FloatTab = {
 /* --- Windows' own: the pointer, a window's owner and corners ---------------------
    For picture-in-picture: where the pointer is and whether its button is
    down (even over other apps), a window kept above one Zen window only,
-   and its corners as Look › Corners says. Windows only; elsewhere these do
+   and its corners as Theme › Size and shape › Corners says. Windows only; elsewhere these do
    nothing and say nothing. */
 const Win32 = {
   load() {
@@ -3094,7 +3094,7 @@ const PiPWindows = {
     if (win.document.documentElement.getAttribute("windowtype") !== "Toolkit:PictureInPicture" || win.zenithPiP) return;
     if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
     const state = (win.zenithPiP = { owner: this, at: [win.screenX, win.screenY], still: 0, tucked: null, visiting: null, calmUntil: 0 });
-    // Its window's corners as Look › Corners says (Windows 11); inside Zen,
+    // Its window's corners as Theme › Size and shape › Corners says (Windows 11); inside Zen,
     // above this Zen window only (not other apps) and kept inside it.
     if (Services.prefs.getStringPref(this.WITHIN, "") === "zen") {
       // (Once the window is up: Firefox sets it on top of everything as it
@@ -5187,7 +5187,7 @@ const NewTabBelow = {
    phase, sees a key before the page does (tools/checks/r77); a key the
    Shell doesn't have costs a Map lookup. Alt+P (passthrough), or a site on
    the passthrough list, gives the page its Alt keys back. Keys are changed
-   on Zenith's page (Shell › Keys), kept as one setting of the changes.
+   on Zenith's page (Tiling and keys › Keys), kept as one setting of the changes.
    The mouse: Alt+Shift+click a link opens it as a tile (the page's half is
    in plus/pages/peek-link.sys.mjs); Alt+drag a tile onto another swaps
    them, onto one's edge moves it there; Alt+right-drag resizes; Alt+wheel
@@ -5292,7 +5292,7 @@ const ShellKeys = {
     return combo.split("+").map(p => NAMES[p] ?? p.replace(/^Key|^Digit|^Numpad/, "")).join("+");
   },
 
-  // The page you're on keeps its Alt keys (Shell › Sites that keep their Alt keys).
+  // The page you're on keeps its Alt keys (Tiling and keys › Sites that keep their Alt keys).
   siteKeeps() {
     if (!this.sites.length) return false;
     let host = "";
@@ -5420,12 +5420,22 @@ const Tiler = {
   },
 
   init() {
-    // Tiles in one split (Shell › Tiles in one split): Zen's own is 4; 0 is
+    // Tiles in one split (Tiling and keys › Tiles in one split): Zen's own is 4; 0 is
     // no limit (experimental: Zen's grid takes any number).
+    // A strip (the scroller with every tab of the space) has none: Zen's
+    // own checks read MAX_TABS, so it answers for the space you're on.
+    let max = 4;
     const cap = () => {
       const n = parseInt(Services.prefs.getStringPref(SHELL.TILES, ""), 10);
-      if (this.S) this.S.MAX_TABS = n === 0 ? Infinity : n >= 2 && n <= 12 ? n : 4;
+      max = n === 0 ? Infinity : n >= 2 && n <= 12 ? n : 4;
     };
+    if (this.S) {
+      Object.defineProperty(this.S, "MAX_TABS", { configurable: true, get: () => (Layouts.strip() ? Infinity : max), set: v => (max = v) });
+      onUnload(() => {
+        delete this.S.MAX_TABS;
+        this.S.MAX_TABS = 4;
+      });
+    }
     Services.prefs.addObserver(SHELL.TILES, cap);
     onUnload(() => Services.prefs.removeObserver(SHELL.TILES, cap));
     cap();
@@ -5520,7 +5530,7 @@ const Tiler = {
   },
 
   full() {
-    hint(`This split is full (${this.S?.MAX_TABS ?? 4} tiles: Shell › Tiles in one split)`);
+    hint(`This split is full (${this.S?.MAX_TABS ?? 4} tiles: Tiling and keys › Tiles in one split)`);
   },
 
   // Alt+Shift+Enter: the address bar, and the tab it opens is a tile.
@@ -5693,14 +5703,18 @@ const PageScroll = {
   },
 };
 
-/* --- Layouts: each space's own (Shell › Layout; Alt+Y the next one) ---------------
+/* --- Layouts: each space's own (Tiling and keys › Layout; Alt+Y the next one) ---------------
    Dwindle: a new tile splits the one you're on along its longer side
    (Hyprland's). Master: one master tile and a stack (dwm's: the master on
    the left; or centred, the stack either side); Alt+Shift+Y makes the tile
    you're on the master. Scroller: tiles are columns on a strip, as niri's:
-   those that fit show, the rest wait to the side (only drawn when shown),
-   Alt+H and Alt+L walk the strip, Alt+Shift+Y the column's next width (a
-   third, a half, two thirds, all). Monocle: the tile you're on fills the
+   every tab of the space (not essentials, pinned tabs or Firefox's groups;
+   Tiling and keys › The scroller's strip holds: or only a split's tabs), with no
+   limit on how many; those that fit show, the rest wait to the side (not
+   drawn, their pages asleep), Alt+H and Alt+L (or Alt and a sideways
+   wheel) walk the strip, Alt+Shift+Y the column's next width (a third, a
+   half, two thirds, all), the column you're on kept in view or centred
+   (Tiling and keys › The scroller keeps the column you're on). Monocle: the tile you're on fills the
    view (Alt+F's), Alt+H and Alt+L go to the others. */
 const Layouts = {
   ALL: ["dwindle", "master", "scroller", "monocle"],
@@ -5708,6 +5722,8 @@ const Layouts = {
   PREF: "zenith.shell.layout",
   SPACES: "zenith.internal.layout.spaces", // { space: layout }
   WIDTHS: [100 / 3, 50, 200 / 3, 100],
+  STRIP: "zenith.shell.scroller-tabs", // all · split
+  FOCUS: "zenith.shell.scroller-focus", // view · centre
   widths: new WeakMap(), // a scroller column's tab → its width (% of the view)
 
   init() {
@@ -5720,6 +5736,7 @@ const Layouts = {
       this.here = W?.activeWorkspace;
       if (was === "monocle" && this.of() !== "monocle") SplitSolo.off();
       if (this.of() === "monocle") this.solo();
+      this.soon();
       this.tell();
     };
     W?.addChangeListeners?.(spaceChanged);
@@ -5727,7 +5744,19 @@ const Layouts = {
       const how = this.of(), tab = gBrowser.selectedTab;
       if (how === "monocle") this.solo();
       else if (how === "scroller" && !this.arranging && Tiler.data(tab)) this.arrange(tab);
+      if (how === "scroller" && !this.gathering && this.members().includes(tab) && !this.whole()) this.soon();
     };
+    // A strip takes in every new tab of its space.
+    const opened = () => this.soon();
+    gBrowser.tabContainer.addEventListener("TabOpen", opened);
+    const scope = () => (this.strip() ? this.soon() : null);
+    Services.prefs.addObserver(this.STRIP, scope);
+    onUnload(() => {
+      gBrowser.tabContainer.removeEventListener("TabOpen", opened);
+      Services.prefs.removeObserver(this.STRIP, scope);
+    });
+    // After the session is back: a strip space's tabs on their strip.
+    (window.SessionStore?.promiseAllWindowsRestored ?? Promise.resolve()).then(() => setTimeout(() => this.soon(), 500));
     // The scroller: Zen lays a split out (sizes that add up to the view);
     // a scroller's columns are then moved to where they are on the strip,
     // those beyond either edge out of sight.
@@ -5745,9 +5774,35 @@ const Layouts = {
       onUnload(() => (S.applyGridLayout = grid));
     }
     // A tile closed: the master layout laid out again; a column off its strip.
-    const closed = e => setTimeout(() => this.closed(e.target), 0);
+    // (A strip's column you're on closed: the one to its right is next, as
+    // niri's, else the one to its left.)
+    const closed = e => {
+      const tab = e.target, data = tab === gBrowser.selectedTab && this.of() === "scroller" ? Tiler.data(tab) : null;
+      const order = data ? this.order(data) : [], i = order.indexOf(tab), next = order[i + 1] ?? order[i - 1];
+      // (Selected now: Zen's own would pick the split's first tab.)
+      if (next) gBrowser.selectedTab = next;
+      setTimeout(() => this.closed(tab, next), 0);
+    };
     gBrowser.tabContainer.addEventListener("TabSelect", select);
-    gBrowser.tabContainer.addEventListener("TabClose", closed);
+    // (Before Zen's own, which takes the tab out of its split.)
+    window.addEventListener("TabClose", closed, true);
+    // Firefox picks the tab to show after closing one (sometimes before the
+    // close event): in the scroller, the column's neighbour.
+    const blurTo = gBrowser._findTabToBlurTo;
+    if (blurTo) {
+      gBrowser._findTabToBlurTo = function (tab, exclude) {
+        try {
+          const data = Layouts.of() === "scroller" ? Tiler.data(tab) : null;
+          if (data) {
+            const order = Layouts.order(data), i = order.indexOf(tab);
+            const next = [order[i + 1], order[i - 1]].find(t => t && !t.closing && !exclude?.includes?.(t));
+            if (next) return next;
+          }
+        } catch {}
+        return blurTo.apply(this, arguments);
+      };
+      onUnload(() => (gBrowser._findTabToBlurTo = blurTo));
+    }
     const prefs = () => {
       const data = Tiler.data();
       if (data && this.of() === "master") this.master(data);
@@ -5757,7 +5812,7 @@ const Layouts = {
     onUnload(() => {
       W?.removeChangeListeners?.(spaceChanged);
       gBrowser.tabContainer.removeEventListener("TabSelect", select);
-      gBrowser.tabContainer.removeEventListener("TabClose", closed);
+      window.removeEventListener("TabClose", closed, true);
       for (const p of [this.PREF, "zenith.shell.master", "zenith.shell.master-ratio"]) P.removeObserver(p, prefs);
     });
   },
@@ -5807,6 +5862,7 @@ const Layouts = {
   enter(how) {
     const data = Tiler.data();
     if (how === "master" && data) this.master(data);
+    else if (how === "scroller" && this.strip()) this.gather();
     else if (how === "scroller" && data) {
       this.row(data);
       this.arrange(gBrowser.selectedTab);
@@ -5817,13 +5873,93 @@ const Layouts = {
   leave(was) {
     if (was === "monocle") SplitSolo.off();
     if (was === "scroller") {
-      const data = Tiler.data();
+      const data = Tiler.data() ?? Tiler.data(this.members()[0]);
       gBrowser.tabpanels.removeAttribute("zenith-scroller");
+      // A strip made of the whole space goes back to tabs; a split stays.
+      if (data?.zenithStrip) return this.dissolve(data);
       if (data) {
         data.zenithOffset = 0;
         Tiler.even(data.layoutTree);
       }
     }
+  },
+
+  /* The strip: the scroller with every tab of the space on it. */
+  strip(space = this.space()) {
+    return this.of(space) === "scroller" && Services.prefs.getStringPref(this.STRIP, "") !== "split";
+  },
+
+  // The space's tabs that are columns, in the sidebar's order: not
+  // essentials, pinned tabs (folders' too), Firefox's groups, Zen's empty tab.
+  members() {
+    return gBrowser.visibleTabs.filter(t => !t.pinned && !t.hasAttribute("zen-essential") && !t.hasAttribute("zen-empty-tab") &&
+      !t.hasAttribute("zen-glance-tab") && !t.closing && (!t.group || t.group.hasAttribute("split-view-group")));
+  },
+
+  // Every member already on one strip?
+  whole(tabs = this.members()) {
+    const data = Tiler.data(tabs[0]);
+    return tabs.length < 2 || (!!data && tabs.every(t => data.tabs.includes(t)));
+  },
+
+  soon() {
+    if (this.soonTimer || !this.strip()) return;
+    this.soonTimer = setTimeout(() => {
+      this.soonTimer = null;
+      try {
+        this.gather();
+      } catch (e) {
+        console.error("[Zenith] strip", e);
+      }
+    }, 60);
+  },
+
+  // The space's tabs onto one strip: those missing go after the column
+  // before them in the sidebar; the strip's order is the sidebar's.
+  gather() {
+    if (this.gathering || !this.strip()) return;
+    const tabs = this.members(), S = Tiler.S;
+    if (!S || this.whole(tabs)) return;
+    const sel = gBrowser.selectedTab, here = tabs.includes(sel);
+    this.gathering = true;
+    try {
+      let data = Tiler.data(here && Tiler.data(sel) ? sel : tabs.find(t => Tiler.data(t)) ?? tabs[0]);
+      // Another split's tabs leave it first.
+      for (const t of tabs) {
+        const d = Tiler.data(t);
+        if (d && d !== data) S.removeTabFromGroup(t, undefined, { changeTab: false });
+      }
+      data = data && S._data.includes(data) ? data : null;
+      const order = data ? this.order(data).filter(t => tabs.includes(t)) : [];
+      for (const t of tabs) {
+        if (order.includes(t)) continue;
+        const before = tabs.slice(0, tabs.indexOf(t)).reverse().find(b => order.includes(b));
+        order.splice(before ? order.indexOf(before) + 1 : 0, 0, t);
+      }
+      if (data) S.splitTabs([data.tabs[0], ...order.filter(t => !data.tabs.includes(t))], undefined, -1, { activate: false });
+      else S.splitTabs(order, "vsep", here ? order.indexOf(sel) : -1, { activate: here });
+      data = Tiler.data(order[0]);
+      if (!data) return;
+      data.zenithStrip = true;
+      // The sidebar in the strip's order.
+      for (let i = 1; i < order.length; i++) {
+        if (order[i].previousElementSibling !== order[i - 1]) gBrowser.moveTabAfter(order[i], order[i - 1]);
+      }
+      this.row(data, order);
+      if (here) this.arrange(sel);
+    } finally {
+      this.gathering = false;
+    }
+  },
+
+  // A strip back to the space's tabs, the one you're on shown.
+  dissolve(data) {
+    const S = Tiler.S, i = S._data.indexOf(data), sel = gBrowser.selectedTab;
+    if (i < 0) return;
+    for (const t of data.tabs) t.linkedBrowser?.closest(".browserSidebarContainer")?.removeAttribute("zenith-off-strip");
+    S.removeGroup(i);
+    gBrowser.selectedTab = sel;
+    Tiler.save();
   },
 
   solo() {
@@ -5911,7 +6047,8 @@ const Layouts = {
     const order = this.order(data), widths = order.map(t => this.width(t)), i = order.indexOf(focus);
     const x = widths.slice(0, i).reduce((a, b) => a + b, 0), w = widths[i], total = widths.reduce((a, b) => a + b, 0);
     let off = data.zenithOffset ?? 0;
-    if (x < off) off = x;
+    if (Services.prefs.getStringPref(this.FOCUS, "") === "centre") off = x + w / 2 - 50;
+    else if (x < off) off = x;
     else if (x + w > off + 100) off = x + w - 100;
     data.zenithOffset = Math.max(0, Math.min(off, Math.max(0, total - 100)));
     this.arranging = true;
@@ -5934,13 +6071,31 @@ const Layouts = {
     }
     if (shown) gBrowser.tabpanels.setAttribute("zenith-scroller", "true");
     let x = -(data.zenithOffset ?? 0);
+    const off = [];
     for (const tab of this.order(data)) {
       const w = this.width(tab), box = tab.linkedBrowser?.closest(".browserSidebarContainer");
       if (box) {
         box.style.inset = `0% ${(100 - x - w).toFixed(3)}% 0% ${x.toFixed(3)}%`;
-        box.toggleAttribute("zenith-off-strip", x >= 99.9 || x + w <= 0.1);
+        const away = x >= 99.9 || x + w <= 0.1;
+        box.toggleAttribute("zenith-off-strip", away);
+        off.push([tab, away]);
       }
       x += w;
+    }
+    // Columns out of sight: their pages asleep, as a background tab's (Zen
+    // wakes every tile of a split after laying it out, hence a moment later).
+    if (shown) {
+      Promise.resolve().then(() => {
+        for (const [tab, away] of off) {
+          try {
+            // (Zen's zenModeActive keeps a split's tile awake whatever it's told.)
+            const br = tab.linkedBrowser;
+            if (!br || tab === gBrowser.selectedTab) continue;
+            br.zenModeActive = !away;
+            br.docShellIsActive = !away;
+          } catch {}
+        }
+      });
     }
   },
 
@@ -5951,12 +6106,18 @@ const Layouts = {
       let data = Tiler.data(anchor);
       if (data && data.tabs.length >= S.MAX_TABS) return Tiler.full(), true;
       if (Tiler.data(tab)) S.removeTabFromGroup(tab);
+      this.gathering = true; // (the strip takes it in here, beside the anchor)
+      setTimeout(() => (this.gathering = false), 0);
       const order = data ? this.order(data) : [anchor];
       if (!data) S.splitTabs([anchor, tab], "vsep", 1);
       else S.splitTabs([anchor, tab], undefined, -1, { activate: false });
       data = Tiler.data(anchor);
       if (!data) return false;
       order.splice(order.indexOf(anchor) + 1, 0, tab);
+      if (this.strip()) {
+        data.zenithStrip = true;
+        if (tab.previousElementSibling !== anchor) gBrowser.moveTabAfter(tab, anchor);
+      }
       this.row(data, order.filter(t => data.tabs.includes(t)));
       this.arrange(tab);
       return true;
@@ -6004,6 +6165,7 @@ const Layouts = {
     const order = this.order(data), i = order.indexOf(tab), j = i + (dir === "left" ? -1 : 1);
     if (j < 0 || j >= order.length) return true;
     [order[i], order[j]] = [order[j], order[i]];
+    if (this.strip()) dir === "left" ? gBrowser.moveTabBefore(tab, order[i]) : gBrowser.moveTabAfter(tab, order[i]);
     this.row(data, order);
     this.arrange(tab);
     return true;
@@ -6029,12 +6191,15 @@ const Layouts = {
     hint(`${this.NAMES[how]}: Alt+Shift+Y does nothing here (in master, the master; in scroller, a column's width)`);
   },
 
-  closed(tab) {
+  closed(tab, next) {
     const how = this.of();
     if (how === "master") {
       const data = Tiler.data(gBrowser.selectedTab);
       if (data) this.master(data);
-    } else if (how === "scroller" && Tiler.data(gBrowser.selectedTab)) this.arrange(gBrowser.selectedTab);
+    } else if (how === "scroller") {
+      if (next?.isConnected && Tiler.data(next)) this.arrange(next);
+      else if (Tiler.data(gBrowser.selectedTab)) this.arrange(gBrowser.selectedTab);
+    }
   },
 };
 
@@ -6222,7 +6387,16 @@ const ShellMouse = {
   // off meanwhile, so nothing needs stopping here (a passive listener:
   // scrolling never waits on it).
   wheel(e) {
-    if (!this.wheelOn || !e.altKey || e.ctrlKey || e.shiftKey || e.metaKey || !ShellKeys.free()) return;
+    if (!this.wheelOn || !e.altKey || e.ctrlKey || e.metaKey || !ShellKeys.free()) return;
+    // Alt with a sideways wheel (or Alt+Shift+wheel): along the scroller's strip.
+    if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      if (Layouts.of() !== "scroller" || !Tiler.data()) return;
+      const now = performance.now(), d = e.deltaX || e.deltaY;
+      if (now - (this.stripAt ?? 0) < 160 || !d) return;
+      this.stripAt = now;
+      Layouts.focus(d > 0 ? "right" : "left");
+      return;
+    }
     const now = performance.now();
     if (now - (this.wheelAt ?? 0) > 400) this.wheelSum = 0;
     this.wheelAt = now;
@@ -6233,7 +6407,7 @@ const ShellMouse = {
     this.wheelSum = 0;
   },
 
-  // Focus follows the mouse (Shell › off by default): a tile rested on
+  // Focus follows the mouse (Tiling and keys › off by default): a tile rested on
   // for a moment is the one you're on.
   follow(e) {
     const tab = this.tileAt(e.target);
@@ -6245,7 +6419,7 @@ const ShellMouse = {
   },
 };
 
-/* Clicking a link with keys (Shell › Mouse): each key combo does one thing,
+/* Clicking a link with keys (Tiling and keys › Mouse): each key combo does one thing,
    Zen's Glance, Peek, a tile beside this one, or nothing of Zenith's. The
    page's helper (plus/pages/peek-link.sys.mjs) answers the click before
    Zen or Firefox do: Firefox's Ctrl+click opens a tab, and Zen's Glance
@@ -6426,7 +6600,7 @@ const Scratchpad = {
   async send() {
     if (window.zenithFloatFrom) return hint("Already floating: Alt+- hides it");
     const tab = gBrowser.selectedTab;
-    if (!Services.prefs.getBoolPref(FloatTab.PREF, true)) return hint("The scratchpad floats tabs: Keys › Float a tab is off");
+    if (!Services.prefs.getBoolPref(FloatTab.PREF, true)) return hint("The scratchpad floats tabs: Tools › Float a tab is off");
     const win = await FloatTab.float(tab, { focus: false });
     if (!win) return hint("This tab can't go to the scratchpad");
     win.zenithScratchpad = true; // (the float puts itself away once it's in place)
@@ -6579,7 +6753,7 @@ const KeySheet = {
    a strip of it, the middle brightness, so text and the tab you're on don't
    count) and sets its text, and the bar's, to whichever reads better. Only
    when a space's colours, the wallpaper, the window's place on it or its
-   material change (about 5 ms each time). Settings › Look › Sidebar text:
+   material change (about 5 ms each time). Settings › Theme › Sidebar text:
    "As Zen decides" hands it back. */
 const InkContrast = {
   PREF: "zenith.plus.ink",
@@ -6907,7 +7081,7 @@ const SiteAppearance = {
    Read as Zen starts when there's one (one look at whether it's there
    otherwise), on Alt+Shift+C, and when the window comes back to the front
    after another app saved it. A setting it holds, changed on the settings
-   page, is changed in the file too (or, Shell › The rice file, locked). */
+   page, is changed in the file too (or, Tiling and keys › The rice file, locked). */
 const RiceLoader = {
   init() {
     window.ZenithRice = this; // the Shell's Alt+Shift+C, the settings page, tools/checks
@@ -6990,7 +7164,7 @@ const RiceLoader = {
 };
 
 /* --- The overview, on demand (plus/pages/overview.mjs) ---------------------------------
-   Alt+O, the bar's overview button, or the hot corner (Shell › The hot
+   Alt+O, the bar's overview button, or the hot corner (Tiling and keys › The hot
    corner): a few transparent pixels in a corner of the window that open it
    when the pointer is pushed there, as niri's and GNOME's. */
 /* --- The rice picker (plus/pages/rice-picker.mjs), on demand ----------------
@@ -7072,7 +7246,7 @@ const OverviewLoader = {
    Alt+N, or the bar's clock: imported the first time it opens. */
 const DashLoader = {
   async toggle(anchor = null) {
-    // (It opens where Bar › Where the Dash opens says, whatever asked.)
+    // (It opens where Bars › Where the Dash opens says, whatever asked.)
     try {
       this.mod ??= await import(await BarLoader.page("dash.mjs"));
       this.mod.toggle({ anchor, Bridge });
@@ -7083,7 +7257,7 @@ const DashLoader = {
 };
 window.ZenithDash = DashLoader; // the bar's clock, tools/checks
 
-/* --- Where the sidebar is (Settings › Bar › The sidebar) ---------------------------
+/* --- Where the sidebar is (Settings › Bars › The sidebar) ---------------------------
    Shown (as Zen has it); on hover (Zen's compact mode); or hidden (compact
    mode with its edge hover off: Ctrl+L and Ctrl+Alt+S still bring it), for
    tabs in a bar. Works with or without a bar. Compact mode as it was is
@@ -7269,7 +7443,7 @@ const BarLoader = {
 };
 
 /* --- Palettes: one palette for the whole browser ------------------------------------
-   Settings › Bar › Palette: Catppuccin, Tokyo Night, Gruvbox, Nord, Rosé
+   Settings › Bars › Palette: Catppuccin, Tokyo Night, Gruvbox, Nord, Rosé
    Pine, Everforest, Kanagawa, Dracula. A palette colours the bar, Zenith's
    accent and every space (Zen's own colours, as Palette sync does: the
    accent as the space's main colour, the palette's base around it), so a
@@ -8281,7 +8455,7 @@ const SpaceExtensions = {
   },
 };
 
-/* --- Extension copies (experimental; Tabs › Extensions › Extension copies) -------
+/* --- Extension copies (experimental; Sidebar and tabs › Extensions › Extension copies) -------
    A second copy of an extension, with an ID of its own, and so its own
    storage: sign into another account in it (a work and a personal password
    manager from the same maker), and give each its spaces with Runs in
@@ -9172,7 +9346,7 @@ const PageBlend = {
    audible first (the newest to start), then playing but muted, then paused
    (the latest touched). A sound under a second never takes over; a muted
    or paused source never displaces an audible one. "Keep the one I chose"
-   (Bar › Which source the bar shows) holds the source you last played,
+   (Bars › Which source the bar shows) holds the source you last played,
    paused or picked while it still has media. */
 const MediaHub = {
   sources: new Map(), // tab → { started, touched }

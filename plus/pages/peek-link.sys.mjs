@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Clicking a link with keys (Shell › Mouse in Zenith's settings): each key
+// Clicking a link with keys (Tiling and keys › Mouse in Zenith's settings): each key
 // combo does one thing, Zen's Glance, Peek, a tile beside this one, or
 // nothing of Zenith's, and the window says which (zenith-plus.uc.mjs,
 // LinkClicks). This sees the click before Zen or Firefox: Firefox's

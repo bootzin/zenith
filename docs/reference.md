@@ -70,12 +70,12 @@ Done in 0.16.3: Ctrl+W, F5, Ctrl+R, Ctrl+Shift+R, the zoom keys and links inside
 
 Rules:
 
-1. When the focused tab is in a split, a new tab (Ctrl+T, a link to a new tab, `window.open`, or Zenith's new tab) becomes a tile of that split, placed by the space's layout, up to the split's tile limit. Past the limit it opens as a normal tab next to the split. Background-opened links (Ctrl+click, middle-click) become tiles too, or normal tabs as a setting (Shell › Links opened in the background from a split).
+1. When the focused tab is in a split, a new tab (Ctrl+T, a link to a new tab, `window.open`, or Zenith's new tab) becomes a tile of that split, placed by the space's layout, up to the split's tile limit. Past the limit it opens as a normal tab next to the split. Background-opened links (Ctrl+click, middle-click) become tiles too, or normal tabs as a setting (Tiling and keys › Links opened in the background from a split).
 2. Closing a tile hands its space to the layout. Dwindle gives it to the sibling, master promotes the stack's first tile when the master closes, the scroller removes the column and slides the strip, and monocle shows the next tile.
 3. Layout code works on Zen's `layoutTree` and calls `applyGridLayout`. It never leaves a tab outside a split that the layout believes holds it.
 4. An essential in a split: the decision in §8.
 
-**niri strip (scroller v2).** Every non-pinned tab of a space is a column on one horizontal strip, not limited by Zen's split. Column widths come from presets (⅓, ½, ⅔, full). The focused column is kept in view, or kept centred as a setting. A new tab is inserted right of the focused column. Alt+H and Alt+L walk the strip, the wheel or a two-finger swipe over the gap scrolls it, and the overview shows the strip.
+**niri strip (scroller v2), 0.17.0.** Every non-pinned tab of a space is a column on one horizontal strip, not limited by Zen's split. Built on Zen's split (one split holds the space's tabs, its tile limit lifted for that space), so Zen still draws, saves and restores it; another layout gives the tabs back. Columns out of sight are hidden and their pages asleep (but loaded: entering a strip loads the space's tabs). Not done yet: the overview drawing the strip's widths; the wheel over the gap (Alt with a sideways wheel instead). Column widths come from presets (⅓, ½, ⅔, full). The focused column is kept in view, or kept centred as a setting. A new tab is inserted right of the focused column. Alt+H and Alt+L walk the strip, the wheel or a two-finger swipe over the gap scrolls it, and the overview shows the strip.
 
 ## 6. Bars (Hyprland-style tokens)
 
@@ -98,7 +98,9 @@ These rices differ along a small set of tokens:
 | icons | Zenith's / Nerd Font / text |
 | font | any installed font (see §7) |
 
-Done in 0.16.4: the looks Islands, Floating, Bare, Strip, Minimal and Powerline, each a starting point the Bar › Shape settings override: thickness (20–48px), length (whole edge, fit, 80%, 60%), margin, the bar's corners, background opacity (to none), module corners, spacing, border (none, hairline, accent) and separators (none, line, dot). Not done yet: alignment of a shorter bar, separate group corners, the arrow, round and slant separators, workspace and icon styles.
+**Floating needs company (0.17.0).** A bar only looks afloat when what's around it floats too, as Hyprland's windows and bar share gaps on the wallpaper: with Floating or Bare the page floats as well (8px gaps, 12px corners, one shadow), unless Theme › Page frame is Zen's. Islands are one island per group (start, end), not a bordered box per module.
+
+Done in 0.16.4: the looks Islands, Floating, Bare, Strip, Minimal and Powerline, each a starting point the Bars › Look and size and Fine-tuning the shape settings override: thickness (20–48px), length (whole edge, fit, 80%, 60%), margin, the bar's corners, background opacity (to none), module corners, spacing, border (none, hairline, accent) and separators (none, line, dot). Not done yet: alignment of a shorter bar, separate group corners, the arrow, round and slant separators, workspace and icon styles.
 
 **Powerline.** One segment per group, and the arrow joins segments of different colours, without gaps or overlaps at any thickness. Nothing rounded sits inside it. On side bars the segments are plain rows with no arrows (a rail is too narrow for them). The current tab is its own segment.
 
@@ -130,6 +132,11 @@ Done in 0.16.4: the rice picker and the one optional font (below). Not done yet:
 
 ## 8. Decisions log
 
+2026-11-01, the user's review of 0.16.4 (bars, picker and settings disliked):
+- Floating didn't look afloat: the page now floats with it. Islands grouped, no borders. Rails show icons only.
+- The picker: Glass and Shape were empty (Core's settings weren't read); previews are tiny windows in each theme's palette and look; words are segmented rows, not cards; the category you're on in full ink with an accent bar.
+- Settings: too many settings with no way to tell them apart, the bar split in two, Bars 9th. Now 12 sections in order of use (Theme, Bars, Sidebar and tabs, Tiling and keys, Tools, Peek, Pages and privacy, Edges, Panels, URL bar, Motion, Speed and AI), each group a short line saying what it's for, fine-tuning groups closed until opened (search opens them).
+
 2026-11-01:
 - Essential split: both behaviours were to be a setting. Tested: "no copy" crashes in Zen's own code (its unfinished path for essentials in splits), so Zen's copy stays.
 - Audio: by default the newest audible source wins and every source keeps playing. "Keep the one I chose" is a setting; "One at a time, resume" is not built yet.
@@ -142,7 +149,7 @@ Done in 0.16.4: the rice picker and the one optional font (below). Not done yet:
 
 ## 9. Coverage: every request → where it's done
 
-The milestones ship as patch releases: M1 in 0.16.3, M2 and M3 in 0.16.4. M4 is not done yet.
+M1 shipped in 0.16.3, M2 and M3 in 0.16.4; M4, and a rework of M2 and M3 after the user's review, in 0.17.0.
 
 | # | Request | Milestone | Done when | Status |
 |---|---|---|---|---|
@@ -156,10 +163,10 @@ The milestones ship as patch releases: M1 in 0.16.3, M2 and M3 in 0.16.4. M4 is 
 | 7 | Hyprland-style bars | M2 | The §6 tokens, plus presets that reproduce 6 named rice styles from screenshots | 0.16.4: 6 looks, 7 themes in the picker (§6 lists what's left) |
 | 8 | Powerline gaps, overlaps, roundness | M2 | Screenshots at every thickness and on every edge show no gaps or overlaps | 0.16.4 |
 | 9 | Bar width and height | M2 | Thickness and length sliders | 0.16.4 (as choices) |
-| 10 | Sidebar and bar settings together | M2 | One "Tabs" section for the sidebar and bars (looks, marks, containers, previews), one "What's playing" section | 0.16.4 |
+| 10 | Sidebar and bar settings together | M2 | One "Tabs" section for the sidebar and bars (looks, marks, containers, previews), one "What's playing" section | 0.17.0: Bars holds everything about bars (their tabs and player too), Sidebar and tabs the sidebar |
 | 5 | Look in one place | M3 | The rice picker popup, the Theme section, themes as files | 0.16.4, themes kept in a setting |
 | 11 | Font | M3 | One font setting with a picker | 0.16.4 |
-| 6 | niri scrollable tabs | M4 | The §5 strip: all of a space's tabs as columns, checked with 20 tabs | Not done |
+| 6 | niri scrollable tabs | M4 | The §5 strip: all of a space's tabs as columns, checked with 20 tabs | 0.17.0 (checked with 11; the overview doesn't draw column widths yet) |
 
 ## 10. References
 

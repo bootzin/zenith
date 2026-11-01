@@ -110,7 +110,7 @@ export const Picker = {
     done.addEventListener("click", () => this.close());
     const body = (this.body = node("section", { class: "zr-body" }));
     const foot = node("footer", { class: "zr-foot" }, node("span", { class: "zr-hint" }, "Changes apply as you click"), revert, done);
-    host.append(node("div", { class: "zr-panel" }, node("header", { class: "zr-head" }, node("strong", {}, "Looks")), nav, body, foot));
+    host.append(node("div", { class: "zr-panel" }, node("header", { class: "zr-head" }, node("strong", {}, "Looks"), node("span", {}, "Alt+Shift+P")), nav, body, foot));
     host.addEventListener("click", e => e.target === host && this.close());
     this.onKey = e => {
       if (e.key === "Escape") {
@@ -153,40 +153,50 @@ export const Picker = {
     this.mark();
   },
 
-  // One setting's values as cards.
+  // One setting's values: as pictures when a value can be drawn (palettes,
+  // the bar's looks), else a row of words to pick from (sizes, corners).
   choices(p) {
     const e = SETTINGS.get(p);
     if (!e?.options) return;
-    const grid = node("div", { class: "zr-grid", pref: p });
+    const drawn = p === "zenith.palette" || p === "zenith.bar.style";
+    const grid = node("div", { class: drawn ? "zr-grid" : "zr-seg", pref: p });
     for (const o of e.options) {
-      const card = node("button", { type: "button", class: "zr-card", value: o.value }, this.preview(p, o.value), node("span", { class: "zr-label" }, o.label));
-      card.addEventListener("click", () => write(p, o.value === e.defaultValue ? null : o.value));
-      grid.append(card);
+      const pick = drawn
+        ? node("button", { type: "button", class: "zr-card", value: o.value }, this.preview(p, o.value), node("span", { class: "zr-label" }, o.label.replace(/ \(.*\)$/, "")))
+        : node("button", { type: "button", class: "zr-opt", value: o.value, title: o.label }, o.label);
+      pick.addEventListener("click", () => write(p, o.value === e.defaultValue ? null : o.value));
+      grid.append(pick);
     }
     this.body.append(node("h3", {}, e.label), grid);
   },
 
-  // A small picture of a value: a palette's colours, a bar's look; the rest
-  // are words.
+  // A small picture of a value: a palette's colours, a bar's look.
   preview(p, v) {
-    const box = node("span", { class: "zr-pic", pref: p, value: v });
     const pal = window.ZenithPaletteColours?.[v];
-    if (p === "zenith.palette" && pal) {
-      for (const k of ["base", "surface", "accent", "second", "text"]) box.append(node("i", { style: `background:${pal[k]}` }));
-      box.setAttribute("kind", "swatch");
-    } else if (p === "zenith.bar.style") {
-      box.setAttribute("kind", "bar");
-      box.append(node("i"), node("i"), node("i"));
+    if (p === "zenith.palette" && pal) return this.window(v, null);
+    if (p === "zenith.bar.style") return this.window(null, v);
+    return node("span", { class: "zr-pic" });
+  },
+
+  // A tiny browser window in a palette and a bar's look: the backdrop, the
+  // bar (its groups as that look draws them) and a page with a few lines.
+  window(palette, look) {
+    const pal = window.ZenithPaletteColours?.[palette];
+    const bar = node("span", { class: "zr-wbar" }, node("i", { class: "zr-a" }), node("i"), node("i", { class: "zr-mid" }), node("i"), node("i", { class: "zr-a2" }));
+    const page = node("span", { class: "zr-wpage" }, node("i"), node("i"), node("i"));
+    const pic = node("span", { class: "zr-pic", kind: "window", look: look || "islands" }, bar, page);
+    if (pal) {
+      pic.style.cssText = `--zr-base:${pal.base};--zr-mantle:${pal.mantle ?? pal.base};--zr-surface:${pal.surface};--zr-accent:${pal.accent};` +
+        `--zr-second:${pal.second ?? pal.accent};--zr-ink:${pal.text}`;
+      pic.append(node("span", { class: "zr-dots" }, ...["accent", "second", "red", "green", "yellow"].filter(k => pal[k]).map(k => node("i", { style: `background:${pal[k]}` }))));
     }
-    return box;
+    return pic;
   },
 
   themes() {
     const grid = node("div", { class: "zr-grid zr-themes" });
     const add = (t, own) => {
-      const pal = window.ZenithPaletteColours?.[t.sets["zenith.palette"]] ?? null;
-      const pic = node("span", { class: "zr-pic", kind: "theme", look: t.sets["zenith.bar.style"] || "islands" }, node("i"), node("i"), node("i"));
-      if (pal) pic.style.cssText = `--zr-bg:${pal.base};--zr-surface:${pal.surface};--zr-accent:${pal.accent};--zr-ink:${pal.text}`;
+      const pic = this.window(t.sets["zenith.palette"], t.sets["zenith.bar.style"]);
       const card = node("button", { type: "button", class: "zr-card", theme: t.name }, pic, node("span", { class: "zr-label" }, t.name), node("span", { class: "zr-note" }, t.note ?? ""));
       card.addEventListener("click", () => {
         // (A theme sets every look setting: what it doesn't name goes back
@@ -206,7 +216,8 @@ export const Picker = {
     };
     for (const t of THEMES) add(t);
     for (const t of saved()) add({ ...t, note: "Yours" }, true);
-    const save = node("button", { type: "button", class: "zr-card zr-save" }, node("span", { class: "zr-pic", kind: "plus" }, "+"), node("span", { class: "zr-label" }, "Save this look"));
+    const save = node("button", { type: "button", class: "zr-card zr-save" }, node("span", { class: "zr-pic", kind: "plus" }, "+"), node("span", { class: "zr-label" }, "Save this look"),
+      node("span", { class: "zr-note" }, "Keeps what you see by name"));
     save.addEventListener("click", () => {
       const name = window.prompt("A name for this look:", "My rice")?.trim();
       if (!name) return;
@@ -244,7 +255,7 @@ export const Picker = {
   // What's chosen now, lit.
   mark() {
     if (!this.host) return;
-    for (const g of this.host.querySelectorAll(".zr-grid[pref]")) {
+    for (const g of this.host.querySelectorAll(":is(.zr-grid, .zr-seg)[pref]")) {
       const p = g.getAttribute("pref"), e = SETTINGS.get(p), now = read(p) ?? e.defaultValue;
       for (const c of g.children) c.toggleAttribute("current", c.getAttribute("value") === String(now));
     }

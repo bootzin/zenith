@@ -8,7 +8,7 @@
 // privacy) by a button that says no, in a few languages, and nothing else.
 // It never presses anything that accepts.
 //
-// What it does (Cookies › Banners, zenith.plus.cookie-banners):
+// What it does (Pages and privacy › Cookies, zenith.plus.cookie-banners):
 //   "" / "reject"  press Reject; with "", a banner with no Reject is hidden
 //   "hide"         hide banners, answer nothing
 //   "off"          leave them

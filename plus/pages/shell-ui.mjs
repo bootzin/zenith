@@ -162,7 +162,7 @@ export function everySecond(fn) {
    One request for now and three days, kept 30 minutes in a hidden setting
    that every window shares (only one fetches). Where: near you (wttr.in
    works it out from your connection) or Peek's last weather place
-   (Settings › Bar › Weather for). Units as Peek's. */
+   (Settings › Bars › Weather for). Units as Peek's. */
 const SKY = [
   [[113], "sun"], [[116], "partly"], [[119, 122], "cloud"], [[143, 248, 260], "fog"],
   [[200, 386, 389, 392, 395], "storm"],

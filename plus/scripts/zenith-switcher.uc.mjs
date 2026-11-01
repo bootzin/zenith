@@ -2,7 +2,7 @@
 // @name           Zenith Switcher
 // @description    Zenith Plus: jump to any tab, folder or space by typing (Alt+W); ":" runs Zenith's commands.
 // @include        main
-// @version        0.16.4
+// @version        0.17.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -503,7 +503,7 @@ const Switcher = {
       return;
     } else this.items = Items.find(text);
     // Peek, last (first when nothing else matches): what you typed, looked
-    // up without leaving the page (Keys › Switcher › Peek in the switcher).
+    // up without leaving the page (Tools › Switcher › Peek in the switcher).
     const q = text.trim();
     if (q && !q.startsWith(":") && mode === "tabs" && Services.prefs.getStringPref("zenith.plus.switcher-peek", "") !== "off" && window.ZenithPeek) {
       this.items.push({ kind: "peek", title: `Peek: ${q}`, sub: "Look it up without leaving the page", text: q, icon: "" });

@@ -2,7 +2,7 @@
 // The overview (Alt+O, the hot corner, the bar's overview button): every tab
 // as a picture, to go to one, close it, or drag it to another space. After
 // niri's and GNOME's: the window zooms out to it, and back.
-// Three looks (Shell › The overview shows):
+// Three looks (Tiling and keys › The overview shows):
 //   space   this space's tabs as a grid, every space in a strip above it
 //           (a click on one shows its tabs; the wheel over the strip, the
 //           next or previous)

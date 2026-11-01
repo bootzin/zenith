@@ -543,6 +543,10 @@ MODS = {
                         ("50%", "50"), ("55%", "55"), ("60%", "60"), ("65%", "65"), ("70%", "70"))),
         script(dropdown("zenith.shell.scroller-width", "A new column in the scroller", "Half the view",
                         ("A third of the view", "third"), ("Half the view", "half"), ("Two thirds", "twothirds"), ("All of it", "full"))),
+        script(dropdown("zenith.shell.scroller-tabs", "The scroller's strip holds", "Every tab of the space (niri)",
+                        ("Every tab of the space (niri)", "all"), ("Only a split's tabs", "split"))),
+        script(dropdown("zenith.shell.scroller-focus", "The scroller keeps the column you're on", "In view",
+                        ("In view", "view"), ("In the middle", "centre"))),
         script(dropdown("zenith.launcher.look", "The launcher's look (Alt+D, Alt+W)", "Centred",
                         ("Centred", "centred"), ("dmenu: one line across the top", "dmenu"), ("A grid of tiles", "grid"))),
         script(dropdown("zenith.rice.mode", "Settings your zenith.conf holds", "Changed here are changed in the file too",
@@ -653,7 +657,7 @@ def page_schema():
     # Buttons on the page that open something of Zen's (no setting behind them).
     entries.update({prop: ("action", {"property": prop, "type": "action", "label": a["label"]})
                     for prop, a in ui.ACTIONS.items()})
-    placed = [p for s in ui.SECTIONS for _, props in s["groups"] for p in props] + \
+    placed = [p for s in ui.SECTIONS for g in s["groups"] for p in g[1]] + \
              [s["preset"] for s in ui.SECTIONS if s.get("preset")]
     problems = [f"not on the page: {p}" for p in entries if p not in placed]
     problems += [f"on the page twice: {p}" for p in set(placed) if placed.count(p) > 1]
@@ -725,7 +729,7 @@ def page_schema():
             section["preset"] = {"property": s["preset"], "host": MOD_NAMES[entries[s["preset"]][0]],
                                  "default": info["default"], "sets": info["sets"],
                                  "values": [{"value": v, **d} for v, d in info["values"].items()]}
-        section["groups"] = [{"title": title, "settings": [setting(p) for p in props]} for title, props in s["groups"]]
+        section["groups"] = [{"title": g[0], "settings": [setting(p) for p in g[1]], **(g[2] if len(g) > 2 else {})} for g in s["groups"]]
         sections.append(section)
     return sections
 
@@ -760,7 +764,7 @@ def main():
     # dropdown's labels and options, beside the page that reads them (the
     # mod's own preferences.json isn't served to Plus's pages).
     picker = [{k: e[k] for k in ("property", "label", "defaultValue", "options") if k in e}
-              for e in MODS["plus"] if e.get("type") == "dropdown"]
+              for prefs in MODS.values() for e in prefs if e.get("type") == "dropdown"]
     (root / "plus" / "pages" / "look-options.json").write_text(json.dumps(picker, ensure_ascii=False), encoding="utf-8")
 
 

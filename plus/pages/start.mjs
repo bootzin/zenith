@@ -5,7 +5,7 @@
 // opens in a new tab. With the weather on, a line from wttr.in for where
 // you are (then, optionally, the places you looked up in Peek lately); and
 // optionally your most visited sites, as tiles. Each part has its switch
-// (Zenith › Pages › Start page).
+// (Zenith › Pages and privacy › Start page).
 
 const win = window.browsingContext.topChromeWindow;
 const { Services } = win;

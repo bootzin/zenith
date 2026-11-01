@@ -165,7 +165,7 @@ function mod(id, tag = "div") {
   return node(tag, { class: "zb-mod", mod: id, ...(tag === "button" ? { type: "button" } : {}) });
 }
 
-// A module's name, shown on a side bar with titles (Bar › Small modules on
+// A module's name, shown on a side bar with titles (Bars › Small modules on
 // a wide side bar: each a row with its name); its value, if it has one, at
 // the row's end.
 function label(text) {
@@ -280,7 +280,7 @@ function title(box) {
   draw();
 }
 
-// Tabs in the bar (Bar › Tabs: in the bar), as waybar's taskbar: this
+// Tabs in the bar (Bars › Tabs: in the bar), as waybar's taskbar: this
 // space's tabs as icons, and titles as the look and the room allow.
 // The tabs the sidebar shows for this space, in its order: essentials,
 // pinned tabs, then the others (those in folders too, open or closed).
@@ -298,7 +298,7 @@ function tasks(box) {
   const bar = box.closest(".zenith-bar"), vertical = !!bar?.hasAttribute("vertical");
   const rail = () => vertical && pref("zenith.bar.side-width", "rail") === "rail";
   const items = new Map(); // tab → button
-  // "+12" at either end of a window of tabs (Bar › Tabs when they don't fit).
+  // "+12" at either end of a window of tabs (Bars › Tabs when they don't fit).
   const edge = side => {
     const b = node("button", { type: "button", class: "zb-task zb-task-more", side });
     b.addEventListener("click", e => {
@@ -334,7 +334,7 @@ function tasks(box) {
     b.toggleAttribute("asleep", t.hasAttribute("pending"));
     b.toggleAttribute("loud", t.hasAttribute("soundplaying") && !t.hasAttribute("muted"));
     b.toggleAttribute("split", !!t.splitView);
-    // The sidebar's signals (Bar › Marks on a bar's tabs; docs/reference.md §2).
+    // The sidebar's signals (Bars › Marks on a bar's tabs; docs/reference.md §2).
     const kind = t.hasAttribute("zen-essential") ? "essential" : t.pinned ? "pinned" : "";
     if (kind) b.setAttribute("kind", kind);
     else b.removeAttribute("kind");
@@ -357,7 +357,7 @@ function tasks(box) {
   const draw = soon(() => {
     if (Bar.gone) return;
     const all = sidebarTabs();
-    // (Bar › Only awake tabs: sleeping ones are in the chip's list.)
+    // (Bars › Only awake tabs: sleeping ones are in the chip's list.)
     const tabs = bool("zenith.bar.tab-awake", false) ? all.filter(t => t.selected || !t.hasAttribute("pending")) : all;
     for (const [t, b] of items) if (!tabs.includes(t)) items.delete(t);
     const crowd = pref("zenith.bar.tab-crowd", "window"), n = tabs.length, cur = Math.max(0, tabs.indexOf(gBrowser.selectedTab));
@@ -462,7 +462,7 @@ function tasks(box) {
   });
   Undo.add(() => clearTimeout(hovering));
   // The wheel scrolls the strip, as a browser's tab strip does (a window of
-  // tabs moves along), or (Bar › The wheel over tabs) goes to the next tab.
+  // tabs moves along), or (Bars › The wheel over tabs) goes to the next tab.
   m.addEventListener("wheel", e => {
     const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     if (Math.abs(d) < 1) return;
@@ -745,7 +745,7 @@ function clock(box) {
   const DATE = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   let fmt = null, look = "";
   const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "short" }), MONTH = new Intl.DateTimeFormat(undefined, { month: "short" });
-  // On a side bar (Bar › The clock on a side bar): stacked, and under the
+  // On a side bar (Bars › The clock on a side bar): stacked, and under the
   // time nothing, the weekday, the seconds, the date, or the day over the month.
   // (A wide side bar has room for the clock's own one line: the side looks are the rail's.)
   const sideLook = () => (m.closest('.zenith-bar[vertical][width="rail"]') ? pref("zenith.bar.side-clock", "auto") : null);
@@ -794,7 +794,7 @@ function clock(box) {
   setup();
 }
 
-// The weather (Settings › Bar › Weather; wttr.in, kept 30 minutes for every
+// The weather (Settings › Bars › Weather; wttr.in, kept 30 minutes for every
 // window): the sky and the temperature; a click opens the Dash.
 function weather(box) {
   const m = mod("weather", "button"), ic = icon("cloud"), text = node("span");
@@ -818,7 +818,7 @@ function weather(box) {
   Undo.add(Tick.add(600, () => Weather.get().then(draw)));
 }
 
-// What the browser uses (Settings › Bar › What the browser uses): its memory, read
+// What the browser uses (Settings › Bars › What the browser uses): its memory, read
 // every 30 seconds while the window is in front; a click opens the Dash.
 function resources(box) {
   const m = mod("resources", "button"), text = node("span", { class: "zb-value" });
@@ -897,7 +897,7 @@ function appearance(box) {
   draw();
 }
 
-// A power button instead of the window's own (Settings › Bar › Window
+// A power button instead of the window's own (Settings › Bars › Window
 // buttons: a power button): minimise, maximise, close the window, a new
 // window, restart, quit.
 function power(box) {
@@ -1004,7 +1004,7 @@ const Bar = {
       bar.setAttribute("hint", { dot: "ring", line: "top" }[hint] ?? hint);
       bar.setAttribute("rows", pref("zenith.bar.side-rows", "labels"));
       bar.setAttribute("marks", pref("zenith.bar.tab-marks", "on"));
-      // The shape (Bar › Shape), Hyprland rices' knobs: inline, so they beat
+      // The shape (Bars › Fine-tuning the shape), Hyprland rices' knobs: inline, so they beat
       // the look's own values; "As its look has it" leaves the look's.
       const px = (p, unit = "px") => {
         const v = pref(p, "auto");
