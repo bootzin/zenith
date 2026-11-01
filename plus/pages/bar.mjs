@@ -393,6 +393,14 @@ function tasks(box) {
     selected = gBrowser.selectedTab;
     const nodes = shown.map(t => button(t));
     shown.forEach((t, i) => paint(nodes[i], t, tabs.indexOf(t)));
+    // Groups, as the sidebar draws them: the fixed tabs (essentials, pinned)
+    // set apart from the rest, a folder's tabs on one shared tile.
+    nodes.forEach((b, i) => {
+      const prev = nodes[i - 1], next = nodes[i + 1], f = b.zbFolder;
+      b.toggleAttribute("fixed-end", !!b.getAttribute("kind") && !!next && !next.getAttribute("kind"));
+      b.toggleAttribute("folder-start", !!f && prev?.zbFolder !== f);
+      b.toggleAttribute("folder-end", !!f && next?.zbFolder !== f);
+    });
     const wide = vertical && !rail();
     put(before, wide ? `+${hiddenBefore} more` : `+${hiddenBefore}`);
     put(after, wide ? `+${hiddenAfter} more` : `+${hiddenAfter}`);

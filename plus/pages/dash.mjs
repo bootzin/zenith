@@ -218,6 +218,7 @@ function toggles(box, undo) {
       run: () => (gZenCompactModeManager.preference = !gZenCompactModeManager.preference) },
     { icon: "camera", label: "Screenshot", ok: !!document.getElementById("Browser:Screenshot"), run: () => (Popup.close(), document.getElementById("Browser:Screenshot").doCommand()) },
     { icon: "pipette", label: "Colour picker", ok: !!document.getElementById("menu_eyedropper"), run: () => (Popup.close(), document.getElementById("menu_eyedropper").doCommand()) },
+    { icon: "palette", label: "Looks", ok: !!window.ZenithLooks, run: () => (Popup.close(), window.ZenithLooks.toggle()), title: "The rice picker (Alt+Shift+P)" },
     { icon: "palette", label: () => palName(P.getStringPref("zenith.palette", "") || "own"), ok: true,
       on: () => !!P.getStringPref("zenith.palette", "") && P.getStringPref("zenith.palette", "") !== "own",
       run: e => {

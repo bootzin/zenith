@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.16.3
+// @version        0.16.4
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -29,10 +29,34 @@ const OS = Services.appinfo.OS;
 const SCHEMA = [
  {
   "id": "look",
-  "title": "Look",
+  "title": "Theme",
   "icon": "palette",
-  "blurb": "Size, colour, glass and the window around the page.",
+  "blurb": "How Zenith looks: open the rice picker (Alt+Shift+P) to try themes, colours, glass, bars and a font with every click shown at once; the details are below.",
   "groups": [
+   {
+    "title": "Looks",
+    "settings": [
+     {
+      "property": "zenith.action.rice-picker",
+      "label": "The rice picker",
+      "type": "action",
+      "extra": false,
+      "desc": "Themes, colours, glass, bars and the font in one window, each click applied as you go; Revert puts everything back, Save this look keeps it by name.",
+      "button": "Open the rice picker",
+      "command": "zenith-rice-picker",
+      "host": "Zen"
+     },
+     {
+      "property": "zenith.core.font",
+      "label": "Font",
+      "type": "string",
+      "extra": false,
+      "desc": "One font for the whole browser (the sidebar, menus, panels, the URL bar, Zenith's popups and a bar whose font isn't monospace): the name of any installed font, or empty for your system's. The rice picker lists them, each drawn in its own face.",
+      "host": "Zenith Plus",
+      "placeholder": "Your system's"
+     }
+    ]
+   },
    {
     "title": "Size",
     "settings": [
@@ -4536,25 +4560,6 @@ const SCHEMA = [
       "default": "tile"
      },
      {
-      "property": "zenith.shell.essential-split",
-      "label": "Splitting an essential",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Zen splits a copy of an essential (a normal tab, beside the essential that stays). No copy splits the essential itself: still one tab, still an essential (experimental: Zen hasn't finished essentials in splits).",
-      "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "No copy: the essential itself (experimental)",
-        "value": "own"
-       },
-       {
-        "label": "A copy of it (Zen's own)",
-        "value": "copy"
-       }
-      ],
-      "default": "own"
-     },
-     {
       "property": "zenith.shell.tiles",
       "label": "Tiles in one split",
       "type": "dropdown",
@@ -7399,7 +7404,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.16.3";
+const SCHEMA_VERSION = "0.16.4";
 
 class SettingsView {
   constructor(kind) {

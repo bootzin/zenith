@@ -1,10 +1,10 @@
-# Zenith design reference (0.17)
+# Zenith design reference
 
 What Zenith follows when it changes how things look or behave. Each rule says where it comes from. When this document and the code disagree, the code is wrong or this document needs a dated change.
 
 ## 1. Principles
 
-- **One rule, one helper.** Any concept used by more than one surface gets a single helper, and every surface reads it. Examples: what counts as this space's tabs, what's playing, a tab's state marks. The essentials bugs (0.16.2 and 0.17) came from four separate copies of "this space".
+- **One rule, one helper.** Any concept used by more than one surface gets a single helper, and every surface reads it. Examples: what counts as this space's tabs, what's playing, a tab's state marks. The essentials bugs (0.16.2 and 0.16.3) came from four separate copies of "this space".
 - **Zen's model first.** Where Zen has a rule (essentials, folders, split groups, Glance), Zenith reads Zen's state or calls Zen's API. It never keeps a parallel guess. Zen's sources are in omni.ja (`modules/zen/ZenSpaceManager.mjs`, `zen-components/ZenViewSplitter.mjs`, `ZenGlanceManager.mjs`, `ZenPinnedTabManager.mjs`, `modules/zen/media/ZenMediaController.sys.mjs`).
 - **Options as settings.** Each alternative becomes a value of one setting, with a default. Ambiguous behaviour is asked about before it is built.
 - **Checks look at what's drawn.** A check that only reads state can pass while the user sees nothing (the Peek prompt bug in 0.16.1). Every UI check asserts visibility with `elementFromPoint` or a screenshot, and is run with the user's own prefs as well.
@@ -18,7 +18,7 @@ What Zenith follows when it changes how things look or behave. Each rule says wh
 2. `gBrowser.tabs` holds only the active space and its essentials. Code that needs every space uses `gZenWorkspaces.allStoredTabs`, filtered with `ZenithSpaceTabs.shows(tab, space)`.
 3. Going to a tab always goes through `ZenithSpaceTabs.go(tab)`, which calls `switchTabIfNeeded`. It never sets `gBrowser.selectedTab` directly.
 4. Every surface that lists a space's tabs shows that space's essentials, first and marked: the bar, its list, the overview, the switcher, the Dash counts, the tab manager and the start page.
-5. Splitting never creates a second copy of an essential. Zen's `splitTabs` currently does; see the decision in §5.
+5. Splitting an essential makes a copy of it (Zen's `splitTabs`). Splitting without a copy crashes in Zen's own code, so the copy stays (§8).
 
 **Tab state marks.** The sidebar and the bars use one vocabulary, read from the tab:
 
@@ -55,10 +55,10 @@ The contract:
 
 - **Opening:** a link combo, Alt+Q or a lookup. The page is visible in ≤ 100 ms, with no animation when opened by key. A browser is prewarmed at idle.
 - **Keys act on the Peek** while it is open: Ctrl+W and Esc close it, Ctrl+L and F4 edit its address, Ctrl+F finds in it, F5 and Ctrl+R reload it, Alt+Left and Alt+Right (and the mouse's side buttons) go back and forward, zoom keys zoom it, Ctrl+Enter promotes it to a tab, and Alt+Shift+Enter promotes it to a tile.
-- **Links inside** navigate the Peek. Ctrl+click and middle-click open a background tab and leave the Peek open.
+- **Links inside** stay in the Peek, whatever keys are held, including middle clicks and links to new windows (§8).
 - The tab beneath is never affected by keys while a Peek has focus.
 
-Remaining Peek defects (Ctrl+F, reload, zoom, devtools and others) are listed in DESIGN.md and checked by key, one by one.
+Done in 0.16.3: Ctrl+W, F5, Ctrl+R, Ctrl+Shift+R, the zoom keys and links inside (Esc, Ctrl+L, F4, Alt+Left, Alt+Right and Ctrl+Enter were done before). Not done yet: opening in ≤ 100 ms (about 355 ms now), Ctrl+F, Alt+Shift+Enter.
 
 ## 5. Split views and layouts
 
@@ -70,7 +70,7 @@ Remaining Peek defects (Ctrl+F, reload, zoom, devtools and others) are listed in
 
 Rules:
 
-1. When the focused tab is in a split, a new tab (Ctrl+T, a link to a new tab, `window.open`, or Zenith's new tab) becomes a tile of that split, placed by the space's layout, up to the split's tile limit. Past the limit it opens as a normal tab next to the split. Background-opened links (Ctrl+click, middle-click) stay normal background tabs (see decision).
+1. When the focused tab is in a split, a new tab (Ctrl+T, a link to a new tab, `window.open`, or Zenith's new tab) becomes a tile of that split, placed by the space's layout, up to the split's tile limit. Past the limit it opens as a normal tab next to the split. Background-opened links (Ctrl+click, middle-click) become tiles too, or normal tabs as a setting (Shell › Links opened in the background from a split).
 2. Closing a tile hands its space to the layout. Dwindle gives it to the sibling, master promotes the stack's first tile when the master closes, the scroller removes the column and slides the strip, and monocle shows the next tile.
 3. Layout code works on Zen's `layoutTree` and calls `applyGridLayout`. It never leaves a tab outside a split that the layout believes holds it.
 4. An essential in a split: the decision in §8.
@@ -98,11 +98,11 @@ These rices differ along a small set of tokens:
 | icons | Zenith's / Nerd Font / text |
 | font | any installed font (see §7) |
 
-Today's islands, strip, minimal and powerline become presets over these tokens. New presets reproduce named rice styles, such as a floating pill bar or bare modules with no background.
+Done in 0.16.4: the looks Islands, Floating, Bare, Strip, Minimal and Powerline, each a starting point the Bar › Shape settings override: thickness (20–48px), length (whole edge, fit, 80%, 60%), margin, the bar's corners, background opacity (to none), module corners, spacing, border (none, hairline, accent) and separators (none, line, dot). Not done yet: alignment of a shorter bar, separate group corners, the arrow, round and slant separators, workspace and icon styles.
 
-**Powerline.** One segment per group, and the arrow joins segments of different colours, without gaps or overlaps at any thickness. Nothing rounded sits inside it. On side bars the separators turn to point down. The current tab is its own segment.
+**Powerline.** One segment per group, and the arrow joins segments of different colours, without gaps or overlaps at any thickness. Nothing rounded sits inside it. On side bars the segments are plain rows with no arrows (a rail is too narrow for them). The current tab is its own segment.
 
-**Bar tabs** show the marks in §2, plus folders as spans and splits as joined chips.
+**Bar tabs** show the marks in §2. Done in 0.16.4: essentials and pinned tabs first, after a hairline; a folder's tabs on one shared tile; a dot for sound or attention; a pulse while loading. Not done yet: splits as joined chips, a collapsed folder as one chip.
 
 ## 7. Look (Theme)
 
@@ -118,8 +118,10 @@ Today's islands, strip, minimal and powerline become presets over these tokens. 
 - **Transparency** is one master step, plus a per-surface offset for the sidebar, bars, panels and URL bar.
 - **Fonts** have three roles: UI, Bar and Monospace. Each is any installed font, picked from a searchable list drawn in its own face (`fontenumerator.EnumerateAllFontsAsync`) and applied with `!important`.
 
+Done in 0.16.4: the rice picker and the one optional font (below). Not done yet: themes as files (saved themes are kept in a setting for now), Export and Import, wallpaper variants, per-surface transparency, Bar and Monospace fonts.
+
 **The rice picker.** The main way to change the look is a large centred popup, as Linux rice switchers do (HyDE's theme selector, ML4W's settings app, end-4's illogical-impulse settings, caelestia's launcher pickers, nwg-look). It opens from a key, the Dash or settings.
-- **Left side:** categories (Themes, Colours, Wallpaper, Glass, Bars, Shape, Font).
+- **Left side:** categories (Themes, Colours, Glass, Bars, Shape, Font; Wallpaper is planned).
 - **Right side:** a grid of choices, each a picture.
 - Every click applies at once, so you see the result live. Esc closes the picker and keeps the result; "Revert" undoes all changes since it opened.
 - The Theme section in settings holds the same controls and the details.
@@ -129,8 +131,8 @@ Today's islands, strip, minimal and powerline become presets over these tokens. 
 ## 8. Decisions log
 
 2026-11-01:
-- Essential split: both behaviours are a setting. The default is no copy (the essential itself joins the split); the other value is Zen's copy, with a notice.
-- Audio: by default the newest audible source wins and every source keeps playing. "One at a time, resume" and "Keep the one I chose" are settings.
+- Essential split: both behaviours were to be a setting. Tested: "no copy" crashes in Zen's own code (its unfinished path for essentials in splits), so Zen's copy stays.
+- Audio: by default the newest audible source wins and every source keeps playing. "Keep the one I chose" is a setting; "One at a time, resume" is not built yet.
 - Peek: clicks inside a Peek always stay inside it, including Ctrl+click and middle-click.
 - Split: every new tab opens as a new tile. A setting lets background links (Ctrl+click, middle-click) stay normal tabs.
 - niri: a real strip, not limited by Zen's split (its own milestone).
@@ -140,22 +142,24 @@ Today's islands, strip, minimal and powerline become presets over these tokens. 
 
 ## 9. Coverage: every request → where it's done
 
-| # | Request | Milestone | Done when |
-|---|---|---|---|
-| 1 | Split on an essential duplicates it | M1 | A setting: no copy (default) or Zen's copy; the check counts tabs after a split |
-| 2 | The player misses music in another space | M1 | The media hub; the check plays music in space B and looks at the bar in space A, after a rebuild too |
-| 3 | Several audio sources | M1 | Rank, list, dots or count, switching; "one at a time" as a setting |
-| 4 | The overview leaves out essentials | M1 | Each space's row starts with its essentials |
-| 12 | Peek: fast, nothing broken | M1 | Every key in §4 checked visibly; ≤ 100 ms to the page, measured |
-| 14 | Split: new tabs outside, broken layout, closing | M1 | §5 rules 1–3, for each layout, checked |
-| 13 | Bar tabs marked like the sidebar | M2 | The §2 marks table, on top, bottom and side bars |
-| 7 | Hyprland-style bars | M2 | The §6 tokens, plus presets that reproduce 6 named rice styles from screenshots |
-| 8 | Powerline gaps, overlaps, roundness | M2 | Screenshots at every thickness and on every edge show no gaps or overlaps |
-| 9 | Bar width and height | M2 | Thickness and length sliders |
-| 10 | Sidebar and bar settings together | M2 | One "Tabs" section for the sidebar and bars (looks, marks, containers, previews), one "What's playing" section |
-| 5 | Look in one place | M3 | The rice picker popup, the Theme section, themes as files |
-| 11 | Font | M3 | One font setting with a picker |
-| 6 | niri scrollable tabs | M4 | The §5 strip: all of a space's tabs as columns, checked with 20 tabs |
+The milestones ship as patch releases: M1 in 0.16.3, M2 and M3 in 0.16.4. M4 is not done yet.
+
+| # | Request | Milestone | Done when | Status |
+|---|---|---|---|---|
+| 1 | Split on an essential duplicates it | M1 | A setting: no copy (default) or Zen's copy; the check counts tabs after a split | Not possible: Zen crashes without the copy (§8) |
+| 2 | The player misses music in another space | M1 | The media hub; the check plays music in space B and looks at the bar in space A, after a rebuild too | 0.16.3 |
+| 3 | Several audio sources | M1 | Rank, list, dots or count, switching; "one at a time" as a setting | 0.16.3, without "one at a time" |
+| 4 | The overview leaves out essentials | M1 | Each space's row starts with its essentials | 0.16.3 |
+| 12 | Peek: fast, nothing broken | M1 | Every key in §4 checked visibly; ≤ 100 ms to the page, measured | Partly, in 0.16.3 (§4) |
+| 14 | Split: new tabs outside, broken layout, closing | M1 | §5 rules 1–3, for each layout, checked | Rule 1 in 0.16.3; rules 2–3 not checked per layout yet |
+| 13 | Bar tabs marked like the sidebar | M2 | The §2 marks table, on top, bottom and side bars | 0.16.4, without joined splits |
+| 7 | Hyprland-style bars | M2 | The §6 tokens, plus presets that reproduce 6 named rice styles from screenshots | 0.16.4: 6 looks, 7 themes in the picker (§6 lists what's left) |
+| 8 | Powerline gaps, overlaps, roundness | M2 | Screenshots at every thickness and on every edge show no gaps or overlaps | 0.16.4 |
+| 9 | Bar width and height | M2 | Thickness and length sliders | 0.16.4 (as choices) |
+| 10 | Sidebar and bar settings together | M2 | One "Tabs" section for the sidebar and bars (looks, marks, containers, previews), one "What's playing" section | 0.16.4 |
+| 5 | Look in one place | M3 | The rice picker popup, the Theme section, themes as files | 0.16.4, themes kept in a setting |
+| 11 | Font | M3 | One font setting with a picker | 0.16.4 |
+| 6 | niri scrollable tabs | M4 | The §5 strip: all of a space's tabs as columns, checked with 20 tabs | Not done |
 
 ## 10. References
 

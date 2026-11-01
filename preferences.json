@@ -2779,6 +2779,14 @@
         "value": "islands"
       },
       {
+        "label": "Floating (a rounded bar off the edges)",
+        "value": "floating"
+      },
+      {
+        "label": "Bare (modules on the window, no bar)",
+        "value": "bare"
+      },
+      {
         "label": "Strip (polybar)",
         "value": "strip"
       },
@@ -2828,21 +2836,619 @@
   },
   {
     "property": "zenith.bar.size",
-    "label": "The bar's height",
+    "label": "The bar's thickness",
     "type": "dropdown",
-    "placeholder": "Default (Normal (30px))",
+    "placeholder": "Default (30px)",
     "options": [
       {
-        "label": "Compact (24px)",
+        "label": "20px",
+        "value": "20"
+      },
+      {
+        "label": "24px",
         "value": "24"
       },
       {
-        "label": "Normal (30px)",
+        "label": "28px",
+        "value": "28"
+      },
+      {
+        "label": "30px",
         "value": "30"
       },
       {
-        "label": "Roomy (36px)",
+        "label": "32px",
+        "value": "32"
+      },
+      {
+        "label": "36px",
         "value": "36"
+      },
+      {
+        "label": "40px",
+        "value": "40"
+      },
+      {
+        "label": "44px",
+        "value": "44"
+      },
+      {
+        "label": "48px",
+        "value": "48"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.length",
+    "label": "The bar's length",
+    "type": "dropdown",
+    "placeholder": "Default (The whole edge)",
+    "options": [
+      {
+        "label": "The whole edge",
+        "value": "full"
+      },
+      {
+        "label": "As long as its modules",
+        "value": "fit"
+      },
+      {
+        "label": "80% of the edge",
+        "value": "80"
+      },
+      {
+        "label": "60% of the edge",
+        "value": "60"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.margin",
+    "label": "Space around the bar",
+    "type": "dropdown",
+    "placeholder": "Default (As its look has it)",
+    "options": [
+      {
+        "label": "As its look has it",
+        "value": "auto"
+      },
+      {
+        "label": "None",
+        "value": "0"
+      },
+      {
+        "label": "4px",
+        "value": "4"
+      },
+      {
+        "label": "8px",
+        "value": "8"
+      },
+      {
+        "label": "12px",
+        "value": "12"
+      },
+      {
+        "label": "16px",
+        "value": "16"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.corners",
+    "label": "The bar's corners",
+    "type": "dropdown",
+    "placeholder": "Default (As its look has it)",
+    "options": [
+      {
+        "label": "As its look has it",
+        "value": "auto"
+      },
+      {
+        "label": "Square",
+        "value": "0"
+      },
+      {
+        "label": "Slightly round",
+        "value": "6"
+      },
+      {
+        "label": "Round",
+        "value": "12"
+      },
+      {
+        "label": "Fully round",
+        "value": "999"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.opacity",
+    "label": "The bar's background",
+    "type": "dropdown",
+    "placeholder": "Default (As its look has it)",
+    "options": [
+      {
+        "label": "As its look has it",
+        "value": "auto"
+      },
+      {
+        "label": "Solid",
+        "value": "100"
+      },
+      {
+        "label": "90%",
+        "value": "90"
+      },
+      {
+        "label": "75%",
+        "value": "75"
+      },
+      {
+        "label": "50%",
+        "value": "50"
+      },
+      {
+        "label": "25%",
+        "value": "25"
+      },
+      {
+        "label": "None",
+        "value": "0"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.module-corners",
+    "label": "The modules' corners",
+    "type": "dropdown",
+    "placeholder": "Default (As its look has it)",
+    "options": [
+      {
+        "label": "As its look has it",
+        "value": "auto"
+      },
+      {
+        "label": "Square",
+        "value": "0"
+      },
+      {
+        "label": "Slightly round",
+        "value": "4"
+      },
+      {
+        "label": "Round",
+        "value": "8"
+      },
+      {
+        "label": "Pills",
+        "value": "999"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.spacing",
+    "label": "Space between modules",
+    "type": "dropdown",
+    "placeholder": "Default (As its look has it)",
+    "options": [
+      {
+        "label": "As its look has it",
+        "value": "auto"
+      },
+      {
+        "label": "None",
+        "value": "0"
+      },
+      {
+        "label": "2px",
+        "value": "2"
+      },
+      {
+        "label": "4px",
+        "value": "4"
+      },
+      {
+        "label": "6px",
+        "value": "6"
+      },
+      {
+        "label": "8px",
+        "value": "8"
+      },
+      {
+        "label": "12px",
+        "value": "12"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.border",
+    "label": "The bar's border",
+    "type": "dropdown",
+    "placeholder": "Default (None)",
+    "options": [
+      {
+        "label": "None",
+        "value": "off"
+      },
+      {
+        "label": "A hairline",
+        "value": "hairline"
+      },
+      {
+        "label": "The accent",
+        "value": "accent"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.separators",
+    "label": "Between modules",
+    "type": "dropdown",
+    "placeholder": "Default (As its look has it)",
+    "options": [
+      {
+        "label": "As its look has it",
+        "value": "auto"
+      },
+      {
+        "label": "Nothing",
+        "value": "off"
+      },
+      {
+        "label": "A line",
+        "value": "line"
+      },
+      {
+        "label": "A dot",
+        "value": "dot"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.side-px",
+    "label": "A side bar's width",
+    "type": "dropdown",
+    "placeholder": "Default (As its kind has it (44px rail, 210px with titles))",
+    "options": [
+      {
+        "label": "As its kind has it (44px rail, 210px with titles)",
+        "value": "auto"
+      },
+      {
+        "label": "36px",
+        "value": "36"
+      },
+      {
+        "label": "52px",
+        "value": "52"
+      },
+      {
+        "label": "60px",
+        "value": "60"
+      },
+      {
+        "label": "180px",
+        "value": "180"
+      },
+      {
+        "label": "240px",
+        "value": "240"
+      },
+      {
+        "label": "280px",
+        "value": "280"
+      },
+      {
+        "label": "320px",
+        "value": "320"
       }
     ],
     "usedBy": "zenith-plus",
@@ -3443,6 +4049,56 @@
       {
         "label": "A mini player",
         "value": "player"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.tab-marks",
+    "label": "Marks on a bar's tabs",
+    "type": "dropdown",
+    "placeholder": "Default (As the sidebar's (essential, pinned, folder, sound, attention))",
+    "options": [
+      {
+        "label": "As the sidebar's (essential, pinned, folder, sound, attention)",
+        "value": "on"
+      },
+      {
+        "label": "None",
+        "value": "off"
       }
     ],
     "usedBy": "zenith-plus",
@@ -4139,6 +4795,13 @@
     ],
     "operator": "AND",
     "zenithWhy": "Pages aren't inverted"
+  },
+  {
+    "property": "zenith.core.font",
+    "label": "Font",
+    "type": "string",
+    "placeholder": "Your system's",
+    "usedBy": "zenith-plus"
   },
   {
     "property": "zenith.palette",

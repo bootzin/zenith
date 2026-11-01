@@ -511,6 +511,7 @@ MODS = {
                         ("Every page in your palette's colours", "palette"), ("Only ask them (sites may not listen)", "off"))),
         when(script(sites("zenith.plus.appearance-skip", "Sites left alone", "Sites left alone")),
              "Pages aren't inverted", ANY(IF("zenith.plus.appearance-force", ""), IF("zenith.plus.appearance-force", "invert"))),
+        script(text("zenith.core.font", "Font", "Your system's")),
         script(dropdown("zenith.palette", "Palette", "Your own colours",
                         ("Your own colours", "own"), ("From your wallpaper", "wallpaper"), ("From pywal or winwal", "pywal"),
                         ("From wallust", "wallust"), ("Catppuccin Mocha", "catppuccin-mocha"),
@@ -554,8 +555,6 @@ MODS = {
                         ("The bottom right", "bottom-right"), ("None", "off"))),
         script(dropdown("zenith.shell.new-tile", "Where a new tile goes", "Along the tile's longer side",
                         ("Along the tile's longer side", "dwindle"), ("Always to the right", "right"), ("Always below", "below"))),
-        script(dropdown("zenith.shell.essential-split", "Splitting an essential", "No copy: the essential itself (experimental)",
-                        ("No copy: the essential itself (experimental)", "own"), ("A copy of it (Zen's own)", "copy"))),
         script(dropdown("zenith.shell.split-background", "Links opened in the background from a split", "A new tile",
                         ("A new tile", "tile"), ("A normal tab", "tab"))),
         script(dropdown("zenith.shell.tiles", "Tiles in one split", "4 (Zen's own)",
@@ -757,6 +756,12 @@ def main():
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(prefs, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print(f"{out}: {len(prefs)} settings")
+    # The rice picker's choices (plus/pages/rice-picker.mjs): every Plus
+    # dropdown's labels and options, beside the page that reads them (the
+    # mod's own preferences.json isn't served to Plus's pages).
+    picker = [{k: e[k] for k in ("property", "label", "defaultValue", "options") if k in e}
+              for e in MODS["plus"] if e.get("type") == "dropdown"]
+    (root / "plus" / "pages" / "look-options.json").write_text(json.dumps(picker, ensure_ascii=False), encoding="utf-8")
 
 
 if __name__ == "__main__":

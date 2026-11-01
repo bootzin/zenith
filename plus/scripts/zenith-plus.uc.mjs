@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.16.3
+// @version        0.16.4
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -20,7 +20,7 @@
 // Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
 // work without any of this. Peek has its own script, zenith-peek.uc.mjs.
 
-const ZENITH_VERSION = "0.16.3"; // (tools/bump_version.py keeps it)
+const ZENITH_VERSION = "0.16.4"; // (tools/bump_version.py keeps it)
 window.ZenithVersion = ZENITH_VERSION; // about:zenith-fetch, the rice file
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const root = document.documentElement;
@@ -5102,23 +5102,6 @@ const NewTabBelow = {
     };
     gBrowser.tabContainer.addEventListener("TabOpen", opened);
     onUnload(() => gBrowser.tabContainer.removeEventListener("TabOpen", opened));
-    // Splitting an essential (Shell › Splitting an essential): Zen splits a
-    // copy of any pinned tab; "no copy" splits the essential itself, which
-    // stays one tab (Zen copies only tabs it sees pinned: the essential's
-    // pin is hidden from it for that moment).
-    const split = S?.splitTabs;
-    if (split) {
-      S.splitTabs = function (tabs, ...rest) {
-        const ess = Services.prefs.getStringPref("zenith.shell.essential-split", "") !== "copy" ? (tabs ?? []).filter(t => t?.hasAttribute?.("zen-essential") && t.hasAttribute("pinned")) : [];
-        for (const t of ess) t.removeAttribute("pinned");
-        try {
-          return split.call(this, tabs, ...rest);
-        } finally {
-          for (const t of ess) if (t.isConnected) t.setAttribute("pinned", "true");
-        }
-      };
-      onUnload(() => (S.splitTabs = split));
-    }
     window.ZenithNewTabBelow = this; // for tools/checks
   },
 
@@ -5257,6 +5240,7 @@ const ShellKeys = {
     ["launcher", "Alt+KeyD", "The launcher: open a page, search, bookmarks (Ctrl+Tab: its other modes)", "Zenith"],
     ["dash", "Alt+KeyN", "The Dash: calendar, weather, media, timers, toggles", "Zenith"],
     ["overview", "Alt+KeyO", "The overview: every tab as a picture", "Zenith"],
+    ["rice", "Alt+Shift+KeyP", "Looks: the rice picker (themes, colours, glass, bars, font)", "Zenith"],
     ["reload-rice", "Alt+Shift+KeyC", "Read zenith.conf again", "Zenith"],
     ["passthrough", "Alt+KeyP", "Passthrough: every key to the page, until Alt+P", "Zenith"],
     ["keys", "Alt+Shift+Slash", "These keys", "Zenith"],
@@ -5370,6 +5354,7 @@ const ShellKeys = {
       case "layout": return Layouts.cycle();
       case "layout-action": return Layouts.action();
       case "overview": return window.ZenithOverview?.toggle();
+      case "rice": return RicePicker.toggle();
       case "reload-rice": return window.ZenithRice?.reload(true);
       case "restart": return Nagbar.ask("restart");
       case "quit": return Nagbar.ask("quit");
@@ -7008,6 +6993,38 @@ const RiceLoader = {
    Alt+O, the bar's overview button, or the hot corner (Shell › The hot
    corner): a few transparent pixels in a corner of the window that open it
    when the pointer is pushed there, as niri's and GNOME's. */
+/* --- The rice picker (plus/pages/rice-picker.mjs), on demand ----------------
+   Alt+Shift+P, the Dash's Looks tile, Settings › Theme. And the font
+   (Theme › Font): one, for the whole browser, or your system's. */
+const RicePicker = {
+  init() {
+    window.ZenithLooks = this; // the Dash, tools/checks (window.ZenithRice is the rice file)
+    const commandset = document.createXULElement("commandset"), command = document.createXULElement("command");
+    command.id = "zenith-rice-picker";
+    command.addEventListener("command", () => this.toggle());
+    commandset.append(command);
+    root.append(commandset);
+    const font = () => {
+      const f = Services.prefs.getStringPref("zenith.core.font", "").trim().replace(/["\\;{}]/g, "");
+      root.toggleAttribute("zenith-font", !!f);
+      if (f) root.style.setProperty("--zth-ui-font", `"${f}", system-ui, sans-serif`);
+      else root.style.removeProperty("--zth-ui-font");
+    };
+    Services.prefs.addObserver("zenith.core.font", font);
+    onUnload(() => Services.prefs.removeObserver("zenith.core.font", font));
+    font();
+  },
+
+  async toggle(category) {
+    try {
+      this.mod ??= await import(await BarLoader.page("rice-picker.mjs"));
+      return this.mod.Picker.toggle(category);
+    } catch (e) {
+      console.error("[Zenith] rice picker", e);
+    }
+  },
+};
+
 const OverviewLoader = {
   CORNER: "zenith.overview.corner", // top-left (as it comes), top-right, bottom-left, bottom-right, off
 
@@ -7273,6 +7290,8 @@ const PALETTES = {
   kanagawa: { base: "#1f1f28", mantle: "#16161d", surface: "#2a2a37", overlay: "#727169", text: "#dcd7ba", accent: "#7e9cd8", second: "#957fb8", red: "#ff5d62", green: "#98bb6c", yellow: "#e6c384" },
   dracula: { base: "#282a36", mantle: "#21222c", surface: "#44475a", overlay: "#6272a4", text: "#f8f8f2", accent: "#bd93f9", second: "#ff79c6", red: "#ff5555", green: "#50fa7b", yellow: "#f1fa8c" },
 };
+
+window.ZenithPaletteColours = PALETTES; // the rice picker's swatches
 
 const Palettes = {
   PREF: "zenith.palette",
@@ -9653,6 +9672,7 @@ start("shell keys", () => ShellKeys.init(), true);
 start("shell tiles", () => Tiler.init(), true);
 start("shell layouts", () => Layouts.init());
 start("overview", () => OverviewLoader.init());
+start("rice picker", () => RicePicker.init());
 start("rice file", () => RiceLoader.init());
 start("ready ahead", () => {
   const ahead = () => {

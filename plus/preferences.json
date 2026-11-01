@@ -3357,6 +3357,13 @@
     "zenithWhy": "Pages aren't inverted"
   },
   {
+    "property": "zenith.core.font",
+    "label": "Font",
+    "type": "string",
+    "placeholder": "Your system's",
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.palette",
     "label": "Palette",
     "type": "dropdown",
@@ -3798,23 +3805,6 @@
       {
         "label": "Always below",
         "value": "below"
-      }
-    ],
-    "usedBy": "zenith-plus"
-  },
-  {
-    "property": "zenith.shell.essential-split",
-    "label": "Splitting an essential",
-    "type": "dropdown",
-    "placeholder": "Default (No copy: the essential itself (experimental))",
-    "options": [
-      {
-        "label": "No copy: the essential itself (experimental)",
-        "value": "own"
-      },
-      {
-        "label": "A copy of it (Zen's own)",
-        "value": "copy"
       }
     ],
     "usedBy": "zenith-plus"

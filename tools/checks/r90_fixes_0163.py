@@ -1,4 +1,4 @@
-"""0.17 milestone 1, inside Zen: the overview's essentials; Peek's keys
+"""0.16.3, inside Zen: the overview's essentials; Peek's keys
 (Ctrl+W closes the Peek, not the tab beneath) and links clicked with keys
 staying in the Peek; new tabs from a split becoming tiles (foreground and
 background); the media hub: music in another space shown, a muted tab not

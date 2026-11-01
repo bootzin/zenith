@@ -1,4 +1,4 @@
-"""0.17 milestone 2, inside Zen, with the user's own prefs: powerline at
+"""0.16.4, inside Zen, with the user's own prefs: powerline at
 24/30/36 and on a side bar (screenshots), the new looks and shape knobs
 (floating, bare, fit length, margins), marks on bar tabs (essential,
 pinned, folder, playing, muted), and splitting an essential without a copy.

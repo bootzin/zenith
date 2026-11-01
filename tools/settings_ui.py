@@ -151,9 +151,10 @@ PARENTS = {
 
 SECTIONS = [
     {
-        "id": "look", "title": "Look", "icon": "palette",
-        "blurb": "Size, colour, glass and the window around the page.",
+        "id": "look", "title": "Theme", "icon": "palette",
+        "blurb": "How Zenith looks: open the rice picker (Alt+Shift+P) to try themes, colours, glass, bars and a font with every click shown at once; the details are below.",
         "groups": [
+            ("Looks", ["zenith.action.rice-picker", "zenith.core.font"]),
             ("Size", ["zenith.core.density", "zenith.core.scale"]),
             ("Colour and shape", ["zenith.palette", "zenith.core.accent", "zenith.plus.ink", "zenith.plus.space-colour", "zenith.plus.colour-strength",
                                   "zenith.action.colours-image", "zenith.action.colours-wallpaper", "zenith.plus.palette-spaces",
@@ -261,7 +262,7 @@ SECTIONS = [
             ("The overview", ["zenith.overview.look", "zenith.overview.corner"]),
             ("The launcher", ["zenith.launcher.look"]),
             ("The rice file", ["zenith.rice.mode", "zenith.action.rice-export", "zenith.action.rice-reload", "zenith.action.rice-open"]),
-            ("Tiles", ["zenith.shell.new-tile", "zenith.shell.split-background", "zenith.shell.essential-split", "zenith.shell.tiles", "zenith.panels.tile-focus", "zenith.panels.tile-dim"]),
+            ("Tiles", ["zenith.shell.new-tile", "zenith.shell.split-background", "zenith.shell.tiles", "zenith.panels.tile-focus", "zenith.panels.tile-dim"]),
         ],
     },
     {
@@ -604,7 +605,6 @@ DESCRIPTIONS = {
     "zenith.shell.follow-mouse": "As i3 does: rest the pointer on a tile for a moment and it's the one you're on.",
     "zenith.shell.new-tile": "Along the longer side, as Hyprland's dwindle: a wide tile splits side by side, a tall one "
                              "top and bottom. Alt+B (right) or Alt+V (below) decides for the next one only.",
-    "zenith.shell.essential-split": "Zen splits a copy of an essential (a normal tab, beside the essential that stays). No copy splits the essential itself: still one tab, still an essential (experimental: Zen hasn't finished essentials in splits).",
     "zenith.shell.split-background": "While you're on a split's tab, every new tab (Ctrl+T, a link to a new tab) becomes a tile of that split, placed by the space's layout. Links opened in the background (Ctrl+click, a middle click) do too, or stay normal tabs. Past the split's tile limit, a normal tab.",
     "zenith.shell.tiles": "How many tabs one split view takes. Each tile is a page drawn on screen, so more tiles use "
                           "more of your computer. No limit is experimental: Zen's split view was made for four, a big split "
@@ -655,6 +655,7 @@ DESCRIPTIONS = {
     "zenith.bar.tab-scroll": "Kept in view: the strip moves only when the tab you're on would leave it. Kept in the middle: the strip (or the window of tabs) moves to keep it centred, except near either end.",
     "zenith.bar.container-hint": "Tabs in a Firefox container that you're not on: a thin line in the container's colour along the tab's top, bottom, left or right (as named, on every bar), a ring around the icon, the tab faintly tinted, or nothing (the tab you're on is marked in its container's colour either way).",
     "zenith.bar.tab-preview": "Resting the pointer on a tab in a bar shows its picture (a sleeping tab: its title and address only), as the sidebar's tab previews.",
+    "zenith.core.font": "One font for the whole browser (the sidebar, menus, panels, the URL bar, Zenith's popups and a bar whose font isn't monospace): the name of any installed font, or empty for your system's. The rice picker lists them, each drawn in its own face.",
     "zenith.bar.media-pick": "With media in several tabs (any space): the newest that's playing aloud, then muted ones, then paused ones; or the one you last played, paused or picked, while it's still there. Shift+wheel over the player goes to the next source, a middle click mutes it, \"+N\" says how many others there are.",
     "zenith.bar.length": "A bar along its whole edge, as long as its modules (centred, as Hyprland rices' floating bars), or part of the edge.",
     "zenith.bar.margin": "Space between the bar and the window's edges: with some, the bar floats (Hyprland's gaps).",
@@ -705,6 +706,12 @@ ACTIONS = {
                 "or delete its cookies and data (:cookies in the switcher).",
         "button": "Cookies by site",
         "command": "zenith-cookies-command",
+    },
+    "zenith.action.rice-picker": {
+        "label": "The rice picker",
+        "desc": "Themes, colours, glass, bars and the font in one window, each click applied as you go; Revert puts everything back, Save this look keeps it by name.",
+        "button": "Open the rice picker",
+        "command": "zenith-rice-picker",
     },
     "zenith.action.colours-image": {
         "label": "Colours from an image",
@@ -859,7 +866,6 @@ LABELS = {
     "zenith.shell.follow-mouse": "Focus follows the mouse",
     "zenith.shell.new-tile": "New tiles",
     "zenith.shell.split-background": "Background links from a split",
-    "zenith.shell.essential-split": "Splitting an essential",
     "zenith.shell.tiles": "Tiles in one split",
     "zenith.panels.tile-focus": "The tile you're on",
     "zenith.panels.tile-dim": "The other tiles",
@@ -936,6 +942,7 @@ LABELS = {
     "zenith.bar.side-px": "A side bar's width",
     "zenith.bar.tab-marks": "Marks on a bar's tabs",
     "zenith.bar.media-pick": "Which source the bar shows",
+    "zenith.core.font": "Font",
     "zenith.shell.layout": "Layout",
     "zenith.shell.master": "Master and stack",
     "zenith.shell.master-ratio": "The master's width",
