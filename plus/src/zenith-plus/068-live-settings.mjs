@@ -67,6 +67,8 @@ const DROPDOWNS = {
  "zenith.panels.tab-preview": "Zenith Panels",
  "zenith.motion.preset": "Zenith Motion",
  "zenith.motion.reduced": "Zenith Motion",
+ "zenith.motion.easing": "Zenith Motion",
+ "zenith.motion.speed": "Zenith Motion",
  "zenith.motion.tab-switch": "Zenith Motion",
  "zenith.motion.swipe": "Zenith Motion",
  "zenith.motion.swipe-round": "Zenith Motion"

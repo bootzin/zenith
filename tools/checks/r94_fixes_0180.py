@@ -69,7 +69,7 @@ with Scene(headless=False) as z:
       const vs = document.getElementById('context-viewsource'), back = document.getElementById('context-selectall');
       const out = { 'view source off': vs?.hasAttribute('zenith-menu-off'), 'select all in More': !!back?.closest('.zenith-more') }; m.hidePopup(); P.clearUserPref('zenith.internal.menu-items'); return out;"""))
     z.js("await window.ZenithLooks.toggle('menus'); await zth.sleep(1500); return 1")
-    say("picker: menus and buttons", z.js("const h = document.getElementById('zenith-rice'); return { rows: h.querySelectorAll('.zr-item').length, glance: h.querySelectorAll('.zr-seg[pref=\"zenith.plus.glance-buttons\"] .zr-opt').length }"))
+    say("picker: menus and buttons", z.js("const h = document.getElementById('zenith-rice'); return { rows: h.querySelectorAll('.zr-item').length, glance: h.querySelectorAll('.zr-seg[field=\"zenith.plus.glance-buttons\"] .zr-opt').length }"))
     z.screenshot(str(OUT / "c-picker-menus.png"))
     z.js("window.ZenithLooks.toggle(); P.setStringPref('zenith.bar.size', '36'); gBrowser.selectedTab = gBrowser.addTab('about:preferences', { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() }); await zth.sleep(2500); " +
          "gBrowser.selectedBrowser.contentWindow.gotoPref?.('paneZenith'); await zth.sleep(1500); const d = gBrowser.selectedBrowser.contentDocument; d.querySelector('[data-prop=\"zenith.bar.size\"]')?.scrollIntoView({ block: 'center' }); await zth.sleep(600); return 1")

@@ -134,7 +134,7 @@
     border-radius: var(--zth-radius) !important;
     overflow: clip;
     outline: 1px solid var(--zth-hairline);
-    box-shadow: var(--zth-shadow);
+    box-shadow: var(--zth-shadow), var(--zth-glass-shine);
     background: var(--zth-panel-bg) !important;
     backdrop-filter: var(--zth-panel-filter);
   }
@@ -157,7 +157,7 @@
     corner-shape: var(--zth-pill-shape) !important;
     background: var(--zth-glass-bg) !important;
     backdrop-filter: var(--zth-glass-filter);
-    box-shadow: var(--zth-shadow) !important;
+    box-shadow: var(--zth-shadow), var(--zth-glass-shine) !important;
     color: var(--zth-ink) !important;
     font-size: calc(var(--zth-font) - 1px) !important;
     font-weight: normal !important;
@@ -200,7 +200,7 @@
     background: var(--zth-glass-bg) !important;
     backdrop-filter: var(--zth-glass-filter) !important;
     outline: 1px solid var(--zth-hairline);
-    box-shadow: var(--zth-shadow);
+    box-shadow: var(--zth-shadow), var(--zth-glass-shine);
 
     & toolbarbutton {
       border-radius: var(--zth-pill-radius) !important;
@@ -269,7 +269,7 @@
 
 :root:has(#theme-Zenith-Panels[zenith-panels-tile-dim="dim"])
   #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"] {
-  transition: opacity 0.15s ease;
+  transition: opacity calc(0.15s * var(--zth-speed)) var(--zth-ease);
 
   &:not(.deck-selected) {
     opacity: 0.78;
@@ -316,7 +316,7 @@
     corner-shape: var(--zth-pill-shape) !important;
     background: var(--zth-glass-bg) !important;
     backdrop-filter: var(--zth-glass-filter);
-    box-shadow: var(--zth-shadow) !important;
+    box-shadow: var(--zth-shadow), var(--zth-glass-shine) !important;
     color: var(--zth-ink) !important;
     font-size: 11px;
 
@@ -433,7 +433,7 @@
   --panel-padding: 0 !important;
   --panel-background: color-mix(in srgb, var(--zth-glass-color) 94%, transparent) !important;
   --panel-border-color: var(--zth-hairline) !important;
-  --panel-border-radius: calc(var(--zth-radius) + 2px) !important;
+  --panel-border-radius: var(--zth-radius-l) !important;
   --panel-shadow: var(--zth-shadow) !important;
   font-size: var(--zth-font);
   color: var(--zth-ink) !important;
@@ -446,7 +446,7 @@
   & .tab-preview-thumbnail-container {
     order: 1 !important;
     width: 100% !important;
-    border-radius: calc(var(--zth-radius) - 3px);
+    border-radius: var(--zth-radius-s);
     corner-shape: round !important;
     overflow: hidden;
 
@@ -490,7 +490,7 @@
      variables (an outside !important can't reach in there). */
   --panel-background: color-mix(in srgb, var(--zth-glass-color) 94%, transparent) !important;
   --panel-border-color: var(--zth-hairline) !important;
-  --panel-border-radius: calc(var(--zth-radius) + 4px) !important;
+  --panel-border-radius: var(--zth-radius-l) !important;
   --panel-padding: 16px 8px 8px !important;
   --panel-shadow: var(--zth-shadow) !important;
   background: transparent !important;
@@ -510,7 +510,7 @@
   }
 
   & .ctrlTab-canvas {
-    border-radius: calc(var(--zth-radius) - 4px);
+    border-radius: var(--zth-radius-s);
     box-shadow: 0 0 0 1px var(--zth-hairline) !important;
     overflow: clip;
   }
@@ -549,7 +549,8 @@
     inset-block-start: 8px !important;
     border-radius: var(--zth-pill-radius, 50%) !important;
     background-color: var(--zth-pip-glass) !important;
-    backdrop-filter: blur(10px) saturate(1.3);
+    backdrop-filter: var(--zth-glass-filter);
+    box-shadow: var(--zth-glass-shine);
     outline: 1px solid rgb(255 255 255 / 0.14);
     fill: var(--zth-pip-ink) !important;
 
@@ -575,13 +576,14 @@
     width: auto !important;
     height: auto !important;
     padding: 4px 0;
-    border-radius: var(--zth-radius, 14px);
+    border-radius: var(--zth-radius);
     background-color: var(--zth-pip-glass);
-    backdrop-filter: blur(12px) saturate(1.3);
+    backdrop-filter: var(--zth-glass-filter);
+    box-shadow: var(--zth-glass-shine);
     outline: 1px solid rgb(255 255 255 / 0.12);
     /* Shown when Firefox shows the controls: mouse over, or a key pressed. */
     opacity: 0;
-    transition: opacity 160ms linear;
+    transition: opacity calc(160ms * var(--zth-speed)) linear;
   }
 
   &:is([keying], [showing], [donthide]) #controls-bottom,

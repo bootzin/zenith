@@ -110,6 +110,9 @@ PRESETS = {
             "smooth": {"label": "Smooth", "blurb": "Softer, springier motion"},
         },
         "sets": {
+            "zenith.motion.easing": {"off": "standard", "quick": "standard", "smooth": "spring"},
+            "zenith.motion.speed": {"off": "100", "quick": "100", "smooth": "100"},
+            "zenith.motion.space-switch": {"off": "instant", "quick": "quick", "smooth": "zen"},
             "zenith.motion.swipe": {"off": "off", "quick": "on", "smooth": "on"},
             "zenith.motion.swipe-round": {"off": "off", "quick": "off", "smooth": "off"},
         },
@@ -180,8 +183,8 @@ SECTIONS = [
                       "zenith.bar.right", "zenith.bar.right.modules", "zenith.bar.display-right", "zenith.bar.fullscreen"],
              {"blurb": "Which edges have a bar, and what's on each."}),
             ("Look and size", ["zenith.bar.style", "zenith.bar.size", "zenith.bar.length", "zenith.bar.font", "zenith.bar.icons",
-                               "zenith.bar.side-width", "zenith.bar.side-px", "zenith.bar.side-rows"],
-             {"blurb": "A look brings its own spacing and corners; fine-tune them below, or try them in the picker."}),
+                               "zenith.bar.side-width", "zenith.bar.rail-px", "zenith.bar.wide-px", "zenith.bar.side-rows"],
+             {"blurb": "Choosing a look writes its margin, corners and spacing below; change any of them after. Each bar can have its own: pick it at the top of Bars."}),
             ("Tabs in the bars", ["zenith.bar.tab-look", "zenith.bar.tab-marks", "zenith.bar.marker", "zenith.bar.container-hint",
                                   "zenith.bar.tab-preview", "zenith.bar.tab-crowd", "zenith.bar.tab-crowd-count"]),
             ("What's playing", ["zenith.bar.media-pick", "zenith.bar.media-look", "zenith.bar.media-hover"]),
@@ -190,7 +193,7 @@ SECTIONS = [
             ("The Dash", ["zenith.dash.place", "zenith.dash.weather", "zenith.dash.downloads"]),
             ("Fine-tuning the shape", ["zenith.bar.margin", "zenith.bar.corners", "zenith.bar.opacity", "zenith.bar.border",
                                        "zenith.bar.module-corners", "zenith.bar.spacing", "zenith.bar.separators"],
-             {"more": True, "blurb": "Each is the look's own until you change it."}),
+             {"more": True, "blurb": "A look, Theme › Corners and Theme › Window transparency write these when you choose them; change any one here."}),
             ("Fine-tuning the tabs", ["zenith.bar.tab-awake", "zenith.bar.tab-align", "zenith.bar.tab-scroll", "zenith.bar.tab-wheel"],
              {"more": True}),
         ],
@@ -306,7 +309,7 @@ SECTIONS = [
         "blurb": "How things move.",
         "preset": "zenith.motion.preset",
         "groups": [
-            ("Movement", ["zenith.motion.tab-switch", "zenith.motion.space-switch", "zenith.motion.swipe", "zenith.motion.swipe-round",
+            ("Movement", ["zenith.motion.easing", "zenith.motion.speed", "zenith.motion.tab-switch", "zenith.motion.space-switch", "zenith.motion.swipe", "zenith.motion.swipe-round",
                           "zenith.plus.scroll"]),
             ("Less motion", ["zenith.motion.reduced", "zenith.plus.animate-zen"]),
         ],
@@ -326,16 +329,17 @@ DESCRIPTIONS = {
     "zenith.core.density": "How tall sidebar tabs and URL bar results are.",
     "zenith.core.scale": "Sizes follow the window's width; pick one to fix them.",
     "zenith.core.accent": "The colour of hairlines, highlights and selection. Workspace colour follows each space.",
-    "zenith.core.corners": "How rounded panels, tabs and cards are.",
-    "zenith.core.pills": "Small badges like the zoom pill and number chips.",
+    "zenith.core.corners": "How rounded everything is: panels, tabs, cards, menus, Zenith's popups and the bars (choosing one writes the bars' corners too; Bars › Fine-tuning the shape changes a bar's after).",
+    "zenith.core.pills": "Small badges like the zoom pill, number chips and Glance's buttons: fully round, or the panels' corners (Corners writes this too: Square, the panels' corners; Soft and Round, fully round).",
     "zenith.core.window-transparency": "How much shows through every see-through surface: the sidebar, docked or "
-                                       "floating, and the panels. All of them use the same colour and strength.",
-    "zenith.core.glass": "How much see-through surfaces blur what's behind them: the page, or (with Window material "
+                                       "floating, the panels, Zenith's popups, the Dash, the picker and the bars "
+                                       "(choosing one writes the bars' background too). All of them use the same colour and strength.",
+    "zenith.core.glass": "How much every see-through surface (panels, popups, the bars) blurs what's behind it: the page, or (with Window material "
                          "on Wallpaper) the wallpaper behind the docked sidebar. Acrylic and Mica are blurred by "
                          "Windows, at its own strength.",
-    "zenith.core.glass-edge": "The rim of glass surfaces: a fine highlight along the top, or liquid glass that catches "
-                              "the light around its edge, on panels, the selected tab and essentials, and lights up "
-                              "where you press (with Zenith Plus).",
+    "zenith.core.glass-edge": "The rim of every glass surface (panels, popups, the Dash, the picker, the bars, the find bar, "
+                              "toasts, the selected tab and essentials): a fine highlight along the top, or liquid glass "
+                              "that catches the light around its edge and lights up where you press (with Zenith Plus).",
     "zenith.core.floating-sidebar": "See-through like every panel, always solid, or Zen's own colours and blur.",
     "zenith.plus.material-windows": "What shows behind the docked sidebar and around a rounded page. Wallpaper: "
                                     "your desktop wallpaper, drawn by Zenith where it sits on the screen, so Frost and "
@@ -641,13 +645,13 @@ DESCRIPTIONS = {
     "zenith.plus.appearance-auto": "With pages on automatic (the sun or moon in the bar, the Dash, :appearance auto), they follow the browser's own light or dark (your palette's when you have one, else Windows'), or Windows' setting whatever the browser looks like. Sites with a theme setting of their own keep theirs.",
     "zenith.bar.layout": "A layout to start from: it turns on the bars it needs with what each shows, and sets the sidebar. Then change any bar's list, or turn one on or off.",
     "zenith.bar.top": "A bar along the window's top: at the top it's the title bar too (drag it to move the window).",
-    "zenith.bar.top.modules": "What the top bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
+    "zenith.bar.top.modules": "What the top bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its default list. A right-click on a bar opens this too.",
     "zenith.bar.bottom": "A bar along the window's bottom.",
-    "zenith.bar.bottom.modules": "What the bottom bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
+    "zenith.bar.bottom.modules": "What the bottom bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its default list. A right-click on a bar opens this too.",
     "zenith.bar.left": "A bar along the window's left. On the left or right it stands up: a rail of icons, or wider with titles (below).",
-    "zenith.bar.left.modules": "What the left bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
+    "zenith.bar.left.modules": "What the left bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its default list. A right-click on a bar opens this too.",
     "zenith.bar.right": "A bar along the window's right. On the left or right it stands up: a rail of icons, or wider with titles (below).",
-    "zenith.bar.right.modules": "What the right bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
+    "zenith.bar.right.modules": "What the right bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its default list. A right-click on a bar opens this too.",
     "zenith.bar.marker": "The line under the tab you're on (on a side bar, along its inner edge) and the pill of the space you're in. The tab's container: a tab in a Firefox container is marked in its colour (others in the space's); the space's colour: the colour Zen gives the space (its container's, if it opens tabs in one); or the theme's accent everywhere.",
     "zenith.bar.media-hover": "A mini player (the cover, the title, previous, play and next) when the pointer rests on what's playing in a bar; it goes when the pointer leaves it.",
     "zenith.plus.appearance-force": "Pages are dark or light: as you set them (the bar's sun or moon, the Dash, :appearance), or automatic (the browser's or Windows', as you choose above). Firefox asks every page for it, and many sites don't listen. Invert: a page still in the other mode once it has loaded is inverted, its pictures and videos turned back, as Dark Reader's filter mode does (pages that follow are left alone). Every page in your palette's colours: Firefox draws every page in the palette's background, text and link colours (or plain dark or light ones without a palette), as a high-contrast mode does: the same everywhere, but pages lose their own design. Only ask them: as Firefox does on its own.",
@@ -662,16 +666,17 @@ DESCRIPTIONS = {
     "zenith.bar.media-pick": "With media in several tabs (any space): the newest that's playing aloud, then muted ones, then paused ones; or the one you last played, paused or picked, while it's still there. Shift+wheel over the player goes to the next source, a middle click mutes it, \"+N\" says how many others there are.",
     "zenith.bar.length": "A bar along its whole edge, as long as its modules (centred, as Hyprland rices' floating bars), or part of the edge.",
     "zenith.bar.margin": "Space between the bar and the window's edges: with some, the bar floats (Hyprland's gaps).",
-    "zenith.bar.corners": "The bar's own corners (a floating bar looks best round).",
-    "zenith.bar.opacity": "How much of the bar's background shows: none leaves the modules on the window, as bare waybar rices.",
-    "zenith.bar.module-corners": "The corners of each module's pill (islands, floating, bare).",
-    "zenith.bar.spacing": "The gap between modules.",
+    "zenith.bar.corners": "The bar's own corners (Floating and Theme › Corners write theirs).",
+    "zenith.bar.opacity": "How much of the bar's background shows, on Window transparency's steps (choosing a step there writes it here): none leaves the modules on the window, as bare waybar rices. Below solid, it's frosted as every glass surface.",
+    "zenith.bar.module-corners": "The corners of each module's pill on Islands, Floating and Bare (Theme › Corners writes theirs). Strip, Minimal and Powerline join their modules edge to edge.",
+    "zenith.bar.spacing": "The gap between modules on Islands, Floating and Bare (Strip, Minimal and Powerline join them).",
     "zenith.bar.border": "A border around the bar: a hairline, or the accent colour.",
     "zenith.bar.separators": "Something between modules: a line or a dot (powerline has its arrows).",
-    "zenith.bar.side-px": "How wide a bar on the left or right is.",
+    "zenith.bar.rail-px": "How wide a bar on the left or right is while it's a rail of icons.",
+    "zenith.bar.wide-px": "How wide a bar on the left or right is while it shows titles.",
     "zenith.bar.tab-marks": "The sidebar's signals on a bar's tabs: essentials (a diamond) and pinned tabs (a dot) first, a folder's tabs underlined together, a note for one playing (crossed when muted), a dot for one asking for attention, a pulse while loading.",
     "zenith.bar.side-rows": "On a bar on the left or right with titles, the modules that are only an icon (the switcher, the overview, downloads, pages dark or light, extensions, power): each a row with its icon, its name and its value (memory, the layout, how pages are), as a sidebar's list; or side by side as icons, a toolbar at either end of the bar. The window's buttons lie in one row either way.",
-    "zenith.bar.side-clock": "On a rail (a bar on the left or right of icons), the clock stands up: the hours over the minutes, with (as the bar's clock has it) the date under them, or nothing, the weekday, the seconds, the date, or the day over the month's name.",
+    "zenith.bar.side-clock": "On a rail (a bar on the left or right of icons), the clock stands up: the hours over the minutes, with the date under them when Bars › The bar's clock shows a date, or nothing, the weekday, the seconds, the date, or the day over the month's name.",
     "zenith.shell.layout": "How a space lays out its tiles, unless you've picked another one there with Alt+Y (or the bar's layout module). Dwindle: a new tile splits the one you're on along its longer side, as Hyprland's. Master and stack: one big tile (the master) and the rest stacked beside it, as dwm's; Alt+Shift+Y makes the tile you're on the master. Scroller: tiles are columns on a strip, as niri's: those that fit show, the others wait to the side until Alt+H or Alt+L brings them in; Alt+Shift+Y gives a column its next width. Monocle: the tile you're on fills the view, Alt+H and Alt+L go to the others.",
     "zenith.shell.master": "The master on the left with the stack on the right (dwm's), or the master in the middle with the stack either side (better on a wide screen).",
     "zenith.shell.master-ratio": "How much of the width the master takes.",
@@ -682,7 +687,9 @@ DESCRIPTIONS = {
     "zenith.overview.corner": "Pushing the pointer into this corner of the window opens the overview, as niri's and GNOME's hot corners. (On a window that isn't maximised, Windows keeps its corners for resizing: maximised, it's easy to reach.)",
     "zenith.rice.mode": "A setting your rice file (~/.config/zenith/zenith.conf, Hyprland's language) holds: changing it here changes its line in the file too (the rest of the line and its comments stay; a value made of a $variable is left to you), or it's locked here and changed only in the file.",
     "zenith.launcher.look": "Centred: a box in the middle of the window, a list under it. dmenu: one line across the top of the window (over a top bar), the results along it as dmenu's and tofi's; left and right (at the end of what you typed) or up and down choose. A grid: big tiles with their pictures, as rofi's grid themes; the arrows move around it.",
-    "zenith.motion.space-switch": "How long Zen's slide from one space to the next takes: Zen's own 250 ms, 120 ms (as the Quick preset has it), or no slide at all. Left as the preset: Quick 120 ms, Smooth Zen's, Off none.",
+    "zenith.motion.space-switch": "How long Zen's slide from one space to the next takes: Zen's own 250 ms, 120 ms, or no slide at all. The presets write theirs: Quick 120 ms, Smooth Zen's, Off none.",
+    "zenith.motion.easing": "The curve everything moves along: panels, popups, the sidebar, tabs, the strip, the overview. The presets write theirs (Quick: Standard, Smooth: Spring).",
+    "zenith.motion.speed": "How long every animation takes, against the preset's own timings (Quick: 100 to 150 ms, Smooth: 200 to 300 ms).",
 }
 
 # Buttons on the page that open something of Zen's, with no setting behind
@@ -946,7 +953,8 @@ LABELS = {
     "zenith.bar.spacing": "Space between modules",
     "zenith.bar.border": "The bar's border",
     "zenith.bar.separators": "Between modules",
-    "zenith.bar.side-px": "A side bar's width",
+    "zenith.bar.rail-px": "A rail's width",
+    "zenith.bar.wide-px": "Width with titles",
     "zenith.bar.tab-marks": "Marks on a bar's tabs",
     "zenith.bar.media-pick": "Which source the bar shows",
     "zenith.core.font": "Font",
@@ -968,4 +976,6 @@ LABELS = {
     "zenith.rice.mode": "Settings the file holds",
     "zenith.launcher.look": "Look",
     "zenith.motion.space-switch": "Switching spaces",
+    "zenith.motion.easing": "Easing",
+    "zenith.motion.speed": "Speed",
 }

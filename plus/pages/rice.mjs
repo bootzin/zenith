@@ -13,7 +13,8 @@
 //       tab_look = fit              (_ for -: zenith.bar.tab-look)
 //       top {                       a bar on the top edge
 //           modules = launcher spaces mode | title | media clock buttons
-//           hide = false
+//           display = overlay       how it shows (reserved, overlay, hide)
+//           style = floating        this bar's own look (any of the bar's: size, corners…)
 //       }
 //   }
 //   shell:layout = scroller         a:b:c = … is the same as a { b { c = … } }
@@ -27,7 +28,7 @@
 //
 // What the settings page does with a setting the file holds (Settings ›
 // Zenith › The rice file): changes it in the file too, keeping the rest of
-// the line and its comments (as it comes), or shows it locked.
+// the line and its comments as they were, or shows it locked.
 
 const P = Services.prefs;
 // (zenith.internal.rice.home: another home folder, for tools/checks.)
@@ -175,7 +176,7 @@ export const Rice = {
     this.applying = true;
     try {
       for (const l of lines) this.set(l.name, l.value);
-      // Settings the file held before and doesn't now: back as they come.
+      // Settings the file held before and doesn't now: back to their defaults.
       const now = new Set(lines.map(l => l.name));
       for (const name of this.held()) if (!now.has(name)) P.clearUserPref(name);
       if (now.size) P.setStringPref(HELD, JSON.stringify([...now]));
@@ -243,7 +244,7 @@ export const Rice = {
 export async function exportFile(path = PATH()) {
   const D = P.getDefaultBranch("");
   const value = n => (P.getPrefType(n) === P.PREF_BOOL ? String(P.getBoolPref(n)) : P.getPrefType(n) === P.PREF_INT ? String(P.getIntPref(n)) : P.getStringPref(n, ""));
-  const asItComes = n => {
+  const atDefault = n => {
     const type = P.getPrefType(n);
     try {
       if (type === P.PREF_BOOL) return D.getPrefType(n) === P.PREF_BOOL ? D.getBoolPref(n) === P.getBoolPref(n) : P.getBoolPref(n) === false;
@@ -253,7 +254,7 @@ export async function exportFile(path = PATH()) {
       return false;
     }
   };
-  const names = P.getChildList("zenith.").filter(n => !n.startsWith("zenith.internal.") && n !== "zenith.rice.mode" && P.prefHasUserValue(n) && !asItComes(n));
+  const names = P.getChildList("zenith.").filter(n => !n.startsWith("zenith.internal.") && n !== "zenith.rice.mode" && P.prefHasUserValue(n) && !atDefault(n));
   let version = "";
   try {
     version = window.ZenithVersion ?? "";
@@ -263,8 +264,9 @@ export async function exportFile(path = PATH()) {
   const top = ["zenith.palette", "zenith.sidebar"];
   for (const n of top) if (names.includes(n)) out.push(`${n.slice(7)} = ${value(n)}`);
   // Bars
-  const bar = names.filter(n => n.startsWith("zenith.bar.") && !EDGES.some(e => n === `zenith.bar.${e}` || n === `zenith.bar.${e}.modules` || n === `zenith.bar.display-${e}`));
-  const edges = EDGES.filter(e => names.includes(`zenith.bar.${e}`) || names.includes(`zenith.bar.${e}.modules`));
+  const own = e => names.filter(n => n.startsWith(`zenith.bar.${e}.`) && n !== `zenith.bar.${e}.modules`);
+  const bar = names.filter(n => n.startsWith("zenith.bar.") && !EDGES.some(e => n === `zenith.bar.${e}` || n === `zenith.bar.${e}.modules` || n === `zenith.bar.display-${e}` || own(e).includes(n)));
+  const edges = EDGES.filter(e => names.includes(`zenith.bar.${e}`) || names.includes(`zenith.bar.${e}.modules`) || own(e).length);
   if (bar.length || edges.length) {
     out.push("", "bar {");
     for (const n of bar) out.push(`    ${n.slice(11).replace(/-/g, "_")} = ${value(n)}`);
@@ -274,6 +276,8 @@ export async function exportFile(path = PATH()) {
       const list = P.getStringPref(`zenith.bar.${e}.modules`, "");
       if (list) out.push(`        modules = ${list.split("|").map(x => x.split(",").filter(Boolean).join(" ")).join(" | ")}`);
       if (P.prefHasUserValue(`zenith.bar.display-${e}`)) out.push(`        display = ${P.getStringPref(`zenith.bar.display-${e}`, "reserved")}`);
+      // (This bar's own look and shape: zenith.bar.<edge>.<key>.)
+      for (const n of own(e)) out.push(`        ${n.slice(`zenith.bar.${e}.`.length).replace(/-/g, "_")} = ${value(n)}`);
       out.push("    }");
     }
     out.push("}");

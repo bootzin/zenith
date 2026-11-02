@@ -23,10 +23,10 @@
     "property": "zenith.edges.thickness",
     "label": "Edge thickness",
     "type": "dropdown",
-    "placeholder": "Default (Auto)",
+    "placeholder": "Default (2px (3px on screens over 2200px wide))",
     "options": [
       {
-        "label": "Auto",
+        "label": "2px (3px on screens over 2200px wide)",
         "value": "auto"
       },
       {

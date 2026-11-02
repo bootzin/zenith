@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.18.0
+// @version        0.18.1
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -197,7 +197,7 @@ const SCHEMA = [
       "label": "Window transparency",
       "type": "dropdown",
       "extra": false,
-      "desc": "How much shows through every see-through surface: the sidebar, docked or floating, and the panels. All of them use the same colour and strength.",
+      "desc": "How much shows through every see-through surface: the sidebar, docked or floating, the panels, Zenith's popups, the Dash, the picker and the bars (choosing one writes the bars' background too). All of them use the same colour and strength.",
       "host": "Zenith Core",
       "options": [
        {
@@ -233,7 +233,7 @@ const SCHEMA = [
       "label": "Frost",
       "type": "dropdown",
       "extra": false,
-      "desc": "How much see-through surfaces blur what's behind them: the page, or (with Window material on Wallpaper) the wallpaper behind the docked sidebar. Acrylic and Mica are blurred by Windows, at its own strength.",
+      "desc": "How much every see-through surface (panels, popups, the bars) blurs what's behind it: the page, or (with Window material on Wallpaper) the wallpaper behind the docked sidebar. Acrylic and Mica are blurred by Windows, at its own strength.",
       "host": "Zenith Core",
       "options": [
        {
@@ -256,7 +256,7 @@ const SCHEMA = [
       "label": "Glass edge",
       "type": "dropdown",
       "extra": false,
-      "desc": "The rim of glass surfaces: a fine highlight along the top, or liquid glass that catches the light around its edge, on panels, the selected tab and essentials, and lights up where you press (with Zenith Plus).",
+      "desc": "The rim of every glass surface (panels, popups, the Dash, the picker, the bars, the find bar, toasts, the selected tab and essentials): a fine highlight along the top, or liquid glass that catches the light around its edge and lights up where you press (with Zenith Plus).",
       "host": "Zenith Core",
       "options": [
        {
@@ -389,7 +389,7 @@ const SCHEMA = [
       "label": "Corners",
       "type": "dropdown",
       "extra": false,
-      "desc": "How rounded panels, tabs and cards are.",
+      "desc": "How rounded everything is: panels, tabs, cards, menus, Zenith's popups and the bars (choosing one writes the bars' corners too; Bars › Fine-tuning the shape changes a bar's after).",
       "host": "Zenith Core",
       "options": [
        {
@@ -413,7 +413,7 @@ const SCHEMA = [
       "label": "Pills and badges",
       "type": "dropdown",
       "extra": false,
-      "desc": "Small badges like the zoom pill and number chips.",
+      "desc": "Small badges like the zoom pill, number chips and Glance's buttons: fully round, or the panels' corners (Corners writes this too: Square, the panels' corners; Soft and Round, fully round).",
       "host": "Zenith Core",
       "options": [
        {
@@ -421,7 +421,7 @@ const SCHEMA = [
         "value": "round"
        },
        {
-        "label": "Match the corner setting",
+        "label": "The panels' corners",
         "value": "match"
        }
       ],
@@ -919,7 +919,7 @@ const SCHEMA = [
       "label": "What it shows",
       "type": "string",
       "extra": false,
-      "desc": "What the top bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
+      "desc": "What the top bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its default list. A right-click on a bar opens this too.",
       "host": "Zenith Plus",
       "placeholder": "launcher,spaces|title|clock",
       "zenithModules": true,
@@ -995,7 +995,7 @@ const SCHEMA = [
       "label": "What it shows",
       "type": "string",
       "extra": false,
-      "desc": "What the bottom bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
+      "desc": "What the bottom bar shows, from its start to its end (left to right): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its default list. A right-click on a bar opens this too.",
       "host": "Zenith Plus",
       "placeholder": "launcher,spaces|title|clock",
       "zenithModules": true,
@@ -1071,7 +1071,7 @@ const SCHEMA = [
       "label": "What it shows",
       "type": "string",
       "extra": false,
-      "desc": "What the left bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
+      "desc": "What the left bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its default list. A right-click on a bar opens this too.",
       "host": "Zenith Plus",
       "placeholder": "launcher,spaces|title|clock",
       "zenithModules": true,
@@ -1147,7 +1147,7 @@ const SCHEMA = [
       "label": "What it shows",
       "type": "string",
       "extra": false,
-      "desc": "What the right bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its list as it comes. A right-click on a bar opens this too.",
+      "desc": "What the right bar shows, from its start to its end (top to bottom): add a module to the start, the middle or the end, drag to move it, ✕ to take it away. Each bar has its own list; the window's buttons can only be in one bar. Restore defaults gives the bar its default list. A right-click on a bar opens this too.",
       "host": "Zenith Plus",
       "placeholder": "launcher,spaces|title|clock",
       "zenithModules": true,
@@ -1216,7 +1216,7 @@ const SCHEMA = [
         "value": "overlay"
        },
        {
-        "label": "As they are",
+        "label": "Shown as usual",
         "value": "keep"
        }
       ],
@@ -1425,7 +1425,7 @@ const SCHEMA = [
         "value": "full"
        },
        {
-        "label": "As long as its modules",
+        "label": "Only as long as its modules",
         "value": "fit"
        },
        {
@@ -1625,20 +1625,20 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.side-px",
-      "label": "A side bar's width",
+      "property": "zenith.bar.rail-px",
+      "label": "A rail's width",
       "type": "dropdown",
       "extra": false,
-      "desc": "How wide a bar on the left or right is.",
+      "desc": "How wide a bar on the left or right is while it's a rail of icons.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As its kind has it (44px rail, 210px with titles)",
-        "value": "auto"
-       },
-       {
         "label": "36px",
         "value": "36"
+       },
+       {
+        "label": "44px",
+        "value": "44"
        },
        {
         "label": "52px",
@@ -1647,10 +1647,58 @@ const SCHEMA = [
        {
         "label": "60px",
         "value": "60"
-       },
+       }
+      ],
+      "default": "44",
+      "rule": {
+       "why": "Side bars have titles (or there's none)",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "conditions": [
+            {
+             "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+             }
+            },
+            {
+             "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+             }
+            }
+           ],
+           "operator": "OR"
+          },
+          {
+           "not": {
+            "property": "zenith.bar.side-width",
+            "value": "wide"
+           }
+          }
+         ],
+         "operator": "AND"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.wide-px",
+      "label": "Width with titles",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How wide a bar on the left or right is while it shows titles.",
+      "host": "Zenith Plus",
+      "options": [
        {
         "label": "180px",
         "value": "180"
+       },
+       {
+        "label": "210px",
+        "value": "210"
        },
        {
         "label": "240px",
@@ -1665,38 +1713,37 @@ const SCHEMA = [
         "value": "320"
        }
       ],
-      "default": "auto",
+      "default": "210",
       "rule": {
-       "why": "The bar is off",
+       "why": "Side bars are a rail (or there's none)",
        "conditions": [
         {
          "conditions": [
           {
-           "if": {
-            "property": "zenith.bar.top",
-            "value": "on"
-           }
+           "conditions": [
+            {
+             "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+             }
+            },
+            {
+             "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+             }
+            }
+           ],
+           "operator": "OR"
           },
           {
            "if": {
-            "property": "zenith.bar.bottom",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.left",
-            "value": "on"
-           }
-          },
-          {
-           "if": {
-            "property": "zenith.bar.right",
-            "value": "on"
+            "property": "zenith.bar.side-width",
+            "value": "wide"
            }
           }
          ],
-         "operator": "OR"
+         "operator": "AND"
         }
        ]
       }
@@ -1754,7 +1801,7 @@ const SCHEMA = [
       }
      }
     ],
-    "blurb": "A look brings its own spacing and corners; fine-tune them below, or try them in the picker."
+    "blurb": "Choosing a look writes its margin, corners and spacing below; change any of them after. Each bar can have its own: pick it at the top of Bars."
    },
    {
     "title": "Tabs in the bars",
@@ -1833,7 +1880,7 @@ const SCHEMA = [
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As the sidebar's (essential, pinned, folder, sound, attention)",
+        "label": "The sidebar's marks (essential, pinned, folder, sound, attention)",
         "value": "on"
        },
        {
@@ -2552,11 +2599,11 @@ const SCHEMA = [
       "label": "The clock on a side bar",
       "type": "dropdown",
       "extra": false,
-      "desc": "On a rail (a bar on the left or right of icons), the clock stands up: the hours over the minutes, with (as the bar's clock has it) the date under them, or nothing, the weekday, the seconds, the date, or the day over the month's name.",
+      "desc": "On a rail (a bar on the left or right of icons), the clock stands up: the hours over the minutes, with the date under them when Bars › The bar's clock shows a date, or nothing, the weekday, the seconds, the date, or the day over the month's name.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As the clock (the date under it if it has one)",
+        "label": "Hours over minutes, the date under when the bar's clock has one",
         "value": "auto"
        },
        {
@@ -2788,10 +2835,6 @@ const SCHEMA = [
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As its look has it",
-        "value": "auto"
-       },
-       {
         "label": "None",
         "value": "0"
        },
@@ -2812,7 +2855,7 @@ const SCHEMA = [
         "value": "16"
        }
       ],
-      "default": "auto",
+      "default": "0",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -2853,31 +2896,31 @@ const SCHEMA = [
       "label": "The bar's corners",
       "type": "dropdown",
       "extra": false,
-      "desc": "The bar's own corners (a floating bar looks best round).",
+      "desc": "The bar's own corners (Floating and Theme › Corners write theirs).",
       "host": "Zenith Plus",
       "options": [
-       {
-        "label": "As its look has it",
-        "value": "auto"
-       },
        {
         "label": "Square",
         "value": "0"
        },
        {
-        "label": "Slightly round",
+        "label": "6px",
         "value": "6"
        },
        {
-        "label": "Round",
+        "label": "12px",
         "value": "12"
+       },
+       {
+        "label": "18px",
+        "value": "18"
        },
        {
         "label": "Fully round",
         "value": "999"
        }
       ],
-      "default": "auto",
+      "default": "0",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -2918,39 +2961,39 @@ const SCHEMA = [
       "label": "The bar's background",
       "type": "dropdown",
       "extra": false,
-      "desc": "How much of the bar's background shows: none leaves the modules on the window, as bare waybar rices.",
+      "desc": "How much of the bar's background shows, on Window transparency's steps (choosing a step there writes it here): none leaves the modules on the window, as bare waybar rices. Below solid, it's frosted as every glass surface.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As its look has it",
-        "value": "auto"
-       },
-       {
-        "label": "Solid",
+        "label": "Solid (100%)",
         "value": "100"
        },
        {
-        "label": "90%",
-        "value": "90"
+        "label": "Dense (92%)",
+        "value": "92"
        },
        {
-        "label": "75%",
-        "value": "75"
+        "label": "Balanced (82%)",
+        "value": "82"
        },
        {
-        "label": "50%",
-        "value": "50"
+        "label": "Airy (66%)",
+        "value": "66"
        },
        {
-        "label": "25%",
-        "value": "25"
+        "label": "Sheer (46%)",
+        "value": "46"
        },
        {
-        "label": "None",
+        "label": "Glass (28%)",
+        "value": "28"
+       },
+       {
+        "label": "None (0%)",
         "value": "0"
        }
       ],
-      "default": "auto",
+      "default": "66",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -3048,31 +3091,31 @@ const SCHEMA = [
       "label": "The modules' corners",
       "type": "dropdown",
       "extra": false,
-      "desc": "The corners of each module's pill (islands, floating, bare).",
+      "desc": "The corners of each module's pill on Islands, Floating and Bare (Theme › Corners writes theirs). Strip, Minimal and Powerline join their modules edge to edge.",
       "host": "Zenith Plus",
       "options": [
-       {
-        "label": "As its look has it",
-        "value": "auto"
-       },
        {
         "label": "Square",
         "value": "0"
        },
        {
-        "label": "Slightly round",
+        "label": "4px",
         "value": "4"
        },
        {
-        "label": "Round",
+        "label": "8px",
         "value": "8"
+       },
+       {
+        "label": "12px",
+        "value": "12"
        },
        {
         "label": "Pills",
         "value": "999"
        }
       ],
-      "default": "auto",
+      "default": "8",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -3113,13 +3156,9 @@ const SCHEMA = [
       "label": "Space between modules",
       "type": "dropdown",
       "extra": false,
-      "desc": "The gap between modules.",
+      "desc": "The gap between modules on Islands, Floating and Bare (Strip, Minimal and Powerline join them).",
       "host": "Zenith Plus",
       "options": [
-       {
-        "label": "As its look has it",
-        "value": "auto"
-       },
        {
         "label": "None",
         "value": "0"
@@ -3145,7 +3184,7 @@ const SCHEMA = [
         "value": "12"
        }
       ],
-      "default": "auto",
+      "default": "6",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -3190,10 +3229,6 @@ const SCHEMA = [
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As its look has it",
-        "value": "auto"
-       },
-       {
         "label": "Nothing",
         "value": "off"
        },
@@ -3206,7 +3241,7 @@ const SCHEMA = [
         "value": "dot"
        }
       ],
-      "default": "auto",
+      "default": "off",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -3244,7 +3279,7 @@ const SCHEMA = [
      }
     ],
     "more": true,
-    "blurb": "Each is the look's own until you change it."
+    "blurb": "A look, Theme › Corners and Theme › Window transparency write these when you choose them; change any one here."
    },
    {
     "title": "Fine-tuning the tabs",
@@ -4434,7 +4469,7 @@ const SCHEMA = [
       "host": "Zenith Panels",
       "options": [
        {
-        "label": "As they are",
+        "label": "Not dimmed",
         "value": "keep"
        },
        {
@@ -5235,7 +5270,7 @@ const SCHEMA = [
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "As it is",
+        "label": "Not faded",
         "value": "keep"
        },
        {
@@ -5731,7 +5766,7 @@ const SCHEMA = [
         "value": "off"
        },
        {
-        "label": "As the home page",
+        "label": "The home page",
         "value": "on"
        },
        {
@@ -6252,7 +6287,7 @@ const SCHEMA = [
       "host": "Zenith Edges",
       "options": [
        {
-        "label": "Auto",
+        "label": "2px (3px on screens over 2200px wide)",
         "value": "auto"
        },
        {
@@ -7040,6 +7075,21 @@ const SCHEMA = [
    "host": "Zenith Motion",
    "default": "quick",
    "sets": {
+    "zenith.motion.easing": {
+     "off": "standard",
+     "quick": "standard",
+     "smooth": "spring"
+    },
+    "zenith.motion.speed": {
+     "off": "100",
+     "quick": "100",
+     "smooth": "100"
+    },
+    "zenith.motion.space-switch": {
+     "off": "instant",
+     "quick": "quick",
+     "smooth": "zen"
+    },
     "zenith.motion.swipe": {
      "off": "off",
      "quick": "on",
@@ -7073,6 +7123,114 @@ const SCHEMA = [
    {
     "title": "Movement",
     "settings": [
+     {
+      "property": "zenith.motion.easing",
+      "label": "Easing",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "The curve everything moves along: panels, popups, the sidebar, tabs, the strip, the overview. The presets write theirs (Quick: Standard, Smooth: Spring).",
+      "host": "Zenith Motion",
+      "options": [
+       {
+        "label": "Standard (a soft start, a long landing)",
+        "value": "standard"
+       },
+       {
+        "label": "Spring (settles without a bounce)",
+        "value": "spring"
+       },
+       {
+        "label": "Bouncy (a small overshoot)",
+        "value": "bouncy"
+       },
+       {
+        "label": "Snappy (fast, then a gentle stop)",
+        "value": "snappy"
+       },
+       {
+        "label": "Decelerate (quick start, slow end)",
+        "value": "decelerate"
+       },
+       {
+        "label": "Gentle (eases in and out)",
+        "value": "gentle"
+       },
+       {
+        "label": "Back (overshoots, then comes back)",
+        "value": "back"
+       },
+       {
+        "label": "Hyprland's (0.05, 0.9, 0.1, 1.05)",
+        "value": "hyprland"
+       },
+       {
+        "label": "Elastic (wobbles into place)",
+        "value": "elastic"
+       },
+       {
+        "label": "Linear (one speed)",
+        "value": "linear"
+       }
+      ],
+      "default": "standard",
+      "rule": {
+       "why": "Motion is off",
+       "conditions": [
+        {
+         "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+         }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.motion.speed",
+      "label": "Speed",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How long every animation takes, against the preset's own timings (Quick: 100 to 150 ms, Smooth: 200 to 300 ms).",
+      "host": "Zenith Motion",
+      "options": [
+       {
+        "label": "Twice as fast (0.5×)",
+        "value": "50"
+       },
+       {
+        "label": "Faster (0.75×)",
+        "value": "75"
+       },
+       {
+        "label": "Normal (1×)",
+        "value": "100"
+       },
+       {
+        "label": "Slower (1.25×)",
+        "value": "125"
+       },
+       {
+        "label": "Slow (1.5×)",
+        "value": "150"
+       },
+       {
+        "label": "Half speed (2×)",
+        "value": "200"
+       }
+      ],
+      "default": "100",
+      "rule": {
+       "why": "Motion is off",
+       "conditions": [
+        {
+         "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+         }
+        }
+       ]
+      }
+     },
      {
       "property": "zenith.motion.tab-switch",
       "label": "Tab switch",
@@ -7108,13 +7266,9 @@ const SCHEMA = [
       "label": "Switching spaces",
       "type": "dropdown",
       "extra": false,
-      "desc": "How long Zen's slide from one space to the next takes: Zen's own 250 ms, 120 ms (as the Quick preset has it), or no slide at all. Left as the preset: Quick 120 ms, Smooth Zen's, Off none.",
+      "desc": "How long Zen's slide from one space to the next takes: Zen's own 250 ms, 120 ms, or no slide at all. The presets write theirs: Quick 120 ms, Smooth Zen's, Off none.",
       "host": "Zenith Plus",
       "options": [
-       {
-        "label": "As the preset",
-        "value": "preset"
-       },
        {
         "label": "Zen's slide (250 ms)",
         "value": "zen"
@@ -7128,7 +7282,7 @@ const SCHEMA = [
         "value": "instant"
        }
       ],
-      "default": "preset"
+      "default": "quick"
      },
      {
       "property": "zenith.motion.swipe",
@@ -7373,12 +7527,36 @@ const SCHEMA = [
 
 const P = Services.prefs;
 
+// Settings as the rest of Zenith Plus reads and writes them
+// (plus/pages/looks.mjs): each bar's own values, and what a bar's look,
+// Corners and Window transparency write. Beside this script, or where
+// Sine's install has the pages.
+let Looks = null;
+const looksReady = (async () => {
+  for (const d of ["../pages/", "zenith-pages/"]) {
+    try {
+      Looks = await import(new URL(`${d}looks.mjs`, import.meta.url).href);
+      return;
+    } catch {}
+  }
+})();
+
+// Bars › Which bar: every bar, or one (its own values).
+let barScope = "all";
+function barKey(prop) {
+  const key = prop?.startsWith("zenith.bar.") ? prop.slice(11) : null;
+  return Looks && key && Looks.BAR_KEYS.includes(key) ? key : null;
+}
+
 function stored(s) {
   if (s.type === "checkbox") {
     if (P.getPrefType(s.property) === P.PREF_BOOL) return P.getBoolPref(s.property);
     return s.default ?? false;
   }
-  return P.getStringPref(s.property, "");
+  const v = P.getStringPref(s.property, "");
+  // (A value that isn't one of its choices, from a typo in the rice file
+  // say, is the default.)
+  return s.type === "dropdown" && v && !s.options?.some(o => o.value === v) ? "" : v;
 }
 
 function presetOf(section) {
@@ -7388,6 +7566,8 @@ function presetOf(section) {
 // What a setting is actually doing: its own value, else what the section's
 // preset gives it, else its default.
 function effective(s, section) {
+  const key = barKey(s.property);
+  if (key) return barScope === "all" ? Looks.value(s.property) : Looks.Bars.value(barScope, key);
   const own = stored(s);
   if (s.type !== "dropdown" || own) return own;
   const byPreset = section.preset?.sets[s.property];
@@ -7405,9 +7585,14 @@ function runAction(s) {
   win?.document.getElementById(s.command)?.doCommand();
 }
 
-// What a setting is as it comes (its preset's, else its default), as said
-// on the page, when it's been changed from that; else null.
+// A setting's default (its preset's, else its own; a bar's: what its look
+// writes), as the page says it, when it's been changed from that; else null.
 function changedFrom(s, section) {
+  const key = barKey(s.property);
+  if (key) {
+    const base = Looks.Bars.base(barScope, key);
+    return effective(s, section) === base ? null : s.options?.find(o => o.value === base)?.label ?? base;
+  }
   if (s.type === "action" || !s.property || !P.prefHasUserValue(s.property)) return null;
   const byPreset = section.preset?.sets[s.property];
   if (s.type === "checkbox") {
@@ -7420,12 +7605,17 @@ function changedFrom(s, section) {
 }
 
 function resetSetting(s, section) {
+  if (barKey(s.property)) return write(s, Looks.Bars.base(barScope, barKey(s.property)));
   const byPreset = section.preset?.sets[s.property];
   if (byPreset) P.setStringPref(s.property, byPreset[presetOf(section)]);
   else P.clearUserPref(s.property);
 }
 
 function write(s, value) {
+  const key = barKey(s.property);
+  if (key && value) return key === "style" ? Looks.Bars.chooseLook(barScope, value) : Looks.Bars.set(barScope, key, value);
+  // (Corners and Window transparency write the bars' too.)
+  if (Looks && value && ["zenith.core.corners", "zenith.core.window-transparency"].includes(s.property)) return Looks.setLook(s.property, value);
   if (s.type === "checkbox") P.setBoolPref(s.property, value);
   else if (value === "" || value == null) P.clearUserPref(s.property);
   else P.setStringPref(s.property, value);
@@ -7585,7 +7775,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.18.0";
+const SCHEMA_VERSION = "0.18.1";
 
 class SettingsView {
   constructor(kind) {
@@ -7622,6 +7812,7 @@ class SettingsView {
     root.append(this.empty);
     // (An open list closes by itself on a click elsewhere: it's a popover.)
     this.refresh();
+    looksReady.then(() => this.refresh());
     this.watch();
     this.spy();
   }
@@ -7742,10 +7933,44 @@ class SettingsView {
         box.append(summary);
       } else box.append(title);
       if (group.blurb) box.append(el("p", { class: "zp-group-blurb" }, group.blurb));
+      if (section.id === "bar" && settings.some(s => s.property === "zenith.bar.style")) box.append(this.whichBar());
       for (const s of settings) box.append(this.row(s, section));
       node.append(box);
     }
     return node;
+  }
+
+  // Bars › Which bar: the bar settings below are for every bar, or one
+  // (of those that are on); a bar can have its own of each.
+  whichBar() {
+    const row = el("div", { class: "zp-row zp-which", "data-prop": "zenith.bar.scope" });
+    const text = el("div", { class: "zp-text" });
+    text.append(el("div", { class: "zp-label" }, "Which bar"),
+                el("div", { class: "zp-desc" }, "The settings here for every bar, or for one of them: then they're its own (the others keep theirs)."));
+    const seg = el("div", { class: "zp-segments", role: "radiogroup", "aria-label": "Which bar" });
+    for (const [v, label] of [["all", "Every bar"], ["top", "Top"], ["bottom", "Bottom"], ["left", "Left"], ["right", "Right"]]) {
+      const b = el("button", { type: "button", role: "radio", "data-value": v }, label);
+      b.addEventListener("click", () => {
+        barScope = v;
+        this.refresh();
+      });
+      seg.append(b);
+    }
+    row.append(text, seg);
+    this.rows.push({
+      node: row,
+      search: "Bars which bar every top bottom left right own",
+      update: () => {
+        const on = v => v === "all" || !["", "off"].includes(P.getStringPref(`zenith.bar.${v}`, ""));
+        if (!on(barScope)) barScope = "all";
+        for (const b of seg.children) {
+          b.hidden = !on(b.dataset.value);
+          b.setAttribute("aria-checked", String(b.dataset.value === barScope));
+        }
+        row.hidden = !Looks;
+      },
+    });
+    return row;
   }
 
   presets(section) {
@@ -7786,7 +8011,7 @@ class SettingsView {
     const label = el("div", { class: "zp-label" }, s.label);
     if (s.extra) label.append(el("span", { class: "zp-tag" }, "Extra"));
     const why = el("div", { class: "zp-why" });
-    // Changed from what it is as it comes: said, with the way back.
+    // Changed from its default: the default said, with the way back.
     const changed = el("div", { class: "zp-changed" });
     const back = el("button", { class: "zp-link", type: "button" }, "Reset");
     back.addEventListener("click", () => resetSetting(s, section));
@@ -7808,6 +8033,12 @@ class SettingsView {
             if (!holds(s.rule.conditions)) reason = s.rule.why;
           } catch {}
         }
+        const key = barKey(s.property);
+        if (key && !reason) {
+          const look = barScope === "all" ? Looks.value("zenith.bar.style") : Looks.Bars.value(barScope, "style");
+          const others = barScope === "all" ? Looks.Bars.others(key) : [];
+          reason = Looks.Bars.fixed(look, key) ?? (others.length ? `Not on ${others.map(([e, v]) => `the ${e} bar (${s.options?.find(o => o.value === v)?.label ?? v})`).join(", ")}: it has its own` : null);
+        }
         const win = window.gBrowser ? window : Services.wm.getMostRecentWindow("navigator:browser");
         const rice = win?.ZenithRice?.holds(s.property) ?? null;
         if (rice === "locked") reason = "From zenith.conf: change it there (Alt+Shift+C reads it again)";
@@ -7815,7 +8046,7 @@ class SettingsView {
         why.textContent = reason ?? "";
         const was = rice === "locked" ? null : changedFrom(s, section);
         row.toggleAttribute("changed", was !== null);
-        changed.replaceChildren(...(was === null ? [] : [el("span", {}, `Changed · as it comes: ${was}`), back]));
+        changed.replaceChildren(...(was === null ? [] : [el("span", {}, `Default: ${was}`), back]));
       },
     });
     return row;
@@ -7946,7 +8177,7 @@ class SettingsView {
         node: box,
         update: v => {
           changed = parse(v);
-          count.textContent = changed.size ? `${changed.size} changed` : "As they come";
+          count.textContent = changed.size ? `${changed.size} changed` : "None changed";
           if (dialog.open) draw();
         },
       };
@@ -8171,10 +8402,9 @@ class SettingsView {
       }
       return { node: cards, update: v => { for (const c of cards.children) c.toggleAttribute("selected", c.dataset.value === v); } };
     }
-    // Sizes and amounts (every choice a number, "as it comes" first at most):
-    // a slider over the choices, or + and − for a few.
+    // Sizes and amounts (every choice a number): a slider over the choices.
     const nums = s.options.filter(o => /^\d+$/.test(o.value));
-    if (nums.length >= 4 && s.options.length - nums.length <= 1 && s.options.length <= 12) return this.slider(s);
+    if (nums.length >= 4 && nums.length === s.options.length && s.options.length <= 12) return this.slider(s);
     const short = s.options.length <= 4 && s.options.reduce((n, o) => n + o.label.length, 0) <= 40;
     if (short) {
       const seg = el("div", { class: "zp-segments", role: "radiogroup", "aria-label": s.label });
@@ -8188,21 +8418,16 @@ class SettingsView {
     return this.chooser(s);
   }
 
-  // A slider over a setting's choices (in their order), its value beside it,
-  // and − and + for one step at a time.
+  // A slider over a setting's choices (in their order), its value beside it
+  // (the arrow keys step it).
   slider(s) {
     const box = el("div", { class: "zp-slider" });
     const range = el("input", { type: "range", min: "0", max: String(s.options.length - 1), step: "1", "aria-label": s.label });
-    const value = el("span", { class: "zp-slider-value" });
-    const minus = el("button", { class: "zp-step", type: "button", "aria-label": "Less" }, "−");
-    const plus = el("button", { class: "zp-step", type: "button", "aria-label": "More" }, "+");
+    const value = el("output", { class: "zp-slider-value" });
     const at = () => parseInt(range.value, 10);
-    const go = i => write(s, s.options[Math.max(0, Math.min(s.options.length - 1, i))].value);
     range.addEventListener("input", () => (value.textContent = s.options[at()].label));
-    range.addEventListener("change", () => go(at()));
-    minus.addEventListener("click", () => go(at() - 1));
-    plus.addEventListener("click", () => go(at() + 1));
-    box.append(minus, range, plus, value);
+    range.addEventListener("change", () => write(s, s.options[at()].value));
+    box.append(range, value);
     return {
       node: box,
       update: v => {
@@ -8265,6 +8490,9 @@ class SettingsView {
   }
 
   refresh() {
+    const corners = P.getStringPref("zenith.core.corners", "") || "soft";
+    this.root.style.setProperty("--zp-radius", { square: "0px", round: "18px" }[corners] ?? "12px");
+    this.root.style.setProperty("--zp-pill", P.getStringPref("zenith.core.pills", "") === "match" ? "var(--zp-radius)" : "999px");
     for (const r of this.rows) {
       try {
         r.update();
@@ -8302,7 +8530,11 @@ class SettingsView {
 
 const STYLE = `
   .zp-view {
+    /* Corners as Theme › Corners has them (refresh()), each step from it. */
     --zp-radius: 12px;
+    --zp-radius-s: calc(var(--zp-radius) * 0.7);
+    --zp-radius-xs: calc(var(--zp-radius) * 0.4);
+    --zp-pill: 999px;
     --zp-control: var(--in-content-page-background, Canvas);
     font-size: 13.5px;
   }
@@ -8316,7 +8548,7 @@ const STYLE = `
   }
   .zp-view [zp-hidden] { display: none !important; }
   /* The setting Peek's "set" opened: outlined for a moment. */
-  .zp-view [zp-found] { border-radius: 8px; animation: zp-found 2s ease-out forwards; }
+  .zp-view [zp-found] { border-radius: var(--zp-radius-s); animation: zp-found 2s ease-out forwards; }
   @keyframes zp-found {
     from, 40% { outline: 2px solid var(--zp-accent); outline-offset: 3px; }
     to { outline: 2px solid transparent; outline-offset: 3px; }
@@ -8326,7 +8558,7 @@ const STYLE = `
   .zp-title h1 { margin: 0; font-size: 1.45em; font-weight: 600; letter-spacing: -0.01em; }
   .zp-version { color: var(--zp-dim); font-size: 0.85em; }
   .zp-lede { margin: 2px 0 0; color: var(--zp-dim); font-size: 0.92em; }
-  .zp-lede kbd { font: inherit; font-size: 0.9em; padding: 0 5px; border-radius: 5px; border: 1px solid var(--zp-border); }
+  .zp-lede kbd { font: inherit; font-size: 0.9em; padding: 0 5px; border-radius: var(--zp-radius-xs); border: 1px solid var(--zp-border); }
   /* Search and the sections, at the top while you scroll. */
   /* (The page's own background, worked out when it's built; a little wider
      than the column so nothing peeks out beside it; it fades into the page
@@ -8337,10 +8569,10 @@ const STYLE = `
   .zp-bar::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 16px; pointer-events: none;
     background: linear-gradient(var(--zp-bar-bg, Canvas), transparent); }
   .zp-search { width: 100%; box-sizing: border-box; padding: 8px 12px;
-    border-radius: 10px; border: 1px solid var(--zp-border); background: var(--zp-box); color: inherit; font: inherit; }
+    border-radius: var(--zp-radius); border: 1px solid var(--zp-border); background: var(--zp-box); color: inherit; font: inherit; }
   .zp-chips { display: flex; flex-wrap: wrap; gap: 5px; }
   .zp-chip { appearance: none; border: 1px solid transparent; background: none; color: var(--zp-dim);
-    border-radius: 999px; padding: 3px 11px; font: inherit; cursor: pointer; margin: 0; min-height: 0; }
+    border-radius: var(--zp-pill); padding: 3px 11px; font: inherit; cursor: pointer; margin: 0; min-height: 0; }
   .zp-chip:hover { color: inherit; background: var(--zp-box); }
   .zp-chip[aria-current] { color: inherit; border-color: color-mix(in srgb, var(--zp-accent) 55%, transparent);
     background: color-mix(in srgb, var(--zp-accent) 16%, transparent); }
@@ -8365,38 +8597,38 @@ const STYLE = `
   details.zp-group .zp-count { margin-inline-start: auto; color: var(--zp-dim); font-size: 0.85em; }
   .zp-row[child] { padding-inline-start: 18px; position: relative; }
   .zp-row[child]::before { content: ""; position: absolute; inset-inline-start: 4px; top: 12px; bottom: 12px; width: 2px;
-    border-radius: 2px; background: var(--zp-border); }
+    border-radius: var(--zp-radius-xs); background: var(--zp-border); }
   .zp-row[wide] { flex-direction: column; align-items: stretch; gap: 10px; }
   .zp-row[off] > :not(.zp-text) { opacity: 0.4; pointer-events: none; }
   .zp-row[off] .zp-label, .zp-row[off] .zp-desc { opacity: 0.55; }
   .zp-text { min-width: 0; }
   .zp-label { font-weight: 500; display: flex; align-items: center; gap: 8px; }
   .zp-desc { color: var(--zp-dim); font-size: 0.92em; margin-top: 2px; line-height: 1.4; }
-  .zp-warn { margin-top: 6px; padding: 5px 9px 5px 26px; border-radius: 8px; font-size: 0.9em; line-height: 1.4; position: relative;
+  .zp-warn { margin-top: 6px; padding: 5px 9px 5px 26px; border-radius: var(--zp-radius-s); font-size: 0.9em; line-height: 1.4; position: relative;
     color: light-dark(#7a4b00, #ffd08a); background: light-dark(rgb(255 180 40 / 0.14), rgb(255 180 40 / 0.12));
     border: 1px solid light-dark(rgb(200 130 0 / 0.3), rgb(255 190 80 / 0.25)); }
   /* (A ringed "!" before it.) */
   .zp-warn::before { content: "!"; position: absolute; left: 8px; top: 6px; width: 13px; height: 13px; box-sizing: border-box;
     border: 1.5px solid currentColor; border-radius: 50%; font: 700 9px/10px system-ui, sans-serif; text-align: center; }
   .zp-why:not(:empty) { margin-top: 4px; font-size: 0.88em; color: var(--zp-accent); }
-  .zp-tag { font-size: 0.72em; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+  .zp-tag { font-size: 0.72em; font-weight: 600; padding: 1px 7px; border-radius: var(--zp-pill);
     background: color-mix(in srgb, var(--zp-accent) 18%, transparent); color: var(--zp-accent); }
   .zp-switch { appearance: none; flex: none; position: relative; width: 38px; height: 22px; margin: 0; min-width: 0; min-height: 0;
-    border-radius: 999px; border: none; padding: 0; cursor: pointer;
+    border-radius: var(--zp-pill); border: none; padding: 0; cursor: pointer;
     background: color-mix(in srgb, currentColor 22%, transparent); transition: background-color 0.15s ease; }
   .zp-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
     background: white; box-shadow: 0 1px 3px rgb(0 0 0 / 0.3); transition: translate 0.15s ease; }
   .zp-switch[aria-checked="true"] { background: var(--zp-accent); }
   .zp-switch[aria-checked="true"]::after { translate: 16px 0; }
-  .zp-segments { flex: none; display: inline-flex; flex-wrap: wrap; padding: 3px; gap: 2px; border-radius: 10px;
+  .zp-segments { flex: none; display: inline-flex; flex-wrap: wrap; padding: 3px; gap: 2px; border-radius: var(--zp-radius);
     background: color-mix(in srgb, currentColor 9%, transparent); }
   .zp-segments button { appearance: none; border: none; background: transparent; color: inherit; font: inherit; margin: 0;
-    min-height: 0; padding: 4px 11px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+    min-height: 0; padding: 4px 11px; border-radius: var(--zp-radius-s); cursor: pointer; white-space: nowrap; }
   .zp-segments button[aria-checked="true"] { background: var(--zp-control); box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
     color: var(--zp-accent); font-weight: 500; }
   .zp-chooser { position: relative; flex: none; }
   .zp-select, .zp-input { appearance: none; box-sizing: border-box; max-width: 300px; min-width: 180px; padding: 6px 30px 6px 10px;
-    border-radius: 8px; margin: 0; min-height: 0; border: 1px solid var(--zp-border); background: var(--zp-control);
+    border-radius: var(--zp-radius-s); margin: 0; min-height: 0; border: 1px solid var(--zp-border); background: var(--zp-control);
     color: inherit; font: inherit; text-align: start; cursor: pointer; }
   .zp-select { background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
     background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
@@ -8417,9 +8649,9 @@ const STYLE = `
   .zp-mods-parts { display: flex; flex-direction: column; gap: 12px; overflow: auto; }
   .zp-mods-part h4 { margin: 0 0 4px; font-size: 0.85em; font-weight: 600; color: var(--zp-dim); }
   .zp-mods-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 36px; padding: 6px;
-    border: 1px dashed var(--zp-border); border-radius: 8px; }
+    border: 1px dashed var(--zp-border); border-radius: var(--zp-radius-s); }
   .zp-mods-chip { display: inline-flex; align-items: center; gap: 2px; padding: 3px 2px 3px 10px; border: 1px solid var(--zp-border);
-    border-radius: 999px; background: color-mix(in srgb, currentColor 7%, transparent); font-size: 0.92em; cursor: grab; }
+    border-radius: var(--zp-pill); background: color-mix(in srgb, currentColor 7%, transparent); font-size: 0.92em; cursor: grab; }
   .zp-mods-row { transition: background-color 0.12s, border-color 0.12s; }
   .zp-mods-row[dropping] { border-style: solid; border-color: var(--zp-accent, AccentColor);
     background: color-mix(in srgb, var(--zp-accent, AccentColor) 10%, transparent); }
@@ -8427,14 +8659,14 @@ const STYLE = `
   .zp-mods-chip[dragging] { opacity: 0.35; border-style: dashed; }
   .zp-mods-chip:active { cursor: grabbing; }
   :is(.zp-mods-chip, .zp-mods-add)[drop] { position: relative; }
-  :is(.zp-mods-chip, .zp-mods-add)[drop]::before { content: ""; position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: 2px;
+  :is(.zp-mods-chip, .zp-mods-add)[drop]::before { content: ""; position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: var(--zp-radius-xs);
     background: var(--zp-accent, AccentColor); }
   :is(.zp-mods-chip, .zp-mods-add)[drop="before"]::before { left: -6px; }
   .zp-mods-chip[drop="after"]::before { right: -6px; }
   .zp-mods-x { appearance: none; border: none; background: none; color: var(--zp-dim); font: inherit; padding: 0 6px; cursor: pointer; }
   .zp-mods-x:hover { color: inherit; }
   select.zp-mods-add { appearance: none; flex: none; width: 30px; min-width: 0; height: 26px; padding: 0; border-color: var(--zp-border);
-    border-radius: 999px; background-image: none; text-align: center; font-weight: 600; cursor: pointer; }
+    border-radius: var(--zp-pill); background-image: none; text-align: center; font-weight: 600; cursor: pointer; }
   .zp-keys-note { margin: 0; color: var(--zp-dim); }
   .zp-keys-items { overflow: auto; columns: 2 260px; column-gap: 20px; }
   .zp-keys-group { break-inside: avoid; margin-bottom: 10px; }
@@ -8443,23 +8675,23 @@ const STYLE = `
   .zp-keys-key { font: 600 0.9em ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: nowrap; border-color: var(--zp-border); }
   .zp-keys-key[changed] { border-color: var(--zp-accent, AccentColor); }
   .zp-list-items { display: flex; flex-wrap: wrap; gap: 4px; }
-  .zp-list-item { display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 9px; border-radius: 999px;
+  .zp-list-item { display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 9px; border-radius: var(--zp-pill);
     border: 1px solid var(--zp-border); background: var(--zp-control); font-size: 0.92em; }
   .zp-list-remove { appearance: none; border: none; background: none; color: inherit; opacity: 0.6; cursor: pointer;
-    min-height: 0; margin: 0; padding: 1px 6px; border-radius: 999px; font-size: 0.85em; }
+    min-height: 0; margin: 0; padding: 1px 6px; border-radius: var(--zp-pill); font-size: 0.85em; }
   .zp-list-remove:hover { opacity: 1; background: color-mix(in srgb, currentColor 12%, transparent); }
   .zp-options { display: none; position: fixed; inset: auto; margin: 0; z-index: 5;
-    max-height: 260px; overflow: auto; padding: 4px; border-radius: 10px; border: 1px solid var(--zp-border);
+    max-height: 260px; overflow: auto; padding: 4px; border-radius: var(--zp-radius); border: 1px solid var(--zp-border);
     background: var(--zp-control); color: inherit; box-shadow: 0 10px 30px rgb(0 0 0 / 0.35); }
   .zp-options:popover-open { display: block; }
   .zp-option { appearance: none; display: block; width: 100%; text-align: start; border: none; background: none; color: inherit;
-    font: inherit; margin: 0; min-height: 0; padding: 6px 10px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
+    font: inherit; margin: 0; min-height: 0; padding: 6px 10px; border-radius: var(--zp-radius-s); cursor: pointer; white-space: nowrap; }
   .zp-option:hover { background: color-mix(in srgb, currentColor 9%, transparent); }
   .zp-option[aria-selected="true"] { color: var(--zp-accent); font-weight: 500; }
   .zp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
   .zp-cards-small { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
   .zp-card { appearance: none; display: flex; flex-direction: column; gap: 4px; align-items: stretch; text-align: start;
-    padding: 8px; margin: 0; min-height: 0; border-radius: 12px; border: 1.5px solid var(--zp-border); background: var(--zp-box);
+    padding: 8px; margin: 0; min-height: 0; border-radius: var(--zp-radius); border: 1.5px solid var(--zp-border); background: var(--zp-box);
     color: inherit; font: inherit; cursor: pointer; transition: border-color 0.12s ease, transform 0.12s ease; }
   .zp-card:hover { border-color: color-mix(in srgb, var(--zp-accent) 55%, var(--zp-border)); }
   .zp-card:active { transform: scale(0.98); }
@@ -8472,19 +8704,22 @@ const STYLE = `
   .zp-changed > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .zp-changed:empty { display: none; }
   .zp-changed .zp-link { font-size: 1em; padding: 0; }
-  .zp-slider { flex: none; display: inline-flex; align-items: center; gap: 6px; }
-  .zp-slider input[type="range"] { width: 150px; accent-color: var(--zp-accent); }
-  .zp-slider-value { min-width: 9ch; font-variant-numeric: tabular-nums; color: var(--zp-dim); font-size: 0.9em; }
-  .zp-step { appearance: none; flex: none; width: 28px !important; min-width: 0 !important; height: 28px; padding: 0 !important; margin: 0 !important; border: 1px solid var(--zp-border); border-radius: 8px; background: var(--zp-control);
-    color: inherit; font: inherit; line-height: 1; cursor: pointer; }
-  .zp-step:hover { border-color: var(--zp-accent); }
+  .zp-slider { flex: none; display: inline-flex; align-items: center; gap: 12px; }
+  .zp-slider input[type="range"] { appearance: none; width: 170px; height: 20px; margin: 0; background: none; cursor: pointer; }
+  .zp-slider input[type="range"]::-moz-range-track { height: 6px; border-radius: var(--zp-pill); background: color-mix(in srgb, currentColor 14%, transparent); }
+  .zp-slider input[type="range"]::-moz-range-progress { height: 6px; border-radius: var(--zp-pill); background: var(--zp-accent); }
+  .zp-slider input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border: 2px solid var(--zp-accent); border-radius: 50%;
+    background: var(--zp-control); box-shadow: 0 1px 3px rgb(0 0 0 / 0.3); }
+  .zp-slider input[type="range"]:focus-visible::-moz-range-thumb { outline: 2px solid var(--zp-accent); outline-offset: 2px; }
+  .zp-slider-value { min-width: 9ch; padding: 3px 10px; border-radius: var(--zp-radius-s); background: color-mix(in srgb, currentColor 7%, transparent);
+    font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.9em; text-align: center; }
   .zp-font .zp-input { width: 220px; }
-  .zp-badge { font-size: 0.8em; font-weight: 600; padding: 2px 9px; border-radius: 999px; color: var(--zp-accent);
+  .zp-badge { font-size: 0.8em; font-weight: 600; padding: 2px 9px; border-radius: var(--zp-pill); color: var(--zp-accent);
     background: color-mix(in srgb, var(--zp-accent) 16%, transparent); }
   .zp-link { appearance: none; border: none; background: none; color: var(--zp-accent); font: inherit; cursor: pointer;
     padding: 0; margin: 0; min-height: 0; text-decoration: underline; text-underline-offset: 2px; }
   .zp-empty { color: var(--zp-dim); margin-top: 30px; text-align: center; }
-  .zp-pic { width: 100%; height: auto; display: block; border-radius: 8px; }
+  .zp-pic { width: 100%; height: auto; display: block; border-radius: var(--zp-radius-s); }
   .zp-win { fill: color-mix(in srgb, currentColor 7%, transparent); stroke: color-mix(in srgb, currentColor 16%, transparent); }
   .zp-side { fill: color-mix(in srgb, currentColor 16%, transparent); }
   .zp-dark { fill: color-mix(in srgb, currentColor 34%, black); }
@@ -8522,7 +8757,7 @@ const STYLE = `
     box-sizing: border-box;
     overflow: auto;
     padding: 12px 14px 40px;
-    border-radius: var(--zth-radius, 14px);
+    border-radius: var(--zth-radius-l, var(--zp-radius));
     outline: 1px solid var(--zp-border);
     background: var(--zth-panel-bg, light-dark(rgb(250 250 252 / 0.95), rgb(30 30 36 / 0.95)));
     backdrop-filter: var(--zth-panel-filter, blur(14px));
@@ -8536,7 +8771,7 @@ const STYLE = `
     /* (Flat at the bottom, fading into the list as it scrolls under.) */
     & .zp-live-head { --zp-head-bg: light-dark(rgb(248 248 250 / 0.97), rgb(28 28 34 / 0.97));
       position: sticky; top: -12px; z-index: 6; margin: -12px -14px 6px; padding: 12px 14px 8px;
-      background: var(--zp-head-bg); border-radius: var(--zth-radius, 14px) var(--zth-radius, 14px) 0 0; }
+      background: var(--zp-head-bg); border-radius: var(--zth-radius-l, var(--zp-radius)) var(--zth-radius-l, var(--zp-radius)) 0 0; }
     & .zp-live-head::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 14px; pointer-events: none;
       background: linear-gradient(var(--zp-head-bg), transparent); }
     & .zp-live-title { display: flex; align-items: center; gap: 8px; }
@@ -8562,7 +8797,7 @@ const STYLE = `
     & .zp-input { min-width: 0; width: 100%; }
     & .zp-cards { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
     & .zp-cards-small { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); }
-    & .zp-card { padding: 5px; border-radius: 9px; }
+    & .zp-card { padding: 5px; border-radius: var(--zp-radius-s); }
     & .zp-card-blurb { display: none; }
   }
 `;

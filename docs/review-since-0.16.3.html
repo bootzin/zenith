@@ -1,0 +1,249 @@
+<title>Zenith Review Since 0.16.3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  /* Layout: one column of releases, newest first; each item a row with
+     its check, how to reach it, a three-way verdict and a note. */
+  :root {
+    --bg: #f6f5f2;
+    --panel: #ffffff;
+    --ink: #22201c;
+    --dim: #6b665d;
+    --line: #e4e0d8;
+    --accent: #b8742a;
+    --good: #2f7d4f;
+    --bad: #b33a2e;
+    --skip: #8a8478;
+    --body: "IBM Plex Sans", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1916; --panel: #23211d; --ink: #ece8e0; --dim: #a39d92; --line: #36332d;
+      --accent: #e0a35c; --good: #6cc08f; --bad: #ec7a6c; --skip: #9b958a; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1916; --panel: #23211d; --ink: #ece8e0; --dim: #a39d92; --line: #36332d;
+    --accent: #e0a35c; --good: #6cc08f; --bad: #ec7a6c; --skip: #9b958a; color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px / 1.55 var(--body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 32px 64px;
+  }
+  main { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; }
+  header { display: flex; flex-direction: column; gap: 8px; }
+  h1 { margin: 0; font-size: 26px; font-weight: 600; text-wrap: balance; }
+  .lede { margin: 0; color: var(--dim); max-width: 65ch; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; }
+  .progress { font-variant-numeric: tabular-nums; font-weight: 500; }
+  .track { flex: 1; min-width: 160px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .track > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  button { font: inherit; cursor: pointer; }
+  .copy { padding: 8px 16px; border: none; border-radius: 6px; background: var(--accent); color: #fff; font-weight: 600; }
+  .copy:focus-visible, .verdict button:focus-visible, textarea:focus-visible, .filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .filter { padding: 7px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); }
+  .copied { color: var(--good); font-size: 13px; }
+  section { display: flex; flex-direction: column; gap: 8px; }
+  section h2 { margin: 0; font-size: 17px; font-weight: 600; display: flex; gap: 12px; align-items: baseline; }
+  section h2 small { color: var(--dim); font-weight: 400; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .note-head { margin: 0 0 4px; color: var(--dim); font-size: 13px; max-width: 70ch; }
+  ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; padding: 14px 16px; border-top: 1px solid var(--line); }
+  li:first-child { border-top: none; }
+  li[data-v="ok"] { box-shadow: inset 3px 0 var(--good); }
+  li[data-v="bad"] { box-shadow: inset 3px 0 var(--bad); }
+  li[data-v="skip"] { box-shadow: inset 3px 0 var(--skip); }
+  .what { margin: 0; font-weight: 500; min-width: 0; }
+  .how { margin: 0; grid-column: 1; color: var(--dim); font-size: 13.5px; min-width: 0; }
+  .flag { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 4px; font-size: 11.5px; font-weight: 500; letter-spacing: .02em;
+    color: var(--bad); border: 1px solid color-mix(in srgb, var(--bad) 45%, transparent); vertical-align: 1px; }
+  kbd { font: 12px var(--mono); padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+  .verdict { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: 4px; align-self: start; }
+  .verdict button { padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--dim); font-size: 13px; }
+  .verdict button[aria-pressed="true"][data-v="ok"] { background: var(--good); border-color: var(--good); color: #fff; }
+  .verdict button[aria-pressed="true"][data-v="bad"] { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .verdict button[aria-pressed="true"][data-v="skip"] { background: var(--skip); border-color: var(--skip); color: #fff; }
+  textarea { grid-column: 1 / -1; width: 100%; box-sizing: border-box; min-height: 34px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); color: var(--ink); font: 14px / 1.45 var(--body); resize: vertical; }
+  textarea:placeholder-shown { min-height: 34px; height: 34px; }
+  @media (max-width: 640px) {
+    li { grid-template-columns: minmax(0, 1fr); }
+    .verdict { grid-column: 1; grid-row: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) { .track > i { transition: none; } }
+</style>
+
+<main>
+  <header>
+    <h1>Zenith: what to review since 0.16.3</h1>
+    <p class="lede">Every change from 0.16.3 to 0.18.1, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
+    <div class="bar">
+      <span class="progress" id="progress">0 of 0 reviewed</span>
+      <span class="track" aria-hidden="true"><i id="fill"></i></span>
+      <select class="filter" id="filter" aria-label="Show">
+        <option value="all">Show every item</option>
+        <option value="open">Show items not reviewed</option>
+        <option value="bad">Show items that don't work</option>
+      </select>
+      <button class="copy" id="copy" type="button">Copy results</button>
+      <span class="copied" id="copied" hidden>Copied</span>
+    </div>
+  </header>
+  <div id="releases"></div>
+</main>
+
+<script>
+const NOT = "Not checked in Zen";
+const RELEASES = [
+  { v: "0.18.1", note: "This round. Your bar's background was Solid (100%), which is why the glass steps never changed it: choosing a step now writes the bars' background too.", items: [
+    ["Window transparency steps look different", "Theme › Window transparency (or Alt+Shift+P › Glass): Balanced, Airy, Sheer and Glass on the sidebar, popups, the Dash, the picker and the bars"],
+    ["Frost changes the blur behind every glass surface", "Alt+Shift+P › Glass › Frost: Off, Subtle, Strong, best seen at Sheer or Glass over a busy page", NOT],
+    ["Glass edge on every surface", "Glass › Glass edge: Shine and Liquid on the Dash, the picker, the bars, popups, the find bar, toasts and the floating sidebar"],
+    ["Corners reach everything", "Theme › Corners: Square, Soft, Round on tabs, popups, the Dash, the picker, Settings, the bars and pills"],
+    ["Settings at their default are lit", "<kbd>Alt+Shift+P</kbd> › Shape: Density and Corners each show a chosen value"],
+    ["Cancel and Save in the picker", "Change something, then Cancel (or <kbd>Esc</kbd>): all back. Change again, then Save (or <kbd>Ctrl+Enter</kbd>): kept"],
+    ["A bigger picker with pictures that differ", "On a large screen, the picker grows; Glass, Frost, Edge, Corners and Easing show each choice drawn"],
+    ["Each bar its own look and shape", "Picker › Bars › Which bar, or Settings › Bars › Which bar: pick one bar and change its look, size, corners…"],
+    ["A bar's right-click menu", "Right-click a bar: its own look (six), Every bar like this one, This bar in the rice picker…"],
+    ["Every bar setting shows a value", "Settings › Bars › Fine-tuning the shape: numbers and names only, and \"Default: X · Reset\" on a changed one"],
+    ["Sliders without − and +", "Settings and the picker: sizes are one slider with its value (the arrow keys step it)"],
+    ["Ten easings and a speed", "Settings › Motion › Easing and Speed (or the picker's Motion, where a dot shows each curve); Motion Off stops everything"],
+    ["New split tiles open beside the one you're on", "Right-click a link › Open link in split view, Glance's split button, a link in a new tab, Ctrl+T: in dwindle and in the scroller"],
+    ["No reload button on Peek and Glance", "Open a Peek and a Glance: their buttons are close, expand and split only"],
+    ["Pinning a scroller column pins only that tab", "Layout Scroller: pin a column, make one an essential, or put one in a folder: the other columns stay as they are"],
+    ["Your 0.18.0 settings carried over", "Bars › Fine-tuning: values where \"As its look has it\" was; side bars' width is A rail's width / Width with titles"],
+    ["Themes set the bars' shape too", "Picker › Themes: Hypr floating, i3, Polybar… change the bars' margin, corners and background"],
+  ]},
+  { v: "0.18.0", items: [
+    ["Keys in a Peek act on the Peek", "In a Peek: <kbd>Ctrl+F</kbd> (its own find bar), <kbd>F3</kbd>, <kbd>Ctrl+G</kbd>, print, save, view source, zoom, reload"],
+    ["Bars in full screen", "Settings › Bars › In full screen: hidden until reached, over the page, shown as usual (<kbd>F11</kbd>)"],
+    ["Splitting an essential", "Split with an essential: a notice by default; Tiling and keys › Splitting an essential › Zen's copy"],
+    ["A long title doesn't cover other modules; the clock is never cut", "A page with a very long title on a narrow window"],
+    ["Sites with their own dark mode aren't inverted", "Pages set dark or light › Invert, on a site that has its own dark mode", NOT],
+    ["Cookie banners only", "Sites with cookie banners and other popups: only the cookie ones handled, pages still scroll", NOT],
+    ["Menu items shown, in More, or off", "Picker › Menus and buttons, then right-click a page or a tab"],
+    ["A closed pane comes back into its split", "Close a tile, then <kbd>Ctrl+Shift+T</kbd>"],
+    ["The bar moves the window", "Drag the bar's empty space on a window that isn't maximised; double-click maximises", "Native drag " + NOT.toLowerCase()],
+    ["How each bar shows", "Settings › Bars › How the … bar shows: takes its room, over the page, hides until reached"],
+    ["Glance's and Peek's buttons placed", "Panels › Glance's and Peek's buttons: beside, other side, along the top or bottom"],
+    ["The scroller gives tabs back", "<kbd>Alt+Y</kbd> from Scroller to Dwindle and back, with pinned tabs: no tabs left in one split"],
+    ["The bar's font and the font list", "Bars › The bar's font reads \"The browser's (Theme › Looks › Font)\"; Theme › Font suggests installed fonts"],
+  ]},
+  { v: "0.17.0", items: [
+    ["The scroller as niri's strip", "Layout Scroller: every tab a column, a new tab to the right, closing goes to the next, <kbd>Alt+H</kbd>/<kbd>Alt+L</kbd> and Alt with a sideways wheel"],
+    ["A floating bar floats with the page", "Bars › Look › Floating: gaps, corners and one shadow for the bar and the page"],
+    ["Islands, rails, picker previews, 12 settings sections", "Bar look Islands; a side bar as a rail; the picker's previews; Settings by use with fine-tuning folded"],
+  ]},
+  { v: "0.16.4", items: [
+    ["Bar looks Floating and Bare, and their shape", "Settings › Bars › Look, and Fine-tuning the shape"],
+    ["Powerline arrows whole", "Bar look Powerline at 24, 30 and 36px and on a side bar"],
+    ["Marks on bar tabs", "Essentials and pinned first, a folder's tabs together, a dot for sound and attention"],
+    ["The rice picker and themes", "<kbd>Alt+Shift+P</kbd>: themes, Save this look, right-click one of yours to forget it"],
+    ["One font for the browser", "Theme › Font, or the picker's Font"],
+  ]},
+  { v: "0.16.3", items: [
+    ["The overview shows essentials", "<kbd>Alt+O</kbd>: each space's row starts with its essentials; going to one goes to its space"],
+    ["One media hub", "Music in another space shows in the bar; Shift+wheel goes to the next source, a middle click mutes, \"+N\" counts others"],
+    ["Peek's keys", "In a Peek: <kbd>Ctrl+W</kbd> closes it, <kbd>F5</kbd>/<kbd>Ctrl+R</kbd> reload, zoom keys zoom it"],
+    ["Clicks inside a Peek stay in it", "Links with keys, middle clicks and new-window links load in the Peek"],
+    ["New tabs from a split become tiles", "On a split's tab: <kbd>Ctrl+T</kbd>, links to new tabs, window.open; Tiling and keys › Background links in a split"],
+  ]},
+];
+
+const KEY = "zenith-review-0163";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { state = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+
+const host = document.getElementById("releases");
+const LABELS = [["ok", "Works"], ["bad", "Doesn't"], ["skip", "Skip"]];
+let total = 0;
+for (const r of RELEASES) {
+  const sec = document.createElement("section");
+  const h = document.createElement("h2");
+  h.textContent = r.v;
+  const count = document.createElement("small");
+  h.append(count);
+  sec.append(h);
+  if (r.note) { const p = document.createElement("p"); p.className = "note-head"; p.textContent = r.note; sec.append(p); }
+  const ol = document.createElement("ol");
+  r.items.forEach(([what, how, flag], i) => {
+    total++;
+    const id = `${r.v}-${i}`, s = (state[id] ??= { v: "", note: "" });
+    const li = document.createElement("li");
+    li.dataset.v = s.v;
+    li.dataset.id = id;
+    const w = document.createElement("p"); w.className = "what"; w.textContent = what;
+    if (flag) { const f = document.createElement("span"); f.className = "flag"; f.textContent = flag; w.append(f); }
+    const hw = document.createElement("p"); hw.className = "how"; hw.innerHTML = how;
+    const v = document.createElement("div"); v.className = "verdict"; v.setAttribute("role", "group"); v.setAttribute("aria-label", `Verdict: ${what}`);
+    for (const [val, label] of LABELS) {
+      const b = document.createElement("button");
+      b.type = "button"; b.dataset.v = val; b.textContent = label; b.setAttribute("aria-pressed", String(s.v === val));
+      b.addEventListener("click", () => {
+        s.v = s.v === val ? "" : val;
+        li.dataset.v = s.v;
+        for (const x of v.children) x.setAttribute("aria-pressed", String(s.v === x.dataset.v));
+        save(); tally();
+      });
+      v.append(b);
+    }
+    const t = document.createElement("textarea");
+    t.id = `note-${id}`; t.placeholder = "Note (what you saw, what's off)"; t.value = s.note; t.rows = 1;
+    t.setAttribute("aria-label", `Note: ${what}`);
+    t.addEventListener("input", () => { s.note = t.value; save(); });
+    li.append(w, v, hw, t);
+    ol.append(li);
+  });
+  sec.append(ol);
+  sec.count = count;
+  sec.release = r;
+  host.append(sec);
+}
+
+function tally() {
+  let done = 0;
+  for (const sec of host.children) {
+    const r = sec.release, n = r.items.filter((_, i) => state[`${r.v}-${i}`]?.v).length;
+    done += n;
+    sec.count.textContent = `${n} of ${r.items.length}`;
+  }
+  document.getElementById("progress").textContent = `${done} of ${total} reviewed`;
+  document.getElementById("fill").style.width = `${(done / total) * 100}%`;
+  filter();
+}
+
+function filter() {
+  const how = document.getElementById("filter").value;
+  for (const li of host.querySelectorAll("li")) {
+    const v = state[li.dataset.id]?.v ?? "";
+    li.hidden = how === "open" ? !!v : how === "bad" ? v !== "bad" : false;
+  }
+}
+document.getElementById("filter").addEventListener("change", filter);
+
+document.getElementById("copy").addEventListener("click", async () => {
+  const words = { ok: "works", bad: "DOESN'T WORK", skip: "skipped", "": "not reviewed" };
+  const lines = [];
+  for (const r of RELEASES) {
+    lines.push(`${r.v}`);
+    r.items.forEach(([what], i) => {
+      const s = state[`${r.v}-${i}`] ?? {};
+      lines.push(`  ${i + 1}. ${what}: ${words[s.v ?? ""]}${s.note ? ` (${s.note.trim()})` : ""}`);
+    });
+  }
+  const text = lines.join("\n"), done = document.getElementById("copied");
+  try { await navigator.clipboard.writeText(text); done.textContent = "Copied"; }
+  catch {
+    const ta = document.createElement("textarea"); ta.value = text; ta.style.width = "100%"; ta.rows = 10;
+    document.querySelector("header").append(ta); ta.select(); done.textContent = "Select the text below and copy it";
+  }
+  done.hidden = false; setTimeout(() => (done.hidden = true), 4000);
+});
+tally();
+</script>

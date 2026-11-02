@@ -126,7 +126,7 @@
         "value": "round"
       },
       {
-        "label": "Match the corner setting",
+        "label": "The panels' corners",
         "value": "match"
       }
     ]
@@ -281,10 +281,10 @@
     "property": "zenith.edges.thickness",
     "label": "Edge thickness",
     "type": "dropdown",
-    "placeholder": "Default (Auto)",
+    "placeholder": "Default (2px (3px on screens over 2200px wide))",
     "options": [
       {
-        "label": "Auto",
+        "label": "2px (3px on screens over 2200px wide)",
         "value": "auto"
       },
       {
@@ -1221,10 +1221,10 @@
     "property": "zenith.panels.tile-dim",
     "label": "The other tiles (split view)",
     "type": "dropdown",
-    "placeholder": "Default (As they are)",
+    "placeholder": "Default (Not dimmed)",
     "options": [
       {
-        "label": "As they are",
+        "label": "Not dimmed",
         "value": "keep"
       },
       {
@@ -1352,6 +1352,106 @@
     "zenithWhy": "Zenith Plus keeps everything animated"
   },
   {
+    "property": "zenith.motion.easing",
+    "label": "Easing",
+    "type": "dropdown",
+    "placeholder": "Default (Standard (a soft start, a long landing))",
+    "options": [
+      {
+        "label": "Standard (a soft start, a long landing)",
+        "value": "standard"
+      },
+      {
+        "label": "Spring (settles without a bounce)",
+        "value": "spring"
+      },
+      {
+        "label": "Bouncy (a small overshoot)",
+        "value": "bouncy"
+      },
+      {
+        "label": "Snappy (fast, then a gentle stop)",
+        "value": "snappy"
+      },
+      {
+        "label": "Decelerate (quick start, slow end)",
+        "value": "decelerate"
+      },
+      {
+        "label": "Gentle (eases in and out)",
+        "value": "gentle"
+      },
+      {
+        "label": "Back (overshoots, then comes back)",
+        "value": "back"
+      },
+      {
+        "label": "Hyprland's (0.05, 0.9, 0.1, 1.05)",
+        "value": "hyprland"
+      },
+      {
+        "label": "Elastic (wobbles into place)",
+        "value": "elastic"
+      },
+      {
+        "label": "Linear (one speed)",
+        "value": "linear"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Motion is off"
+  },
+  {
+    "property": "zenith.motion.speed",
+    "label": "Speed",
+    "type": "dropdown",
+    "placeholder": "Default (Normal (1×))",
+    "options": [
+      {
+        "label": "Twice as fast (0.5×)",
+        "value": "50"
+      },
+      {
+        "label": "Faster (0.75×)",
+        "value": "75"
+      },
+      {
+        "label": "Normal (1×)",
+        "value": "100"
+      },
+      {
+        "label": "Slower (1.25×)",
+        "value": "125"
+      },
+      {
+        "label": "Slow (1.5×)",
+        "value": "150"
+      },
+      {
+        "label": "Half speed (2×)",
+        "value": "200"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Motion is off"
+  },
+  {
     "property": "zenith.motion.tab-switch",
     "label": "Tab switch",
     "type": "dropdown",
@@ -1450,10 +1550,10 @@
     "property": "zenith.peek.behind",
     "label": "The page behind a Peek",
     "type": "dropdown",
-    "placeholder": "Default (As it is)",
+    "placeholder": "Default (Not faded)",
     "options": [
       {
-        "label": "As it is",
+        "label": "Not faded",
         "value": "keep"
       },
       {
@@ -2260,7 +2360,7 @@
         "value": "off"
       },
       {
-        "label": "As the home page",
+        "label": "The home page",
         "value": "on"
       },
       {
@@ -2731,7 +2831,7 @@
         "value": "overlay"
       },
       {
-        "label": "As they are",
+        "label": "Shown as usual",
         "value": "keep"
       }
     ],
@@ -2828,6 +2928,124 @@
     ],
     "operator": "AND",
     "zenithWhy": "There's no bar on the left or right"
+  },
+  {
+    "property": "zenith.bar.rail-px",
+    "label": "A rail's width",
+    "type": "dropdown",
+    "placeholder": "Default (44px)",
+    "options": [
+      {
+        "label": "36px",
+        "value": "36"
+      },
+      {
+        "label": "44px",
+        "value": "44"
+      },
+      {
+        "label": "52px",
+        "value": "52"
+      },
+      {
+        "label": "60px",
+        "value": "60"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.bar.left",
+                  "value": "on"
+                }
+              },
+              {
+                "if": {
+                  "property": "zenith.bar.right",
+                  "value": "on"
+                }
+              }
+            ],
+            "operator": "OR"
+          },
+          {
+            "not": {
+              "property": "zenith.bar.side-width",
+              "value": "wide"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Side bars have titles (or there's none)"
+  },
+  {
+    "property": "zenith.bar.wide-px",
+    "label": "A side bar's width with titles",
+    "type": "dropdown",
+    "placeholder": "Default (210px)",
+    "options": [
+      {
+        "label": "180px",
+        "value": "180"
+      },
+      {
+        "label": "210px",
+        "value": "210"
+      },
+      {
+        "label": "240px",
+        "value": "240"
+      },
+      {
+        "label": "280px",
+        "value": "280"
+      },
+      {
+        "label": "320px",
+        "value": "320"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.bar.left",
+                  "value": "on"
+                }
+              },
+              {
+                "if": {
+                  "property": "zenith.bar.right",
+                  "value": "on"
+                }
+              }
+            ],
+            "operator": "OR"
+          },
+          {
+            "if": {
+              "property": "zenith.bar.side-width",
+              "value": "wide"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Side bars are a rail (or there's none)"
   },
   {
     "property": "zenith.bar.side-rows",
@@ -3033,7 +3251,7 @@
         "value": "full"
       },
       {
-        "label": "As long as its modules",
+        "label": "Only as long as its modules",
         "value": "fit"
       },
       {
@@ -3084,12 +3302,8 @@
     "property": "zenith.bar.margin",
     "label": "Space around the bar",
     "type": "dropdown",
-    "placeholder": "Default (As its look has it)",
+    "placeholder": "Default (None)",
     "options": [
-      {
-        "label": "As its look has it",
-        "value": "auto"
-      },
       {
         "label": "None",
         "value": "0"
@@ -3150,23 +3364,23 @@
     "property": "zenith.bar.corners",
     "label": "The bar's corners",
     "type": "dropdown",
-    "placeholder": "Default (As its look has it)",
+    "placeholder": "Default (Square)",
     "options": [
-      {
-        "label": "As its look has it",
-        "value": "auto"
-      },
       {
         "label": "Square",
         "value": "0"
       },
       {
-        "label": "Slightly round",
+        "label": "6px",
         "value": "6"
       },
       {
-        "label": "Round",
+        "label": "12px",
         "value": "12"
+      },
+      {
+        "label": "18px",
+        "value": "18"
       },
       {
         "label": "Fully round",
@@ -3212,34 +3426,34 @@
     "property": "zenith.bar.opacity",
     "label": "The bar's background",
     "type": "dropdown",
-    "placeholder": "Default (As its look has it)",
+    "placeholder": "Default (Airy (66%))",
     "options": [
       {
-        "label": "As its look has it",
-        "value": "auto"
-      },
-      {
-        "label": "Solid",
+        "label": "Solid (100%)",
         "value": "100"
       },
       {
-        "label": "90%",
-        "value": "90"
+        "label": "Dense (92%)",
+        "value": "92"
       },
       {
-        "label": "75%",
-        "value": "75"
+        "label": "Balanced (82%)",
+        "value": "82"
       },
       {
-        "label": "50%",
-        "value": "50"
+        "label": "Airy (66%)",
+        "value": "66"
       },
       {
-        "label": "25%",
-        "value": "25"
+        "label": "Sheer (46%)",
+        "value": "46"
       },
       {
-        "label": "None",
+        "label": "Glass (28%)",
+        "value": "28"
+      },
+      {
+        "label": "None (0%)",
         "value": "0"
       }
     ],
@@ -3282,23 +3496,23 @@
     "property": "zenith.bar.module-corners",
     "label": "The modules' corners",
     "type": "dropdown",
-    "placeholder": "Default (As its look has it)",
+    "placeholder": "Default (8px)",
     "options": [
-      {
-        "label": "As its look has it",
-        "value": "auto"
-      },
       {
         "label": "Square",
         "value": "0"
       },
       {
-        "label": "Slightly round",
+        "label": "4px",
         "value": "4"
       },
       {
-        "label": "Round",
+        "label": "8px",
         "value": "8"
+      },
+      {
+        "label": "12px",
+        "value": "12"
       },
       {
         "label": "Pills",
@@ -3344,12 +3558,8 @@
     "property": "zenith.bar.spacing",
     "label": "Space between modules",
     "type": "dropdown",
-    "placeholder": "Default (As its look has it)",
+    "placeholder": "Default (6px)",
     "options": [
-      {
-        "label": "As its look has it",
-        "value": "auto"
-      },
       {
         "label": "None",
         "value": "0"
@@ -3468,12 +3678,8 @@
     "property": "zenith.bar.separators",
     "label": "Between modules",
     "type": "dropdown",
-    "placeholder": "Default (As its look has it)",
+    "placeholder": "Default (Nothing)",
     "options": [
-      {
-        "label": "As its look has it",
-        "value": "auto"
-      },
       {
         "label": "Nothing",
         "value": "off"
@@ -3485,80 +3691,6 @@
       {
         "label": "A dot",
         "value": "dot"
-      }
-    ],
-    "usedBy": "zenith-plus",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "on"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "on"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "on"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "on"
-            }
-          }
-        ],
-        "operator": "OR"
-      }
-    ],
-    "operator": "AND",
-    "zenithWhy": "The bar is off"
-  },
-  {
-    "property": "zenith.bar.side-px",
-    "label": "A side bar's width",
-    "type": "dropdown",
-    "placeholder": "Default (As its kind has it (44px rail, 210px with titles))",
-    "options": [
-      {
-        "label": "As its kind has it (44px rail, 210px with titles)",
-        "value": "auto"
-      },
-      {
-        "label": "36px",
-        "value": "36"
-      },
-      {
-        "label": "52px",
-        "value": "52"
-      },
-      {
-        "label": "60px",
-        "value": "60"
-      },
-      {
-        "label": "180px",
-        "value": "180"
-      },
-      {
-        "label": "240px",
-        "value": "240"
-      },
-      {
-        "label": "280px",
-        "value": "280"
-      },
-      {
-        "label": "320px",
-        "value": "320"
       }
     ],
     "usedBy": "zenith-plus",
@@ -4200,10 +4332,10 @@
     "property": "zenith.bar.tab-marks",
     "label": "Marks on a bar's tabs",
     "type": "dropdown",
-    "placeholder": "Default (As the sidebar's (essential, pinned, folder, sound, attention))",
+    "placeholder": "Default (The sidebar's marks (essential, pinned, folder, sound, attention))",
     "options": [
       {
-        "label": "As the sidebar's (essential, pinned, folder, sound, attention)",
+        "label": "The sidebar's marks (essential, pinned, folder, sound, attention)",
         "value": "on"
       },
       {
@@ -4622,10 +4754,10 @@
     "property": "zenith.bar.side-clock",
     "label": "The clock on a side bar",
     "type": "dropdown",
-    "placeholder": "Default (As the clock (the date under it if it has one))",
+    "placeholder": "Default (Hours over minutes, the date under when the bar's clock has one)",
     "options": [
       {
-        "label": "As the clock (the date under it if it has one)",
+        "label": "Hours over minutes, the date under when the bar's clock has one",
         "value": "auto"
       },
       {
@@ -5871,12 +6003,8 @@
     "property": "zenith.motion.space-switch",
     "label": "Switching spaces",
     "type": "dropdown",
-    "placeholder": "Default (As the preset)",
+    "placeholder": "Default (Quick (120 ms))",
     "options": [
-      {
-        "label": "As the preset",
-        "value": "preset"
-      },
       {
         "label": "Zen's slide (250 ms)",
         "value": "zen"

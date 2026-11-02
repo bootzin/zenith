@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.18.0
+// @version        0.18.1
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -160,6 +160,28 @@ const RULES = {
         "not": {
           "property": "zenith.plus.animate-zen",
           "value": true
+        }
+      }
+    ]
+  },
+  "zenith.motion.easing": {
+    "why": "Motion is off",
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      }
+    ]
+  },
+  "zenith.motion.speed": {
+    "why": "Motion is off",
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
         }
       }
     ]
@@ -623,6 +645,72 @@ const RULES = {
       }
     ]
   },
+  "zenith.bar.rail-px": {
+    "why": "Side bars have titles (or there's none)",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.bar.left",
+                  "value": "on"
+                }
+              },
+              {
+                "if": {
+                  "property": "zenith.bar.right",
+                  "value": "on"
+                }
+              }
+            ],
+            "operator": "OR"
+          },
+          {
+            "not": {
+              "property": "zenith.bar.side-width",
+              "value": "wide"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ]
+  },
+  "zenith.bar.wide-px": {
+    "why": "Side bars are a rail (or there's none)",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "conditions": [
+              {
+                "if": {
+                  "property": "zenith.bar.left",
+                  "value": "on"
+                }
+              },
+              {
+                "if": {
+                  "property": "zenith.bar.right",
+                  "value": "on"
+                }
+              }
+            ],
+            "operator": "OR"
+          },
+          {
+            "if": {
+              "property": "zenith.bar.side-width",
+              "value": "wide"
+            }
+          }
+        ],
+        "operator": "AND"
+      }
+    ]
+  },
   "zenith.bar.side-rows": {
     "why": "Side bars are a rail (or there's none)",
     "conditions": [
@@ -963,40 +1051,6 @@ const RULES = {
     ]
   },
   "zenith.bar.separators": {
-    "why": "The bar is off",
-    "conditions": [
-      {
-        "conditions": [
-          {
-            "if": {
-              "property": "zenith.bar.top",
-              "value": "on"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.bottom",
-              "value": "on"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.left",
-              "value": "on"
-            }
-          },
-          {
-            "if": {
-              "property": "zenith.bar.right",
-              "value": "on"
-            }
-          }
-        ],
-        "operator": "OR"
-      }
-    ]
-  },
-  "zenith.bar.side-px": {
     "why": "The bar is off",
     "conditions": [
       {

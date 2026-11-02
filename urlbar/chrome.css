@@ -28,14 +28,14 @@
   }
 
   & #urlbar[breakout-extend] :is(.urlbarView-row, .urlbarView-row-inner) {
-    border-radius: max(0px, calc(var(--zth-radius) - 4px * var(--zth-sq))) !important;
+    border-radius: var(--zth-radius-s) !important;
   }
 
   /* Dim and lightly blur the page behind the floating bar. The extended bar
      is a popover in the top layer, so its ::backdrop covers the window. */
   & #urlbar[zen-floating-urlbar="true"]:popover-open::backdrop {
     background: light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.32));
-    backdrop-filter: blur(3px);
+    backdrop-filter: var(--zth-glass-filter);
   }
 
   @media (prefers-reduced-transparency: reduce) {

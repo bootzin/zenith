@@ -24,7 +24,7 @@
 
 const { setTimeout, clearTimeout } = ChromeUtils.importESModule("resource://gre/modules/Timer.sys.mjs");
 
-const HOW = "zenith.plus.appearance-force"; // "invert" (as it comes), "palette", "off"
+const HOW = "zenith.plus.appearance-force"; // "invert" (the default), "palette", "off"
 const SKIP = "zenith.plus.appearance-skip"; // sites left alone, comma-separated
 
 /* --- The browser's half: what a page should be ------------------------------------ */

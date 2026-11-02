@@ -1,49 +1,52 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// The rice picker (Alt+Shift+P, the Dash, Settings › Theme): one big window
-// in the middle of the browser, as Linux rice switchers have (HyDE's theme
-// selector, ML4W's settings, end-4's), with every look in one place.
-// Categories on the left, choices as pictures on the right; a click applies
-// at once, so you see it. Revert puts back everything as it was when the
-// picker opened; Esc or Done keeps what you chose. Themes bundle the look
-// settings (never layout, keys or behaviour); yours are saved by name.
-// docs/reference.md §7.
+// The rice picker (Alt+Shift+P, the Dash, Settings › Theme, a bar's
+// right-click menu): one big window in the middle of the browser, as Linux
+// rice switchers have (HyDE's theme selector, ML4W's settings, end-4's),
+// every look in one place. Categories on the left; on the right each
+// setting with what it does, its choices drawn from the very tokens they
+// set (a picture is what you get), and its default when it's been changed.
+// A click shows the change at once; Save keeps everything, Cancel (or Esc)
+// puts back everything as it was when the picker opened. Themes bundle the
+// look settings (never layout, keys or behaviour); yours are saved by name.
+// Settings are read and written through looks.mjs. docs/reference.md §7.
+
+import {
+  SCHEMA, PRESETS, Bars, EDGES, SHAPE_KEYS, value, label, set, setLook, defaultOf, changed, snapshot, restore, applyTheme,
+  choosePreset,
+} from "./looks.mjs";
 
 const P = Services.prefs;
 const HTML = "http://www.w3.org/1999/xhtml";
 
-// What a theme holds: look settings only.
-export const LOOK = [
-  "zenith.palette", "zenith.core.accent", "zenith.core.corners", "zenith.core.density", "zenith.core.glass", "zenith.core.glass-edge",
-  "zenith.core.window-transparency", "zenith.core.font", "zenith.bar.style", "zenith.bar.size", "zenith.bar.length", "zenith.bar.margin",
-  "zenith.bar.corners", "zenith.bar.opacity", "zenith.bar.module-corners", "zenith.bar.spacing", "zenith.bar.border",
-  "zenith.bar.separators", "zenith.bar.font", "zenith.bar.icons",
-];
-
 // Built-in themes, after rice styles (r/unixporn, end-4, HyDE, caelestia).
 const THEMES = [
-  { name: "Zenith", note: "As it comes", sets: {} },
-  { name: "Hypr floating", note: "Catppuccin, a rounded bar off the edges", sets: { "zenith.palette": "catppuccin-mocha", "zenith.bar.style": "floating", "zenith.bar.margin": "8", "zenith.bar.corners": "12", "zenith.bar.module-corners": "999", "zenith.bar.opacity": "90", "zenith.core.corners": "soft" } },
-  { name: "Material", note: "From your wallpaper, pills on glass (end-4)", sets: { "zenith.palette": "wallpaper", "zenith.bar.style": "floating", "zenith.bar.margin": "8", "zenith.bar.corners": "999", "zenith.bar.module-corners": "999", "zenith.bar.opacity": "75", "zenith.bar.size": "36" } },
-  { name: "Bare", note: "Rosé Pine, modules on the window, no bar", sets: { "zenith.palette": "rose-pine", "zenith.bar.style": "bare", "zenith.bar.module-corners": "8", "zenith.bar.separators": "off" } },
+  { name: "Zenith", note: "Every look at its default", sets: {} },
+  { name: "Hypr floating", note: "Catppuccin, a rounded bar off the edges", sets: { "zenith.palette": "catppuccin-mocha", "zenith.bar.style": "floating", "zenith.bar.corners": "12", "zenith.bar.module-corners": "999", "zenith.bar.opacity": "92", "zenith.core.corners": "soft" } },
+  { name: "Material", note: "From your wallpaper, pills on glass (end-4)", sets: { "zenith.palette": "wallpaper", "zenith.bar.style": "floating", "zenith.bar.corners": "999", "zenith.bar.module-corners": "999", "zenith.bar.opacity": "82", "zenith.bar.size": "36" } },
+  { name: "Bare", note: "Rosé Pine, modules on the window, no bar", sets: { "zenith.palette": "rose-pine", "zenith.bar.style": "bare", "zenith.bar.module-corners": "8" } },
   { name: "Powerline night", note: "Tokyo Night, arrows", sets: { "zenith.palette": "tokyo-night", "zenith.bar.style": "powerline", "zenith.bar.size": "28" } },
   { name: "i3", note: "Nord, plain and thin", sets: { "zenith.palette": "nord", "zenith.bar.style": "minimal", "zenith.bar.size": "24", "zenith.core.corners": "square" } },
-  { name: "Polybar", note: "Gruvbox, one solid strip", sets: { "zenith.palette": "gruvbox-dark", "zenith.bar.style": "strip", "zenith.bar.size": "28" } },
+  { name: "Polybar", note: "Gruvbox, one solid strip", sets: { "zenith.palette": "gruvbox-dark", "zenith.bar.style": "strip", "zenith.bar.size": "28", "zenith.bar.opacity": "100" } },
   { name: "Paper", note: "Rosé Pine Dawn, light", sets: { "zenith.palette": "rose-pine-dawn", "zenith.bar.style": "islands", "zenith.bar.border": "hairline" } },
 ];
 
-// The categories: each a list of settings shown as choices.
+// The categories: each a list of settings.
 const CATEGORIES = [
-  { id: "themes", label: "Themes", icon: "palette" },
+  { id: "themes", label: "Themes", icon: "palette", blurb: "A theme sets every look at once: colours, glass, shape, font and the bars. Right-click one of yours to forget it." },
   { id: "colours", label: "Colours", icon: "palette", prefs: ["zenith.palette", "zenith.core.accent"] },
-  { id: "glass", label: "Glass", icon: "window", prefs: ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge"] },
-  { id: "bars", label: "Bars", icon: "tabs", prefs: ["zenith.bar.style", "zenith.bar.size", "zenith.bar.length", "zenith.bar.margin", "zenith.bar.corners", "zenith.bar.opacity", "zenith.bar.module-corners", "zenith.bar.separators", "zenith.bar.border"] },
-  { id: "shape", label: "Shape", icon: "settings", prefs: ["zenith.core.corners", "zenith.core.density"] },
+  { id: "glass", label: "Glass", icon: "window", prefs: ["zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge"],
+    blurb: "Every see-through surface: the sidebar, panels, popups, the Dash, this picker and the bars." },
+  { id: "shape", label: "Shape", icon: "settings", prefs: ["zenith.core.corners", "zenith.core.pills", "zenith.core.density"] },
+  { id: "bars", label: "Bars", icon: "tabs", blurb: "Every bar, or one of them: pick it above. A look writes its margin, corners and spacing; change any after." },
   { id: "font", label: "Font", icon: "edit" },
+  { id: "motion", label: "Motion", icon: "play", prefs: ["zenith.motion.preset", "zenith.motion.easing", "zenith.motion.speed"] },
   { id: "menus", label: "Menus and buttons", icon: "tray" },
 ];
+const BAR_SETTINGS = ["style", "size", "length", "opacity", "margin", "corners", "module-corners", "spacing", "separators", "border", "font", "icons"];
 
 const MENUS = [["contentAreaContextMenu", "The page's right-click menu"], ["tabContextMenu", "A tab's right-click menu"]];
 const PLACES = [["shown", "Shown"], ["more", "In More"], ["off", "Off"]];
+const MOTION_PRESET = { off: "Off", quick: "Quick", smooth: "Smooth" };
 
 function node(tag, attrs = {}, ...kids) {
   const n = document.createElementNS(HTML, tag);
@@ -52,18 +55,7 @@ function node(tag, attrs = {}, ...kids) {
   return n;
 }
 
-function read(p) {
-  if (!P.prefHasUserValue(p)) return null;
-  const t = P.getPrefType(p);
-  return t === P.PREF_BOOL ? P.getBoolPref(p) : t === P.PREF_INT ? P.getIntPref(p) : P.getStringPref(p);
-}
-
-function write(p, v) {
-  if (v === null || v === undefined || v === "") return P.clearUserPref(p);
-  if (typeof v === "boolean") P.setBoolPref(p, v);
-  else if (typeof v === "number") P.setIntPref(p, v);
-  else P.setStringPref(p, String(v));
-}
+const short = text => text.replace(/ \(.*\)$/, "");
 
 function saved() {
   try {
@@ -71,14 +63,6 @@ function saved() {
   } catch {
     return [];
   }
-}
-
-let SETTINGS = null; // property → its entry in preferences.json (labels, options)
-async function settings() {
-  if (SETTINGS) return SETTINGS;
-  const list = await (await fetch(new URL("look-options.json", import.meta.url))).json();
-  SETTINGS = new Map(list.map(e => [e.property, e]));
-  return SETTINGS;
 }
 
 let fonts = null;
@@ -89,37 +73,70 @@ async function allFonts() {
   return fonts;
 }
 
+// A setting the picker shows: where it's read and written, its choices, and
+// its default. A bar's setting goes to the bar picked at the top of Bars.
+function field(id, scope) {
+  if (!id.startsWith("bar:")) {
+    const e = SCHEMA[id] ?? null, preset = PRESETS[id];
+    return {
+      id, label: preset ? "Preset" : e?.label ?? id, desc: e?.desc ?? "",
+      options: preset ? preset.values.map(v => ({ value: v, label: MOTION_PRESET[v] ?? v })) : e?.options ?? [],
+      now: () => value(id),
+      base: () => (preset ? preset.default : defaultOf(id)),
+      changed: () => (preset ? value(id) !== preset.default : changed(id)),
+      write: v => (preset ? choosePreset(id, v) : setLook(id, v)),
+    };
+  }
+  const key = id.slice(4), e = SCHEMA[`zenith.bar.${key}`];
+  const edge = scope === "all" ? null : scope;
+  return {
+    id, key, label: e.label, desc: e.desc ?? "", options: e.options,
+    now: () => (edge ? Bars.value(edge, key) : value(`zenith.bar.${key}`)),
+    base: () => Bars.base(scope, key),
+    changed() {
+      return this.now() !== this.base();
+    },
+    write: v => (key === "style" ? Bars.chooseLook(scope, v) : Bars.set(scope, key, v)),
+    // (In "every bar": the bars that have their own, said.)
+    others: () => (edge ? [] : Bars.others(key)),
+    fixed: () => Bars.fixed(edge ? Bars.value(edge, "style") : value("zenith.bar.style"), key),
+  };
+}
+
 export const Picker = {
   host: null,
+  scope: "all", // Bars: every bar, or one
 
-  async open(category = "themes") {
+  async open(category = "themes", bar = null) {
+    if (bar) this.scope = bar;
     if (this.host) return this.show(category);
-    await settings();
-    // What everything was when it opened: Revert's.
-    this.before = Object.fromEntries(LOOK.map(p => [p, read(p)]));
-    const host = (this.host = node("div", { id: "zenith-rice", role: "dialog", "aria-label": "Looks" }));
-    const nav = node("nav", { class: "zr-nav" });
+    // What everything was when it opened: Cancel's.
+    this.before = snapshot(["zenith.internal.theme", "zenith.internal.menu-items", "zenith.plus.glance-buttons",
+                            "zenith.motion.preset", "zenith.motion.easing", "zenith.motion.speed", "zenith.motion.space-switch",
+                            "zenith.motion.swipe", "zenith.motion.swipe-round", "zenith.core.pills"]);
+    const host = (this.host = node("div", { id: "zenith-rice", role: "dialog", "aria-modal": "true", "aria-label": "Looks" }));
+    const nav = node("nav", { class: "zr-nav", "aria-label": "Categories" });
     for (const c of CATEGORIES) {
       const b = node("button", { type: "button", cat: c.id }, node("span", { class: "zs-i", icon: c.icon }), node("span", {}, c.label));
       b.addEventListener("click", () => this.show(c.id));
       nav.append(b);
     }
-    const revert = node("button", { type: "button", class: "zr-quiet" }, "Revert");
-    revert.title = "Everything as it was when you opened this";
-    revert.addEventListener("click", () => {
-      for (const [p, v] of Object.entries(this.before)) write(p, v);
-      this.show(this.cat);
-    });
-    const done = node("button", { type: "button", class: "zr-primary" }, "Done");
-    done.addEventListener("click", () => this.close());
+    const cancel = node("button", { type: "button", class: "zr-quiet" }, "Cancel");
+    cancel.title = "Put back everything as it was when you opened this (Esc)";
+    cancel.addEventListener("click", () => this.cancel());
+    const save = node("button", { type: "button", class: "zr-primary" }, "Save");
+    save.title = "Keep what you see (Ctrl+Enter)";
+    save.addEventListener("click", () => this.close());
     const body = (this.body = node("section", { class: "zr-body" }));
-    const foot = node("footer", { class: "zr-foot" }, node("span", { class: "zr-hint" }, "Changes apply as you click"), revert, done);
+    const foot = node("footer", { class: "zr-foot" }, node("span", { class: "zr-hint" }, "Changes show as you click. Save keeps them; Cancel puts everything back."), cancel, save);
     host.append(node("div", { class: "zr-panel" }, node("header", { class: "zr-head" }, node("strong", {}, "Looks"), node("span", {}, "Alt+Shift+P")), nav, body, foot));
-    host.addEventListener("click", e => e.target === host && this.close());
     this.onKey = e => {
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
+        this.cancel();
+      } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
         this.close();
       }
     };
@@ -127,19 +144,25 @@ export const Picker = {
     // (Redrawn as settings change, from here or elsewhere.)
     this.onPref = () => {
       clearTimeout(this.redraw);
-      this.redraw = setTimeout(() => this.host && this.mark(), 60);
+      this.redraw = setTimeout(() => this.host && this.mark(), 40);
     };
-    for (const p of LOOK) P.addObserver(p, this.onPref);
+    for (const branch of ["zenith.", "zenith.internal.theme"]) P.addObserver(branch, this.onPref);
     (document.getElementById("zen-main-app-wrapper") ?? document.documentElement).append(host);
     this.show(category);
   },
 
+  // Save: what you see stays.
   close() {
     if (!this.host) return;
     window.removeEventListener("keydown", this.onKey, true);
-    for (const p of LOOK) P.removeObserver(p, this.onPref);
+    for (const branch of ["zenith.", "zenith.internal.theme"]) P.removeObserver(branch, this.onPref);
     this.host.remove();
     this.host = null;
+  },
+
+  cancel() {
+    if (this.before) restore(this.before);
+    this.close();
   },
 
   toggle(category) {
@@ -150,37 +173,74 @@ export const Picker = {
     this.cat = id;
     for (const b of this.host.querySelectorAll(".zr-nav button")) b.toggleAttribute("current", b.getAttribute("cat") === id);
     const c = CATEGORIES.find(x => x.id === id);
-    this.body.replaceChildren(node("h2", {}, c.label));
+    this.fields = [];
+    this.body.replaceChildren(node("h2", {}, c.label), c.blurb ? node("p", { class: "zr-blurb" }, c.blurb) : null);
     if (id === "themes") this.themes();
     else if (id === "font") this.fonts();
     else if (id === "menus") this.menus();
-    else for (const p of c.prefs) this.choices(p);
+    else if (id === "bars") this.bars();
+    else for (const p of c.prefs) this.setting(field(p));
+    this.body.scrollTop = 0;
     this.mark();
   },
 
-  // One setting's values: as pictures when a value can be drawn (palettes,
-  // the bar's looks), else a row of words to pick from (sizes, corners).
-  choices(p) {
-    const e = SETTINGS.get(p);
-    if (!e?.options) return;
-    const drawn = p === "zenith.palette" || p === "zenith.bar.style";
-    const grid = node("div", { class: drawn ? "zr-grid" : "zr-seg", pref: p });
-    for (const o of e.options) {
-      const pick = drawn
-        ? node("button", { type: "button", class: "zr-card", value: o.value }, this.preview(p, o.value), node("span", { class: "zr-label" }, o.label.replace(/ \(.*\)$/, "")))
-        : node("button", { type: "button", class: "zr-opt", value: o.value, title: o.label }, o.label);
-      pick.addEventListener("click", () => write(p, o.value === e.defaultValue ? null : o.value));
-      grid.append(pick);
+  // One setting: its name, what it does, its choices, its default.
+  setting(f) {
+    if (!f.options?.length) return;
+    this.fields.push(f);
+    const kind = this.kind(f);
+    const box = node("div", { class: kind === "seg" ? "zr-seg" : kind === "slider" ? "zr-slider" : "zr-grid", kind, field: f.id, role: "radiogroup", "aria-label": f.label });
+    if (kind === "slider") {
+      const range = node("input", { type: "range", min: "0", max: String(f.options.length - 1), step: "1", "aria-label": f.label });
+      const out = node("output", { class: "zr-value" });
+      range.addEventListener("input", () => {
+        out.textContent = short(f.options[range.valueAsNumber].label);
+        range.style.setProperty("--zr-fill", `${(range.valueAsNumber / (f.options.length - 1)) * 100}%`);
+      });
+      range.addEventListener("change", () => f.write(f.options[range.valueAsNumber].value));
+      box.append(range, out);
+    } else {
+      for (const o of f.options) {
+        const pick = kind === "seg"
+          ? node("button", { type: "button", class: "zr-opt", value: o.value, role: "radio", title: o.label }, short(o.label))
+          : node("button", { type: "button", class: "zr-card", value: o.value, role: "radio", title: o.label }, this.picture(f, o.value), node("span", { class: "zr-label" }, short(o.label)));
+        pick.addEventListener("click", () => f.write(o.value));
+        box.append(pick);
+      }
     }
-    this.body.append(node("h3", {}, e.label), grid);
+    const head = node("div", { class: "zr-field-head" }, node("h3", {}, f.label), node("span", { class: "zr-was", field: f.id }));
+    const wrap = node("div", { class: "zr-field", field: f.id }, head, f.desc ? node("p", { class: "zr-desc" }, f.desc) : null, box,
+      node("p", { class: "zr-why", field: f.id }));
+    this.body.append(wrap);
   },
 
-  // A small picture of a value: a palette's colours, a bar's look.
-  preview(p, v) {
-    const pal = window.ZenithPaletteColours?.[v];
-    if (p === "zenith.palette" && pal) return this.window(v, null);
-    if (p === "zenith.bar.style") return this.window(null, v);
-    return node("span", { class: "zr-pic" });
+  // How a setting's choices are shown: drawn (what they look like), a
+  // slider (sizes and amounts), or words.
+  kind(f) {
+    const p = f.key ? `bar:${f.key}` : f.id;
+    if (["zenith.palette", "bar:style", "zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
+         "zenith.core.corners", "zenith.motion.easing"].includes(p)) return "drawn";
+    const numbers = f.options.filter(o => /^\d+$/.test(o.value)).length;
+    return numbers >= 4 && numbers === f.options.length ? "slider" : "seg";
+  },
+
+  // A choice drawn from the tokens it sets (core/chrome.css, motion/chrome.css).
+  picture(f, v) {
+    const p = f.key ? `bar:${f.key}` : f.id;
+    if (p === "zenith.palette") return window.ZenithPaletteColours?.[v] ? this.window(v, null) : node("span", { class: "zr-pic", kind: "swatch", own: "true" });
+    if (p === "bar:style") return this.window(null, v);
+    const glass = node("i", { class: "zr-glass" }, node("b"), node("b"), node("b"));
+    const pic = node("span", { class: "zr-pic", kind: "swatch" }, node("i", { class: "zr-backdrop" }), glass);
+    const tokens = {
+      "zenith.core.window-transparency": `--zr-alpha: var(--zth-alpha-${v})`,
+      "zenith.core.glass": `--zr-blur: calc(var(--zth-frost-${v}) * 2)`,
+      "zenith.core.glass-edge": `--zr-rim: var(--zth-rim-${v})`,
+      "zenith.core.corners": `--zr-corner: var(--zth-corner-${v})`,
+      "zenith.motion.easing": `--zr-ease: var(--zth-ease-${v})`,
+    }[p];
+    pic.setAttribute("style", tokens);
+    if (p === "zenith.motion.easing") pic.setAttribute("kind", "curve");
+    return pic;
   },
 
   // A tiny browser window in a palette and a bar's look: the backdrop, the
@@ -204,9 +264,7 @@ export const Picker = {
       const pic = this.window(t.sets["zenith.palette"], t.sets["zenith.bar.style"]);
       const card = node("button", { type: "button", class: "zr-card", theme: t.name }, pic, node("span", { class: "zr-label" }, t.name), node("span", { class: "zr-note" }, t.note ?? ""));
       card.addEventListener("click", () => {
-        // (A theme sets every look setting: what it doesn't name goes back
-        // to as it comes.)
-        for (const p of LOOK) write(p, t.sets[p] ?? null);
+        applyTheme(t.sets);
         P.setStringPref("zenith.internal.theme", t.name);
       });
       if (own) {
@@ -226,7 +284,8 @@ export const Picker = {
     save.addEventListener("click", () => {
       const name = window.prompt("A name for this look:", "My rice")?.trim();
       if (!name) return;
-      const sets = Object.fromEntries(LOOK.map(p => [p, read(p)]).filter(([, v]) => v !== null));
+      // (Each bar's own values too.)
+      const sets = Object.fromEntries(Object.entries(snapshot()).filter(([, v]) => v !== null && v !== ""));
       P.setStringPref("zenith.internal.themes", JSON.stringify([...saved().filter(x => x.name !== name), { name, sets }]));
       P.setStringPref("zenith.internal.theme", name);
       this.show("themes");
@@ -235,61 +294,107 @@ export const Picker = {
     this.body.append(grid);
   },
 
+  // Bars: which bar (every one, or one of those that are on), then its settings.
+  bars() {
+    const on = EDGES.filter(e => !["", "off"].includes(P.getStringPref(`zenith.bar.${e}`, "")));
+    if (this.scope !== "all" && !on.includes(this.scope)) this.scope = "all";
+    const which = node("div", { class: "zr-seg zr-scope", role: "radiogroup", "aria-label": "Which bar" });
+    for (const [v, text] of [["all", "Every bar"], ...on.map(e => [e, `${e[0].toUpperCase()}${e.slice(1)}`])]) {
+      const b = node("button", { type: "button", class: "zr-opt", value: v, role: "radio" }, text);
+      b.toggleAttribute("current", v === this.scope);
+      b.addEventListener("click", () => {
+        this.scope = v;
+        this.show("bars");
+      });
+      which.append(b);
+    }
+    this.body.append(node("div", { class: "zr-field" }, node("div", { class: "zr-field-head" }, node("h3", {}, "Which bar")), which));
+    if (!on.length) this.body.append(node("p", { class: "zr-desc" }, "No bar is on: Settings › Bars turns one on."));
+    for (const k of BAR_SETTINGS) this.setting(field(`bar:${k}`, this.scope));
+  },
+
   async fonts() {
-    const field = node("input", { type: "search", class: "zr-search", placeholder: "Find a font" });
+    this.setting(field("zenith.bar.font"));
+    const field_ = node("input", { type: "search", class: "zr-search", placeholder: "Find a font", "aria-label": "Find a font" });
     const list = node("div", { class: "zr-fonts" });
-    this.body.append(field, list);
-    this.choices("zenith.bar.font");
+    this.body.append(node("div", { class: "zr-field" }, node("div", { class: "zr-field-head" }, node("h3", {}, "The browser's font"), node("span", { class: "zr-was", field: "zenith.core.font" })),
+      node("p", { class: "zr-desc" }, SCHEMA["zenith.core.font"]?.desc ?? ""), field_, list));
     const all = await allFonts();
     const draw = () => {
-      const q = field.value.trim().toLowerCase();
+      const q = field_.value.trim().toLowerCase();
       const pick = name => {
-        const b = node("button", { type: "button", class: "zr-font", value: name }, name || "Your system's (as it comes)");
+        const b = node("button", { type: "button", class: "zr-font", value: name }, name || "Your system's font");
         if (name) b.style.fontFamily = `"${name}"`;
-        b.addEventListener("click", () => write("zenith.core.font", name || null));
+        b.addEventListener("click", () => (name ? set("zenith.core.font", name) : P.clearUserPref("zenith.core.font")));
         return b;
       };
       list.replaceChildren(pick(""), ...all.filter(f => !q || f.toLowerCase().includes(q)).slice(0, 200).map(pick));
       this.mark();
     };
-    field.addEventListener("input", draw);
+    field_.addEventListener("input", draw);
     draw();
-    field.focus();
+    field_.focus();
   },
 
   // Menus and buttons: where Glance's and Peek's buttons sit, and each
   // right-click menu item shown, in More, or off.
   menus() {
-    this.choices("zenith.plus.glance-buttons");
+    this.setting(field("zenith.plus.glance-buttons"));
     const M = window.ZenithMenus;
     if (!M) return;
     for (const [menu, title] of MENUS) {
       const list = node("div", { class: "zr-items" });
       for (const item of M.items(menu)) {
         const seg = node("div", { class: "zr-seg", item: item.id });
-        for (const [v, label] of PLACES) {
-          const b = node("button", { type: "button", class: "zr-opt", value: v }, label);
+        for (const [v, text] of PLACES) {
+          const b = node("button", { type: "button", class: "zr-opt", value: v }, text);
           b.addEventListener("click", () => {
             const all = M.places();
             if (v === (item.rare && P.getBoolPref("zenith.plus.more-menu", true) ? "more" : "shown")) delete all[item.id];
             else all[item.id] = v;
             P.setStringPref(M.PLACES, JSON.stringify(all));
-            this.mark();
           });
           seg.append(b);
         }
         list.append(node("div", { class: "zr-item" }, node("span", {}, item.label), seg));
       }
-      this.body.append(node("h3", {}, title), list);
+      this.body.append(node("div", { class: "zr-field" }, node("div", { class: "zr-field-head" }, node("h3", {}, title)), list));
     }
   },
 
-  // What's chosen now, lit.
+  // What's chosen now, lit; a changed setting's default, with Reset; a
+  // setting a bar's look doesn't use, said why.
   mark() {
     if (!this.host) return;
-    for (const g of this.host.querySelectorAll(":is(.zr-grid, .zr-seg)[pref]")) {
-      const p = g.getAttribute("pref"), e = SETTINGS.get(p), now = read(p) ?? e.defaultValue;
-      for (const c of g.children) c.toggleAttribute("current", c.getAttribute("value") === String(now));
+    for (const f of this.fields ?? []) {
+      const now = f.now(), box = this.host.querySelector(`[kind][field="${f.id}"]`);
+      if (box?.getAttribute("kind") === "slider") {
+        const range = box.querySelector("input"), i = Math.max(0, f.options.findIndex(o => o.value === now));
+        range.value = String(i);
+        range.style.setProperty("--zr-fill", `${(i / Math.max(1, f.options.length - 1)) * 100}%`);
+        box.querySelector("output").textContent = short(f.options[i]?.label ?? now);
+      } else if (box) {
+        for (const c of box.children) {
+          c.toggleAttribute("current", c.getAttribute("value") === String(now));
+          c.setAttribute("aria-checked", String(c.getAttribute("value") === String(now)));
+        }
+      }
+      const was = this.host.querySelector(`.zr-was[field="${f.id}"]`);
+      if (was) {
+        const parts = [];
+        if (f.changed()) {
+          const reset = node("button", { type: "button", class: "zr-link" }, "Reset");
+          reset.addEventListener("click", () => f.write(f.base()));
+          parts.push(node("span", {}, `Default: ${short(f.options.find(o => o.value === f.base())?.label ?? f.base())}`), reset);
+        }
+        was.replaceChildren(...parts);
+      }
+      const why = this.host.querySelector(`.zr-why[field="${f.id}"]`);
+      if (why) {
+        const fixed = f.fixed?.() ?? null, others = f.others?.() ?? [];
+        why.textContent = fixed ?? (others.length ? `Not on ${others.map(([e, v]) => `the ${e} bar (${short(f.options.find(o => o.value === v)?.label ?? v)})`).join(", ")}: it has its own` : "");
+        this.host.querySelector(`.zr-field[field="${f.id}"]`)?.toggleAttribute("off", !!fixed);
+      }
     }
     const theme = P.getStringPref("zenith.internal.theme", "Zenith");
     for (const c of this.host.querySelectorAll(".zr-card[theme]")) c.toggleAttribute("current", c.getAttribute("theme") === theme);
@@ -301,5 +406,11 @@ export const Picker = {
     }
     const font = P.getStringPref("zenith.core.font", "");
     for (const f of this.host.querySelectorAll(".zr-font")) f.toggleAttribute("current", f.getAttribute("value") === font);
+    const fontWas = this.host.querySelector('.zr-was[field="zenith.core.font"]');
+    if (fontWas) {
+      const reset = node("button", { type: "button", class: "zr-link" }, "Reset");
+      reset.addEventListener("click", () => P.clearUserPref("zenith.core.font"));
+      fontWas.replaceChildren(...(font ? [node("span", {}, "Default: your system's font"), reset] : []));
+    }
   },
 };

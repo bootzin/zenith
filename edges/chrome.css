@@ -79,7 +79,7 @@
   }
 
   &[long-load="true"]::after {
-    animation-duration: 2s;
+    animation-duration: 2s; /* @loop */
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -188,7 +188,7 @@
 
   &:has(#theme-Zenith-Edges[zenith-edges-container-style="inset"]) .browserSidebarContainer.deck-selected:not(.zen-glance-overlay)::after {
     inset: 10px auto 10px 0;
-    border-radius: 0 999px 999px 0;
+    border-radius: 0 var(--zth-pill-radius) var(--zth-pill-radius) 0;
     corner-shape: round;
   }
 }
@@ -238,7 +238,7 @@
     inset 0 0 34px -6px color-mix(in srgb, var(--zth-danger) 75%, transparent);
 
   & #zen-tabbox-wrapper::after {
-    animation: zth-alarm 1.2s ease-in-out 3;
+    animation: zth-alarm calc(1.2s * var(--zth-speed)) var(--zth-ease) 3;
   }
 }
 

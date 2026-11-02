@@ -16,6 +16,7 @@
 //     node, never the bar.
 
 import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard, tabsCard, powerCard, barMenu, previewCard } from "./shell-ui.mjs";
+import { SCHEMA, Bars, BAR_KEYS, EDGES, value } from "./looks.mjs";
 
 const P = Services.prefs;
 const HTML = "http://www.w3.org/1999/xhtml";
@@ -34,7 +35,11 @@ function put(n, text) {
   n.textContent = text;
 }
 
-const pref = (name, def = "") => P.getStringPref(name, "") || def;
+// A setting as it is (looks.mjs: its value, else its default); `def` only
+// for the few that aren't settings on the page.
+const pref = (name, def = "") => (SCHEMA[name] ? String(value(name)) : P.getStringPref(name, "") || def);
+// One bar's own (or the bars' shared) value.
+const mine = (edge, key) => Bars.value(edge, key);
 const KEPT = "zenith.internal.bar.compact-before"; // compact mode as it was before tabs left the sidebar
 const bool = (name, def) => P.getBoolPref(name, def);
 
@@ -137,7 +142,7 @@ const GLYPHS = {
 };
 
 function icon(name) {
-  const look = pref("zenith.bar.icons", "svg");
+  const look = mine(Bar.building ?? "top", "icons");
   if (look === "svg") return node("span", { class: "zb-i", icon: name, "aria-hidden": "true" });
   const glyph = GLYPHS[look]?.[name] ?? "";
   return glyph ? node("span", { class: "zb-g", "aria-hidden": "true" }, glyph) : node("span", { hidden: "true" });
@@ -145,7 +150,7 @@ function icon(name) {
 
 function setIcon(span, name) {
   if (span.classList.contains("zb-i")) span.setAttribute("icon", name);
-  else put(span, GLYPHS[pref("zenith.bar.icons", "svg")]?.[name] ?? "");
+  else put(span, GLYPHS[mine(span.closest?.(".zenith-bar")?.getAttribute("edge") ?? "top", "icons")]?.[name] ?? "");
 }
 
 // A module whose text ticks keeps the width it has (measured once, as its
@@ -932,7 +937,6 @@ function buttons(box) {
 }
 
 /* --- The bar itself ------------------------------------------------------------ */
-const EDGES = ["top", "bottom", "left", "right"];
 
 // Every module, by the name a bar's list uses (BarLoader.MODULES labels them).
 const MODULES = {
@@ -959,6 +963,7 @@ const Bar = {
   // stands up (left, right) and whether it hides until the pointer comes.
   build(edge, parts) {
     dragArea();
+    this.building = edge; // (a module's icons are its bar's)
     const bar = node("div", { id: edge === "top" ? "zenith-bar" : `zenith-bar-${edge}`, class: "zenith-bar", edge, role: "toolbar", "aria-label": `Zenith bar (${edge})` });
     if (edge === "left" || edge === "right") {
       bar.setAttribute("vertical", "true");
@@ -1028,6 +1033,7 @@ const Bar = {
     bar.append(left, centre, right);
     for (const [side, fn] of parts) fn({ left, centre, right }[side]);
     if (parts.some(([, fn]) => fn === tasks)) bar.setAttribute("tasks", "true");
+    this.building = null;
     return bar;
   },
 
@@ -1058,39 +1064,40 @@ const Bar = {
 
   look() {
     for (const bar of this.bars) {
-      bar.setAttribute("look", pref("zenith.bar.style", "islands"));
-      bar.setAttribute("size", pref("zenith.bar.size", "30"));
-      bar.setAttribute("font", pref("zenith.bar.font", "mono"));
-      bar.setAttribute("marker", pref("zenith.bar.marker", "container"));
+      const edge = bar.getAttribute("edge"), my = key => mine(edge, key);
+      // Each bar's own look and shape (Bars, for one bar or all: looks.mjs),
+      // Hyprland rices' knobs: inline, every one a value.
+      bar.setAttribute("look", my("style"));
+      bar.setAttribute("size", my("size"));
+      bar.setAttribute("font", my("font"));
+      bar.setAttribute("length", my("length"));
+      bar.setAttribute("border", my("border"));
+      bar.setAttribute("separators", my("separators"));
+      bar.setAttribute("marker", pref("zenith.bar.marker"));
       // (0.16.0's dot and short line: now the ring and the top line.)
-      const hint = pref("zenith.bar.container-hint", "top");
+      const hint = pref("zenith.bar.container-hint");
       bar.setAttribute("hint", { dot: "ring", line: "top" }[hint] ?? hint);
-      bar.setAttribute("rows", pref("zenith.bar.side-rows", "labels"));
-      bar.setAttribute("marks", pref("zenith.bar.tab-marks", "on"));
-      // The shape (Bars › Fine-tuning the shape), Hyprland rices' knobs: inline, so they beat
-      // the look's own values; "As its look has it" leaves the look's.
-      const px = (p, unit = "px") => {
-        const v = pref(p, "auto");
-        return v === "auto" || v === "" || isNaN(parseInt(v, 10)) ? null : `${parseInt(v, 10)}${unit}`;
-      };
-      const set = (k, v) => (v == null ? bar.style.removeProperty(k) : bar.style.setProperty(k, v));
-      const h = parseInt(pref("zenith.bar.size", "30"), 10) || 30;
+      bar.setAttribute("rows", pref("zenith.bar.side-rows"));
+      bar.setAttribute("marks", pref("zenith.bar.tab-marks"));
+      const set = (k, v) => bar.style.setProperty(k, v);
+      const h = parseInt(my("size"), 10);
       set("--zb-h", `${h}px`);
       set("--zb-pad", `${Math.max(2, Math.round(h * 0.13))}px`);
       set("font-size", `${Math.round(9 + h / 7.5)}px`);
-      const vertical = bar.hasAttribute("vertical"), wide = pref("zenith.bar.side-width", "rail") === "wide";
-      const side = parseInt(pref("zenith.bar.side-px", "auto"), 10);
-      set("--zb-w", vertical && !isNaN(side) && (wide ? side >= 120 : side < 120) ? `${side}px` : null);
-      set("--zb-margin", px("zenith.bar.margin"));
-      set("--zb-bar-radius", px("zenith.bar.corners"));
-      const o = pref("zenith.bar.opacity", "auto");
-      set("--zb-alpha", o === "auto" ? null : `${parseInt(o, 10)}%`);
-      set("--zb-radius", px("zenith.bar.module-corners"));
-      set("--zb-gap", px("zenith.bar.spacing"));
-      bar.setAttribute("length", pref("zenith.bar.length", "full"));
-      bar.setAttribute("border", pref("zenith.bar.border", "off"));
-      bar.setAttribute("separators", pref("zenith.bar.separators", "auto"));
+      if (bar.hasAttribute("vertical")) set("--zb-w", `${pref(pref("zenith.bar.side-width") === "wide" ? "zenith.bar.wide-px" : "zenith.bar.rail-px")}px`);
+      set("--zb-m", `${my("margin")}px`);
+      set("--zb-bar-radius", `${my("corners")}px`);
+      set("--zb-alpha", `${my("opacity")}%`);
+      bar.toggleAttribute("solid", my("opacity") === "100");
+      set("--zb-radius", `${my("module-corners")}px`);
+      set("--zb-gap", `${my("spacing")}px`);
     }
+    // A floating bar's gap and corners are the page's too (it floats with it).
+    const float = this.bars.find(b => ["floating", "bare"].includes(b.getAttribute("look"))), rs = document.documentElement.style;
+    if (float) {
+      rs.setProperty("--zb-float-gap", `${Math.max(4, parseInt(mine(float.getAttribute("edge"), "margin"), 10))}px`);
+      rs.setProperty("--zb-float-radius", `${mine(float.getAttribute("edge"), "corners")}px`);
+    } else for (const v of ["--zb-float-gap", "--zb-float-radius"]) rs.removeProperty(v);
     // (Another look, size or font: the fixed-width modules measured again.)
     requestAnimationFrame(() => {
       for (const bar of this.bars) for (const m of bar.querySelectorAll(".zb-mod[fixed]")) fixWidth(m);
@@ -1136,9 +1143,10 @@ const Bar = {
     const hides = this.bars.filter(b => b.hasAttribute("collapsible")).map(b => b.getAttribute("edge"));
     if (hides.length) document.documentElement.setAttribute("zenith-bar-hides", hides.join(" "));
     this.look();
-    for (const p of ["zenith.bar.style", "zenith.bar.size", "zenith.bar.font", "zenith.bar.side-width", "zenith.bar.marker", "zenith.bar.container-hint", "zenith.bar.side-rows", "zenith.bar.tab-marks", "zenith.bar.length", "zenith.bar.margin",
-                     "zenith.bar.corners", "zenith.bar.opacity", "zenith.bar.module-corners", "zenith.bar.spacing", "zenith.bar.border",
-                     "zenith.bar.separators", "zenith.bar.side-px"]) Undo.pref(p, () => this.look());
+    for (const p of [...BAR_KEYS.flatMap(k => [`zenith.bar.${k}`, ...EDGES.map(e => Bars.pref(e, k))]), "zenith.bar.side-width", "zenith.bar.marker",
+                     "zenith.bar.container-hint", "zenith.bar.side-rows", "zenith.bar.tab-marks", "zenith.bar.rail-px", "zenith.bar.wide-px"]) {
+      Undo.pref(p, () => this.look());
+    }
     this.mark();
     const mark = () => this.mark();
     window.gZenWorkspaces?.addChangeListeners?.(mark);
@@ -1167,6 +1175,7 @@ const Bar = {
     document.documentElement.removeAttribute("zenith-bar");
     document.documentElement.removeAttribute("zenith-bar-buttons");
     document.documentElement.removeAttribute("zenith-bar-hides");
+    for (const v of ["--zb-float-gap", "--zb-float-radius"]) document.documentElement.style.removeProperty(v);
     this.probe?.remove();
     this.probe = null;
   },

@@ -24,6 +24,25 @@ const Layouts = {
   init() {
     window.ZenithLayouts = this; // the bar's module, the settings page, tools/checks
     const P = Services.prefs, W = window.gZenWorkspaces;
+    // A strip's column pinned, made an essential or put in a folder leaves
+    // the strip first: Zen moves a split's tabs together, so the whole strip
+    // would follow it (pinned, with an essential in it).
+    const leave = tabs => {
+      for (const t of [].concat(tabs ?? [])) if (Tiler.data(t)?.zenithStrip) Tiler.S.removeTabFromGroup(t, undefined, { changeTab: false });
+    };
+    for (const [owner, name] of [[gBrowser, "pinTab"], [window.gZenPinnedTabManager, "addToEssentials"], [window.gZenFolders, "createFolder"]]) {
+      const orig = owner?.[name];
+      if (!orig) continue;
+      owner[name] = function (tabs, ...rest) {
+        try {
+          leave(tabs);
+        } catch (e) {
+          console.error("[Zenith] strip", e);
+        }
+        return orig.call(this, tabs, ...rest);
+      };
+      onUnload(() => (owner[name] = orig));
+    }
     // Another space: its layout (monocle fills the view there, or stops).
     this.here = W?.activeWorkspace;
     const spaceChanged = () => {

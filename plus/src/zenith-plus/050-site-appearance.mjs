@@ -11,7 +11,7 @@ const SiteAppearance = {
   // the browser is (Zen's window scheme: a palette's, else the system's),
   // 3 as the system is.
   PREF: "layout.css.prefers-color-scheme.content-override",
-  AUTO: "zenith.plus.appearance-auto", // what automatic follows: "browser" (as it comes) or "system"
+  AUTO: "zenith.plus.appearance-auto", // what automatic follows: "browser" (the default) or "system"
   GLOBAL: "zenith.internal.appearance.global", // your choice where a space has none of its own: "dark", "light" or none
   SPACES: "zenith.internal.appearance.spaces", // { space: "dark" | "light" }
 
@@ -150,7 +150,7 @@ const SiteAppearance = {
     if (uuid === window.gZenWorkspaces?.activeWorkspace) this.write(mode === "dark" || mode === "light" ? mode : this.global());
   },
 
-  FORCE: "zenith.plus.appearance-force", // "invert" (as it comes), "palette" or "off"
+  FORCE: "zenith.plus.appearance-force", // "invert" (the default), "palette" or "off"
 
   // Pages set dark or light, beyond asking them: inverted where they don't
   // follow (a helper in each page: plus/pages/appearance-force.sys.mjs), or

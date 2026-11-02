@@ -46,6 +46,106 @@
     "zenithWhy": "Zenith Plus keeps everything animated"
   },
   {
+    "property": "zenith.motion.easing",
+    "label": "Easing",
+    "type": "dropdown",
+    "placeholder": "Default (Standard (a soft start, a long landing))",
+    "options": [
+      {
+        "label": "Standard (a soft start, a long landing)",
+        "value": "standard"
+      },
+      {
+        "label": "Spring (settles without a bounce)",
+        "value": "spring"
+      },
+      {
+        "label": "Bouncy (a small overshoot)",
+        "value": "bouncy"
+      },
+      {
+        "label": "Snappy (fast, then a gentle stop)",
+        "value": "snappy"
+      },
+      {
+        "label": "Decelerate (quick start, slow end)",
+        "value": "decelerate"
+      },
+      {
+        "label": "Gentle (eases in and out)",
+        "value": "gentle"
+      },
+      {
+        "label": "Back (overshoots, then comes back)",
+        "value": "back"
+      },
+      {
+        "label": "Hyprland's (0.05, 0.9, 0.1, 1.05)",
+        "value": "hyprland"
+      },
+      {
+        "label": "Elastic (wobbles into place)",
+        "value": "elastic"
+      },
+      {
+        "label": "Linear (one speed)",
+        "value": "linear"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Motion is off"
+  },
+  {
+    "property": "zenith.motion.speed",
+    "label": "Speed",
+    "type": "dropdown",
+    "placeholder": "Default (Normal (1×))",
+    "options": [
+      {
+        "label": "Twice as fast (0.5×)",
+        "value": "50"
+      },
+      {
+        "label": "Faster (0.75×)",
+        "value": "75"
+      },
+      {
+        "label": "Normal (1×)",
+        "value": "100"
+      },
+      {
+        "label": "Slower (1.25×)",
+        "value": "125"
+      },
+      {
+        "label": "Slow (1.5×)",
+        "value": "150"
+      },
+      {
+        "label": "Half speed (2×)",
+        "value": "200"
+      }
+    ],
+    "conditions": [
+      {
+        "not": {
+          "property": "zenith.motion.preset",
+          "value": "off"
+        }
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "Motion is off"
+  },
+  {
     "property": "zenith.motion.tab-switch",
     "label": "Tab switch",
     "type": "dropdown",

@@ -223,10 +223,10 @@
     "property": "zenith.panels.tile-dim",
     "label": "The other tiles (split view)",
     "type": "dropdown",
-    "placeholder": "Default (As they are)",
+    "placeholder": "Default (Not dimmed)",
     "options": [
       {
-        "label": "As they are",
+        "label": "Not dimmed",
         "value": "keep"
       },
       {

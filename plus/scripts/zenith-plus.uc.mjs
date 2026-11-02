@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.18.0
+// @version        0.18.1
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -21,14 +21,14 @@
 // Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
 // work without any of this. Peek has its own script, zenith-peek.uc.mjs.
 
-const ZENITH_VERSION = "0.18.0"; // (tools/bump_version.py keeps it)
+const ZENITH_VERSION = "0.18.1"; // (tools/bump_version.py keeps it)
 window.ZenithVersion = ZENITH_VERSION; // about:zenith-fetch, the rice file
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const root = document.documentElement;
 
 // A space's tabs as its sidebar shows them, by Zen's own rule: its own tabs,
 // and the essentials, each space only its container's when Zen keeps them
-// apart (Zen › Separate essentials, as it comes). The bar, the Dash, the
+// apart (Zen › Separate essentials, by default). The bar, the Dash, the
 // switcher and the tab manager ask this.
 window.ZenithSpaceTabs = {
   shows(tab, uuid = window.gZenWorkspaces?.activeWorkspace) {
@@ -5475,9 +5475,45 @@ const Tiler = {
           hint("Zen can't split an essential without copying it, so it stays as it is (Settings › Tiling and keys › Splitting an essential)");
           return undefined;
         }
+        // Glance's split button: its page beside the tab it was opened from.
+        const g = Tiler.glanceSplit;
+        if (g && Array.isArray(tabs) && tabs.length === 2 && tabs.includes(g)) {
+          Tiler.glanceSplit = null;
+          const anchor = tabs.find(t => t !== g);
+          if (Tiler.data(anchor) || Layouts.strip()) return Tiler.insert(g, anchor);
+        }
         return split.call(this, tabs, ...rest);
       };
       onUnload(() => (this.S.splitTabs = split));
+    }
+    // Zen's "Open link in split view" and Glance's split button put the new
+    // page at the end of a split (in a strip: the last column): it goes
+    // beside the tile you're on instead, where the Shell puts any new tile
+    // (in a strip, the column after it).
+    const link = this.S?.splitLinkInNewTab;
+    if (link) {
+      this.S.splitLinkInNewTab = function () {
+        const current = window.gZenGlanceManager?.getTabOrGlanceParent(gBrowser.selectedTab) ?? gBrowser.selectedTab;
+        if (!Tiler.data(current) && !Layouts.strip()) return link.call(this);
+        // (Zen's own, from here: the link's address, opened with its page's principal.)
+        const m = window.gContextMenu;
+        const url = m.linkURL || m.mediaURL || m.contentData.docLocation || m.target.ownerDocument.location.href;
+        const tab = this.openAndSwitchToTab(url, { skipRoute: true, inBackground: false, triggeringPrincipal: m.principal });
+        if (tab) Tiler.insert(tab, current);
+      };
+      onUnload(() => (this.S.splitLinkInNewTab = link));
+    }
+    const G = window.gZenGlanceManager, glance = G?.splitGlance;
+    if (glance) {
+      G.splitGlance = async function (...args) {
+        Tiler.glanceSplit = gBrowser.selectedTab;
+        try {
+          return await glance.apply(this, args);
+        } finally {
+          Tiler.glanceSplit = null;
+        }
+      };
+      onUnload(() => (G.splitGlance = glance));
     }
     if (this.S) {
       Object.defineProperty(this.S, "MAX_TABS", { configurable: true, get: () => (Layouts.strip() ? Infinity : max), set: v => (max = v) });
@@ -5755,8 +5791,7 @@ const PageScroll = {
 
 /* --- Glance's and Peek's buttons -------------------------------------------------
    Where they sit (Panels › Glance's and Peek's buttons): beside the page
-   as Zen has them, on the other side, above or below it in a row. And a
-   reload button with them. */
+   as Zen has them, on the other side, above or below it in a row. */
 const GlanceButtons = {
   PREF: "zenith.plus.glance-buttons", // zen · other-side · top · bottom
 
@@ -5764,40 +5799,7 @@ const GlanceButtons = {
     const where = () => root.setAttribute("zenith-glance-buttons", Services.prefs.getStringPref(this.PREF, "") || "zen");
     where();
     Services.prefs.addObserver(this.PREF, where);
-    // (Zen makes the buttons each time a Glance or Peek opens.)
-    const panels = gBrowser.tabpanels;
-    const seen = new MutationObserver(list => {
-      for (const m of list) for (const n of m.addedNodes) {
-        const box = n.nodeType === 1 && (n.matches(".zen-glance-sidebar-container") ? n : n.querySelector?.(".zen-glance-sidebar-container"));
-        if (box) this.add(box);
-      }
-    });
-    seen.observe(panels, { childList: true, subtree: true });
-    // (Peek's page floats in a host of its own, at the window's top level.)
-    const wrapper = document.getElementById("zen-main-app-wrapper");
-    const hosts = new MutationObserver(() => setTimeout(() => {
-      for (const box of document.querySelectorAll("#zen-glance-detached .zen-glance-sidebar-container")) this.add(box);
-    }, 0));
-    if (wrapper) hosts.observe(wrapper, { childList: true });
-    onUnload(() => {
-      hosts.disconnect();
-      seen.disconnect();
-      Services.prefs.removeObserver(this.PREF, where);
-    });
-  },
-
-  add(box) {
-    if (box.querySelector(".zenith-glance-reload")) return;
-    const b = document.createXULElement("toolbarbutton");
-    b.className = "zenith-glance-reload toolbarbutton-1";
-    b.setAttribute("image", "chrome://global/skin/icons/reload.svg");
-    b.setAttribute("tooltiptext", "Reload (F5)");
-    b.addEventListener("command", () => {
-      const browser = box.parentElement?.querySelector("browser") ?? window.gZenGlanceManager?.detachedBrowser;
-      browser?.reload();
-    });
-    const close = box.querySelector(".zen-glance-sidebar-close");
-    close ? close.after(b) : box.append(b);
+    onUnload(() => Services.prefs.removeObserver(this.PREF, where));
   },
 };
 
@@ -5866,6 +5868,25 @@ const Layouts = {
   init() {
     window.ZenithLayouts = this; // the bar's module, the settings page, tools/checks
     const P = Services.prefs, W = window.gZenWorkspaces;
+    // A strip's column pinned, made an essential or put in a folder leaves
+    // the strip first: Zen moves a split's tabs together, so the whole strip
+    // would follow it (pinned, with an essential in it).
+    const leave = tabs => {
+      for (const t of [].concat(tabs ?? [])) if (Tiler.data(t)?.zenithStrip) Tiler.S.removeTabFromGroup(t, undefined, { changeTab: false });
+    };
+    for (const [owner, name] of [[gBrowser, "pinTab"], [window.gZenPinnedTabManager, "addToEssentials"], [window.gZenFolders, "createFolder"]]) {
+      const orig = owner?.[name];
+      if (!orig) continue;
+      owner[name] = function (tabs, ...rest) {
+        try {
+          leave(tabs);
+        } catch (e) {
+          console.error("[Zenith] strip", e);
+        }
+        return orig.call(this, tabs, ...rest);
+      };
+      onUnload(() => (owner[name] = orig));
+    }
     // Another space: its layout (monocle fills the view there, or stops).
     this.here = W?.activeWorkspace;
     const spaceChanged = () => {
@@ -7009,7 +7030,7 @@ const SiteAppearance = {
   // the browser is (Zen's window scheme: a palette's, else the system's),
   // 3 as the system is.
   PREF: "layout.css.prefers-color-scheme.content-override",
-  AUTO: "zenith.plus.appearance-auto", // what automatic follows: "browser" (as it comes) or "system"
+  AUTO: "zenith.plus.appearance-auto", // what automatic follows: "browser" (the default) or "system"
   GLOBAL: "zenith.internal.appearance.global", // your choice where a space has none of its own: "dark", "light" or none
   SPACES: "zenith.internal.appearance.spaces", // { space: "dark" | "light" }
 
@@ -7148,7 +7169,7 @@ const SiteAppearance = {
     if (uuid === window.gZenWorkspaces?.activeWorkspace) this.write(mode === "dark" || mode === "light" ? mode : this.global());
   },
 
-  FORCE: "zenith.plus.appearance-force", // "invert" (as it comes), "palette" or "off"
+  FORCE: "zenith.plus.appearance-force", // "invert" (the default), "palette" or "off"
 
   // Pages set dark or light, beyond asking them: inverted where they don't
   // follow (a helper in each page: plus/pages/appearance-force.sys.mjs), or
@@ -7359,10 +7380,20 @@ const RicePicker = {
       console.error("[Zenith] rice picker", e);
     }
   },
+
+  // At a category (and, in Bars, one bar: a bar's right-click menu).
+  async open(category, bar) {
+    try {
+      this.mod ??= await import(await BarLoader.page("rice-picker.mjs"));
+      return this.mod.Picker.open(category, bar);
+    } catch (e) {
+      console.error("[Zenith] rice picker", e);
+    }
+  },
 };
 
 const OverviewLoader = {
-  CORNER: "zenith.overview.corner", // top-left (as it comes), top-right, bottom-left, bottom-right, off
+  CORNER: "zenith.overview.corner", // top-left (the default), top-right, bottom-left, bottom-right, off
 
   init() {
     window.ZenithOverview = this; // the Shell's Alt+O, the bar, tools/checks
@@ -7492,7 +7523,7 @@ const BarLoader = {
   },
   get REBUILD() {
     return [...this.EDGES.flatMap(e => [`zenith.bar.${e}`, `zenith.bar.${e}.modules`, `zenith.bar.display-${e}`]),
-            "zenith.bar.side-width", "zenith.bar.icons", "zenith.bar.fullscreen"];
+            ...this.EDGES.map(e => `zenith.bar.${e}.icons`), "zenith.bar.side-width", "zenith.bar.icons", "zenith.bar.fullscreen"];
   },
 
   on(edge) {
@@ -7571,7 +7602,18 @@ const BarLoader = {
 
   init() {
     this.migrate();
-    const apply = () => this.apply();
+    // Settings as everything reads them (plus/pages/looks.mjs), brought up
+    // to date before a bar is drawn.
+    this.ready = this.page("looks.mjs").then(u => import(u)).then(L => {
+      window.ZenithSettings = L; // (window.ZenithLooks is the rice picker)
+      L.migrate();
+    }).catch(e => console.error("[Zenith] settings", e));
+    // (An observer sees a setting's whole branch: zenith.bar.top's covers
+    // that bar's own look, which bar.mjs changes in place.)
+    const apply = (s, t, pref) => {
+      if (/^zenith\.bar\.(top|bottom|left|right)\.(?!modules$|icons$)/.test(pref)) return;
+      this.apply();
+    };
     for (const p of this.REBUILD) Services.prefs.addObserver(p, apply);
     const tell = (s, t, pref) => (pref === "zenith.sidebar" || Services.prefs.getStringPref(pref, "") === "hide") && this.tellSidebar();
     const told = ["zenith.sidebar", ...this.EDGES.map(e => `zenith.bar.display-${e}`)];
@@ -9893,6 +9935,8 @@ const DROPDOWNS = {
  "zenith.panels.tab-preview": "Zenith Panels",
  "zenith.motion.preset": "Zenith Motion",
  "zenith.motion.reduced": "Zenith Motion",
+ "zenith.motion.easing": "Zenith Motion",
+ "zenith.motion.speed": "Zenith Motion",
  "zenith.motion.tab-switch": "Zenith Motion",
  "zenith.motion.swipe": "Zenith Motion",
  "zenith.motion.swipe-round": "Zenith Motion"

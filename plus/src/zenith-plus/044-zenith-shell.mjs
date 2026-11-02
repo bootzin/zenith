@@ -261,9 +261,45 @@ const Tiler = {
           hint("Zen can't split an essential without copying it, so it stays as it is (Settings › Tiling and keys › Splitting an essential)");
           return undefined;
         }
+        // Glance's split button: its page beside the tab it was opened from.
+        const g = Tiler.glanceSplit;
+        if (g && Array.isArray(tabs) && tabs.length === 2 && tabs.includes(g)) {
+          Tiler.glanceSplit = null;
+          const anchor = tabs.find(t => t !== g);
+          if (Tiler.data(anchor) || Layouts.strip()) return Tiler.insert(g, anchor);
+        }
         return split.call(this, tabs, ...rest);
       };
       onUnload(() => (this.S.splitTabs = split));
+    }
+    // Zen's "Open link in split view" and Glance's split button put the new
+    // page at the end of a split (in a strip: the last column): it goes
+    // beside the tile you're on instead, where the Shell puts any new tile
+    // (in a strip, the column after it).
+    const link = this.S?.splitLinkInNewTab;
+    if (link) {
+      this.S.splitLinkInNewTab = function () {
+        const current = window.gZenGlanceManager?.getTabOrGlanceParent(gBrowser.selectedTab) ?? gBrowser.selectedTab;
+        if (!Tiler.data(current) && !Layouts.strip()) return link.call(this);
+        // (Zen's own, from here: the link's address, opened with its page's principal.)
+        const m = window.gContextMenu;
+        const url = m.linkURL || m.mediaURL || m.contentData.docLocation || m.target.ownerDocument.location.href;
+        const tab = this.openAndSwitchToTab(url, { skipRoute: true, inBackground: false, triggeringPrincipal: m.principal });
+        if (tab) Tiler.insert(tab, current);
+      };
+      onUnload(() => (this.S.splitLinkInNewTab = link));
+    }
+    const G = window.gZenGlanceManager, glance = G?.splitGlance;
+    if (glance) {
+      G.splitGlance = async function (...args) {
+        Tiler.glanceSplit = gBrowser.selectedTab;
+        try {
+          return await glance.apply(this, args);
+        } finally {
+          Tiler.glanceSplit = null;
+        }
+      };
+      onUnload(() => (G.splitGlance = glance));
     }
     if (this.S) {
       Object.defineProperty(this.S, "MAX_TABS", { configurable: true, get: () => (Layouts.strip() ? Infinity : max), set: v => (max = v) });

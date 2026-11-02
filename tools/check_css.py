@@ -89,6 +89,91 @@ def load_defined(mod_dir):
     return defined
 
 
+def drawing_lines(raw):
+    """Lines between /* @drawing */ and /* @end-drawing */: small pictures
+    of a choice (the rice picker's), drawn with fixed sizes on purpose."""
+    out, inside = set(), False
+    for n, line in enumerate(raw.split("\n"), 1):
+        if "@drawing" in line:
+            inside = True
+        if inside:
+            out.add(n)
+        if "@end-drawing" in line:
+            inside = False
+    return out
+
+
+DECL = re.compile(r"^\s*(transition|animation|transition-duration|animation-duration|transition-timing-function|"
+                  r"animation-timing-function|border(?:-[a-z]+)*-radius|backdrop-filter)\s*:(.*)$")
+VARS = re.compile(r"var\([^()]*(?:\([^()]*\))*[^()]*\)")
+PX = re.compile(r"(?<![\w.])(\d*\.?\d+)px")
+CURVE = re.compile(r"(?<![\w-])(ease|ease-in|ease-out|ease-in-out)(?![\w-])|cubic-bezier\(")
+TIME = re.compile(r"(?<![\w.*(-])(\d*\.?\d+)(ms|s)\b")
+SPEED = re.compile(r"calc\([^()]*var\(--zth-speed\)\)")
+
+
+def top_level(value):
+    """A list's items (commas outside parentheses)."""
+    out, depth, cur = [], 0, ""
+    for ch in value:
+        depth += (ch == "(") - (ch == ")")
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    return out + [cur]
+
+
+def check_tokens(raw, css, path, problems):
+    """The design tokens (core/chrome.css, docs/reference.md §11): every
+    rounded thing uses a radius token, every glass surface the glass's
+    filter and its edge, every transition and animation the motion tokens,
+    so Theme › Corners, Window transparency, Frost, Glass edge and Motion
+    reach everything, now and whatever is added later."""
+    skip = drawing_lines(raw)
+    lines = css.split("\n")
+    i = 0
+    while i < len(lines):
+        m = DECL.match(lines[i])
+        if not m or (i + 1) in skip:
+            i += 1
+            continue
+        start, prop, value = i, m.group(1), m.group(2)
+        while not value.rstrip().endswith((";", "{", "}")) and i + 1 < len(lines):
+            i += 1
+            value += " " + lines[i].strip()
+        where = f"{path}:{start + 1}"
+        bare = VARS.sub("", value)  # (what's outside var())
+        if prop.endswith("radius"):
+            if any(float(x) >= 2 for x in PX.findall(bare)):
+                problems.append(f"{where}: a fixed radius; use --zth-radius-xs, -s, --zth-radius, -l, "
+                                "--zth-tab-radius or --zth-pill-radius")
+        elif prop == "backdrop-filter":
+            if not re.match(r"\s*(var\(--zth-(panel|glass)-filter\)|none)\s*(!important)?\s*;", value):
+                problems.append(f"{where}: a backdrop filter of its own; use var(--zth-panel-filter) or var(--zth-glass-filter)")
+        else:
+            raw_line = raw.split("\n")[start]
+            for item in top_level(value.rstrip(";")):
+                if "infinite" in item or "@loop" in raw_line:
+                    continue  # (a loop showing something going on keeps its pace)
+                if CURVE.search(VARS.sub("", item)):
+                    problems.append(f"{where}: a timing curve of its own; use var(--zth-ease) or var(--zth-ease-in)")
+                if SPEED.search(item) or "var(--zth-dur" in item:
+                    continue  # (a duration from the tokens; a time after it is a delay)
+                times = TIME.findall(VARS.sub("", item))
+                if prop in ("transition", "animation", "transition-duration", "animation-duration") and times and float(times[0][0]) != 0:
+                    problems.append(f"{where}: a fixed duration; use var(--zth-dur), var(--zth-dur-fast) "
+                                    "or calc(<time> * var(--zth-speed))")
+        i += 1
+    # A glass surface has the glass's edge in its shadow (a bar: in its own).
+    for m in re.finditer(r"\{([^{}]*backdrop-filter:\s*var\(--zth-(?:panel|glass)-filter\)[^{}]*)\}", css):
+        ln = css.count("\n", 0, m.start()) + 1
+        selector = css[css.rfind("\n", 0, m.start()) + 1:m.start()]
+        if "--zth-glass-shine" not in m.group(1) and not re.search(r"\.zenith-bar|::backdrop", selector) and ln not in skip:
+            problems.append(f"{path}:{ln}: a glass surface without the glass edge; add var(--zth-glass-shine) to its box-shadow")
+
+
 def check_mod(mod_dir, problems, all_defined):
     css_path = mod_dir / "chrome.css"
     data = css_path.read_bytes()
@@ -105,6 +190,7 @@ def check_mod(mod_dir, problems, all_defined):
             problems.append(f"{css_path}:{ln}: non-ASCII text in content; use a CSS escape")
     check_balance(css, css_path, problems)
     check_has_nesting(css, css_path, problems)
+    check_tokens(raw, css, css_path, problems)
     if "-moz-bool-pref" in css:
         problems.append(f"{css_path}: uses removed -moz-bool-pref syntax")
 

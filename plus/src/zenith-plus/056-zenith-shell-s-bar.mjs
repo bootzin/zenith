@@ -25,7 +25,7 @@ const BarLoader = {
   },
   get REBUILD() {
     return [...this.EDGES.flatMap(e => [`zenith.bar.${e}`, `zenith.bar.${e}.modules`, `zenith.bar.display-${e}`]),
-            "zenith.bar.side-width", "zenith.bar.icons", "zenith.bar.fullscreen"];
+            ...this.EDGES.map(e => `zenith.bar.${e}.icons`), "zenith.bar.side-width", "zenith.bar.icons", "zenith.bar.fullscreen"];
   },
 
   on(edge) {
@@ -104,7 +104,18 @@ const BarLoader = {
 
   init() {
     this.migrate();
-    const apply = () => this.apply();
+    // Settings as everything reads them (plus/pages/looks.mjs), brought up
+    // to date before a bar is drawn.
+    this.ready = this.page("looks.mjs").then(u => import(u)).then(L => {
+      window.ZenithSettings = L; // (window.ZenithLooks is the rice picker)
+      L.migrate();
+    }).catch(e => console.error("[Zenith] settings", e));
+    // (An observer sees a setting's whole branch: zenith.bar.top's covers
+    // that bar's own look, which bar.mjs changes in place.)
+    const apply = (s, t, pref) => {
+      if (/^zenith\.bar\.(top|bottom|left|right)\.(?!modules$|icons$)/.test(pref)) return;
+      this.apply();
+    };
     for (const p of this.REBUILD) Services.prefs.addObserver(p, apply);
     const tell = (s, t, pref) => (pref === "zenith.sidebar" || Services.prefs.getStringPref(pref, "") === "hide") && this.tellSidebar();
     const told = ["zenith.sidebar", ...this.EDGES.map(e => `zenith.bar.display-${e}`)];

@@ -38,9 +38,38 @@
      tighter than a round corner of the same radius, so radii are scaled by
      Zen's own factor. Pills and dots are forced to true round corners. */
   --zth-sq: var(--zen-squircle-value, 1);
-  --zth-radius: calc(10px * var(--zth-sq));
+  /* Each choice of Corners, Window transparency, Frost and Glass edge is a
+     token here; the setting picks one below (and the rice picker draws
+     every one from them, so a picture is what you get). */
+  --zth-corner-square: 0px;
+  --zth-corner-soft: calc(10px * var(--zth-sq));
+  --zth-corner-round: calc(16px * var(--zth-sq));
+  --zth-alpha-solid: 1;
+  --zth-alpha-dense: 0.92;
+  --zth-alpha-balanced: 0.82;
+  --zth-alpha-airy: 0.66;
+  --zth-alpha-sheer: 0.46;
+  --zth-alpha-glass: 0.28;
+  --zth-frost-off: 0px;
+  --zth-frost-subtle: 4px;
+  --zth-frost-strong: 30px;
+  --zth-rim-off: 0 0 0 transparent;
+  --zth-rim-shine: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.14));
+  --zth-rim-liquid:
+    inset 1px 1px 0 light-dark(rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.4)),
+    inset -1px -1px 0 light-dark(rgb(255 255 255 / 0.4), rgb(255 255 255 / 0.1)),
+    inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.06)),
+    inset 0 16px 24px -18px light-dark(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.24));
+
+  --zth-radius: var(--zth-corner-soft);
   --zth-tab-radius: calc(6px * var(--zth-sq));
   --zth-pill-radius: 999px;
+  /* The radius scale: Corners scales every step (Square: all 0). Small
+     marks, controls inside a surface, surfaces, large surfaces (popups,
+     the picker). Every rounded thing uses one of these (tools/check_css.py). */
+  --zth-radius-xs: calc(var(--zth-radius) * 0.4);
+  --zth-radius-s: calc(var(--zth-radius) * 0.7);
+  --zth-radius-l: calc(var(--zth-radius) * 1.4);
   --zth-pill-shape: round;
   --zth-page-radius: 0px;
 
@@ -53,7 +82,7 @@
   --zth-paint: var(--zen-primary-color);
   --zth-paint-share: 25%;
   --zth-glass-color: color-mix(in srgb, var(--zth-paint) var(--zth-paint-share), var(--zth-mica));
-  --zth-glass-blur: 4px;
+  --zth-glass-blur: var(--zth-frost-subtle);
   --zth-glass-sat: 1.1;
   --zth-glass-bg: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-glass-alpha) * 100%), transparent);
   --zth-panel-bg: color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-panel-alpha) * 100%), transparent);
@@ -62,11 +91,16 @@
   --zth-glass-shine: 0 0 0 transparent; /* used inside box-shadow lists, so never "none" */
   --zth-shadow: 0 12px 32px -10px rgb(0 0 0 / 0.5), 0 2px 8px rgb(0 0 0 / 0.18);
 
-  /* Motion (Quick by default; Zenith Motion can change it). A soft start
-     and a long, smooth landing. */
-  --zth-dur-fast: 100ms;
-  --zth-dur: 150ms;
+  /* Motion (Quick by default; Zenith Motion changes the curve, the
+     timings and the speed). Every transition and animation uses these
+     (tools/check_css.py): a duration is a token or a time times
+     --zth-speed, a curve --zth-ease (arriving) or --zth-ease-in (leaving).
+     Loops that show something going on (loading, playing) keep their pace. */
+  --zth-speed: 1;
+  --zth-dur-fast: calc(100ms * var(--zth-speed));
+  --zth-dur: calc(150ms * var(--zth-speed));
   --zth-ease: cubic-bezier(0.2, 0, 0, 1);
+  --zth-ease-in: cubic-bezier(0.4, 0, 1, 1);
 }
 
 /* --- Accent: the workspace colour, or one from a fixed palette ----------
@@ -142,12 +176,12 @@
 /* --- Corners ------------------------------------------------------------- */
 
 :root:has(#theme-Zenith-Core[zenith-core-corners="square"]) {
-  --zth-radius: 0px;
-  --zth-tab-radius: calc(2px * var(--zth-sq));
+  --zth-radius: var(--zth-corner-square);
+  --zth-tab-radius: 0px;
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-corners="round"]) {
-  --zth-radius: calc(16px * var(--zth-sq));
+  --zth-radius: var(--zth-corner-round);
   --zth-tab-radius: calc(10px * var(--zth-sq));
 }
 
@@ -163,12 +197,12 @@
 /* (Off keeps the panels' dimming of what's behind, so they look the same
    apart from the blur.) */
 :root:has(#theme-Zenith-Core[zenith-core-glass="off"]) {
-  --zth-glass-blur: 0px;
+  --zth-glass-blur: var(--zth-frost-off);
   --zth-glass-sat: 1;
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-glass="strong"]) {
-  --zth-glass-blur: 30px;
+  --zth-glass-blur: var(--zth-frost-strong);
   --zth-glass-sat: 1.6;
 }
 
@@ -178,23 +212,12 @@
    also lights a surface up where you press it. The rim is part of each
    glass surface's shadow (--zth-glass-shine), so every one gets it. */
 :root:has(#theme-Zenith-Core[zenith-core-glass-edge="shine"]) {
-  --zth-glass-shine: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.14));
+  --zth-glass-shine: var(--zth-rim-shine);
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-glass-edge="liquid"]) {
-  --zth-glass-shine:
-    inset 1px 1px 0 light-dark(rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.4)),
-    inset -1px -1px 0 light-dark(rgb(255 255 255 / 0.4), rgb(255 255 255 / 0.1)),
-    inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.06)),
-    inset 0 16px 24px -18px light-dark(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.24));
+  --zth-glass-shine: var(--zth-rim-liquid);
 
-  /* Liquid also rims the surfaces that have no shadow of their own: the
-     selected tab, essentials, the media card and the floating sidebar. */
-  & #zen-media-controls-toolbar .zen-media-card,
-  &[zen-compact-mode="true"] #navigator-toolbox:not(#zth-a, #zth-b) .zen-toolbar-background,
-  & .tabbrowser-tab:is([zen-essential], [selected], [multiselected]) > .tab-stack > .tab-background {
-    box-shadow: var(--zth-glass-shine) !important;
-  }
 
   /* Under the pointer the glass lights up: a soft spot and a faint wash,
      gentle on hover and full while pressed. Zenith Plus marks the surface,
@@ -209,6 +232,16 @@
         transparent),
       linear-gradient(light-dark(rgb(255 255 255 / calc(var(--zth-press, 0) * 0.25)), rgb(255 255 255 / calc(var(--zth-press, 0) * 0.06))) 0 0),
       var(--zth-under-light, none) !important;
+  }
+}
+
+/* Shine and Liquid also rim the surfaces that have no shadow of their own:
+   the selected tab, essentials, the media card and the floating sidebar. */
+:root:is(:has(#theme-Zenith-Core[zenith-core-glass-edge="shine"]), :has(#theme-Zenith-Core[zenith-core-glass-edge="liquid"])) {
+  & #zen-media-controls-toolbar .zen-media-card,
+  &[zen-compact-mode="true"] #navigator-toolbox:not(#zth-a, #zth-b) .zen-toolbar-background,
+  & .tabbrowser-tab:is([zen-essential], [selected], [multiselected]) > .tab-stack > .tab-background {
+    box-shadow: var(--zth-glass-shine) !important;
   }
 }
 
@@ -237,7 +270,7 @@
 :root {
   /* Airy (the default) */
   --zth-glass-alpha: 0.5;
-  --zth-panel-alpha: 0.66;
+  --zth-panel-alpha: var(--zth-alpha-airy);
   --zth-sidebar-alpha: var(--zth-panel-alpha);
   --zth-desk-alpha: var(--zth-sidebar-alpha);
   /* How much a panel dims the page showing through it: as much as Windows'
@@ -254,27 +287,27 @@
 
 :root:has(#theme-Zenith-Core[zenith-core-window-transparency="solid"]) {
   --zth-glass-alpha: 1;
-  --zth-panel-alpha: 1;
+  --zth-panel-alpha: var(--zth-alpha-solid);
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-window-transparency="dense"]) {
   --zth-glass-alpha: 0.86;
-  --zth-panel-alpha: 0.92;
+  --zth-panel-alpha: var(--zth-alpha-dense);
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-window-transparency="balanced"]) {
   --zth-glass-alpha: 0.7;
-  --zth-panel-alpha: 0.82;
+  --zth-panel-alpha: var(--zth-alpha-balanced);
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-window-transparency="sheer"]) {
   --zth-glass-alpha: 0.34;
-  --zth-panel-alpha: 0.46;
+  --zth-panel-alpha: var(--zth-alpha-sheer);
 }
 
 :root:has(#theme-Zenith-Core[zenith-core-window-transparency="glass"]) {
   --zth-glass-alpha: 0.2;
-  --zth-panel-alpha: 0.28;
+  --zth-panel-alpha: var(--zth-alpha-glass);
 }
 
 /* Sidebar: Solid keeps it opaque at every step, docked or floating. */
@@ -320,7 +353,7 @@
    (--zth-desk-paint, built by Plus from what Zen paints). */
 :root:not(:has(#theme-Zenith-Core[zenith-core-floating-sidebar="zen"])) #zen-browser-background {
   background: var(--zth-desk-paint, color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent)) !important;
-  transition: background-color 0.3s ease !important;
+  transition: background-color calc(0.3s * var(--zth-speed)) var(--zth-ease) !important;
 
   &::before,
   &::after {
@@ -351,7 +384,7 @@
   &::after {
     opacity: 1 !important;
     background: var(--zth-desk-paint, color-mix(in srgb, var(--zth-glass-color) calc(var(--zth-desk-alpha) * 100%), transparent)) !important;
-    transition: background-color 0.3s ease !important;
+    transition: background-color calc(0.3s * var(--zth-speed)) var(--zth-ease) !important;
   }
 }
 
@@ -363,7 +396,7 @@
   #navigator-toolbox:not(#zth-a, #zth-b) .zen-toolbar-background {
   background: color-mix(in srgb, var(--zth-glass-color) calc(max(var(--zth-sidebar-alpha), 0.96) * 100%), transparent) !important;
   backdrop-filter: var(--zth-panel-filter) !important;
-  transition: background-color 0.3s ease !important;
+  transition: background-color calc(0.3s * var(--zth-speed)) var(--zth-ease) !important;
 
   &::before,
   &::after {
@@ -375,6 +408,7 @@
 #urlbar:not(#zth-a, #zth-b) .urlbar-background {
   background-color: var(--zth-panel-bg) !important;
   backdrop-filter: var(--zth-panel-filter) !important;
+  box-shadow: var(--zth-glass-shine);
 }
 
 /* ==========================================================================

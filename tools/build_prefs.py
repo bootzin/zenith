@@ -137,7 +137,7 @@ MODS = {
         dropdown("zenith.core.corners", "Corners on panels and tabs", "Soft",
                  ("Square", "square"), ("Soft", "soft"), ("Round", "round")),
         dropdown("zenith.core.pills", "Pills and badges", "Round",
-                 ("Round", "round"), ("Match the corner setting", "match")),
+                 ("Round", "round"), ("The panels' corners", "match")),
         dropdown("zenith.core.glass", "Frost: how much see-through panels blur what is behind", "Subtle",
                  ("Off", "off"), ("Subtle", "subtle"), ("Strong", "strong")),
         dropdown("zenith.core.glass-edge", "Glass edge", "None",
@@ -156,8 +156,8 @@ MODS = {
     "edges": [
         dropdown("zenith.edges.preset", "Preset", "Full",
                  ("Off", "off"), ("Quiet", "quiet"), ("Full", "full")),
-        dropdown("zenith.edges.thickness", "Edge thickness", "Auto",
-                 ("Auto", "auto"), ("1px", "1"), ("2px", "2"), ("3px", "3")),
+        dropdown("zenith.edges.thickness", "Edge thickness", "2px (3px on screens over 2200px wide)",
+                 ("2px (3px on screens over 2200px wide)", "auto"), ("1px", "1"), ("2px", "2"), ("3px", "3")),
         tri("zenith.edges.load", "Load edge (top)"),
         tri("zenith.edges.download", "Download progress (bottom)"),
         tri("zenith.edges.container", "Container colour (left)"),
@@ -244,8 +244,8 @@ MODS = {
                  ALL(IF("zenith.panels.split", ""), NOT("zenith.panels.preset", "zen")))),
         dropdown("zenith.panels.tile-focus", "The tile you're on (split view)", "As Zen draws it",
                  ("As Zen draws it", "zen"), ("An accent border", "accent")),
-        dropdown("zenith.panels.tile-dim", "The other tiles (split view)", "As they are",
-                 ("As they are", "keep"), ("Dimmed", "dim")),
+        dropdown("zenith.panels.tile-dim", "The other tiles (split view)", "Not dimmed",
+                 ("Not dimmed", "keep"), ("Dimmed", "dim")),
         dropdown("zenith.panels.notifications", "Notifications", "dunst cards",
                  ("Zen default", "zen"), ("Small toasts", "small"), ("dunst cards", "dunst")),
         tri("zenith.panels.compact-menus", "Compact menus"),
@@ -260,6 +260,17 @@ MODS = {
                       ("Keep Zenith's motion", "zenith"), ("Follow the system", "follow")),
              "Zenith Plus keeps everything animated",
              NOT("zenith.plus.animate-zen", True)),
+        when(dropdown("zenith.motion.easing", "Easing", "Standard (a soft start, a long landing)",
+                      ("Standard (a soft start, a long landing)", "standard"), ("Spring (settles without a bounce)", "spring"),
+                      ("Bouncy (a small overshoot)", "bouncy"), ("Snappy (fast, then a gentle stop)", "snappy"),
+                      ("Decelerate (quick start, slow end)", "decelerate"), ("Gentle (eases in and out)", "gentle"),
+                      ("Back (overshoots, then comes back)", "back"), ("Hyprland's (0.05, 0.9, 0.1, 1.05)", "hyprland"),
+                      ("Elastic (wobbles into place)", "elastic"), ("Linear (one speed)", "linear")),
+             "Motion is off", MOTION_ON),
+        when(dropdown("zenith.motion.speed", "Speed", "Normal (1×)",
+                      ("Twice as fast (0.5×)", "50"), ("Faster (0.75×)", "75"), ("Normal (1×)", "100"),
+                      ("Slower (1.25×)", "125"), ("Slow (1.5×)", "150"), ("Half speed (2×)", "200")),
+             "Motion is off", MOTION_ON),
         when(dropdown("zenith.motion.tab-switch", "Tab switch", "Instant",
                       ("Instant", "instant"), ("Crossfade", "fade")),
              "Motion is off", MOTION_ON),
@@ -272,8 +283,8 @@ MODS = {
     # that another setting makes irrelevant (plus/scripts/zenith-settings).
     "plus": [
         script(checkbox("zenith.peek.enabled", "Peek: Alt+Q, or Shift+Enter in the URL bar (type ? in Peek to edit prefixes)", True)),
-        when(script(dropdown("zenith.peek.behind", "The page behind a Peek", "As it is",
-                             ("As it is", "keep"), ("Faded, like Glance", "fade"))),
+        when(script(dropdown("zenith.peek.behind", "The page behind a Peek", "Not faded",
+                             ("Not faded", "keep"), ("Faded, like Glance", "fade"))),
              "Peek is off", PEEK_ON),
         when(script(dropdown("zenith.peek.engine", "Peek search engine", "Google",
                              ("Google", "google"), ("Google AI Mode", "google-ai"),
@@ -369,7 +380,7 @@ MODS = {
         script(checkbox("zenith.plus.bookmarks-space-first", "This space's bookmarks first", True)),
         script(checkbox("zenith.plus.bookmarks-library", "Bookmarks in Zen's Library", True)),
         script(dropdown("zenith.plus.startpage", "Start page: a clock, search and your bookmarks", "Off",
-                        ("Off", "off"), ("As the home page", "on"), ("Home page and new tabs", "newtab"))),
+                        ("Off", "off"), ("The home page", "on"), ("Home page and new tabs", "newtab"))),
         when(script(checkbox("zenith.plus.startpage-weather", "The weather on the start page", False)),
              "The start page is off", ANY(IF("zenith.plus.startpage", "on"), IF("zenith.plus.startpage", "newtab"))),
         when(script(checkbox("zenith.plus.startpage-weather-history", "With the places you looked up in Peek", True)),
@@ -414,13 +425,21 @@ MODS = {
                              ("Takes its room", "reserved"), ("Over the page", "overlay"), ("Hides until the pointer reaches it", "hide"))),
              "There's no bar on the right", IF("zenith.bar.right", "on")),
         when(script(dropdown("zenith.bar.fullscreen", "Bars in full screen (F11)", "Hidden until the pointer reaches them",
-                             ("Hidden until the pointer reaches them", "hide"), ("Over the page", "overlay"), ("As they are", "keep"))),
+                             ("Hidden until the pointer reaches them", "hide"), ("Over the page", "overlay"), ("Shown as usual", "keep"))),
              "The bar is off", BAR_ON),
         script(dropdown("zenith.sidebar", "The sidebar", "On hover (Zen's compact mode)",
                         ("Shown", "shown"), ("On hover (Zen's compact mode)", "hover"), ("Hidden (tabs in a bar)", "hidden"))),
         when(script(dropdown("zenith.bar.side-width", "Bars on the left or right", "A rail of icons",
                              ("A rail of icons", "rail"), ("With titles", "wide"))),
              "There's no bar on the left or right", ANY(IF("zenith.bar.left", "on"), IF("zenith.bar.right", "on"))),
+        when(script(dropdown("zenith.bar.rail-px", "A rail's width", "44px",
+                             ("36px", "36"), ("44px", "44"), ("52px", "52"), ("60px", "60"))),
+             "Side bars have titles (or there's none)",
+             ALL(ANY(IF("zenith.bar.left", "on"), IF("zenith.bar.right", "on")), NOT("zenith.bar.side-width", "wide"))),
+        when(script(dropdown("zenith.bar.wide-px", "A side bar's width with titles", "210px",
+                             ("180px", "180"), ("210px", "210"), ("240px", "240"), ("280px", "280"), ("320px", "320"))),
+             "Side bars are a rail (or there's none)",
+             ALL(ANY(IF("zenith.bar.left", "on"), IF("zenith.bar.right", "on")), IF("zenith.bar.side-width", "wide"))),
         when(script(dropdown("zenith.bar.side-rows", "Small modules on a side bar with titles", "Each a row with its name",
                              ("Each a row with its name", "labels"), ("Icons side by side", "icons"))),
              "Side bars are a rail (or there's none)", ALL(ANY(IF("zenith.bar.left", "on"), IF("zenith.bar.right", "on")), IF("zenith.bar.side-width", "wide"))),
@@ -433,24 +452,22 @@ MODS = {
                      ("20px", "20"), ("24px", "24"), ("28px", "28"), ("30px", "30"), ("32px", "32"), ("36px", "36"),
                      ("40px", "40"), ("44px", "44"), ("48px", "48")),
             dropdown("zenith.bar.length", "The bar's length", "The whole edge",
-                     ("The whole edge", "full"), ("As long as its modules", "fit"), ("80% of the edge", "80"), ("60% of the edge", "60")),
-            dropdown("zenith.bar.margin", "Space around the bar", "As its look has it",
-                     ("As its look has it", "auto"), ("None", "0"), ("4px", "4"), ("8px", "8"), ("12px", "12"), ("16px", "16")),
-            dropdown("zenith.bar.corners", "The bar's corners", "As its look has it",
-                     ("As its look has it", "auto"), ("Square", "0"), ("Slightly round", "6"), ("Round", "12"), ("Fully round", "999")),
-            dropdown("zenith.bar.opacity", "The bar's background", "As its look has it",
-                     ("As its look has it", "auto"), ("Solid", "100"), ("90%", "90"), ("75%", "75"), ("50%", "50"), ("25%", "25"), ("None", "0")),
-            dropdown("zenith.bar.module-corners", "The modules' corners", "As its look has it",
-                     ("As its look has it", "auto"), ("Square", "0"), ("Slightly round", "4"), ("Round", "8"), ("Pills", "999")),
-            dropdown("zenith.bar.spacing", "Space between modules", "As its look has it",
-                     ("As its look has it", "auto"), ("None", "0"), ("2px", "2"), ("4px", "4"), ("6px", "6"), ("8px", "8"), ("12px", "12")),
+                     ("The whole edge", "full"), ("Only as long as its modules", "fit"), ("80% of the edge", "80"), ("60% of the edge", "60")),
+            dropdown("zenith.bar.margin", "Space around the bar", "None",
+                     ("None", "0"), ("4px", "4"), ("8px", "8"), ("12px", "12"), ("16px", "16")),
+            dropdown("zenith.bar.corners", "The bar's corners", "Square",
+                     ("Square", "0"), ("6px", "6"), ("12px", "12"), ("18px", "18"), ("Fully round", "999")),
+            dropdown("zenith.bar.opacity", "The bar's background", "Airy (66%)",
+                     ("Solid (100%)", "100"), ("Dense (92%)", "92"), ("Balanced (82%)", "82"), ("Airy (66%)", "66"),
+                     ("Sheer (46%)", "46"), ("Glass (28%)", "28"), ("None (0%)", "0")),
+            dropdown("zenith.bar.module-corners", "The modules' corners", "8px",
+                     ("Square", "0"), ("4px", "4"), ("8px", "8"), ("12px", "12"), ("Pills", "999")),
+            dropdown("zenith.bar.spacing", "Space between modules", "6px",
+                     ("None", "0"), ("2px", "2"), ("4px", "4"), ("6px", "6"), ("8px", "8"), ("12px", "12")),
             dropdown("zenith.bar.border", "The bar's border", "None",
                      ("None", "off"), ("A hairline", "hairline"), ("The accent", "accent")),
-            dropdown("zenith.bar.separators", "Between modules", "As its look has it",
-                     ("As its look has it", "auto"), ("Nothing", "off"), ("A line", "line"), ("A dot", "dot")),
-            dropdown("zenith.bar.side-px", "A side bar's width", "As its kind has it (44px rail, 210px with titles)",
-                     ("As its kind has it (44px rail, 210px with titles)", "auto"), ("36px", "36"), ("52px", "52"), ("60px", "60"),
-                     ("180px", "180"), ("240px", "240"), ("280px", "280"), ("320px", "320")),
+            dropdown("zenith.bar.separators", "Between modules", "Nothing",
+                     ("Nothing", "off"), ("A line", "line"), ("A dot", "dot")),
             dropdown("zenith.bar.font", "The bar's font", "Monospace (a Nerd Font, if you have one)",
                      ("Monospace (a Nerd Font, if you have one)", "mono"), ("The browser's (Theme › Looks › Font)", "system")),
             dropdown("zenith.bar.icons", "The bar's icons", "Zenith's own",
@@ -478,8 +495,8 @@ MODS = {
                      ("The theme's accent", "accent")),
             dropdown("zenith.bar.media-hover", "Hovering what's playing", "Nothing",
                      ("Nothing", "off"), ("A mini player", "player")),
-            dropdown("zenith.bar.tab-marks", "Marks on a bar's tabs", "As the sidebar's (essential, pinned, folder, sound, attention)",
-                     ("As the sidebar's (essential, pinned, folder, sound, attention)", "on"), ("None", "off")),
+            dropdown("zenith.bar.tab-marks", "Marks on a bar's tabs", "The sidebar's marks (essential, pinned, folder, sound, attention)",
+                     ("The sidebar's marks (essential, pinned, folder, sound, attention)", "on"), ("None", "off")),
             dropdown("zenith.bar.media-pick", "Which source the bar shows", "The newest playing (any space)",
                      ("The newest playing (any space)", "newest"), ("Keep the one I chose", "kept")),
             dropdown("zenith.bar.tab-crowd", "Tabs that don't fit in a bar", "Titles go, then a window around the tab you're on",
@@ -495,8 +512,8 @@ MODS = {
                      ("A line on the right", "right"), ("A ring around the icon", "ring"), ("The tab tinted", "tint"), ("Not shown", "off")),
             dropdown("zenith.bar.tab-preview", "Hovering a tab in a bar", "Its preview",
                      ("Its preview", "on"), ("Nothing", "off")),
-            dropdown("zenith.bar.side-clock", "The clock on a side bar", "As the clock (the date under it if it has one)",
-                     ("As the clock (the date under it if it has one)", "auto"), ("Hours and minutes", "hm"),
+            dropdown("zenith.bar.side-clock", "The clock on a side bar", "Hours over minutes, the date under when the bar's clock has one",
+                     ("Hours over minutes, the date under when the bar's clock has one", "auto"), ("Hours and minutes", "hm"),
                      ("The weekday under", "weekday"), ("The seconds under (wakes each second)", "seconds"),
                      ("The date under", "date"), ("The day over the month, under", "stacked")),
             dropdown("zenith.bar.tab-align", "Tabs in the bar sit", "At the start (left or top)",
@@ -620,8 +637,8 @@ MODS = {
         script(checkbox("zenith.plus.extension-copies", "Experimental: extension copies for other spaces (right-click an extension)", False)),
         script(dropdown("zenith.plus.download-delete", "Delete a download from its list (a bin beside Show in folder)", "One click",
                         ("One click", "one"), ("Two clicks (asks first)", "confirm"), ("No bin", "off"))),
-        script(dropdown("zenith.motion.space-switch", "Switching spaces", "As the preset",
-                        ("As the preset", "preset"), ("Zen's slide (250 ms)", "zen"), ("Quick (120 ms)", "quick"), ("Instant", "instant"))),
+        script(dropdown("zenith.motion.space-switch", "Switching spaces", "Quick (120 ms)",
+                        ("Zen's slide (250 ms)", "zen"), ("Quick (120 ms)", "quick"), ("Instant", "instant"))),
         script(checkbox("zenith.plus.animate-zen", "Let Zen and Zenith animate even when the system asks for less motion", True)),
         script(checkbox("zenith.page.selection", "Text selection in web pages in the workspace colour", True)),
         script(checkbox("zenith.page.thin-scrollbars", "Thin scrollbars in web pages in the workspace colour", False)),
@@ -777,12 +794,20 @@ def main():
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(prefs, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print(f"{out}: {len(prefs)} settings")
-    # The rice picker's choices (plus/pages/rice-picker.mjs): every Plus
-    # dropdown's labels and options, beside the page that reads them (the
-    # mod's own preferences.json isn't served to Plus's pages).
-    picker = [{k: e[k] for k in ("property", "label", "defaultValue", "options") if k in e}
-              for prefs in MODS.values() for e in prefs if e.get("type") == "dropdown"]
-    (root / "plus" / "pages" / "look-options.json").write_text(json.dumps(picker, ensure_ascii=False), encoding="utf-8")
+    # Every setting's label, description, choices and default, for the code
+    # that reads and writes them (plus/pages/looks.mjs: the picker, the bars,
+    # the settings page). A mod's own preferences.json isn't served to Plus's
+    # pages, and defaults only exist here (a blank setting means its default).
+    schema = {s["property"]: {k: s[k] for k in ("label", "type", "desc", "options", "default") if k in s}
+              for sec in sections for g in sec["groups"] for s in g["settings"] if s["type"] != "action"}
+    presets = {sec["preset"]["property"]: {"default": sec["preset"]["default"], "sets": sec["preset"]["sets"],
+                                          "values": [v["value"] for v in sec["preset"]["values"]]}
+               for sec in sections if sec.get("preset")}
+    (root / "plus" / "pages" / "schema.mjs").write_text(
+        "// Generated by tools/build_prefs.py from tools/settings_ui.py and the mods' settings: don't edit.\n"
+        "export const SCHEMA = " + json.dumps(schema, indent=1, ensure_ascii=False) + ";\n"
+        "export const PRESETS = " + json.dumps(presets, indent=1, ensure_ascii=False) + ";\n", encoding="utf-8")
+    (root / "plus" / "pages" / "look-options.json").unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

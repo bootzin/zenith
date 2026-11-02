@@ -31,10 +31,20 @@ const RicePicker = {
       console.error("[Zenith] rice picker", e);
     }
   },
+
+  // At a category (and, in Bars, one bar: a bar's right-click menu).
+  async open(category, bar) {
+    try {
+      this.mod ??= await import(await BarLoader.page("rice-picker.mjs"));
+      return this.mod.Picker.open(category, bar);
+    } catch (e) {
+      console.error("[Zenith] rice picker", e);
+    }
+  },
 };
 
 const OverviewLoader = {
-  CORNER: "zenith.overview.corner", // top-left (as it comes), top-right, bottom-left, bottom-right, off
+  CORNER: "zenith.overview.corner", // top-left (the default), top-right, bottom-left, bottom-right, off
 
   init() {
     window.ZenithOverview = this; // the Shell's Alt+O, the bar, tools/checks

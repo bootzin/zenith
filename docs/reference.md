@@ -133,9 +133,9 @@ Done in 0.16.4: the rice picker and the one optional font (below). Not done yet:
 ## 8. Decisions log
 
 2026-11-02, for 0.18.0:
-- Essential split: refused with a notice as it comes; Zen's copy as a setting. Zen's split keeps its tabs in a tab group, which an essential can't join.
-- Bars: a display mode per bar (takes its room, over the page, hides); in full screen, hidden until reached as it comes.
-- Glance's and Peek's buttons placed (no hiding), with a reload button.
+- Essential split: refused with a notice by default; Zen's copy as a setting. Zen's split keeps its tabs in a tab group, which an essential can't join.
+- Bars: a display mode per bar (takes its room, over the page, hides); in full screen, hidden until reached by default.
+- Glance's and Peek's buttons placed (no hiding); 0.18.1: no reload button (asked).
 - Code: Zenith Plus in parts built into one script (not separate ES modules: the parts share one scope, so nothing changes at run time).
 - Inspiration code may be copied and adapted (the user's word), keeping its licence and notice; Vitreus (MIT) has none that runs in Zen.
 
@@ -216,3 +216,14 @@ Media:
 Peek:
 - Arc's Peek and Little Arc: https://resources.arc.net (its help centre; the exact articles are still to be fetched)
 - Zen Glance: the source above, and Zen's GitHub issues tagged glance: https://github.com/zen-browser/desktop/issues?q=glance
+
+## 11. Code standards (0.18.1)
+
+So that a change asked for once reaches everything, now and years later:
+
+- **Settings are read and written in one place,** plus/pages/looks.mjs: a setting's value is its value when that's one of its choices, else its default; never a fallback of its own in the code that reads it. A setting that changes others (a bar's look, Corners, Window transparency, a section preset) writes them there.
+- **No choice is a deferral.** Every choice says what it is ("Airy (66%)", "Square"), never "as it comes", "as its look has it", "as the preset"; what a look or theme decides is written into the settings as values. A changed setting says its default ("Default: Soft") with Reset.
+- **Every look is a token** (core/chrome.css, motion/chrome.css): each choice of Corners, Window transparency, Frost, Glass edge and Easing is a token the setting picks; anything that draws a choice uses the same token.
+- **Every surface uses the tokens:** a radius from the scale (`--zth-radius-xs/-s/(base)/-l`, `--zth-tab-radius`, `--zth-pill-radius`), a glass surface `--zth-panel-bg`/`--zth-glass-bg` with `--zth-panel-filter`/`--zth-glass-filter` and `--zth-glass-shine` in its shadow, motion `var(--zth-dur*)` or `calc(<time> * var(--zth-speed))` with `var(--zth-ease)`/`--zth-ease-in`. tools/check_css.py refuses anything else (a picture of a choice goes between `@drawing` and `@end-drawing`; a loop showing activity keeps its pace).
+- **Each bar can have its own** of every look setting (looks.mjs `BAR_KEYS`): new bar settings join that list.
+- **Generated files aren't edited:** plus/scripts/zenith-plus.uc.mjs (tools/build_plus.py), the schemas (tools/build_prefs.py).

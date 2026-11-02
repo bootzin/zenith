@@ -22,10 +22,11 @@ with Scene(headless=False) as z:
     say("opens with Alt+Shift+P, on top", z.js(r"""const byKey = !!document.getElementById('zenith-rice'); if (!byKey) { await window.ZenithLooks.toggle(); await zth.sleep(1500); } const h = document.getElementById('zenith-rice'); if (!h) return 'not open'; const p = h.querySelector('.zr-panel').getBoundingClientRect();
       const at = document.elementFromPoint(p.left + p.width / 2, p.top + p.height / 2); return { 'by key': byKey, panel: [p.left, p.top, p.width, p.height].map(Math.round), 'on top': h.contains(at), themes: h.querySelectorAll('.zr-card[theme]').length };"""))
     z.screenshot(str(OUT / "a-themes.png"))
-    say("a theme applies; Revert", z.js(r"""const P = Services.prefs, h = document.getElementById('zenith-rice'); h.querySelector('.zr-card[theme="Hypr floating"]').click(); await zth.sleep(1200);
+    say("a theme applies; Cancel (0.18.1: was Revert)", z.js(r"""const P = Services.prefs, h = document.getElementById('zenith-rice'); h.querySelector('.zr-card[theme="Hypr floating"]').click(); await zth.sleep(1200);
       const out = { after: [P.getStringPref('zenith.palette', ''), P.getStringPref('zenith.bar.style', ''), document.querySelector('.zenith-bar')?.getAttribute('look')], lit: h.querySelector('.zr-card[current]')?.getAttribute('theme') };
-      [...h.querySelectorAll('.zr-foot button')].find(b => b.textContent === 'Revert').click(); await zth.sleep(800);
-      out.reverted = [P.getStringPref('zenith.palette', '(as it comes)'), P.getStringPref('zenith.bar.style', '(as it comes)')]; h.querySelector('.zr-card[theme="Hypr floating"]').click(); await zth.sleep(1200); return out;"""))
+      [...h.querySelectorAll('.zr-foot button')].find(b => b.textContent === 'Cancel').click(); await zth.sleep(800);
+      out.reverted = [P.getStringPref('zenith.palette', '(default)'), P.getStringPref('zenith.bar.style', '(default)')]; out['closed by Cancel'] = !document.getElementById('zenith-rice');
+      await window.ZenithLooks.toggle(); await zth.sleep(1200); document.querySelector('#zenith-rice .zr-card[theme="Hypr floating"]').click(); await zth.sleep(1200); return out;"""))
     z.screenshot(str(OUT / "b-floating.png"))
     say("bars and fonts", z.js(r"""const h = document.getElementById('zenith-rice'); h.querySelector('.zr-nav [cat="bars"]').click(); await zth.sleep(500); const out = { 'bar choices': h.querySelectorAll('.zr-card[value]').length };
       h.querySelector('.zr-nav [cat="font"]').click(); await zth.sleep(2500); out.fonts = h.querySelectorAll('.zr-font').length; const f = [...h.querySelectorAll('.zr-font')].find(b => /Georgia|Consolas|Arial/.test(b.value)); f?.click(); await zth.sleep(600);

@@ -6,6 +6,8 @@
 // plus/pages/dash.mjs, into the window that shows them; nothing here runs
 // until one of them asks.
 
+import { Bars as BarLooks, BAR_KEYS, value, label as labelOf } from "./looks.mjs";
+
 const P = Services.prefs;
 const HTML = "http://www.w3.org/1999/xhtml";
 
@@ -623,7 +625,7 @@ export function barMenu(box, edge, mod) {
   const Bars = window.ZenithBar, live = window.ZenithLive, name = mod ? (LISTED[mod] ?? mod) : null;
   const label = name ? new Map(Bars?.MODULES ?? []).get(name) ?? name : null;
   const listPref = `zenith.bar.${edge}.modules`, showPref = `zenith.bar.display-${edge}`;
-  const hiding = (P.getStringPref(showPref, "") || "reserved") === "hide";
+  const hiding = value(showPref) === "hide";
   const settings = async prop => {
     live?.open({ s: { property: prop } });
     await new Promise(r => setTimeout(r, 120));
@@ -636,7 +638,11 @@ export function barMenu(box, edge, mod) {
       for (const side of ["left", "centre", "right"]) lists[side] = lists[side].filter(n => n !== name);
       P.setStringPref(listPref, [lists.left, lists.centre, lists.right].map(x => x.join(",")).join("|"));
     }, !!name && !!Bars],
-    ["hide", hiding ? "Keep this bar on screen" : "Hide this bar until reached", () => (hiding ? P.clearUserPref(showPref) : P.setStringPref(showPref, "hide"))],
+    ["hide", hiding ? "Keep this bar on screen" : "Hide this bar until reached", () => P.setStringPref(showPref, hiding ? "reserved" : "hide")],
+    ["palette", "This bar in the rice picker…", () => window.ZenithLooks?.open("bars", edge), !!window.ZenithLooks],
+    ["tabs", "Every bar like this one", () => {
+      for (const k of BAR_KEYS) BarLooks.set("all", k, BarLooks.value(edge, k));
+    }, BarLooks.others("style").length > 0 || BAR_KEYS.some(k => BarLooks.own(edge, k))],
     ["off", "Turn this bar off", () => P.setStringPref(`zenith.bar.${edge}`, "off")],
     ["settings", "Bar settings…", () => live?.open({ kind: "preset", section: { id: "bar" } }), !!live],
   ];
@@ -651,16 +657,16 @@ export function barMenu(box, edge, mod) {
     });
     list.append(row);
   }
-  // Its look, for every bar.
+  // This bar's look (with the shape it's drawn in: looks.mjs).
   const look = node("div", { class: "zs-seg-row" });
   look.append(node("span", { class: "zs-grow" }, "Look"));
   const seg = node("div", { class: "zs-seg" });
-  const now = P.getStringPref("zenith.bar.style", "") || "islands";
-  for (const [v, text] of [["islands", "Islands"], ["strip", "Strip"], ["minimal", "Minimal"], ["powerline", "Powerline"]]) {
-    const b = button(text, "zs-btn");
-    b.toggleAttribute("on", now === v);
+  const now = BarLooks.value(edge, "style");
+  for (const o of BarLooks.looks()) {
+    const b = button(labelOf("zenith.bar.style", o).replace(/ \(.*\)$/, ""), "zs-btn");
+    b.toggleAttribute("on", now === o);
     b.addEventListener("click", () => {
-      P.setStringPref("zenith.bar.style", v);
+      BarLooks.chooseLook(edge, o);
       for (const x of seg.children) x.toggleAttribute("on", x === b);
     });
     seg.append(b);
