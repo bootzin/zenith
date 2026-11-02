@@ -31,7 +31,7 @@ const TOOLS = [
   ["Quantcast", ".qc-cmp2-container", [".qc-cmp2-summary-buttons button[mode='secondary']", "button[mode='secondary'][size='large']"]],
   ["Usercentrics", "#usercentrics-root, #usercentrics-cmp-ui", ["button[data-testid='uc-deny-all-button']", "button[data-action-type='deny']"]],
   ["TrustArc", "#truste-consent-track, #truste-consent-content, .truste_box_overlay", ["#truste-consent-required", ".truste-consent-required"]],
-  ["Sourcepoint", "[id^='sp_message_container'], .message-container, .sp_message_container", ["button.sp_choice_type_REJECT_ALL", "button.sp_choice_type_13", "button[title='Reject All' i]", "button[aria-label='Reject All' i]"]],
+  ["Sourcepoint", "[id^='sp_message_container'], .sp_message_container", ["button.sp_choice_type_REJECT_ALL", "button.sp_choice_type_13", "button[title='Reject All' i]", "button[aria-label='Reject All' i]"]],
   ["Funding Choices", ".fc-consent-root", [".fc-cta-do-not-consent", "button.fc-button.fc-cta-do-not-consent"]],
   ["Klaro", ".klaro, .cookie-modal, .cookie-notice", [".cm-btn-decline", ".cn-decline"]],
   ["Osano", ".osano-cm-window, .osano-cm-dialog", [".osano-cm-denyAll", ".osano-cm-button--type_denyAll"]],
@@ -52,7 +52,7 @@ const REFUSE = new RegExp("^(" + [
   "reject", "reject all", "reject all cookies", "reject cookies", "reject non-essential( cookies)?", "reject optional( cookies)?", "reject additional cookies",
   "decline", "decline all", "decline cookies", "decline optional( cookies)?", "deny", "deny all", "refuse", "refuse all", "refuse cookies",
   "(use |accept |allow )?(only )?(strictly )?(necessary|essential|required)( cookies)?( only)?", "(use |accept |allow )?necessary cookies only",
-  "continue without (accepting|agreeing|consent)", "disagree", "disagree and close", "i (do not|don't) (accept|agree)", "no,? thanks", "not now",
+  "continue without (accepting|agreeing|consent)", "disagree", "disagree and close", "i (do not|don't) (accept|agree)",
   // pt, es, fr, de, it, nl, pl, sv, da
   "rejeitar", "rejeitar tudo", "rejeitar todos", "recusar", "recusar tudo", "recusar todos", "apenas (os )?necessários", "continuar sem aceitar",
   "rechazar", "rechazar todo", "rechazar todas", "solo necesarias", "continuar sin aceptar",
@@ -62,7 +62,11 @@ const REFUSE = new RegExp("^(" + [
   "weigeren", "alles weigeren", "alleen noodzakelijk(e cookies)?", "odrzuć( wszystkie)?", "avvisa( alla)?", "afvis( alle)?",
 ].join("|") + ")$", "i");
 
-const CONSENT = /(cookie|consent|your\s+privacy|partner.{0,200}vendors|personal\s+data|datenschutz|privacidade|confidentialit|privacy)/i;
+// A banner talks about cookies or consent (not merely "privacy": a site's
+// header, footer, sign-in and newsletter boxes link to their privacy page),
+// and offers a choice: a button that accepts beside the one that refuses.
+const CONSENT = /(\bcookies?\b|\bconsent\b|\bgdpr\b|partner.{0,200}vendors|datenschutz|consentement|consentimento|consentimiento|einwilligung|toestemming|zgod)/i;
+const ACCEPT = /^(accept|accept all|accept cookies|accept all cookies|allow|allow all|allow cookies|agree|i agree|agree and close|ok|okay|got it|i understand|aceitar|aceitar tudo|aceptar|aceptar todo|accepter|tout accepter|akzeptieren|alle akzeptieren|accetta|accetta tutto|accepteren|alles accepteren|zaakceptuj|godkänn|acceptér)( all)?$/i;
 const SHEET = "data:text/css," + encodeURIComponent(
   "[zenith-cookie-hidden] { display: none !important; }\n" +
   "html[zenith-cookie-unlocked], html[zenith-cookie-unlocked] > body { overflow: auto !important; }");
@@ -229,8 +233,10 @@ export class ZenithCookiesChild extends JSWindowActorChild {
       } catch {}
     }
     el.setAttribute("zenith-cookie-hidden", "");
-    // (A banner that stopped the page scrolling: it scrolls again.)
-    this.document.documentElement.setAttribute("zenith-cookie-unlocked", "");
+    // (A banner that stopped the page scrolling: it scrolls again. Only
+    // then: a page that scrolls inside itself keeps its own overflow.)
+    const doc = this.document, locked = [doc.documentElement, doc.body].some(n => n && win.getComputedStyle(n).overflowY === "hidden");
+    if (locked && doc.documentElement.scrollHeight > win.innerHeight + 10) doc.documentElement.setAttribute("zenith-cookie-unlocked", "");
     (this.hidden ??= []).push(el);
     if (!this.done) {
       this.done = { how: "hidden", tool, host: this.document.location.hostname };
@@ -238,12 +244,20 @@ export class ZenithCookiesChild extends JSWindowActorChild {
     }
   }
 
-  // A box that's a consent banner: stuck to the window or a dialog, and it
-  // talks about cookies or privacy.
+  // A box that's a consent banner: stuck to the window (or a modal dialog),
+  // short, about cookies or consent, offering to accept; never the site's
+  // header, footer or navigation, a form (sign-in, newsletter, search) or
+  // a box with the page's content in it.
   bannerish(el) {
     const win = this.contentWindow, cs = win.getComputedStyle(el);
-    const floating = cs.position === "fixed" || cs.position === "sticky" || el.getAttribute("role") === "dialog" || el.localName === "dialog" || el.getAttribute("aria-modal") === "true";
-    return floating && CONSENT.test((el.textContent || "").slice(0, 4000));
+    const floating = cs.position === "fixed" || cs.position === "sticky" || el.localName === "dialog" || el.getAttribute("aria-modal") === "true";
+    if (!floating || /^(header|footer|nav|main|article|form)$/.test(el.localName)) return false;
+    if (el.matches("[role='banner'], [role='navigation'], [role='contentinfo'], [role='search']") ||
+        el.querySelector("header, footer, nav, main, article, input[type='password'], input[type='email'], input[type='search'], [role='navigation'], [role='search']")) return false;
+    const text = (el.textContent || "").replace(/\s+/g, " ").trim();
+    if (text.length > 2500 || el.querySelectorAll("a").length > 20 || !CONSENT.test(text)) return false;
+    return [...el.querySelectorAll("button, a, [role='button'], input[type='button'], input[type='submit']")]
+      .some(b => this.visible(b) && ACCEPT.test((b.textContent || b.value || b.getAttribute("aria-label") || "").replace(/\s+/g, " ").trim()));
   }
 
   sweep(again = false) {

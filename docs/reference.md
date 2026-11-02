@@ -58,7 +58,7 @@ The contract:
 - **Links inside** stay in the Peek, whatever keys are held, including middle clicks and links to new windows (§8).
 - The tab beneath is never affected by keys while a Peek has focus.
 
-Done in 0.16.3: Ctrl+W, F5, Ctrl+R, Ctrl+Shift+R, the zoom keys and links inside (Esc, Ctrl+L, F4, Alt+Left, Alt+Right and Ctrl+Enter were done before). Not done yet: opening in ≤ 100 ms (about 355 ms now), Ctrl+F, Alt+Shift+Enter.
+Done in 0.16.3: Ctrl+W, F5, Ctrl+R, Ctrl+Shift+R, the zoom keys and links inside (Esc, Ctrl+L, F4, Alt+Left, Alt+Right and Ctrl+Enter were done before). 0.18.0: every Firefox command a key runs acts on the Peek (print, save, view source, bookmark…), Ctrl+F/F3/Ctrl+G a find bar of its own. Not done yet: opening in ≤ 100 ms (about 355 ms now), Alt+Shift+Enter, DevTools (it needs a tab).
 
 ## 5. Split views and layouts
 
@@ -131,6 +131,13 @@ Done in 0.16.4: the rice picker and the one optional font (below). Not done yet:
 **Fonts.** The browser UI uses one font, Windows' system font (Segoe UI). Zen sets no font of its own, and Zenith's bars use monospace. There is one optional setting, "Font": system default, or any installed font, picked from a searchable list. The bars follow it, unless the bar keeps a monospace look.
 
 ## 8. Decisions log
+
+2026-11-02, for 0.18.0:
+- Essential split: refused with a notice as it comes; Zen's copy as a setting. Zen's split keeps its tabs in a tab group, which an essential can't join.
+- Bars: a display mode per bar (takes its room, over the page, hides); in full screen, hidden until reached as it comes.
+- Glance's and Peek's buttons placed (no hiding), with a reload button.
+- Code: Zenith Plus in parts built into one script (not separate ES modules: the parts share one scope, so nothing changes at run time).
+- Inspiration code may be copied and adapted (the user's word), keeping its licence and notice; Vitreus (MIT) has none that runs in Zen.
 
 2026-11-01, the user's review of 0.16.4 (bars, picker and settings disliked):
 - Floating didn't look afloat: the page now floats with it. Islands grouped, no borders. Rails show icons only.

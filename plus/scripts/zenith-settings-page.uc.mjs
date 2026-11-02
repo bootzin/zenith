@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.17.0
+// @version        0.18.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -937,13 +937,27 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.hide-top",
-      "label": "Hides until reached",
-      "type": "checkbox",
+      "property": "zenith.bar.display-top",
+      "label": "How it shows",
+      "type": "dropdown",
       "extra": false,
-      "desc": "The top bar slides away and comes back when the pointer reaches the window's top edge (or one of its popups is open), so the page has the room.",
+      "desc": "Takes its room: the page starts beside it. Over the page: always shown, the page goes under it. Hides until the pointer reaches it: it slides away and comes back at the window's top edge (or while one of its popups is open).",
       "host": "Zenith Plus",
-      "default": false,
+      "options": [
+       {
+        "label": "Takes its room",
+        "value": "reserved"
+       },
+       {
+        "label": "Over the page",
+        "value": "overlay"
+       },
+       {
+        "label": "Hides until the pointer reaches it",
+        "value": "hide"
+       }
+      ],
+      "default": "reserved",
       "parent": "zenith.bar.top",
       "rule": {
        "why": "There's no bar at the top",
@@ -999,13 +1013,27 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.hide-bottom",
-      "label": "Hides until reached",
-      "type": "checkbox",
+      "property": "zenith.bar.display-bottom",
+      "label": "How it shows",
+      "type": "dropdown",
       "extra": false,
-      "desc": "The bottom bar slides away and comes back when the pointer reaches the window's bottom edge (or one of its popups is open), so the page has the room.",
+      "desc": "Takes its room: the page starts beside it. Over the page: always shown, the page goes under it. Hides until the pointer reaches it: it slides away and comes back at the window's bottom edge (or while one of its popups is open).",
       "host": "Zenith Plus",
-      "default": false,
+      "options": [
+       {
+        "label": "Takes its room",
+        "value": "reserved"
+       },
+       {
+        "label": "Over the page",
+        "value": "overlay"
+       },
+       {
+        "label": "Hides until the pointer reaches it",
+        "value": "hide"
+       }
+      ],
+      "default": "reserved",
       "parent": "zenith.bar.bottom",
       "rule": {
        "why": "There's no bar at the bottom",
@@ -1061,13 +1089,27 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.hide-left",
-      "label": "Hides until reached (the sidebar's hover off on this side)",
-      "type": "checkbox",
+      "property": "zenith.bar.display-left",
+      "label": "How it shows",
+      "type": "dropdown",
       "extra": false,
-      "desc": "The left bar slides away and comes back when the pointer reaches the window's left edge (or one of its popups is open), so the page has the room. With the sidebar on hover on the left, its hover goes off: that edge brings the bar (Ctrl+Alt+S still opens the sidebar).",
+      "desc": "Takes its room: the page starts beside it. Over the page: always shown, the page goes under it. Hides until the pointer reaches it: it slides away and comes back at the window's left edge (or while one of its popups is open). On the sidebar's side, hiding turns the sidebar's own hover off.",
       "host": "Zenith Plus",
-      "default": false,
+      "options": [
+       {
+        "label": "Takes its room",
+        "value": "reserved"
+       },
+       {
+        "label": "Over the page",
+        "value": "overlay"
+       },
+       {
+        "label": "Hides until the pointer reaches it",
+        "value": "hide"
+       }
+      ],
+      "default": "reserved",
       "parent": "zenith.bar.left",
       "rule": {
        "why": "There's no bar on the left",
@@ -1123,13 +1165,27 @@ const SCHEMA = [
       }
      },
      {
-      "property": "zenith.bar.hide-right",
-      "label": "Hides until reached (the sidebar's hover off on this side)",
-      "type": "checkbox",
+      "property": "zenith.bar.display-right",
+      "label": "How it shows",
+      "type": "dropdown",
       "extra": false,
-      "desc": "The right bar slides away and comes back when the pointer reaches the window's right edge (or one of its popups is open), so the page has the room. With the sidebar on hover on the right, its hover goes off: that edge brings the bar (Ctrl+Alt+S still opens the sidebar).",
+      "desc": "Takes its room: the page starts beside it. Over the page: always shown, the page goes under it. Hides until the pointer reaches it: it slides away and comes back at the window's right edge (or while one of its popups is open). On the sidebar's side, hiding turns the sidebar's own hover off.",
       "host": "Zenith Plus",
-      "default": false,
+      "options": [
+       {
+        "label": "Takes its room",
+        "value": "reserved"
+       },
+       {
+        "label": "Over the page",
+        "value": "overlay"
+       },
+       {
+        "label": "Hides until the pointer reaches it",
+        "value": "hide"
+       }
+      ],
+      "default": "reserved",
       "parent": "zenith.bar.right",
       "rule": {
        "why": "There's no bar on the right",
@@ -1139,6 +1195,63 @@ const SCHEMA = [
           "property": "zenith.bar.right",
           "value": "on"
          }
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.fullscreen",
+      "label": "In full screen",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "In full screen (F11): hidden until the pointer reaches its edge, shown over the page, or as the bar is otherwise. (A video in full screen always has the screen to itself.)",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Hidden until the pointer reaches them",
+        "value": "hide"
+       },
+       {
+        "label": "Over the page",
+        "value": "overlay"
+       },
+       {
+        "label": "As they are",
+        "value": "keep"
+       }
+      ],
+      "default": "hide",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
         }
        ]
       }
@@ -1365,7 +1478,7 @@ const SCHEMA = [
       "label": "Font",
       "type": "dropdown",
       "extra": false,
-      "desc": "Monospace uses JetBrains Mono or Cascadia (their Nerd Font versions first), else your system's monospace.",
+      "desc": "Monospace, as most rices have it (JetBrains Mono or Cascadia, their Nerd Font versions first). The browser's: whatever Theme › Looks › Font is (your system's unless you picked one).",
       "host": "Zenith Plus",
       "options": [
        {
@@ -1373,7 +1486,7 @@ const SCHEMA = [
         "value": "mono"
        },
        {
-        "label": "Your system's",
+        "label": "The browser's (Theme › Looks › Font)",
         "value": "system"
        }
       ],
@@ -4248,6 +4361,25 @@ const SCHEMA = [
       "default": "tile"
      },
      {
+      "property": "zenith.shell.split-essential",
+      "label": "Splitting an essential",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Zen can't put an essential in a split: it makes a copy (the essential stays, the copy is a normal tab in the split, loaded again). Don't: nothing is split and a notice says why. Zen's way: the copy, as Zen does it.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Don't: say why",
+        "value": "warn"
+       },
+       {
+        "label": "Zen's way: a copy of the essential in the split",
+        "value": "copy"
+       }
+      ],
+      "default": "warn"
+     },
+     {
       "property": "zenith.shell.tiles",
       "label": "Tiles in one split",
       "type": "dropdown",
@@ -6340,6 +6472,16 @@ const SCHEMA = [
       "default": true
      },
      {
+      "property": "zenith.action.menu-items",
+      "label": "Each menu item",
+      "type": "action",
+      "extra": false,
+      "desc": "Every item of the page's and a tab's right-click menus: shown, in More, or off. Opens the rice picker's Menus and buttons.",
+      "button": "Choose menu items",
+      "command": "zenith-menu-items",
+      "host": "Zen"
+     },
+     {
       "property": "zenith.panels.menu-icons",
       "label": "Menu icons",
       "type": "dropdown",
@@ -6468,6 +6610,38 @@ const SCHEMA = [
        }
       ],
       "default": "hidden"
+     }
+    ]
+   },
+   {
+    "title": "Glance and Peek",
+    "settings": [
+     {
+      "property": "zenith.plus.glance-buttons",
+      "label": "Glance's buttons",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Glance's and Peek's buttons (close, open as a tab, split, and reload): beside the page away from the sidebar as Zen has them, on the sidebar's side, or in a row along the page's top or bottom edge.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Beside the page (Zen's)",
+        "value": "zen"
+       },
+       {
+        "label": "Beside it, the other side",
+        "value": "other-side"
+       },
+       {
+        "label": "Along its top, in a row",
+        "value": "top"
+       },
+       {
+        "label": "Along its bottom, in a row",
+        "value": "bottom"
+       }
+      ],
+      "default": "zen"
      }
     ]
    },
@@ -7231,6 +7405,26 @@ function runAction(s) {
   win?.document.getElementById(s.command)?.doCommand();
 }
 
+// What a setting is as it comes (its preset's, else its default), as said
+// on the page, when it's been changed from that; else null.
+function changedFrom(s, section) {
+  if (s.type === "action" || !s.property || !P.prefHasUserValue(s.property)) return null;
+  const byPreset = section.preset?.sets[s.property];
+  if (s.type === "checkbox") {
+    const base = !!s.default;
+    return P.getBoolPref(s.property, base) === base ? null : base ? "on" : "off";
+  }
+  const base = byPreset ? byPreset[presetOf(section)] : s.default ?? "", own = P.getStringPref(s.property, "");
+  if (own === "" || own === base) return null;
+  return s.options?.find(o => o.value === base)?.label ?? (base || "empty");
+}
+
+function resetSetting(s, section) {
+  const byPreset = section.preset?.sets[s.property];
+  if (byPreset) P.setStringPref(s.property, byPreset[presetOf(section)]);
+  else P.clearUserPref(s.property);
+}
+
 function write(s, value) {
   if (s.type === "checkbox") P.setBoolPref(s.property, value);
   else if (value === "" || value == null) P.clearUserPref(s.property);
@@ -7391,7 +7585,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.17.0";
+const SCHEMA_VERSION = "0.18.0";
 
 class SettingsView {
   constructor(kind) {
@@ -7592,7 +7786,11 @@ class SettingsView {
     const label = el("div", { class: "zp-label" }, s.label);
     if (s.extra) label.append(el("span", { class: "zp-tag" }, "Extra"));
     const why = el("div", { class: "zp-why" });
-    text.append(label, el("div", { class: "zp-desc" }, s.desc));
+    // Changed from what it is as it comes: said, with the way back.
+    const changed = el("div", { class: "zp-changed" });
+    const back = el("button", { class: "zp-link", type: "button" }, "Reset");
+    back.addEventListener("click", () => resetSetting(s, section));
+    text.append(label, el("div", { class: "zp-desc" }, s.desc), changed);
     if (s.warn) text.append(el("div", { class: "zp-warn" }, s.warn));
     text.append(why);
     row.append(text);
@@ -7614,8 +7812,10 @@ class SettingsView {
         const rice = win?.ZenithRice?.holds(s.property) ?? null;
         if (rice === "locked") reason = "From zenith.conf: change it there (Alt+Shift+C reads it again)";
         row.toggleAttribute("off", !!reason);
-        row.toggleAttribute("rice", rice === "written");
-        why.textContent = reason ?? (rice === "written" ? "In zenith.conf: changed here, changed there" : "");
+        why.textContent = reason ?? "";
+        const was = rice === "locked" ? null : changedFrom(s, section);
+        row.toggleAttribute("changed", was !== null);
+        changed.replaceChildren(...(was === null ? [] : [el("span", {}, `Changed · as it comes: ${was}`), back]));
       },
     });
     return row;
@@ -7949,6 +8149,15 @@ class SettingsView {
     if (s.type === "string") {
       const input = el("input", { type: "text", class: "zp-input", placeholder: s.placeholder, spellcheck: "false" });
       input.addEventListener("change", () => write(s, input.value.trim()));
+      // The font: the installed ones offered as you type.
+      if (s.property === "zenith.core.font") {
+        const list = el("datalist", { id: `zp-fonts-${Math.random().toString(36).slice(2, 7)}` });
+        input.setAttribute("list", list.id);
+        Cc["@mozilla.org/gfx/fontenumerator;1"].getService(Ci.nsIFontEnumerator).EnumerateAllFontsAsync()
+          .then(all => list.append(...[...new Set(all)].sort().map(f => el("option", { value: f }))));
+        const box = el("div", { class: "zp-font" }, input, list);
+        return { node: box, update: v => { if (input.ownerDocument.activeElement !== input) input.value = v; } };
+      }
       return { node: input, update: v => { if (input.ownerDocument.activeElement !== input) input.value = v; } };
     }
     if (s.picture && PICTURES[s.property]) {
@@ -7962,6 +8171,10 @@ class SettingsView {
       }
       return { node: cards, update: v => { for (const c of cards.children) c.toggleAttribute("selected", c.dataset.value === v); } };
     }
+    // Sizes and amounts (every choice a number, "as it comes" first at most):
+    // a slider over the choices, or + and − for a few.
+    const nums = s.options.filter(o => /^\d+$/.test(o.value));
+    if (nums.length >= 4 && s.options.length - nums.length <= 1 && s.options.length <= 12) return this.slider(s);
     const short = s.options.length <= 4 && s.options.reduce((n, o) => n + o.label.length, 0) <= 40;
     if (short) {
       const seg = el("div", { class: "zp-segments", role: "radiogroup", "aria-label": s.label });
@@ -7973,6 +8186,31 @@ class SettingsView {
       return { node: seg, update: v => { for (const b of seg.children) b.setAttribute("aria-checked", String(b.dataset.value === v)); } };
     }
     return this.chooser(s);
+  }
+
+  // A slider over a setting's choices (in their order), its value beside it,
+  // and − and + for one step at a time.
+  slider(s) {
+    const box = el("div", { class: "zp-slider" });
+    const range = el("input", { type: "range", min: "0", max: String(s.options.length - 1), step: "1", "aria-label": s.label });
+    const value = el("span", { class: "zp-slider-value" });
+    const minus = el("button", { class: "zp-step", type: "button", "aria-label": "Less" }, "−");
+    const plus = el("button", { class: "zp-step", type: "button", "aria-label": "More" }, "+");
+    const at = () => parseInt(range.value, 10);
+    const go = i => write(s, s.options[Math.max(0, Math.min(s.options.length - 1, i))].value);
+    range.addEventListener("input", () => (value.textContent = s.options[at()].label));
+    range.addEventListener("change", () => go(at()));
+    minus.addEventListener("click", () => go(at() - 1));
+    plus.addEventListener("click", () => go(at() + 1));
+    box.append(minus, range, plus, value);
+    return {
+      node: box,
+      update: v => {
+        const i = Math.max(0, s.options.findIndex(o => o.value === v));
+        range.value = String(i);
+        value.textContent = s.options[i].label;
+      },
+    };
   }
 
   // A list of choices that opens in place (the same in the page and the
@@ -8230,6 +8468,17 @@ const STYLE = `
   .zp-card-blurb { color: var(--zp-dim); font-size: 0.88em; padding: 0 2px 2px; line-height: 1.35; }
   .zp-presets { margin-bottom: 8px; }
   .zp-custom:not(:empty) { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; color: var(--zp-dim); }
+  .zp-changed { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; font-size: 0.85em; color: var(--zp-accent); }
+  .zp-changed > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .zp-changed:empty { display: none; }
+  .zp-changed .zp-link { font-size: 1em; padding: 0; }
+  .zp-slider { flex: none; display: inline-flex; align-items: center; gap: 6px; }
+  .zp-slider input[type="range"] { width: 150px; accent-color: var(--zp-accent); }
+  .zp-slider-value { min-width: 9ch; font-variant-numeric: tabular-nums; color: var(--zp-dim); font-size: 0.9em; }
+  .zp-step { appearance: none; flex: none; width: 28px !important; min-width: 0 !important; height: 28px; padding: 0 !important; margin: 0 !important; border: 1px solid var(--zp-border); border-radius: 8px; background: var(--zp-control);
+    color: inherit; font: inherit; line-height: 1; cursor: pointer; }
+  .zp-step:hover { border-color: var(--zp-accent); }
+  .zp-font .zp-input { width: 220px; }
   .zp-badge { font-size: 0.8em; font-weight: 600; padding: 2px 9px; border-radius: 999px; color: var(--zp-accent);
     background: color-mix(in srgb, var(--zp-accent) 16%, transparent); }
   .zp-link { appearance: none; border: none; background: none; color: var(--zp-accent); font: inherit; cursor: pointer;

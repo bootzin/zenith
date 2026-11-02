@@ -1048,10 +1048,24 @@
     "zenithWhy": "There's no bar at the top"
   },
   {
-    "property": "zenith.bar.hide-top",
-    "label": "The top bar hides until the pointer reaches it",
-    "type": "checkbox",
-    "defaultValue": false,
+    "property": "zenith.bar.display-top",
+    "label": "How the top bar shows",
+    "type": "dropdown",
+    "placeholder": "Default (Takes its room)",
+    "options": [
+      {
+        "label": "Takes its room",
+        "value": "reserved"
+      },
+      {
+        "label": "Over the page",
+        "value": "overlay"
+      },
+      {
+        "label": "Hides until the pointer reaches it",
+        "value": "hide"
+      }
+    ],
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -1100,10 +1114,24 @@
     "zenithWhy": "There's no bar at the bottom"
   },
   {
-    "property": "zenith.bar.hide-bottom",
-    "label": "The bottom bar hides until the pointer reaches it",
-    "type": "checkbox",
-    "defaultValue": false,
+    "property": "zenith.bar.display-bottom",
+    "label": "How the bottom bar shows",
+    "type": "dropdown",
+    "placeholder": "Default (Takes its room)",
+    "options": [
+      {
+        "label": "Takes its room",
+        "value": "reserved"
+      },
+      {
+        "label": "Over the page",
+        "value": "overlay"
+      },
+      {
+        "label": "Hides until the pointer reaches it",
+        "value": "hide"
+      }
+    ],
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -1152,10 +1180,24 @@
     "zenithWhy": "There's no bar on the left"
   },
   {
-    "property": "zenith.bar.hide-left",
-    "label": "The left bar hides until the pointer reaches it (on the sidebar's side, the sidebar's hover goes off)",
-    "type": "checkbox",
-    "defaultValue": false,
+    "property": "zenith.bar.display-left",
+    "label": "How the left bar shows",
+    "type": "dropdown",
+    "placeholder": "Default (Takes its room)",
+    "options": [
+      {
+        "label": "Takes its room",
+        "value": "reserved"
+      },
+      {
+        "label": "Over the page",
+        "value": "overlay"
+      },
+      {
+        "label": "Hides until the pointer reaches it",
+        "value": "hide"
+      }
+    ],
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -1204,10 +1246,24 @@
     "zenithWhy": "There's no bar on the right"
   },
   {
-    "property": "zenith.bar.hide-right",
-    "label": "The right bar hides until the pointer reaches it (on the sidebar's side, the sidebar's hover goes off)",
-    "type": "checkbox",
-    "defaultValue": false,
+    "property": "zenith.bar.display-right",
+    "label": "How the right bar shows",
+    "type": "dropdown",
+    "placeholder": "Default (Takes its room)",
+    "options": [
+      {
+        "label": "Takes its room",
+        "value": "reserved"
+      },
+      {
+        "label": "Over the page",
+        "value": "overlay"
+      },
+      {
+        "label": "Hides until the pointer reaches it",
+        "value": "hide"
+      }
+    ],
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -1219,6 +1275,60 @@
     ],
     "operator": "AND",
     "zenithWhy": "There's no bar on the right"
+  },
+  {
+    "property": "zenith.bar.fullscreen",
+    "label": "Bars in full screen (F11)",
+    "type": "dropdown",
+    "placeholder": "Default (Hidden until the pointer reaches them)",
+    "options": [
+      {
+        "label": "Hidden until the pointer reaches them",
+        "value": "hide"
+      },
+      {
+        "label": "Over the page",
+        "value": "overlay"
+      },
+      {
+        "label": "As they are",
+        "value": "keep"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
   },
   {
     "property": "zenith.sidebar",
@@ -2057,7 +2167,7 @@
         "value": "mono"
       },
       {
-        "label": "Your system's",
+        "label": "The browser's (Theme › Looks › Font)",
         "value": "system"
       }
     ],
@@ -3839,6 +3949,48 @@
       {
         "label": "Always below",
         "value": "below"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.plus.glance-buttons",
+    "label": "Glance's and Peek's buttons",
+    "type": "dropdown",
+    "placeholder": "Default (Beside the page (Zen's))",
+    "options": [
+      {
+        "label": "Beside the page (Zen's)",
+        "value": "zen"
+      },
+      {
+        "label": "Beside it, the other side",
+        "value": "other-side"
+      },
+      {
+        "label": "Along its top, in a row",
+        "value": "top"
+      },
+      {
+        "label": "Along its bottom, in a row",
+        "value": "bottom"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.split-essential",
+    "label": "Splitting an essential",
+    "type": "dropdown",
+    "placeholder": "Default (Don't: say why)",
+    "options": [
+      {
+        "label": "Don't: say why",
+        "value": "warn"
+      },
+      {
+        "label": "Zen's way: a copy of the essential in the split",
+        "value": "copy"
       }
     ],
     "usedBy": "zenith-plus"

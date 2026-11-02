@@ -2,10 +2,11 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.17.0
+// @version        0.18.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// (Built by tools/build_plus.py from plus/src/zenith-plus/: edit the parts there.)
 // Loaded into every browser window by the script loader (fx-autoconfig, or
 // Sine's, which is built on it). Zenith Plus's own stylesheet (plus/chrome.css,
 // installed as the "Zenith Plus" mod) decides what is shown and how; this
@@ -20,7 +21,7 @@
 // Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
 // work without any of this. Peek has its own script, zenith-peek.uc.mjs.
 
-const ZENITH_VERSION = "0.17.0"; // (tools/bump_version.py keeps it)
+const ZENITH_VERSION = "0.18.0"; // (tools/bump_version.py keeps it)
 window.ZenithVersion = ZENITH_VERSION; // about:zenith-fetch, the rice file
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const root = document.documentElement;
@@ -2106,9 +2107,12 @@ const Spaces = {
    moves into a "More" submenu at the end. Nothing is removed, and each item
    still appears only when Firefox would show it. Separators that end up
    doubled or at an edge are hidden. Turning the setting off puts every
-   item back where it was. */
+   item back where it was. Each item can also be placed by hand (the rice
+   picker's Menus and buttons): shown, in More, or off; yours win over the
+   list below. */
 const MoreMenus = {
   PREF: "zenith.plus.more-menu",
+  PLACES: "zenith.internal.menu-items", // { item id: "shown" | "more" | "off" }
   MENUS: {
     contentAreaContextMenu: [
       "context-openlinkincurrent", "context-openlinkprivate", "context-openlinksmartwindow", "context-previewlink",
@@ -2132,7 +2136,32 @@ const MoreMenus = {
     ],
   },
 
+  places() {
+    try {
+      return JSON.parse(Services.prefs.getStringPref(this.PLACES, "") || "{}");
+    } catch {
+      return {};
+    }
+  },
+
+  // Where an item goes: yours, else More for the rare ones (with More on).
+  place(id, rare) {
+    return this.places()[id] ?? (rare && Services.prefs.getBoolPref(this.PREF, true) ? "more" : "shown");
+  },
+
+  // The rice picker's list: a menu's items, wherever they are now.
+  items(menu) {
+    const popup = document.getElementById(menu);
+    if (!popup) return [];
+    const inner = popup.querySelector(":scope > .zenith-more")?.menupopup;
+    const rare = new Set(this.MENUS[menu] ?? []);
+    return [...popup.children, ...(inner?.children ?? [])]
+      .filter(n => n.id && /^(menu|menuitem)$/.test(n.localName) && !n.id.includes("zenith-more") && !n.id.startsWith("context-viewsource-") && n.getAttribute("label"))
+      .map(n => ({ id: n.id, label: n.getAttribute("label") || n.label || n.id, rare: rare.has(n.id) }));
+  },
+
   init() {
+    window.ZenithMenus = this; // the rice picker
     this.handlers = [];
     for (const [id, items] of Object.entries(this.MENUS)) {
       const popup = document.getElementById(id);
@@ -2158,8 +2187,13 @@ const MoreMenus = {
     return !node.hidden && !node.collapsed && getComputedStyle(node).display !== "none";
   },
 
-  arrange(popup, items) {
-    if (!Services.prefs.getBoolPref(this.PREF, true)) return this.restore(popup);
+  arrange(popup, rare) {
+    // (From where Firefox has them each time: a choice may have changed.)
+    this.restore(popup);
+    const where = new Map([...popup.children].filter(n => n.id).map(n => [n.id, this.place(n.id, rare.has(n.id))]));
+    for (const n of popup.children) n.toggleAttribute("zenith-menu-off", where.get(n.id) === "off");
+    const items = new Set([...where].filter(([, w]) => w === "more").map(([id]) => id));
+    if (!items.size) return this.tidy(popup);
     let more = popup.querySelector(":scope > .zenith-more");
     if (!more) {
       more = document.createXULElement("menu");
@@ -5429,6 +5463,22 @@ const Tiler = {
       const n = parseInt(Services.prefs.getStringPref(SHELL.TILES, ""), 10);
       max = n === 0 ? Infinity : n >= 2 && n <= 12 ? n : 4;
     };
+    // An essential in a split: Zen copies it (its split can't hold one).
+    // Unless Tiling and keys › Tiles › Splitting an essential says Zen's
+    // way, nothing is split and a notice says why (any way in: Zen's menu,
+    // a drag, a key, a link opened beside it).
+    const split = this.S?.splitTabs;
+    if (split) {
+      this.S.splitTabs = function (tabs, ...rest) {
+        if (Array.isArray(tabs) && tabs.some(t => t?.hasAttribute?.("zen-essential")) &&
+            (Services.prefs.getStringPref("zenith.shell.split-essential", "") || "warn") === "warn") {
+          hint("Zen can't split an essential without copying it, so it stays as it is (Settings › Tiling and keys › Splitting an essential)");
+          return undefined;
+        }
+        return split.call(this, tabs, ...rest);
+      };
+      onUnload(() => (this.S.splitTabs = split));
+    }
     if (this.S) {
       Object.defineProperty(this.S, "MAX_TABS", { configurable: true, get: () => (Layouts.strip() ? Infinity : max), set: v => (max = v) });
       onUnload(() => {
@@ -5703,6 +5753,93 @@ const PageScroll = {
   },
 };
 
+/* --- Glance's and Peek's buttons -------------------------------------------------
+   Where they sit (Panels › Glance's and Peek's buttons): beside the page
+   as Zen has them, on the other side, above or below it in a row. And a
+   reload button with them. */
+const GlanceButtons = {
+  PREF: "zenith.plus.glance-buttons", // zen · other-side · top · bottom
+
+  init() {
+    const where = () => root.setAttribute("zenith-glance-buttons", Services.prefs.getStringPref(this.PREF, "") || "zen");
+    where();
+    Services.prefs.addObserver(this.PREF, where);
+    // (Zen makes the buttons each time a Glance or Peek opens.)
+    const panels = gBrowser.tabpanels;
+    const seen = new MutationObserver(list => {
+      for (const m of list) for (const n of m.addedNodes) {
+        const box = n.nodeType === 1 && (n.matches(".zen-glance-sidebar-container") ? n : n.querySelector?.(".zen-glance-sidebar-container"));
+        if (box) this.add(box);
+      }
+    });
+    seen.observe(panels, { childList: true, subtree: true });
+    // (Peek's page floats in a host of its own, at the window's top level.)
+    const wrapper = document.getElementById("zen-main-app-wrapper");
+    const hosts = new MutationObserver(() => setTimeout(() => {
+      for (const box of document.querySelectorAll("#zen-glance-detached .zen-glance-sidebar-container")) this.add(box);
+    }, 0));
+    if (wrapper) hosts.observe(wrapper, { childList: true });
+    onUnload(() => {
+      hosts.disconnect();
+      seen.disconnect();
+      Services.prefs.removeObserver(this.PREF, where);
+    });
+  },
+
+  add(box) {
+    if (box.querySelector(".zenith-glance-reload")) return;
+    const b = document.createXULElement("toolbarbutton");
+    b.className = "zenith-glance-reload toolbarbutton-1";
+    b.setAttribute("image", "chrome://global/skin/icons/reload.svg");
+    b.setAttribute("tooltiptext", "Reload (F5)");
+    b.addEventListener("command", () => {
+      const browser = box.parentElement?.querySelector("browser") ?? window.gZenGlanceManager?.detachedBrowser;
+      browser?.reload();
+    });
+    const close = box.querySelector(".zen-glance-sidebar-close");
+    close ? close.after(b) : box.append(b);
+  },
+};
+
+/* --- A tile closed comes back into its split (Ctrl+Shift+T) ----------------------
+   Every tile carries an id in its session data; a tile that closes also
+   keeps its neighbour's, and when it comes back it joins that neighbour's
+   split again, beside it (if the split still has room). */
+const TileRestore = {
+  ID: "zenith-tile",
+  NEXT: "zenith-tile-next",
+
+  init() {
+    const closing = e => {
+      const tab = e.target, data = Tiler.data(tab);
+      if (!data) return;
+      const order = Layouts.order(data), i = order.indexOf(tab), next = order[i - 1] ?? order[i + 1];
+      if (next) SessionStore.setCustomTabValue(tab, this.NEXT, this.id(next));
+    };
+    const restored = e => {
+      const tab = e.target, want = SessionStore.getCustomTabValue(tab, this.NEXT);
+      if (!want) return;
+      SessionStore.deleteCustomTabValue(tab, this.NEXT);
+      const anchor = gBrowser.tabs.find(t => t !== tab && SessionStore.getCustomTabValue(t, this.ID) === want);
+      // (A split of two is gone once one closed: made again.)
+      if (anchor && !anchor.pinned && gBrowser.visibleTabs.includes(anchor)) setTimeout(() => NewTabBelow.join(tab, anchor), 0);
+    };
+    // (Before SessionStore takes the closed tab's data.)
+    window.addEventListener("TabClose", closing, true);
+    gBrowser.tabContainer.addEventListener("SSTabRestored", restored);
+    onUnload(() => {
+      window.removeEventListener("TabClose", closing, true);
+      gBrowser.tabContainer.removeEventListener("SSTabRestored", restored);
+    });
+  },
+
+  id(tab) {
+    let v = SessionStore.getCustomTabValue(tab, this.ID);
+    if (!v) SessionStore.setCustomTabValue(tab, this.ID, (v = Math.random().toString(36).slice(2, 10)));
+    return v;
+  },
+};
+
 /* --- Layouts: each space's own (Tiling and keys › Layout; Alt+Y the next one) ---------------
    Dwindle: a new tile splits the one you're on along its longer side
    (Hyprland's). Master: one master tile and a stack (dwm's: the master on
@@ -5862,7 +5999,7 @@ const Layouts = {
   enter(how) {
     const data = Tiler.data();
     if (how === "master" && data) this.master(data);
-    else if (how === "scroller" && this.strip()) this.gather();
+    else if (how === "scroller" && this.strip()) this.gather(true);
     else if (how === "scroller" && data) {
       this.row(data);
       this.arrange(gBrowser.selectedTab);
@@ -5873,10 +6010,12 @@ const Layouts = {
   leave(was) {
     if (was === "monocle") SplitSolo.off();
     if (was === "scroller") {
-      const data = Tiler.data() ?? Tiler.data(this.members()[0]);
+      const data = Tiler.data() ?? Tiler.data(this.members().find(t => Tiler.data(t)));
       gBrowser.tabpanels.removeAttribute("zenith-scroller");
+      gBrowser.tabpanels.style.removeProperty("--zth-strip-x");
       // A strip made of the whole space goes back to tabs; a split stays.
-      if (data?.zenithStrip) return this.dissolve(data);
+      // (Zen keeps no mark of a strip across restarts: the setting says.)
+      if (data && (data.zenithStrip || Services.prefs.getStringPref(this.STRIP, "") !== "split")) return this.dissolve(data);
       if (data) {
         data.zenithOffset = 0;
         Tiler.even(data.layoutTree);
@@ -5903,24 +6042,40 @@ const Layouts = {
   },
 
   soon() {
-    if (this.soonTimer || !this.strip()) return;
+    if (this.soonTimer) return;
     this.soonTimer = setTimeout(() => {
       this.soonTimer = null;
       try {
-        this.gather();
+        if (this.strip()) this.gather();
+        else this.tidy();
       } catch (e) {
         console.error("[Zenith] strip", e);
       }
     }, 60);
   },
 
+  // A strip left behind in a space that isn't a scroller's (a strip from
+  // before 0.18, or one whose layout changed while Zen was closed): more
+  // tiles than a split may have, so back to tabs.
+  tidy() {
+    const S = Tiler.S, max = S?.MAX_TABS ?? 4;
+    if (!S || max === Infinity) return;
+    const here = new Set(gBrowser.visibleTabs);
+    for (const data of [...(S._data ?? [])]) {
+      if (data.tabs.length > max && data.tabs.some(t => here.has(t))) this.dissolve(data);
+    }
+  },
+
   // The space's tabs onto one strip: those missing go after the column
   // before them in the sidebar; the strip's order is the sidebar's.
-  gather() {
+  // (Only while you're on one of its columns, or entering the layout: on a
+  // pinned tab or an essential the strip waits, Zen showing that tab alone.)
+  gather(force = false) {
     if (this.gathering || !this.strip()) return;
     const tabs = this.members(), S = Tiler.S;
     if (!S || this.whole(tabs)) return;
     const sel = gBrowser.selectedTab, here = tabs.includes(sel);
+    if (!here && !force) return;
     this.gathering = true;
     try {
       let data = Tiler.data(here && Tiler.data(sel) ? sel : tabs.find(t => Tiler.data(t)) ?? tabs[0]);
@@ -6070,13 +6225,17 @@ const Layouts = {
       return;
     }
     if (shown) gBrowser.tabpanels.setAttribute("zenith-scroller", "true");
-    let x = -(data.zenithOffset ?? 0);
+    // Columns sit where they are on the strip; the strip slides as one
+    // transform (drawn on the GPU, no layout while it moves).
+    const shift = data.zenithOffset ?? 0;
+    if (shown) gBrowser.tabpanels.style.setProperty("--zth-strip-x", `${(-shift * gBrowser.tabpanels.clientWidth / 100).toFixed(1)}px`);
+    let x = 0;
     const off = [];
     for (const tab of this.order(data)) {
       const w = this.width(tab), box = tab.linkedBrowser?.closest(".browserSidebarContainer");
       if (box) {
         box.style.inset = `0% ${(100 - x - w).toFixed(3)}% 0% ${x.toFixed(3)}%`;
-        const away = x >= 99.9 || x + w <= 0.1;
+        const away = x - shift >= 99.9 || x - shift + w <= 0.1;
         box.toggleAttribute("zenith-off-strip", away);
         off.push([tab, away]);
       }
@@ -7176,7 +7335,10 @@ const RicePicker = {
     const commandset = document.createXULElement("commandset"), command = document.createXULElement("command");
     command.id = "zenith-rice-picker";
     command.addEventListener("command", () => this.toggle());
-    commandset.append(command);
+    const menus = document.createXULElement("command");
+    menus.id = "zenith-menu-items";
+    menus.addEventListener("command", () => this.toggle("menus"));
+    commandset.append(command, menus);
     root.append(commandset);
     const font = () => {
       const f = Services.prefs.getStringPref("zenith.core.font", "").trim().replace(/["\\;{}]/g, "");
@@ -7329,8 +7491,8 @@ const BarLoader = {
     right: "launcher,spaces,mode|tabs|downloads,appearance,clock,power",
   },
   get REBUILD() {
-    return [...this.EDGES.flatMap(e => [`zenith.bar.${e}`, `zenith.bar.${e}.modules`, `zenith.bar.hide-${e}`]),
-            "zenith.bar.side-width", "zenith.bar.icons"];
+    return [...this.EDGES.flatMap(e => [`zenith.bar.${e}`, `zenith.bar.${e}.modules`, `zenith.bar.display-${e}`]),
+            "zenith.bar.side-width", "zenith.bar.icons", "zenith.bar.fullscreen"];
   },
 
   on(edge) {
@@ -7348,6 +7510,13 @@ const BarLoader = {
 
   migrate() {
     const P = Services.prefs, OLD = "zenith.bar.position", TABS = "zenith.bar.tabs";
+    // 0.17's "hides until reached" (a switch): 0.18's way it shows.
+    for (const e of this.EDGES) {
+      const old = `zenith.bar.hide-${e}`;
+      if (!P.prefHasUserValue(old)) continue;
+      if (P.getBoolPref(old, false) && !P.prefHasUserValue(`zenith.bar.display-${e}`)) P.setStringPref(`zenith.bar.display-${e}`, "hide");
+      P.clearUserPref(old);
+    }
     // 0.15.0's "The bar" (where) and "Where tabs are": the edges' bars and
     // the sidebar's setting, as they amounted to.
     if (P.prefHasUserValue(OLD) || P.prefHasUserValue(TABS)) {
@@ -7391,12 +7560,12 @@ const BarLoader = {
   // it happens (the bar set to hide, or the sidebar set to hover beside it).
   tellSidebar() {
     const P = Services.prefs, side = root.getAttribute("zen-right-side") === "true" ? "right" : "left";
-    if ((P.getStringPref("zenith.sidebar", "") || "shown") !== "hover" || !this.on(side) || !P.getBoolPref(`zenith.bar.hide-${side}`, false)) return;
+    if ((P.getStringPref("zenith.sidebar", "") || "shown") !== "hover" || !this.on(side) || P.getStringPref(`zenith.bar.display-${side}`, "") !== "hide") return;
     if (Services.wm.getMostRecentWindow("navigator:browser") !== window) return;
     notice({
       title: "The sidebar won't open on hover here",
       body: `While the ${side} bar hides on the sidebar's side, reaching that edge brings the bar, not the sidebar. Ctrl+Alt+S still opens the sidebar.`,
-      actions: [{ label: "Keep the bar on screen", run: () => P.setBoolPref(`zenith.bar.hide-${side}`, false) }],
+      actions: [{ label: "Keep the bar on screen", run: () => P.clearUserPref(`zenith.bar.display-${side}`) }],
     });
   },
 
@@ -7404,8 +7573,8 @@ const BarLoader = {
     this.migrate();
     const apply = () => this.apply();
     for (const p of this.REBUILD) Services.prefs.addObserver(p, apply);
-    const tell = (s, t, pref) => (pref === "zenith.sidebar" || Services.prefs.getBoolPref(pref, false)) && this.tellSidebar();
-    const told = ["zenith.sidebar", ...this.EDGES.map(e => `zenith.bar.hide-${e}`)];
+    const tell = (s, t, pref) => (pref === "zenith.sidebar" || Services.prefs.getStringPref(pref, "") === "hide") && this.tellSidebar();
+    const told = ["zenith.sidebar", ...this.EDGES.map(e => `zenith.bar.display-${e}`)];
     for (const p of told) Services.prefs.addObserver(p, tell);
     onUnload(() => {
       for (const p of this.REBUILD) Services.prefs.removeObserver(p, apply);
@@ -9842,6 +10011,8 @@ start("sidebar width", () => SidebarWidth.init(), true);
 start("ctrl+tab order", () => CtrlTabOrder.init(), true);
 start("split solo", () => SplitSolo.init(), true);
 start("new tab below", () => NewTabBelow.init(), true);
+start("tiles come back", () => TileRestore.init());
+start("glance buttons", () => GlanceButtons.init());
 start("shell keys", () => ShellKeys.init(), true);
 start("shell tiles", () => Tiler.init(), true);
 start("shell layouts", () => Layouts.init());

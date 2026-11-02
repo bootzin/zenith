@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.17.0
+// @version        0.18.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -490,7 +490,7 @@ const RULES = {
       }
     ]
   },
-  "zenith.bar.hide-top": {
+  "zenith.bar.display-top": {
     "why": "There's no bar at the top",
     "conditions": [
       {
@@ -512,7 +512,7 @@ const RULES = {
       }
     ]
   },
-  "zenith.bar.hide-bottom": {
+  "zenith.bar.display-bottom": {
     "why": "There's no bar at the bottom",
     "conditions": [
       {
@@ -534,7 +534,7 @@ const RULES = {
       }
     ]
   },
-  "zenith.bar.hide-left": {
+  "zenith.bar.display-left": {
     "why": "There's no bar on the left",
     "conditions": [
       {
@@ -556,7 +556,7 @@ const RULES = {
       }
     ]
   },
-  "zenith.bar.hide-right": {
+  "zenith.bar.display-right": {
     "why": "There's no bar on the right",
     "conditions": [
       {
@@ -564,6 +564,40 @@ const RULES = {
           "property": "zenith.bar.right",
           "value": "on"
         }
+      }
+    ]
+  },
+  "zenith.bar.fullscreen": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
       }
     ]
   },

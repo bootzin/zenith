@@ -141,14 +141,63 @@ export class ZenithForceChild extends JSWindowActorChild {
     this.decided = true;
     const doc = this.document;
     if (!want || !doc?.documentElement || (doc.contentType !== "text/html" && !doc.contentType?.includes("xml"))) return this.set(false);
+    // A site with its own light and dark (it says so, or its style sheets
+    // have a version for the mode wanted) is trusted: its colours are left
+    // as they are. Only a site without one is inverted.
+    if (this.supports(want)) return this.set(false);
     const dark = this.dark();
     if (dark === null) return;
     // (Measured as the page draws itself: the filter doesn't change its colours.)
     this.set(dark !== (want === "dark"));
+    this.recheck();
+  }
+
+  // Sites that switch their theme by script after loading (a class or a
+  // data-theme on the page): looked at again for a few seconds.
+  recheck() {
+    const doc = this.document, win = this.contentWindow;
+    if (this.watcher || !doc?.documentElement || !win) return;
+    this.watcher = new win.MutationObserver(() => {
+      clearTimeout(this.again);
+      this.again = setTimeout(() => this.decide(), 250);
+    });
+    for (const n of [doc.documentElement, doc.body]) if (n) this.watcher.observe(n, { attributes: true, attributeFilter: ["class", "data-theme", "data-color-mode", "data-bs-theme", "theme", "style"] });
+    this.stopWatch = setTimeout(() => {
+      this.watcher?.disconnect();
+      this.watcher = null;
+    }, 6000);
+  }
+
+  // Does the page have its own version for this mode? Its colour scheme
+  // names it, or a style sheet has a (prefers-color-scheme) rule for it.
+  supports(want) {
+    const doc = this.document, win = this.contentWindow;
+    const said = `${win.getComputedStyle(doc.documentElement).colorScheme ?? ""} ${doc.querySelector('meta[name="color-scheme"]')?.content ?? ""}`;
+    if (new RegExp(String.raw`\b${want}\b`).test(said)) return true;
+    let budget = 4000;
+    const scan = rules => {
+      for (const r of rules) {
+        if (--budget < 0) return false;
+        if (r.media && new RegExp(String.raw`prefers-color-scheme:\s*${want}`).test(r.media.mediaText)) return true;
+        if (r.cssRules && scan(r.cssRules)) return true;
+      }
+      return false;
+    };
+    for (const sheet of [...doc.styleSheets].slice(0, 40)) {
+      try {
+        if (sheet.media?.mediaText && new RegExp(String.raw`prefers-color-scheme:\s*${want}`).test(sheet.media.mediaText)) return true;
+        if (scan(sheet.cssRules)) return true;
+      } catch {} // (another site's sheet: not readable)
+      if (budget < 0) break;
+    }
+    return false;
   }
 
   didDestroy() {
     clearTimeout(this.wait);
+    clearTimeout(this.again);
+    clearTimeout(this.stopWatch);
+    this.watcher?.disconnect();
   }
 
   // Is the page dark where it shows? Under a few points of the window, the

@@ -392,23 +392,30 @@ MODS = {
         script(dropdown("zenith.bar.top", "A bar at the top", "None", ("None", "off"), ("On", "on"))),
         when(script(modules("zenith.bar.top.modules", "What the top bar shows")),
              "There's no bar at the top", IF("zenith.bar.top", "on")),
-        when(script(checkbox("zenith.bar.hide-top", "The top bar hides until the pointer reaches it", False)),
+        when(script(dropdown("zenith.bar.display-top", "How the top bar shows", "Takes its room",
+                             ("Takes its room", "reserved"), ("Over the page", "overlay"), ("Hides until the pointer reaches it", "hide"))),
              "There's no bar at the top", IF("zenith.bar.top", "on")),
         script(dropdown("zenith.bar.bottom", "A bar at the bottom", "None", ("None", "off"), ("On", "on"))),
         when(script(modules("zenith.bar.bottom.modules", "What the bottom bar shows")),
              "There's no bar at the bottom", IF("zenith.bar.bottom", "on")),
-        when(script(checkbox("zenith.bar.hide-bottom", "The bottom bar hides until the pointer reaches it", False)),
+        when(script(dropdown("zenith.bar.display-bottom", "How the bottom bar shows", "Takes its room",
+                             ("Takes its room", "reserved"), ("Over the page", "overlay"), ("Hides until the pointer reaches it", "hide"))),
              "There's no bar at the bottom", IF("zenith.bar.bottom", "on")),
         script(dropdown("zenith.bar.left", "A bar on the left", "None", ("None", "off"), ("On", "on"))),
         when(script(modules("zenith.bar.left.modules", "What the left bar shows")),
              "There's no bar on the left", IF("zenith.bar.left", "on")),
-        when(script(checkbox("zenith.bar.hide-left", "The left bar hides until the pointer reaches it (on the sidebar's side, the sidebar's hover goes off)", False)),
+        when(script(dropdown("zenith.bar.display-left", "How the left bar shows", "Takes its room",
+                             ("Takes its room", "reserved"), ("Over the page", "overlay"), ("Hides until the pointer reaches it", "hide"))),
              "There's no bar on the left", IF("zenith.bar.left", "on")),
         script(dropdown("zenith.bar.right", "A bar on the right", "None", ("None", "off"), ("On", "on"))),
         when(script(modules("zenith.bar.right.modules", "What the right bar shows")),
              "There's no bar on the right", IF("zenith.bar.right", "on")),
-        when(script(checkbox("zenith.bar.hide-right", "The right bar hides until the pointer reaches it (on the sidebar's side, the sidebar's hover goes off)", False)),
+        when(script(dropdown("zenith.bar.display-right", "How the right bar shows", "Takes its room",
+                             ("Takes its room", "reserved"), ("Over the page", "overlay"), ("Hides until the pointer reaches it", "hide"))),
              "There's no bar on the right", IF("zenith.bar.right", "on")),
+        when(script(dropdown("zenith.bar.fullscreen", "Bars in full screen (F11)", "Hidden until the pointer reaches them",
+                             ("Hidden until the pointer reaches them", "hide"), ("Over the page", "overlay"), ("As they are", "keep"))),
+             "The bar is off", BAR_ON),
         script(dropdown("zenith.sidebar", "The sidebar", "On hover (Zen's compact mode)",
                         ("Shown", "shown"), ("On hover (Zen's compact mode)", "hover"), ("Hidden (tabs in a bar)", "hidden"))),
         when(script(dropdown("zenith.bar.side-width", "Bars on the left or right", "A rail of icons",
@@ -445,7 +452,7 @@ MODS = {
                      ("As its kind has it (44px rail, 210px with titles)", "auto"), ("36px", "36"), ("52px", "52"), ("60px", "60"),
                      ("180px", "180"), ("240px", "240"), ("280px", "280"), ("320px", "320")),
             dropdown("zenith.bar.font", "The bar's font", "Monospace (a Nerd Font, if you have one)",
-                     ("Monospace (a Nerd Font, if you have one)", "mono"), ("Your system's", "system")),
+                     ("Monospace (a Nerd Font, if you have one)", "mono"), ("The browser's (Theme › Looks › Font)", "system")),
             dropdown("zenith.bar.icons", "The bar's icons", "Zenith's own",
                      ("Zenith's own", "svg"), ("Nerd Font glyphs", "nerd"), ("Text", "text")),
             dropdown("zenith.bar.spaces", "Spaces in the bar", "Numbers",
@@ -559,6 +566,10 @@ MODS = {
                         ("The bottom right", "bottom-right"), ("None", "off"))),
         script(dropdown("zenith.shell.new-tile", "Where a new tile goes", "Along the tile's longer side",
                         ("Along the tile's longer side", "dwindle"), ("Always to the right", "right"), ("Always below", "below"))),
+        script(dropdown("zenith.plus.glance-buttons", "Glance's and Peek's buttons", "Beside the page (Zen's)",
+                        ("Beside the page (Zen's)", "zen"), ("Beside it, the other side", "other-side"), ("Along its top, in a row", "top"), ("Along its bottom, in a row", "bottom"))),
+        script(dropdown("zenith.shell.split-essential", "Splitting an essential", "Don't: say why",
+                        ("Don't: say why", "warn"), ("Zen's way: a copy of the essential in the split", "copy"))),
         script(dropdown("zenith.shell.split-background", "Links opened in the background from a split", "A new tile",
                         ("A new tile", "tile"), ("A normal tab", "tab"))),
         script(dropdown("zenith.shell.tiles", "Tiles in one split", "4 (Zen's own)",
@@ -752,9 +763,15 @@ def main():
     # change shows at once whichever loader (Zen or Sine) is in charge.
     dropdowns = {e["property"]: MOD_NAMES[mod] for mod, prefs in MODS.items() for e in prefs
                  if e["type"] == "dropdown" and not e.get("usedBy")}
-    write_generated(root / "plus" / "scripts" / "zenith-plus.uc.mjs",
+    # (Into the part of Zenith Plus's script that holds them, then the script
+    # is built from its parts: tools/build_plus.py.)
+    plus_part = next(p for p in sorted((root / "plus" / "src" / "zenith-plus").glob("*.mjs"))
+                     if "// --- dropdowns: generated by tools/build_prefs.py ---" in p.read_text(encoding="utf-8"))
+    write_generated(plus_part,
                     "// --- dropdowns: generated by tools/build_prefs.py ---", "// --- end of generated dropdowns ---",
                     "const DROPDOWNS = " + json.dumps(dropdowns, indent=1) + ";\n")
+    import build_plus
+    build_plus.build(root)
     for name, prefs in MODS.items():
         out = root / name / "preferences.json"
         out.parent.mkdir(parents=True, exist_ok=True)

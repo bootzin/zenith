@@ -39,7 +39,11 @@ const CATEGORIES = [
   { id: "bars", label: "Bars", icon: "tabs", prefs: ["zenith.bar.style", "zenith.bar.size", "zenith.bar.length", "zenith.bar.margin", "zenith.bar.corners", "zenith.bar.opacity", "zenith.bar.module-corners", "zenith.bar.separators", "zenith.bar.border"] },
   { id: "shape", label: "Shape", icon: "settings", prefs: ["zenith.core.corners", "zenith.core.density"] },
   { id: "font", label: "Font", icon: "edit" },
+  { id: "menus", label: "Menus and buttons", icon: "tray" },
 ];
+
+const MENUS = [["contentAreaContextMenu", "The page's right-click menu"], ["tabContextMenu", "A tab's right-click menu"]];
+const PLACES = [["shown", "Shown"], ["more", "In More"], ["off", "Off"]];
 
 function node(tag, attrs = {}, ...kids) {
   const n = document.createElementNS(HTML, tag);
@@ -149,6 +153,7 @@ export const Picker = {
     this.body.replaceChildren(node("h2", {}, c.label));
     if (id === "themes") this.themes();
     else if (id === "font") this.fonts();
+    else if (id === "menus") this.menus();
     else for (const p of c.prefs) this.choices(p);
     this.mark();
   },
@@ -252,6 +257,33 @@ export const Picker = {
     field.focus();
   },
 
+  // Menus and buttons: where Glance's and Peek's buttons sit, and each
+  // right-click menu item shown, in More, or off.
+  menus() {
+    this.choices("zenith.plus.glance-buttons");
+    const M = window.ZenithMenus;
+    if (!M) return;
+    for (const [menu, title] of MENUS) {
+      const list = node("div", { class: "zr-items" });
+      for (const item of M.items(menu)) {
+        const seg = node("div", { class: "zr-seg", item: item.id });
+        for (const [v, label] of PLACES) {
+          const b = node("button", { type: "button", class: "zr-opt", value: v }, label);
+          b.addEventListener("click", () => {
+            const all = M.places();
+            if (v === (item.rare && P.getBoolPref("zenith.plus.more-menu", true) ? "more" : "shown")) delete all[item.id];
+            else all[item.id] = v;
+            P.setStringPref(M.PLACES, JSON.stringify(all));
+            this.mark();
+          });
+          seg.append(b);
+        }
+        list.append(node("div", { class: "zr-item" }, node("span", {}, item.label), seg));
+      }
+      this.body.append(node("h3", {}, title), list);
+    }
+  },
+
   // What's chosen now, lit.
   mark() {
     if (!this.host) return;
@@ -261,6 +293,12 @@ export const Picker = {
     }
     const theme = P.getStringPref("zenith.internal.theme", "Zenith");
     for (const c of this.host.querySelectorAll(".zr-card[theme]")) c.toggleAttribute("current", c.getAttribute("theme") === theme);
+    const M = window.ZenithMenus;
+    for (const seg of this.host.querySelectorAll(".zr-seg[item]")) {
+      const id = seg.getAttribute("item"), rare = (M?.MENUS.contentAreaContextMenu ?? []).concat(M?.MENUS.tabContextMenu ?? []).includes(id);
+      const now = M?.place(id, rare);
+      for (const b of seg.children) b.toggleAttribute("current", b.getAttribute("value") === now);
+    }
     const font = P.getStringPref("zenith.core.font", "");
     for (const f of this.host.querySelectorAll(".zr-font")) f.toggleAttribute("current", f.getAttribute("value") === font);
   },

@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.17.0
+// @version        0.18.0
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -1309,10 +1309,59 @@ function peekKey(e) {
   return false;
 }
 
+// Firefox's own keys act on the Peek while it's open (docs/reference.md §4):
+// for the moment a key is handled, the browser Firefox's commands use
+// (gBrowser.selectedBrowser) is the Peek's. That covers what a command does
+// to "the page": print, save, view source, bookmark, reload, zoom, and the
+// rest. Find has a find bar of the Peek's own.
+let routed = false;
+function routeToPeek() {
+  const b = gZenGlanceManager.detachedBrowser;
+  if (!b || routed) return;
+  const own = Object.getOwnPropertyDescriptor(gBrowser, "selectedBrowser");
+  if (own && !own.configurable) return;
+  routed = true;
+  Object.defineProperty(gBrowser, "selectedBrowser", { configurable: true, enumerable: own?.enumerable ?? false, get: () => b });
+  setTimeout(() => {
+    if (own) Object.defineProperty(gBrowser, "selectedBrowser", own);
+    else delete gBrowser.selectedBrowser;
+    routed = false;
+  }, 0);
+}
+
+// The Peek's own find bar (Ctrl+F, F3, Ctrl+G; Shift backwards).
+function peekFind(e) {
+  const b = gZenGlanceManager.detachedBrowser;
+  if (!b) return false;
+  const k = e.key.toLowerCase(), ctrl = (e.ctrlKey || e.metaKey) && !e.altKey;
+  const find = ctrl && !e.shiftKey && (k === "f" || e.code === "KeyF");
+  const again = (k === "f3" && !e.ctrlKey && !e.altKey) || (ctrl && (k === "g" || e.code === "KeyG"));
+  if (!find && !again) return false;
+  let bar = Peek.findbar;
+  if (!bar?.isConnected || bar.browser !== b) {
+    bar?.remove();
+    bar = Peek.findbar = document.createXULElement("findbar");
+    bar.classList.add("zenith-peek-findbar");
+    b.closest(".browserContainer")?.append(bar);
+    bar.browser = b;
+  }
+  if (find) bar.onFindCommand();
+  else bar.onFindAgainCommand(e.shiftKey);
+  return true;
+}
+
 function watchPeekKeys() {
   // Keys pressed inside the Peek reach the window after the page sees them.
   const onKey = e => {
     if (!Peek.open || e.defaultPrevented) return;
+    // (Esc in the Peek's find bar closes the find bar, not the Peek.)
+    if (e.key === "Escape" && e.target.closest?.(".zenith-peek-findbar")) return;
+    if (gZenGlanceManager.detachedBrowser && peekFind(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (gZenGlanceManager.detachedBrowser && (e.ctrlKey || e.metaKey || e.altKey || /^F\d+$/.test(e.key))) routeToPeek();
     if (e.key === "Escape" && !e.ctrlKey && !e.altKey && !e.shiftKey) {
       e.preventDefault();
       Peek.close();

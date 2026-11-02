@@ -622,7 +622,8 @@ const LISTED = { tasks: "tabs", "tasks-more": "tabs", privacy: "trackers", resou
 export function barMenu(box, edge, mod) {
   const Bars = window.ZenithBar, live = window.ZenithLive, name = mod ? (LISTED[mod] ?? mod) : null;
   const label = name ? new Map(Bars?.MODULES ?? []).get(name) ?? name : null;
-  const listPref = `zenith.bar.${edge}.modules`, hidePref = `zenith.bar.hide-${edge}`;
+  const listPref = `zenith.bar.${edge}.modules`, showPref = `zenith.bar.display-${edge}`;
+  const hiding = (P.getStringPref(showPref, "") || "reserved") === "hide";
   const settings = async prop => {
     live?.open({ s: { property: prop } });
     await new Promise(r => setTimeout(r, 120));
@@ -635,7 +636,7 @@ export function barMenu(box, edge, mod) {
       for (const side of ["left", "centre", "right"]) lists[side] = lists[side].filter(n => n !== name);
       P.setStringPref(listPref, [lists.left, lists.centre, lists.right].map(x => x.join(",")).join("|"));
     }, !!name && !!Bars],
-    ["hide", P.getBoolPref(hidePref, false) ? "Keep this bar on screen" : "Hide this bar until reached", () => P.setBoolPref(hidePref, !P.getBoolPref(hidePref, false))],
+    ["hide", hiding ? "Keep this bar on screen" : "Hide this bar until reached", () => (hiding ? P.clearUserPref(showPref) : P.setStringPref(showPref, "hide"))],
     ["off", "Turn this bar off", () => P.setStringPref(`zenith.bar.${edge}`, "off")],
     ["settings", "Bar settings…", () => live?.open({ kind: "preset", section: { id: "bar" } }), !!live],
   ];

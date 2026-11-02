@@ -129,7 +129,7 @@ def check_mod(mod_dir, problems, all_defined):
     # (Attributes the Zenith script sets on the window are not settings.)
     script_attrs = {"zenith-script", "zenith-downloading", "zenith-download-done", "zenith-timer", "zenith-press",
                     "zenith-bookmarks", "zenith-other-space", "zenith-blend", "zenith-bm-place", "zenith-bm-side", "zenith-bar", "zenith-bar-buttons", "zenith-bar-hides", "zenith-bar-tabs", "zenith-palette", "zenith-ink", "zenith-bm-look",
-                    "zenith-container", "zenith-pip-tucked"}
+                    "zenith-container", "zenith-pip-tucked", "zenith-glance-buttons"}
     # (A mod may read another mod's settings, so look them up in all mods.)
     for attr, value in re.findall(r"\[(zenith-[a-z0-9-]+)=\"([^\"]*)\"\]", css):
         if attr in script_attrs:

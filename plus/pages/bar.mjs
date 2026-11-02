@@ -940,18 +940,81 @@ const MODULES = {
   weather, memory: resources, appearance, extensions: tray, clock, buttons, power, layout, overview,
 };
 
+// The bars' empty space as a window-dragging area. Firefox only reads that
+// from its own style sheets (not a mod's), so it's loaded as one, once.
+function dragArea() {
+  if (window.zenithBarDrag) return;
+  window.zenithBarDrag = true;
+  const css = ".zenith-bar:not([collapsible]) { -moz-window-dragging: drag; } " +
+              ".zenith-bar .zb-mod, .zenith-bar button, .zenith-bar input { -moz-window-dragging: no-drag; }";
+  try {
+    window.windowUtils.loadSheetUsingURIString("data:text/css," + encodeURIComponent(css), window.windowUtils.AGENT_SHEET);
+  } catch (e) {
+    console.error("[Zenith] bar: window dragging", e);
+  }
+}
+
 const Bar = {
   // A bar on an edge: its id (the top one is "zenith-bar"), whether it
   // stands up (left, right) and whether it hides until the pointer comes.
   build(edge, parts) {
+    dragArea();
     const bar = node("div", { id: edge === "top" ? "zenith-bar" : `zenith-bar-${edge}`, class: "zenith-bar", edge, role: "toolbar", "aria-label": `Zenith bar (${edge})` });
     if (edge === "left" || edge === "right") {
       bar.setAttribute("vertical", "true");
       bar.setAttribute("width", pref("zenith.bar.side-width", "rail"));
     }
-    if (bool(`zenith.bar.hide-${edge}`, false)) {
-      bar.setAttribute("collapsible", "true");
-    }
+    // How it shows (Bars › How the … bar shows): taking its room, over the
+    // page, or hiding until reached; in full screen, Bars › In full screen.
+    const show = () => {
+      const fs = window.fullScreen && !document.fullscreenElement, inFs = pref("zenith.bar.fullscreen", "hide");
+      const how = fs && inFs !== "keep" ? inFs : pref(`zenith.bar.display-${edge}`, "reserved");
+      bar.toggleAttribute("collapsible", how === "hide");
+      bar.toggleAttribute("overlay", how === "overlay");
+    };
+    show();
+    window.addEventListener("fullscreen", () => setTimeout(show, 0));
+    window.addEventListener("sizemodechange", show);
+    // The bar's empty space moves the window, as a title bar's (a double
+    // click maximises it or gives it back). Natively where Firefox lets it
+    // (dragArea(): Windows' snapping too); else the window follows the
+    // pointer from here.
+    bar.addEventListener("pointerdown", e => {
+      if (e.button !== 0 || e.target.closest?.(".zb-mod, button, input, select, a")) return;
+      if (e.detail === 2) {
+        if (window.windowState === window.STATE_MAXIMIZED) window.restore();
+        else window.maximize();
+        return;
+      }
+      const x0 = e.screenX, y0 = e.screenY;
+      let wx = window.screenX, wy = window.screenY, moving = false;
+      const move = m => {
+        if (!(m.buttons & 1)) return up();
+        const dx = m.screenX - x0, dy = m.screenY - y0;
+        if (!moving && Math.hypot(dx, dy) < 4) return;
+        if (!moving && window.windowState === window.STATE_MAXIMIZED) {
+          // (Out of maximised: the window comes back under the pointer.)
+          const at = (x0 - window.screenX) / window.outerWidth;
+          window.restore();
+          wx = x0 - at * window.outerWidth;
+          wy = window.screenY;
+        }
+        moving = true;
+        window.moveTo(Math.round(wx + dx), Math.round(wy + dy));
+      };
+      const up = () => {
+        bar.removeEventListener("pointermove", move);
+        bar.removeEventListener("pointerup", up);
+        try {
+          bar.releasePointerCapture(e.pointerId);
+        } catch {}
+      };
+      try {
+        bar.setPointerCapture(e.pointerId);
+      } catch {}
+      bar.addEventListener("pointermove", move);
+      bar.addEventListener("pointerup", up);
+    });
     // A right-click: this bar's menu (its modules, hiding, its look…).
     bar.addEventListener("contextmenu", e => {
       if (e.defaultPrevented) return;

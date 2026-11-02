@@ -18,7 +18,8 @@ def main():
         sys.exit("version must look like 1.2.3")
     (root / "VERSION").write_text(version + "\n", encoding="utf-8")
 
-    for script in sorted((root / "plus" / "scripts").glob("*.uc.mjs")):
+    parts = sorted((root / "plus" / "src" / "zenith-plus").glob("*.mjs"))
+    for script in [*sorted((root / "plus" / "scripts").glob("*.uc.mjs")), *parts]:
         text = script.read_text(encoding="utf-8")
         if "// @version" in text:
             text = re.sub(r"// @version\s+\S+", f"// @version        {version}", text)
@@ -28,6 +29,11 @@ def main():
         text = re.sub(r'const SCHEMA_VERSION = "[^"]*";', f'const SCHEMA_VERSION = "{version}";', text)
         text = re.sub(r'const ZENITH_VERSION = "[^"]*";', f'const ZENITH_VERSION = "{version}";', text)
         script.write_text(text, encoding="utf-8")
+
+    # Zenith Plus's main script, from its parts (now with the version).
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import build_plus
+    build_plus.build(root)
 
     readmes = [root / key / "readme.md" for key in ("core", "edges", "tabs", "urlbar", "panels", "motion", "plus")]
     for readme in readmes:

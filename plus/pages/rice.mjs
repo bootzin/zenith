@@ -100,7 +100,8 @@ function setting(path, value) {
   // bar { top { modules = … ; hide = … } }
   if (p[0] === "bar" && EDGES.includes(p[1]) && p.length === 3) {
     if (p[2] === "modules") return [`zenith.bar.${p[1]}.modules`, value.split("|").map(x => x.trim().split(/[\s,]+/).filter(Boolean).join(",")).join("|")];
-    if (p[2] === "hide") return [`zenith.bar.hide-${p[1]}`, value];
+    if (p[2] === "hide") return [`zenith.bar.display-${p[1]}`, BOOL[value.toLowerCase()] ? "hide" : "reserved"];
+    if (p[2] === "display") return [`zenith.bar.display-${p[1]}`, value];
     if (p[2] === "show") return [`zenith.bar.${p[1]}`, BOOL[value.toLowerCase()] === false ? "off" : "on"];
   }
   return [`zenith.${p.join(".")}`, value];
@@ -165,7 +166,7 @@ export const Rice = {
     }
     // A bar with any of its lines is on (unless it says show = false).
     for (const edge of EDGES) {
-      if (lines.some(l => l.name === `zenith.bar.${edge}.modules` || l.name === `zenith.bar.hide-${edge}`) && !lines.some(l => l.name === `zenith.bar.${edge}`)) {
+      if (lines.some(l => l.name === `zenith.bar.${edge}.modules` || l.name === `zenith.bar.display-${edge}`) && !lines.some(l => l.name === `zenith.bar.${edge}`)) {
         lines.push({ name: `zenith.bar.${edge}`, value: "on", at: null });
       }
     }
@@ -262,7 +263,7 @@ export async function exportFile(path = PATH()) {
   const top = ["zenith.palette", "zenith.sidebar"];
   for (const n of top) if (names.includes(n)) out.push(`${n.slice(7)} = ${value(n)}`);
   // Bars
-  const bar = names.filter(n => n.startsWith("zenith.bar.") && !EDGES.some(e => n === `zenith.bar.${e}` || n === `zenith.bar.${e}.modules` || n === `zenith.bar.hide-${e}`));
+  const bar = names.filter(n => n.startsWith("zenith.bar.") && !EDGES.some(e => n === `zenith.bar.${e}` || n === `zenith.bar.${e}.modules` || n === `zenith.bar.display-${e}`));
   const edges = EDGES.filter(e => names.includes(`zenith.bar.${e}`) || names.includes(`zenith.bar.${e}.modules`));
   if (bar.length || edges.length) {
     out.push("", "bar {");
@@ -272,7 +273,7 @@ export async function exportFile(path = PATH()) {
       out.push(`    ${e} {`, `        show = ${on}`);
       const list = P.getStringPref(`zenith.bar.${e}.modules`, "");
       if (list) out.push(`        modules = ${list.split("|").map(x => x.split(",").filter(Boolean).join(" ")).join(" | ")}`);
-      if (P.prefHasUserValue(`zenith.bar.hide-${e}`)) out.push(`        hide = ${P.getBoolPref(`zenith.bar.hide-${e}`, false)}`);
+      if (P.prefHasUserValue(`zenith.bar.display-${e}`)) out.push(`        display = ${P.getStringPref(`zenith.bar.display-${e}`, "reserved")}`);
       out.push("    }");
     }
     out.push("}");
