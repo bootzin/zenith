@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.18.1
+// @version        0.18.2
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -21,7 +21,7 @@
 // Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
 // work without any of this. Peek has its own script, zenith-peek.uc.mjs.
 
-const ZENITH_VERSION = "0.18.1"; // (tools/bump_version.py keeps it)
+const ZENITH_VERSION = "0.18.2"; // (tools/bump_version.py keeps it)
 window.ZenithVersion = ZENITH_VERSION; // about:zenith-fetch, the rice file
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const root = document.documentElement;
@@ -5790,13 +5790,13 @@ const PageScroll = {
 };
 
 /* --- Glance's and Peek's buttons -------------------------------------------------
-   Where they sit (Panels › Glance's and Peek's buttons): beside the page
-   as Zen has them, on the other side, above or below it in a row. */
+   Where they sit (Panels › Glance's and Peek's buttons): to the right or
+   the left of the page, above or below it in a row. */
 const GlanceButtons = {
-  PREF: "zenith.plus.glance-buttons", // zen · other-side · top · bottom
+  PREF: "zenith.plus.glance-buttons", // right · left · top · bottom
 
   init() {
-    const where = () => root.setAttribute("zenith-glance-buttons", Services.prefs.getStringPref(this.PREF, "") || "zen");
+    const where = () => root.setAttribute("zenith-glance-buttons", ["left", "top", "bottom"].find(v => v === Services.prefs.getStringPref(this.PREF, "")) ?? "right");
     where();
     Services.prefs.addObserver(this.PREF, where);
     onUnload(() => Services.prefs.removeObserver(this.PREF, where));
@@ -5864,6 +5864,7 @@ const Layouts = {
   STRIP: "zenith.shell.scroller-tabs", // all · split
   FOCUS: "zenith.shell.scroller-focus", // view · centre
   widths: new WeakMap(), // a scroller column's tab → its width (% of the view)
+  unrestored: new WeakSet(), // a strip's columns whose pages wait to come into view
 
   init() {
     window.ZenithLayouts = this; // the bar's module, the settings page, tools/checks
@@ -5900,6 +5901,7 @@ const Layouts = {
     W?.addChangeListeners?.(spaceChanged);
     const select = () => {
       const how = this.of(), tab = gBrowser.selectedTab;
+      this.unrestored.delete(tab); // (SessionStore restores the tab you're on)
       if (how === "monocle") this.solo();
       else if (how === "scroller" && !this.arranging && Tiler.data(tab)) this.arrange(tab);
       if (how === "scroller" && !this.gathering && this.members().includes(tab) && !this.whole()) this.soon();
@@ -5907,10 +5909,23 @@ const Layouts = {
     // A strip takes in every new tab of its space.
     const opened = () => this.soon();
     gBrowser.tabContainer.addEventListener("TabOpen", opened);
+    // Zen restores every page of a split as it shows it: a strip has every
+    // tab of its space, so opening the browser loaded them all. A column's
+    // page is restored when it comes into view instead (Layouts.after).
+    const restoring = e => {
+      const tabs = e.detail?.tabs, data = tabs?.length && !e.detail.zenith ? Tiler.data(tabs[0]) : null;
+      if (!data || !this.scroller(data)) return;
+      const now = tabs.filter(t => t === gBrowser.selectedTab);
+      for (const t of tabs) if (!now.includes(t)) this.unrestored.add(t);
+      tabs.splice(0, tabs.length, ...now);
+    };
+    // (Before SessionStore's own, on the tab strip.)
+    window.addEventListener("TabSplitViewActivate", restoring, true);
     const scope = () => (this.strip() ? this.soon() : null);
     Services.prefs.addObserver(this.STRIP, scope);
     onUnload(() => {
       gBrowser.tabContainer.removeEventListener("TabOpen", opened);
+      window.removeEventListener("TabSplitViewActivate", restoring, true);
       Services.prefs.removeObserver(this.STRIP, scope);
     });
     // After the session is back: a strip space's tabs on their strip.
@@ -5973,6 +5988,7 @@ const Layouts = {
       window.removeEventListener("TabClose", closed, true);
       for (const p of [this.PREF, "zenith.shell.master", "zenith.shell.master-ratio"]) P.removeObserver(p, prefs);
     });
+    this.tell(); // (the bar's layout module, if it came first)
   },
 
   space() {
@@ -6263,11 +6279,16 @@ const Layouts = {
       x += w;
     }
     // Columns out of sight: their pages asleep, as a background tab's (Zen
-    // wakes every tile of a split after laying it out, hence a moment later).
+    // wakes every tile of a split after laying it out, hence a moment later);
+    // one not restored yet stays unloaded until it comes into view.
     if (shown) {
       Promise.resolve().then(() => {
         for (const [tab, away] of off) {
           try {
+            if (this.unrestored.has(tab)) {
+              if (away) tab.setAttribute("pending", "true"); // (Zen took it off: the sidebar shows it unloaded)
+              else this.wake();
+            }
             // (Zen's zenModeActive keeps a split's tile awake whatever it's told.)
             const br = tab.linkedBrowser;
             if (!br || tab === gBrowser.selectedTab) continue;
@@ -6277,6 +6298,21 @@ const Layouts = {
         }
       });
     }
+  },
+
+  // A moment after the strip settles (it's laid out again for each column it
+  // takes in): the columns waiting to be restored that are in view.
+  wake() {
+    clearTimeout(this.waking);
+    this.waking = setTimeout(() => {
+      const data = Tiler.data(gBrowser.selectedTab);
+      for (const tab of data && this.scroller(data) ? data.tabs : []) {
+        const box = tab.linkedBrowser?.closest(".browserSidebarContainer");
+        if (!this.unrestored.has(tab) || !box || box.hasAttribute("zenith-off-strip")) continue;
+        this.unrestored.delete(tab);
+        gBrowser.tabContainer.dispatchEvent(new CustomEvent("TabSplitViewActivate", { detail: { tabs: [tab], zenith: true } }));
+      }
+    }, 400);
   },
 
   /* Tiler's hooks: a new tile, focus, moving, the layout's own action */
@@ -7510,7 +7546,7 @@ const BarLoader = {
     ["title", "The tab you're on"], ["tabs", "This space's tabs"], ["media", "What's playing"], ["downloads", "Downloads"],
     ["timers", "Timers"], ["trackers", "Trackers blocked"], ["weather", "Weather"], ["memory", "Memory the browser uses"],
     ["appearance", "Pages dark or light"], ["extensions", "Extensions"], ["clock", "Clock"],
-    ["buttons", "The window's buttons"], ["power", "Power menu"], ["layout", "The space's layout"], ["overview", "Overview button"],
+    ["buttons", "The window's buttons"], ["power", "Power menu"], ["layout", "The layout (monocle, dwindle, master, scroller)"], ["overview", "Overview button"],
   ],
   // Each edge's list until you make your own: start | middle | end (top |
   // middle | bottom on the left and right), as waybar's modules-left,
@@ -7758,6 +7794,37 @@ const Palettes = {
     } catch {
       return null;
     }
+  },
+
+  // A palette's colours without choosing it (the rice picker's previews):
+  // a named one; one made from your wallpaper or a colours file as it would
+  // be now (null: nothing to make it from); your own, the space's colours.
+  async peek(name) {
+    if (PALETTES[name]) return PALETTES[name];
+    try {
+      if (name === "own") return this.own();
+      if (name === "wallpaper") return Wallpaper.url ? await this.fromImage(await (await fetch(Wallpaper.url)).blob()) : null;
+      const path = await PaletteSync.file(name);
+      return path ? this.fromWal(JSON.parse(await IOUtils.readUTF8(path))) : null;
+    } catch (e) {
+      console.error("[Zenith] palette", e);
+      return this.colours(name);
+    }
+  },
+
+  // Your own colours: the space's (as it was before a palette, if one is
+  // on), on Zen's light or dark.
+  own() {
+    const space = window.gZenWorkspaces?.getActiveWorkspace?.();
+    let theme = space?.theme;
+    try {
+      theme = JSON.parse(Services.prefs.getStringPref(this.SAVED, "") || "{}")[space?.uuid] ?? theme;
+    } catch {}
+    const cols = (theme?.gradientColors ?? []).map(x => (Array.isArray(x?.c) ? this.hex(x.c.slice(0, 3)) : null)).filter(Boolean);
+    const light = !window.matchMedia("(prefers-color-scheme: dark)").matches, base = light ? "#f4f4f5" : "#1c1c20";
+    const accent = cols[0] ?? getComputedStyle(root).getPropertyValue("--zth-hue-workspace").trim() ?? "#8888aa", text = light ? "#26262b" : "#e6e6ea";
+    return { light, base, mantle: this.mix(base, light ? "#ffffff" : "#000000", 0.25), surface: this.mix(base, text, 0.12),
+             overlay: this.mix(base, text, 0.45), text, accent, second: cols[1] ?? accent, ...(cols[2] ? { yellow: cols[2] } : {}) };
   },
 
   // pywal's or wallust's colors.json: 0 the background, 7 (or the special
@@ -9953,12 +10020,22 @@ const LiveSettings = {
     const value = Services.prefs.getStringPref(prop, "");
     const attr = prop.replaceAll(".", "-");
     if (host.getAttribute(attr) !== value) host.setAttribute(attr, value);
+    this.size(prop);
+  },
+
+  // A size, any on its slider and not only the listed ones, as a variable
+  // too: --zth-px-panels-gap (zenith.panels.gap).
+  size(prop) {
+    const value = Services.prefs.getStringPref(prop, ""), name = `--zth-px-${prop.slice(7).replaceAll(".", "-")}`;
+    if (/^\d+$/.test(value)) document.documentElement.style.setProperty(name, `${value}px`);
+    else document.documentElement.style.removeProperty(name);
   },
 
   init() {
     const observer = (_, __, prop) => {
       if (Object.hasOwn(DROPDOWNS, prop)) this.apply(prop);
     };
+    for (const prop of Object.keys(DROPDOWNS)) this.size(prop);
     Services.prefs.addObserver("zenith.", observer);
     onUnload(() => Services.prefs.removeObserver("zenith.", observer));
   },

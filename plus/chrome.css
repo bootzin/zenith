@@ -980,7 +980,8 @@ browser[zenith-see-through] {
   --zb-mark: var(--zb-space-colour, var(--zb-accent));
   --zb-urgent: var(--zth-pal-red, rgb(229 72 77));
   --zb-radius: 8px;
-  --zb-font: "JetBrainsMono Nerd Font", "JetBrainsMono NF", "JetBrains Mono", "CaskaydiaCove Nerd Font", "Cascadia Mono", ui-monospace, Consolas, monospace;
+  /* Its own font, else the browser's (bar.mjs: --zb-own-font). */
+  --zb-font: var(--zb-own-font, var(--zth-ui-font, system-ui, sans-serif));
   flex: none;
   box-sizing: border-box;
   height: var(--zb-h);
@@ -994,8 +995,9 @@ browser[zenith-see-through] {
   position: relative;
   z-index: 3;
   /* The shape (Bars › Fine-tuning the shape, each a value: bar.mjs). The
-     margin is on the window's sides; toward the page, the page's own gap. */
-  margin: var(--zb-m, 0) var(--zb-m, 0) 0;
+     margin is the same on every side: toward the page it's the gap there
+     (the page's own gap on that side goes), toward another bar one margin. */
+  margin: var(--zb-m, 0);
   border-radius: var(--zb-bar-radius, 0);
   /* A glass surface as every other (the window's frost and edge) unless
      its background is solid. */
@@ -1018,10 +1020,6 @@ browser[zenith-see-through] {
     --zb-h: 36px;
     --zb-pad: 5px;
     font-size: 13px;
-  }
-
-  &[font="system"] {
-    --zb-font: system-ui, sans-serif;
   }
 
   & > div {
@@ -1555,7 +1553,7 @@ browser[zenith-see-through] {
    from the window's edges and between bar and page, the same corners and
    the same shadow, bar and page two cards on the window's backdrop.
    Floating: the bar a card. Bare: no bar, each module a pill on the backdrop. */
-:root:has(.zenith-bar:is([look="floating"], [look="bare"])):not(:has(#theme-Zenith-Core[zenith-core-page="zen"])) {
+:root:has(.zenith-bar:is([look="floating"], [look="bare"]):not([overlay], [collapsible])):not(:has(#theme-Zenith-Core[zenith-core-page="zen"])) {
   /* (The floating bar's margin and corners: bar.mjs.) */
   --zth-page-gap: var(--zb-float-gap, 8px);
   --zth-page-radius: min(var(--zb-float-radius, 12px), 18px);
@@ -1566,12 +1564,25 @@ browser[zenith-see-through] {
   }
 }
 
-.zenith-bar {
-  &[edge="bottom"] { margin: 0 var(--zb-m, 0) var(--zb-m, 0); }
-  &[edge="left"] { margin: var(--zb-m, 0) 0 var(--zb-m, 0) var(--zb-m, 0); }
-  &[edge="right"] { margin: var(--zb-m, 0) var(--zb-m, 0) var(--zb-m, 0) 0; }
-  &[solid] { backdrop-filter: none; }
+.zenith-bar[solid] {
+  backdrop-filter: none;
 }
+
+/* A bar with a margin that takes its room (zenith-bar-spaced, bar.mjs): its
+   margin is the gap between it and the page, and between it and a side bar.
+   (Three ids: above core's page frame rule, which sets the page's gap.) */
+:root[zenith-bar-spaced~="top"] {
+  & #zen-tabbox-wrapper#zen-tabbox-wrapper#zen-tabbox-wrapper { margin-top: 0 !important; }
+  & .zenith-bar[vertical] { margin-top: 0; }
+}
+
+:root[zenith-bar-spaced~="bottom"] {
+  & #zen-tabbox-wrapper#zen-tabbox-wrapper#zen-tabbox-wrapper { margin-bottom: 0 !important; }
+  & .zenith-bar[vertical] { margin-bottom: 0; }
+}
+
+:root[zenith-bar-spaced~="left"] #zen-tabbox-wrapper#zen-tabbox-wrapper#zen-tabbox-wrapper { margin-left: 0 !important; }
+:root[zenith-bar-spaced~="right"] #zen-tabbox-wrapper#zen-tabbox-wrapper#zen-tabbox-wrapper { margin-right: 0 !important; }
 
 .zenith-bar[look="floating"] {
   --zb-shadow: 0 0 0 1px var(--zth-hairline, rgb(128 128 128 / 0.18)), 0 6px 20px -8px rgb(0 0 0 / 0.45);
@@ -1894,7 +1905,8 @@ browser[zenith-see-through] {
 }
 
 /* Over the page (Bars › How the … bar shows): always shown, the page
-   under it. */
+   under it, as it is without the bar (a floating bar floats over it, its
+   margin all round; the page doesn't float with it). */
 .zenith-bar[overlay] {
   position: absolute;
   z-index: 12 !important;
@@ -4611,16 +4623,17 @@ tab-group[split-view-group]:hover {
 }
 
 /* Glance's and Peek's buttons (Panels › Glance's and Peek's buttons):
-   on the other side of the page, or in a row along its top or bottom edge
-   (inside it: a Peek fills nearly the whole window). */
-:root[zenith-glance-buttons="other-side"] .zen-glance-sidebar-container {
-  left: auto !important;
-  right: 100% !important;
-}
-
-:root[zenith-glance-buttons="other-side"][zen-right-side="true"] .zen-glance-sidebar-container {
+   to the right or the left of the page whichever side the sidebar is on,
+   or in a row along its top or bottom edge (inside it: a Peek fills nearly
+   the whole window). */
+:root[zenith-glance-buttons="right"] .zen-glance-sidebar-container {
   left: 100% !important;
   right: auto !important;
+}
+
+:root[zenith-glance-buttons="left"] .zen-glance-sidebar-container {
+  left: auto !important;
+  right: 100% !important;
 }
 
 :root:is([zenith-glance-buttons="top"], [zenith-glance-buttons="bottom"]) .zen-glance-sidebar-container {
@@ -4642,15 +4655,28 @@ tab-group[split-view-group]:hover {
   bottom: 8px !important;
 }
 
-/* One font for the browser (Theme › Font): everything but icons, and a bar
-   that keeps its monospace. */
-:root[zenith-font] :is(#navigator-toolbox, #zen-main-app-wrapper > :not(#browser), menupopup, panel, .zs-pop, #zenith-peek, #zenith-rice, .zenith-bar:not([font="mono"])),
-:root[zenith-font] :is(#navigator-toolbox, menupopup, panel, .zs-pop, #zenith-peek, #zenith-rice, .zenith-bar:not([font="mono"])) :not(.zb-g, .zs-i, .zb-i, [class*="icon"]) {
-  font-family: var(--zth-ui-font) !important;
+/* An accent's colour, a circle before its name (the rice picker's Colours). */
+#zenith-rice .zr-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-inline-end: 6px;
+  border-radius: 50%;
+  vertical-align: -1px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 25%, transparent);
 }
 
-.zenith-bar:not([font="mono"]) {
-  --zb-font: var(--zth-ui-font, system-ui, sans-serif);
+/* A palette still being read (your wallpaper's, a colours file's). */
+#zenith-rice .zr-pic[reading] {
+  opacity: 0.5;
+}
+
+/* One font for the browser (Theme › Font): everything but icons. The bars
+   have it too unless they have their own (Bars › The bar's font: bar.mjs
+   sets --zb-own-font). */
+:root[zenith-font] :is(#navigator-toolbox, #zen-main-app-wrapper > :not(#browser, .zenith-bar), menupopup, panel, .zs-pop, #zenith-peek, #zenith-rice),
+:root[zenith-font] :is(#navigator-toolbox, menupopup, panel, .zs-pop, #zenith-peek, #zenith-rice) :not(.zenith-bar, .zenith-bar *, .zb-g, .zs-i, .zb-i, [class*="icon"]) {
+  font-family: var(--zth-ui-font) !important;
 }
 
 /* The rice picker (Alt+Shift+P): a window in the middle, as Linux rice

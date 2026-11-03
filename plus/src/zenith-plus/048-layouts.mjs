@@ -20,6 +20,7 @@ const Layouts = {
   STRIP: "zenith.shell.scroller-tabs", // all · split
   FOCUS: "zenith.shell.scroller-focus", // view · centre
   widths: new WeakMap(), // a scroller column's tab → its width (% of the view)
+  unrestored: new WeakSet(), // a strip's columns whose pages wait to come into view
 
   init() {
     window.ZenithLayouts = this; // the bar's module, the settings page, tools/checks
@@ -56,6 +57,7 @@ const Layouts = {
     W?.addChangeListeners?.(spaceChanged);
     const select = () => {
       const how = this.of(), tab = gBrowser.selectedTab;
+      this.unrestored.delete(tab); // (SessionStore restores the tab you're on)
       if (how === "monocle") this.solo();
       else if (how === "scroller" && !this.arranging && Tiler.data(tab)) this.arrange(tab);
       if (how === "scroller" && !this.gathering && this.members().includes(tab) && !this.whole()) this.soon();
@@ -63,10 +65,23 @@ const Layouts = {
     // A strip takes in every new tab of its space.
     const opened = () => this.soon();
     gBrowser.tabContainer.addEventListener("TabOpen", opened);
+    // Zen restores every page of a split as it shows it: a strip has every
+    // tab of its space, so opening the browser loaded them all. A column's
+    // page is restored when it comes into view instead (Layouts.after).
+    const restoring = e => {
+      const tabs = e.detail?.tabs, data = tabs?.length && !e.detail.zenith ? Tiler.data(tabs[0]) : null;
+      if (!data || !this.scroller(data)) return;
+      const now = tabs.filter(t => t === gBrowser.selectedTab);
+      for (const t of tabs) if (!now.includes(t)) this.unrestored.add(t);
+      tabs.splice(0, tabs.length, ...now);
+    };
+    // (Before SessionStore's own, on the tab strip.)
+    window.addEventListener("TabSplitViewActivate", restoring, true);
     const scope = () => (this.strip() ? this.soon() : null);
     Services.prefs.addObserver(this.STRIP, scope);
     onUnload(() => {
       gBrowser.tabContainer.removeEventListener("TabOpen", opened);
+      window.removeEventListener("TabSplitViewActivate", restoring, true);
       Services.prefs.removeObserver(this.STRIP, scope);
     });
     // After the session is back: a strip space's tabs on their strip.
@@ -129,6 +144,7 @@ const Layouts = {
       window.removeEventListener("TabClose", closed, true);
       for (const p of [this.PREF, "zenith.shell.master", "zenith.shell.master-ratio"]) P.removeObserver(p, prefs);
     });
+    this.tell(); // (the bar's layout module, if it came first)
   },
 
   space() {
@@ -419,11 +435,16 @@ const Layouts = {
       x += w;
     }
     // Columns out of sight: their pages asleep, as a background tab's (Zen
-    // wakes every tile of a split after laying it out, hence a moment later).
+    // wakes every tile of a split after laying it out, hence a moment later);
+    // one not restored yet stays unloaded until it comes into view.
     if (shown) {
       Promise.resolve().then(() => {
         for (const [tab, away] of off) {
           try {
+            if (this.unrestored.has(tab)) {
+              if (away) tab.setAttribute("pending", "true"); // (Zen took it off: the sidebar shows it unloaded)
+              else this.wake();
+            }
             // (Zen's zenModeActive keeps a split's tile awake whatever it's told.)
             const br = tab.linkedBrowser;
             if (!br || tab === gBrowser.selectedTab) continue;
@@ -433,6 +454,21 @@ const Layouts = {
         }
       });
     }
+  },
+
+  // A moment after the strip settles (it's laid out again for each column it
+  // takes in): the columns waiting to be restored that are in view.
+  wake() {
+    clearTimeout(this.waking);
+    this.waking = setTimeout(() => {
+      const data = Tiler.data(gBrowser.selectedTab);
+      for (const tab of data && this.scroller(data) ? data.tabs : []) {
+        const box = tab.linkedBrowser?.closest(".browserSidebarContainer");
+        if (!this.unrestored.has(tab) || !box || box.hasAttribute("zenith-off-strip")) continue;
+        this.unrestored.delete(tab);
+        gBrowser.tabContainer.dispatchEvent(new CustomEvent("TabSplitViewActivate", { detail: { tabs: [tab], zenith: true } }));
+      }
+    }, 400);
   },
 
   /* Tiler's hooks: a new tile, focus, moving, the layout's own action */

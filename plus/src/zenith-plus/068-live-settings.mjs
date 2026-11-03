@@ -85,12 +85,22 @@ const LiveSettings = {
     const value = Services.prefs.getStringPref(prop, "");
     const attr = prop.replaceAll(".", "-");
     if (host.getAttribute(attr) !== value) host.setAttribute(attr, value);
+    this.size(prop);
+  },
+
+  // A size, any on its slider and not only the listed ones, as a variable
+  // too: --zth-px-panels-gap (zenith.panels.gap).
+  size(prop) {
+    const value = Services.prefs.getStringPref(prop, ""), name = `--zth-px-${prop.slice(7).replaceAll(".", "-")}`;
+    if (/^\d+$/.test(value)) document.documentElement.style.setProperty(name, `${value}px`);
+    else document.documentElement.style.removeProperty(name);
   },
 
   init() {
     const observer = (_, __, prop) => {
       if (Object.hasOwn(DROPDOWNS, prop)) this.apply(prop);
     };
+    for (const prop of Object.keys(DROPDOWNS)) this.size(prop);
     Services.prefs.addObserver("zenith.", observer);
     onUnload(() => Services.prefs.removeObserver("zenith.", observer));
   },

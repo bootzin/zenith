@@ -789,7 +789,11 @@ export const SCHEMA = {
     "value": "48"
    }
   ],
-  "default": "30"
+  "default": "30",
+  "range": {
+   "min": 18,
+   "max": 64
+  }
  },
  "zenith.bar.length": {
   "label": "The bar's length",
@@ -817,19 +821,8 @@ export const SCHEMA = {
  },
  "zenith.bar.font": {
   "label": "Font",
-  "type": "dropdown",
-  "desc": "Monospace, as most rices have it (JetBrains Mono or Cascadia, their Nerd Font versions first). The browser's: whatever Theme › Looks › Font is (your system's unless you picked one).",
-  "options": [
-   {
-    "label": "Monospace (a Nerd Font, if you have one)",
-    "value": "mono"
-   },
-   {
-    "label": "The browser's (Theme › Looks › Font)",
-    "value": "system"
-   }
-  ],
-  "default": "mono"
+  "type": "string",
+  "desc": "The name of any installed font, for the bars only; empty, the browser's font (Theme › Looks › Font). The rice picker's Font lists them, each drawn in its own face."
  },
  "zenith.bar.icons": {
   "label": "Icons",
@@ -889,7 +882,11 @@ export const SCHEMA = {
     "value": "60"
    }
   ],
-  "default": "44"
+  "default": "44",
+  "range": {
+   "min": 28,
+   "max": 80
+  }
  },
  "zenith.bar.wide-px": {
   "label": "Width with titles",
@@ -917,7 +914,11 @@ export const SCHEMA = {
     "value": "320"
    }
   ],
-  "default": "210"
+  "default": "210",
+  "range": {
+   "min": 140,
+   "max": 400
+  }
  },
  "zenith.bar.side-rows": {
   "label": "Small modules on a side bar with titles",
@@ -1359,7 +1360,11 @@ export const SCHEMA = {
     "value": "16"
    }
   ],
-  "default": "0"
+  "default": "0",
+  "range": {
+   "min": 0,
+   "max": 32
+  }
  },
  "zenith.bar.corners": {
   "label": "The bar's corners",
@@ -1387,7 +1392,15 @@ export const SCHEMA = {
     "value": "999"
    }
   ],
-  "default": "0"
+  "default": "0",
+  "range": {
+   "min": 0,
+   "max": 24,
+   "end": {
+    "label": "Fully round",
+    "value": "999"
+   }
+  }
  },
  "zenith.bar.opacity": {
   "label": "The bar's background",
@@ -1471,7 +1484,15 @@ export const SCHEMA = {
     "value": "999"
    }
   ],
-  "default": "8"
+  "default": "8",
+  "range": {
+   "min": 0,
+   "max": 16,
+   "end": {
+    "label": "Pills",
+    "value": "999"
+   }
+  }
  },
  "zenith.bar.spacing": {
   "label": "Space between modules",
@@ -1503,7 +1524,11 @@ export const SCHEMA = {
     "value": "12"
    }
   ],
-  "default": "6"
+  "default": "6",
+  "range": {
+   "min": 0,
+   "max": 24
+  }
  },
  "zenith.bar.separators": {
   "label": "Between modules",
@@ -3418,15 +3443,15 @@ export const SCHEMA = {
  "zenith.plus.glance-buttons": {
   "label": "Glance's buttons",
   "type": "dropdown",
-  "desc": "Glance's and Peek's buttons (close, open as a tab, split, and reload): beside the page away from the sidebar as Zen has them, on the sidebar's side, or in a row along the page's top or bottom edge.",
+  "desc": "Glance's and Peek's buttons (close, open as a tab, split): to the right or the left of the page (Zen puts them on the side away from the sidebar), or in a row along the page's top or bottom edge.",
   "options": [
    {
-    "label": "Beside the page (Zen's)",
-    "value": "zen"
+    "label": "To the right of the page",
+    "value": "right"
    },
    {
-    "label": "Beside it, the other side",
-    "value": "other-side"
+    "label": "To the left of the page",
+    "value": "left"
    },
    {
     "label": "Along its top, in a row",
@@ -3437,7 +3462,7 @@ export const SCHEMA = {
     "value": "bottom"
    }
   ],
-  "default": "zen"
+  "default": "right"
  },
  "zenith.panels.pip": {
   "label": "Picture-in-picture controls",
@@ -3551,7 +3576,11 @@ export const SCHEMA = {
     "value": "24"
    }
   ],
-  "default": "6"
+  "default": "6",
+  "range": {
+   "min": 0,
+   "max": 32
+  }
  },
  "zenith.panels.notifications": {
   "label": "Notifications",

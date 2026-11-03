@@ -218,13 +218,15 @@
    that didn't parse once made Zen's resize handle cover the whole right
    pane. */
 
-:root { --zth-split-gap: 6px; }
-:root:has(#theme-Zenith-Panels[zenith-panels-gap="2"]) { --zth-split-gap: 2px; }
-:root:has(#theme-Zenith-Panels[zenith-panels-gap="4"]) { --zth-split-gap: 4px; }
-:root:has(#theme-Zenith-Panels[zenith-panels-gap="8"]) { --zth-split-gap: 8px; }
-:root:has(#theme-Zenith-Panels[zenith-panels-gap="12"]) { --zth-split-gap: 12px; }
-:root:has(#theme-Zenith-Panels[zenith-panels-gap="16"]) { --zth-split-gap: 16px; }
-:root:has(#theme-Zenith-Panels[zenith-panels-gap="24"]) { --zth-split-gap: 24px; }
+:root { --zth-split-gap: var(--zth-px-panels-gap, 6px); }
+/* (With Zenith Plus, any size on the slider: --zth-px-panels-gap, set by
+   its live settings.) */
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="2"]) { --zth-split-gap: var(--zth-px-panels-gap, 2px); }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="4"]) { --zth-split-gap: var(--zth-px-panels-gap, 4px); }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="8"]) { --zth-split-gap: var(--zth-px-panels-gap, 8px); }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="12"]) { --zth-split-gap: var(--zth-px-panels-gap, 12px); }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="16"]) { --zth-split-gap: var(--zth-px-panels-gap, 16px); }
+:root:has(#theme-Zenith-Panels[zenith-panels-gap="24"]) { --zth-split-gap: var(--zth-px-panels-gap, 24px); }
 
 :root:is(
     :has(#theme-Zenith-Panels[zenith-panels-split="gaps"]),

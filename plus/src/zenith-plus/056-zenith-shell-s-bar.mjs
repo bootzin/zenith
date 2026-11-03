@@ -12,7 +12,7 @@ const BarLoader = {
     ["title", "The tab you're on"], ["tabs", "This space's tabs"], ["media", "What's playing"], ["downloads", "Downloads"],
     ["timers", "Timers"], ["trackers", "Trackers blocked"], ["weather", "Weather"], ["memory", "Memory the browser uses"],
     ["appearance", "Pages dark or light"], ["extensions", "Extensions"], ["clock", "Clock"],
-    ["buttons", "The window's buttons"], ["power", "Power menu"], ["layout", "The space's layout"], ["overview", "Overview button"],
+    ["buttons", "The window's buttons"], ["power", "Power menu"], ["layout", "The layout (monocle, dwindle, master, scroller)"], ["overview", "Overview button"],
   ],
   // Each edge's list until you make your own: start | middle | end (top |
   // middle | bottom on the left and right), as waybar's modules-left,

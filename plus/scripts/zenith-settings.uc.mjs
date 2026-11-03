@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.18.1
+// @version        0.18.2
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 

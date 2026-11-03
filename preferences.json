@@ -1168,6 +1168,10 @@
         "value": "24"
       }
     ],
+    "zenithRange": {
+      "min": 0,
+      "max": 32
+    },
     "conditions": [
       {
         "conditions": [
@@ -2952,6 +2956,10 @@
         "value": "60"
       }
     ],
+    "zenithRange": {
+      "min": 28,
+      "max": 80
+    },
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -3013,6 +3021,10 @@
         "value": "320"
       }
     ],
+    "zenithRange": {
+      "min": 140,
+      "max": 400
+    },
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -3205,6 +3217,10 @@
         "value": "48"
       }
     ],
+    "zenithRange": {
+      "min": 18,
+      "max": 64
+    },
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -3325,6 +3341,10 @@
         "value": "16"
       }
     ],
+    "zenithRange": {
+      "min": 0,
+      "max": 32
+    },
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -3387,6 +3407,14 @@
         "value": "999"
       }
     ],
+    "zenithRange": {
+      "min": 0,
+      "max": 24,
+      "end": {
+        "label": "Fully round",
+        "value": "999"
+      }
+    },
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -3519,6 +3547,14 @@
         "value": "999"
       }
     ],
+    "zenithRange": {
+      "min": 0,
+      "max": 16,
+      "end": {
+        "label": "Pills",
+        "value": "999"
+      }
+    },
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -3585,6 +3621,10 @@
         "value": "12"
       }
     ],
+    "zenithRange": {
+      "min": 0,
+      "max": 24
+    },
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -3731,18 +3771,8 @@
   {
     "property": "zenith.bar.font",
     "label": "The bar's font",
-    "type": "dropdown",
-    "placeholder": "Default (Monospace (a Nerd Font, if you have one))",
-    "options": [
-      {
-        "label": "Monospace (a Nerd Font, if you have one)",
-        "value": "mono"
-      },
-      {
-        "label": "The browser's (Theme › Looks › Font)",
-        "value": "system"
-      }
-    ],
+    "type": "string",
+    "placeholder": "The browser's font",
     "usedBy": "zenith-plus",
     "conditions": [
       {
@@ -5529,15 +5559,15 @@
     "property": "zenith.plus.glance-buttons",
     "label": "Glance's and Peek's buttons",
     "type": "dropdown",
-    "placeholder": "Default (Beside the page (Zen's))",
+    "placeholder": "Default (To the right of the page)",
     "options": [
       {
-        "label": "Beside the page (Zen's)",
-        "value": "zen"
+        "label": "To the right of the page",
+        "value": "right"
       },
       {
-        "label": "Beside it, the other side",
-        "value": "other-side"
+        "label": "To the left of the page",
+        "value": "left"
       },
       {
         "label": "Along its top, in a row",

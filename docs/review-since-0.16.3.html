@@ -81,7 +81,7 @@
 <main>
   <header>
     <h1>Zenith: what to review since 0.16.3</h1>
-    <p class="lede">Every change from 0.16.3 to 0.18.1, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
+    <p class="lede">Every change from 0.16.3 to 0.18.2, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
     <div class="bar">
       <span class="progress" id="progress">0 of 0 reviewed</span>
       <span class="track" aria-hidden="true"><i id="fill"></i></span>
@@ -100,7 +100,22 @@
 <script>
 const NOT = "Not checked in Zen";
 const RELEASES = [
-  { v: "0.18.1", note: "This round. Your bar's background was Solid (100%), which is why the glass steps never changed it: choosing a step now writes the bars' background too.", items: [
+  { v: "0.18.2", note: "This round: after 0.18.1's list, from what you found.", items: [
+    ["Opening the browser loads only what's in view", "Scroller layout with several tabs in a space: restart Zen; only the column you're on and the one beside it load, the rest load as you move to them (dimmed in the sidebar until then)"],
+    ["Space around the bar is even", "Alt+Shift+P › Bars › Space around the bar, on any look: the same space above, below and to the sides of the bar, and between the bar and the page"],
+    ["A floating bar over the page", "Bars › How the top bar shows › Over the page, with the Floating look: the bar floats over the page with its space all round; the page fills the window under it", NOT],
+    ["Floating bar not stuck to the bottom edge", "A bottom bar with the Floating look, window maximised: space under it as on its sides. (Couldn't reproduce here: a screenshot helps if it's still stuck)", NOT],
+    ["Sizes slide pixel by pixel", "Alt+Shift+P › Bars: thickness, space around, corners (up to Fully round), the modules' corners (up to Pills), spacing; Settings › Bars › a rail's and a wide side bar's width; Panels › Tiling gap size"],
+    ["The layout module", "Settings › Bars › Modules: add The layout (monocle, dwindle, master, scroller) to a bar; it names the space's layout and a click goes to the next (Alt+Y)"],
+    ["Palette previews show their colours", "Alt+Shift+P › Colours: Your own colours, From your wallpaper, pywal and wallust are drawn in the colours they'd give (a source with nothing to read stays grey, its tooltip says why)"],
+    ["Accent colours as circles", "Alt+Shift+P › Colours › Accent colour, and Settings › Looks › Accent colour: each with its colour as a circle"],
+    ["No \"null\" in the picker", "Alt+Shift+P: every category (Colours, Shape, Font, Motion, Menus and buttons had \"null\" under their title)"],
+    ["Glance buttons by side", "Alt+Shift+P › Menus and buttons: To the right of the page, To the left, Along its top, Along its bottom (yours carried over to the side it was on)"],
+    ["One font list", "Alt+Shift+P › Font › Whose font: The browser, Every bar, or one bar, then any installed font (Monospace and The browser's are gone: a bar's font is the browser's unless you pick one)"],
+    ["No [object HTMLInputElement]", "Settings › Looks › Font, and Settings › Bars › The bar's font: a text box with your fonts offered as you type"],
+    ["Every section and group folds", "Settings: click a section's title or a group's title to fold it; it stays as you left it; searching opens what matches"],
+  ] },
+  { v: "0.18.1", note: "Your bar's background was Solid (100%), which is why the glass steps never changed it: choosing a step now writes the bars' background too.", items: [
     ["Window transparency steps look different", "Theme › Window transparency (or Alt+Shift+P › Glass): Balanced, Airy, Sheer and Glass on the sidebar, popups, the Dash, the picker and the bars"],
     ["Frost changes the blur behind every glass surface", "Alt+Shift+P › Glass › Frost: Off, Subtle, Strong, best seen at Sheer or Glass over a busy page", NOT],
     ["Glass edge on every surface", "Glass › Glass edge: Shine and Liquid on the Dash, the picker, the bars, popups, the find bar, toasts and the floating sidebar"],

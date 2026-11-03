@@ -13,6 +13,7 @@
 import {
   SCHEMA, PRESETS, Bars, EDGES, SHAPE_KEYS, value, label, set, setLook, defaultOf, changed, snapshot, restore, applyTheme,
   choosePreset,
+  stops,
 } from "./looks.mjs";
 
 const P = Services.prefs;
@@ -42,7 +43,8 @@ const CATEGORIES = [
   { id: "motion", label: "Motion", icon: "play", prefs: ["zenith.motion.preset", "zenith.motion.easing", "zenith.motion.speed"] },
   { id: "menus", label: "Menus and buttons", icon: "tray" },
 ];
-const BAR_SETTINGS = ["style", "size", "length", "opacity", "margin", "corners", "module-corners", "spacing", "separators", "border", "font", "icons"];
+// (A bar's font is in Font, with the browser's.)
+const BAR_SETTINGS = ["style", "size", "length", "opacity", "margin", "corners", "module-corners", "spacing", "separators", "border", "icons"];
 
 const MENUS = [["contentAreaContextMenu", "The page's right-click menu"], ["tabContextMenu", "A tab's right-click menu"]];
 const PLACES = [["shown", "Shown"], ["more", "In More"], ["off", "Off"]];
@@ -56,6 +58,11 @@ function node(tag, attrs = {}, ...kids) {
 }
 
 const short = text => text.replace(/ \(.*\)$/, "");
+
+// The bars that are on.
+function barsOn() {
+  return EDGES.filter(e => !["", "off"].includes(P.getStringPref(`zenith.bar.${e}`, "")));
+}
 
 function saved() {
   try {
@@ -79,7 +86,7 @@ function field(id, scope) {
   if (!id.startsWith("bar:")) {
     const e = SCHEMA[id] ?? null, preset = PRESETS[id];
     return {
-      id, label: preset ? "Preset" : e?.label ?? id, desc: e?.desc ?? "",
+      id, label: preset ? "Preset" : e?.label ?? id, desc: e?.desc ?? "", range: e?.range,
       options: preset ? preset.values.map(v => ({ value: v, label: MOTION_PRESET[v] ?? v })) : e?.options ?? [],
       now: () => value(id),
       base: () => (preset ? preset.default : defaultOf(id)),
@@ -90,7 +97,7 @@ function field(id, scope) {
   const key = id.slice(4), e = SCHEMA[`zenith.bar.${key}`];
   const edge = scope === "all" ? null : scope;
   return {
-    id, key, label: e.label, desc: e.desc ?? "", options: e.options,
+    id, key, label: e.label, desc: e.desc ?? "", options: e.options, range: e.range,
     now: () => (edge ? Bars.value(edge, key) : value(`zenith.bar.${key}`)),
     base: () => Bars.base(scope, key),
     changed() {
@@ -174,7 +181,8 @@ export const Picker = {
     for (const b of this.host.querySelectorAll(".zr-nav button")) b.toggleAttribute("current", b.getAttribute("cat") === id);
     const c = CATEGORIES.find(x => x.id === id);
     this.fields = [];
-    this.body.replaceChildren(node("h2", {}, c.label), c.blurb ? node("p", { class: "zr-blurb" }, c.blurb) : null);
+    // (replaceChildren() writes a null out as "null": only what there is.)
+    this.body.replaceChildren(...[node("h2", {}, c.label), c.blurb && node("p", { class: "zr-blurb" }, c.blurb)].filter(Boolean));
     if (id === "themes") this.themes();
     else if (id === "font") this.fonts();
     else if (id === "menus") this.menus();
@@ -191,18 +199,19 @@ export const Picker = {
     const kind = this.kind(f);
     const box = node("div", { class: kind === "seg" ? "zr-seg" : kind === "slider" ? "zr-slider" : "zr-grid", kind, field: f.id, role: "radiogroup", "aria-label": f.label });
     if (kind === "slider") {
-      const range = node("input", { type: "range", min: "0", max: String(f.options.length - 1), step: "1", "aria-label": f.label });
+      // (A size: every pixel; else its choices in order.)
+      const s = (f.stops = stops(f.options, f.range));
+      const range = node("input", { type: "range", min: String(s.min), max: String(s.max), step: "1", "aria-label": f.label });
       const out = node("output", { class: "zr-value" });
-      range.addEventListener("input", () => {
-        out.textContent = short(f.options[range.valueAsNumber].label);
-        range.style.setProperty("--zr-fill", `${(range.valueAsNumber / (f.options.length - 1)) * 100}%`);
-      });
-      range.addEventListener("change", () => f.write(f.options[range.valueAsNumber].value));
+      range.addEventListener("input", () => this.slid(range, out, s));
+      range.addEventListener("change", () => f.write(s.value(range.valueAsNumber)));
       box.append(range, out);
     } else {
       for (const o of f.options) {
+        // (An accent: its colour as a circle before its name.)
+        const dot = f.id === "zenith.core.accent" ? node("i", { class: "zr-dot", style: `background: var(--zth-hue-${o.value})` }) : null;
         const pick = kind === "seg"
-          ? node("button", { type: "button", class: "zr-opt", value: o.value, role: "radio", title: o.label }, short(o.label))
+          ? node("button", { type: "button", class: "zr-opt", value: o.value, role: "radio", title: o.label }, dot, short(o.label))
           : node("button", { type: "button", class: "zr-card", value: o.value, role: "radio", title: o.label }, this.picture(f, o.value), node("span", { class: "zr-label" }, short(o.label)));
         pick.addEventListener("click", () => f.write(o.value));
         box.append(pick);
@@ -214,10 +223,17 @@ export const Picker = {
     this.body.append(wrap);
   },
 
+  // A slider moved or set: its value said, the track filled to it.
+  slid(range, out, s) {
+    out.textContent = s.text(range.valueAsNumber);
+    range.style.setProperty("--zr-fill", `${((range.valueAsNumber - s.min) / Math.max(1, s.max - s.min)) * 100}%`);
+  },
+
   // How a setting's choices are shown: drawn (what they look like), a
   // slider (sizes and amounts), or words.
   kind(f) {
     const p = f.key ? `bar:${f.key}` : f.id;
+    if (f.range) return "slider";
     if (["zenith.palette", "bar:style", "zenith.core.window-transparency", "zenith.core.glass", "zenith.core.glass-edge",
          "zenith.core.corners", "zenith.motion.easing"].includes(p)) return "drawn";
     const numbers = f.options.filter(o => /^\d+$/.test(o.value)).length;
@@ -227,7 +243,19 @@ export const Picker = {
   // A choice drawn from the tokens it sets (core/chrome.css, motion/chrome.css).
   picture(f, v) {
     const p = f.key ? `bar:${f.key}` : f.id;
-    if (p === "zenith.palette") return window.ZenithPaletteColours?.[v] ? this.window(v, null) : node("span", { class: "zr-pic", kind: "swatch", own: "true" });
+    // (A palette made from your wallpaper, a colours file or your own: drawn
+    // as it would be now, once read.)
+    if (p === "zenith.palette") {
+      if (window.ZenithPaletteColours?.[v]) return this.window(v, null);
+      const pic = this.window(null, null);
+      pic.setAttribute("reading", "true");
+      window.ZenithPalettes?.peek(v).then(pal => {
+        pic.removeAttribute("reading");
+        if (pal) this.paint(pic, pal);
+        else pic.setAttribute("title", v === "wallpaper" ? "No wallpaper to take colours from yet" : `No ${v} colours file found`);
+      });
+      return pic;
+    }
     if (p === "bar:style") return this.window(null, v);
     const glass = node("i", { class: "zr-glass" }, node("b"), node("b"), node("b"));
     const pic = node("span", { class: "zr-pic", kind: "swatch" }, node("i", { class: "zr-backdrop" }), glass);
@@ -250,12 +278,16 @@ export const Picker = {
     const bar = node("span", { class: "zr-wbar" }, node("i", { class: "zr-a" }), node("i"), node("i", { class: "zr-mid" }), node("i"), node("i", { class: "zr-a2" }));
     const page = node("span", { class: "zr-wpage" }, node("i"), node("i"), node("i"));
     const pic = node("span", { class: "zr-pic", kind: "window", look: look || "islands" }, bar, page);
-    if (pal) {
-      pic.style.cssText = `--zr-base:${pal.base};--zr-mantle:${pal.mantle ?? pal.base};--zr-surface:${pal.surface};--zr-accent:${pal.accent};` +
-        `--zr-second:${pal.second ?? pal.accent};--zr-ink:${pal.text}`;
-      pic.append(node("span", { class: "zr-dots" }, ...["accent", "second", "red", "green", "yellow"].filter(k => pal[k]).map(k => node("i", { style: `background:${pal[k]}` }))));
-    }
+    if (pal) this.paint(pic, pal);
     return pic;
+  },
+
+  // A tiny window in a palette's colours, its accents as dots.
+  paint(pic, pal) {
+    pic.style.cssText = `--zr-base:${pal.base};--zr-mantle:${pal.mantle ?? pal.base};--zr-surface:${pal.surface};--zr-accent:${pal.accent};` +
+      `--zr-second:${pal.second ?? pal.accent};--zr-ink:${pal.text}`;
+    pic.querySelector(".zr-dots")?.remove();
+    pic.append(node("span", { class: "zr-dots" }, ...["accent", "second", "red", "green", "yellow"].filter(k => pal[k]).map(k => node("i", { style: `background:${pal[k]}` }))));
   },
 
   themes() {
@@ -296,7 +328,7 @@ export const Picker = {
 
   // Bars: which bar (every one, or one of those that are on), then its settings.
   bars() {
-    const on = EDGES.filter(e => !["", "off"].includes(P.getStringPref(`zenith.bar.${e}`, "")));
+    const on = barsOn();
     if (this.scope !== "all" && !on.includes(this.scope)) this.scope = "all";
     const which = node("div", { class: "zr-seg zr-scope", role: "radiogroup", "aria-label": "Which bar" });
     for (const [v, text] of [["all", "Every bar"], ...on.map(e => [e, `${e[0].toUpperCase()}${e.slice(1)}`])]) {
@@ -313,27 +345,55 @@ export const Picker = {
     for (const k of BAR_SETTINGS) this.setting(field(`bar:${k}`, this.scope));
   },
 
+  // Font: the installed fonts, each in its own face, for the browser or the
+  // bars (every bar, or one). A bar's font is the browser's unless it has
+  // its own; the browser's is your system's unless you pick one.
   async fonts() {
-    this.setting(field("zenith.bar.font"));
-    const field_ = node("input", { type: "search", class: "zr-search", placeholder: "Find a font", "aria-label": "Find a font" });
+    const on = barsOn();
+    if (!["browser", "all", ...on].includes(this.fontFor)) this.fontFor = "browser";
+    const which = node("div", { class: "zr-seg zr-scope", role: "radiogroup", "aria-label": "Whose font" });
+    for (const [v, text] of [["browser", "The browser"], ["all", "Every bar"], ...on.map(e => [e, `The ${e} bar`])]) {
+      const b = node("button", { type: "button", class: "zr-opt", value: v, role: "radio" }, text);
+      b.toggleAttribute("current", v === this.fontFor);
+      b.addEventListener("click", () => {
+        this.fontFor = v;
+        this.show("font");
+      });
+      which.append(b);
+    }
+    const bars = this.fontFor !== "browser";
+    const find = node("input", { type: "search", class: "zr-search", placeholder: "Find a font", "aria-label": "Find a font" });
     const list = node("div", { class: "zr-fonts" });
-    this.body.append(node("div", { class: "zr-field" }, node("div", { class: "zr-field-head" }, node("h3", {}, "The browser's font"), node("span", { class: "zr-was", field: "zenith.core.font" })),
-      node("p", { class: "zr-desc" }, SCHEMA["zenith.core.font"]?.desc ?? ""), field_, list));
+    this.body.append(node("div", { class: "zr-field" }, node("div", { class: "zr-field-head" }, node("h3", {}, "Whose font"), node("span", { class: "zr-was", field: "font" })),
+      node("p", { class: "zr-desc" }, bars ? SCHEMA["zenith.bar.font"]?.desc ?? "" : SCHEMA["zenith.core.font"]?.desc ?? ""), which, find, list));
     const all = await allFonts();
+    if (this.cat !== "font") return;
     const draw = () => {
-      const q = field_.value.trim().toLowerCase();
+      const q = find.value.trim().toLowerCase();
       const pick = name => {
-        const b = node("button", { type: "button", class: "zr-font", value: name }, name || "Your system's font");
+        const b = node("button", { type: "button", class: "zr-font", value: name }, name || (bars ? "The browser's font" : "Your system's font"));
         if (name) b.style.fontFamily = `"${name}"`;
-        b.addEventListener("click", () => (name ? set("zenith.core.font", name) : P.clearUserPref("zenith.core.font")));
+        b.addEventListener("click", () => this.chooseFont(name));
         return b;
       };
       list.replaceChildren(pick(""), ...all.filter(f => !q || f.toLowerCase().includes(q)).slice(0, 200).map(pick));
       this.mark();
     };
-    field_.addEventListener("input", draw);
+    find.addEventListener("input", draw);
     draw();
-    field_.focus();
+    find.focus();
+  },
+
+  // The font picked for whose it is ("": the browser's, or your system's).
+  fontNow() {
+    if (this.fontFor === "browser") return P.getStringPref("zenith.core.font", "");
+    return this.fontFor === "all" ? value("zenith.bar.font") : Bars.value(this.fontFor, "font");
+  },
+
+  chooseFont(name) {
+    if (this.fontFor !== "browser") return Bars.set(this.fontFor, "font", name);
+    if (name) set("zenith.core.font", name);
+    else P.clearUserPref("zenith.core.font");
   },
 
   // Menus and buttons: where Glance's and Peek's buttons sit, and each
@@ -369,10 +429,9 @@ export const Picker = {
     for (const f of this.fields ?? []) {
       const now = f.now(), box = this.host.querySelector(`[kind][field="${f.id}"]`);
       if (box?.getAttribute("kind") === "slider") {
-        const range = box.querySelector("input"), i = Math.max(0, f.options.findIndex(o => o.value === now));
-        range.value = String(i);
-        range.style.setProperty("--zr-fill", `${(i / Math.max(1, f.options.length - 1)) * 100}%`);
-        box.querySelector("output").textContent = short(f.options[i]?.label ?? now);
+        const range = box.querySelector("input");
+        range.value = String(f.stops.at(now));
+        this.slid(range, box.querySelector("output"), f.stops);
       } else if (box) {
         for (const c of box.children) {
           c.toggleAttribute("current", c.getAttribute("value") === String(now));
@@ -385,7 +444,7 @@ export const Picker = {
         if (f.changed()) {
           const reset = node("button", { type: "button", class: "zr-link" }, "Reset");
           reset.addEventListener("click", () => f.write(f.base()));
-          parts.push(node("span", {}, `Default: ${short(f.options.find(o => o.value === f.base())?.label ?? f.base())}`), reset);
+          parts.push(node("span", {}, `Default: ${short(f.options.find(o => o.value === f.base())?.label ?? (f.range ? `${f.base()}px` : f.base()))}`), reset);
         }
         was.replaceChildren(...parts);
       }
@@ -404,13 +463,13 @@ export const Picker = {
       const now = M?.place(id, rare);
       for (const b of seg.children) b.toggleAttribute("current", b.getAttribute("value") === now);
     }
-    const font = P.getStringPref("zenith.core.font", "");
-    for (const f of this.host.querySelectorAll(".zr-font")) f.toggleAttribute("current", f.getAttribute("value") === font);
-    const fontWas = this.host.querySelector('.zr-was[field="zenith.core.font"]');
+    const fontWas = this.host.querySelector('.zr-was[field="font"]');
     if (fontWas) {
+      const font = this.fontNow();
+      for (const f of this.host.querySelectorAll(".zr-font")) f.toggleAttribute("current", f.getAttribute("value") === font);
       const reset = node("button", { type: "button", class: "zr-link" }, "Reset");
-      reset.addEventListener("click", () => P.clearUserPref("zenith.core.font"));
-      fontWas.replaceChildren(...(font ? [node("span", {}, "Default: your system's font"), reset] : []));
+      reset.addEventListener("click", () => this.chooseFont(""));
+      fontWas.replaceChildren(...(font ? [node("span", {}, `Default: ${this.fontFor === "browser" ? "your system's font" : "the browser's font"}`), reset] : []));
     }
   },
 };

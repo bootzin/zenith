@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.18.1
+// @version        0.18.2
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -1377,6 +1377,10 @@ const SCHEMA = [
        }
       ],
       "default": "30",
+      "range": {
+       "min": 18,
+       "max": 64
+      },
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -1476,21 +1480,11 @@ const SCHEMA = [
      {
       "property": "zenith.bar.font",
       "label": "Font",
-      "type": "dropdown",
+      "type": "string",
       "extra": false,
-      "desc": "Monospace, as most rices have it (JetBrains Mono or Cascadia, their Nerd Font versions first). The browser's: whatever Theme › Looks › Font is (your system's unless you picked one).",
+      "desc": "The name of any installed font, for the bars only; empty, the browser's font (Theme › Looks › Font). The rice picker's Font lists them, each drawn in its own face.",
       "host": "Zenith Plus",
-      "options": [
-       {
-        "label": "Monospace (a Nerd Font, if you have one)",
-        "value": "mono"
-       },
-       {
-        "label": "The browser's (Theme › Looks › Font)",
-        "value": "system"
-       }
-      ],
-      "default": "mono",
+      "placeholder": "The browser's font",
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -1650,6 +1644,10 @@ const SCHEMA = [
        }
       ],
       "default": "44",
+      "range": {
+       "min": 28,
+       "max": 80
+      },
       "rule": {
        "why": "Side bars have titles (or there's none)",
        "conditions": [
@@ -1714,6 +1712,10 @@ const SCHEMA = [
        }
       ],
       "default": "210",
+      "range": {
+       "min": 140,
+       "max": 400
+      },
       "rule": {
        "why": "Side bars are a rail (or there's none)",
        "conditions": [
@@ -2856,6 +2858,10 @@ const SCHEMA = [
        }
       ],
       "default": "0",
+      "range": {
+       "min": 0,
+       "max": 32
+      },
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -2921,6 +2927,14 @@ const SCHEMA = [
        }
       ],
       "default": "0",
+      "range": {
+       "min": 0,
+       "max": 24,
+       "end": {
+        "label": "Fully round",
+        "value": "999"
+       }
+      },
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -3116,6 +3130,14 @@ const SCHEMA = [
        }
       ],
       "default": "8",
+      "range": {
+       "min": 0,
+       "max": 16,
+       "end": {
+        "label": "Pills",
+        "value": "999"
+       }
+      },
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -3185,6 +3207,10 @@ const SCHEMA = [
        }
       ],
       "default": "6",
+      "range": {
+       "min": 0,
+       "max": 24
+      },
       "rule": {
        "why": "The bar is off",
        "conditions": [
@@ -6656,16 +6682,16 @@ const SCHEMA = [
       "label": "Glance's buttons",
       "type": "dropdown",
       "extra": false,
-      "desc": "Glance's and Peek's buttons (close, open as a tab, split, and reload): beside the page away from the sidebar as Zen has them, on the sidebar's side, or in a row along the page's top or bottom edge.",
+      "desc": "Glance's and Peek's buttons (close, open as a tab, split): to the right or the left of the page (Zen puts them on the side away from the sidebar), or in a row along the page's top or bottom edge.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Beside the page (Zen's)",
-        "value": "zen"
+        "label": "To the right of the page",
+        "value": "right"
        },
        {
-        "label": "Beside it, the other side",
-        "value": "other-side"
+        "label": "To the left of the page",
+        "value": "left"
        },
        {
         "label": "Along its top, in a row",
@@ -6676,7 +6702,7 @@ const SCHEMA = [
         "value": "bottom"
        }
       ],
-      "default": "zen"
+      "default": "right"
      }
     ]
    },
@@ -6832,6 +6858,10 @@ const SCHEMA = [
       ],
       "default": "6",
       "parent": "zenith.panels.split",
+      "range": {
+       "min": 0,
+       "max": 32
+      },
       "rule": {
        "why": "Only with Split view: Tiling gaps",
        "conditions": [
@@ -7556,7 +7586,7 @@ function stored(s) {
   const v = P.getStringPref(s.property, "");
   // (A value that isn't one of its choices, from a typo in the rice file
   // say, is the default.)
-  return s.type === "dropdown" && v && !s.options?.some(o => o.value === v) ? "" : v;
+  return s.type === "dropdown" && v && !s.options?.some(o => o.value === v) && !Looks?.inRange(s.range, v) ? "" : v;
 }
 
 function presetOf(section) {
@@ -7775,7 +7805,26 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.18.1";
+const SCHEMA_VERSION = "0.18.2";
+
+// The settings page's folded and opened sections and groups (by section id,
+// or "section/group title"), kept across visits.
+const Folds = {
+  PREF: "zenith.internal.settings-folds",
+  all() {
+    try {
+      return JSON.parse(Services.prefs.getStringPref(this.PREF, "") || "{}");
+    } catch {
+      return {};
+    }
+  },
+  open(key, otherwise) {
+    return this.all()[key] ?? otherwise;
+  },
+  keep(key, open) {
+    Services.prefs.setStringPref(this.PREF, JSON.stringify({ ...this.all(), [key]: open }));
+  },
+};
 
 class SettingsView {
   constructor(kind) {
@@ -7837,6 +7886,8 @@ class SettingsView {
   go(id) {
     const section = this.root.querySelector(`.zp-section[data-section="${id}"]`);
     if (!section) return;
+    // (A folded section gone to opens.)
+    if (section.hasAttribute("zp-folded")) section.querySelector(".zp-section-head")?.click();
     this.picked = id;
     this.mark(id);
     const scroller = this.scroller(), start = scroller.scrollTop;
@@ -7915,23 +7966,37 @@ class SettingsView {
 
   section(section) {
     const node = el("section", { class: "zp-section", "data-section": section.id, id: `zp-${section.id}` });
-    const head = el("div", { class: "zp-section-head" });
+    // Every section and group folds (its title a click); what you folded or
+    // opened stays so. Fine-tuning groups start closed: the few settings most
+    // people want stay in view, the rest a click away (search opens them).
+    const head = el("button", { type: "button", class: "zp-section-head", "aria-expanded": "true" });
     head.append(el("h2", {}, section.title), el("p", {}, section.blurb));
+    const fold = open => {
+      node.toggleAttribute("zp-folded", !open);
+      head.setAttribute("aria-expanded", String(open));
+    };
+    fold(Folds.open(section.id, true));
+    head.addEventListener("click", () => {
+      fold(node.hasAttribute("zp-folded"));
+      Folds.keep(section.id, !node.hasAttribute("zp-folded"));
+    });
     node.append(head);
     if (section.preset) node.append(this.presets(section));
     for (const group of section.groups) {
       const settings = group.settings.filter(s => !s.rule?.platform || s.rule.platform === OS);
       if (!settings.length) continue;
-      // Fine-tuning groups start closed: the few settings most people want
-      // stay in view, the rest a click away (search opens them).
-      const box = el(group.more ? "details" : "div", { class: "zp-group" });
-      const title = el("h3", {}, group.title);
-      if (group.more) {
-        box.setAttribute("zp-more", "");
-        const summary = el("summary", {});
-        summary.append(title, el("span", { class: "zp-count" }, `${settings.length} more`));
-        box.append(summary);
-      } else box.append(title);
+      const box = el("details", { class: "zp-group" }), key = `${section.id}/${group.title}`;
+      if (group.more) box.setAttribute("zp-more", "");
+      box.open = box.zpKept = Folds.open(key, !group.more);
+      // (Kept when you open or close it: not as it starts, nor while searching.)
+      box.addEventListener("toggle", () => {
+        if (box.zpWasOpen !== undefined || box.open === box.zpKept) return;
+        box.zpKept = box.open;
+        Folds.keep(key, box.open);
+      });
+      const summary = el("summary", {});
+      summary.append(el("h3", {}, group.title), el("span", { class: "zp-count" }, group.more ? `${settings.length} more` : `${settings.length}`));
+      box.append(summary);
       if (group.blurb) box.append(el("p", { class: "zp-group-blurb" }, group.blurb));
       if (section.id === "bar" && settings.some(s => s.property === "zenith.bar.style")) box.append(this.whichBar());
       for (const s of settings) box.append(this.row(s, section));
@@ -8381,12 +8446,14 @@ class SettingsView {
       const input = el("input", { type: "text", class: "zp-input", placeholder: s.placeholder, spellcheck: "false" });
       input.addEventListener("change", () => write(s, input.value.trim()));
       // The font: the installed ones offered as you type.
-      if (s.property === "zenith.core.font") {
+      if (s.property === "zenith.core.font" || s.property === "zenith.bar.font") {
         const list = el("datalist", { id: `zp-fonts-${Math.random().toString(36).slice(2, 7)}` });
         input.setAttribute("list", list.id);
         Cc["@mozilla.org/gfx/fontenumerator;1"].getService(Ci.nsIFontEnumerator).EnumerateAllFontsAsync()
           .then(all => list.append(...[...new Set(all)].sort().map(f => el("option", { value: f }))));
-        const box = el("div", { class: "zp-font" }, input, list);
+        // (el()'s third argument is text: the input and its list appended.)
+        const box = el("div", { class: "zp-font" });
+        box.append(input, list);
         return { node: box, update: v => { if (input.ownerDocument.activeElement !== input) input.value = v; } };
       }
       return { node: input, update: v => { if (input.ownerDocument.activeElement !== input) input.value = v; } };
@@ -8404,6 +8471,7 @@ class SettingsView {
     }
     // Sizes and amounts (every choice a number): a slider over the choices.
     const nums = s.options.filter(o => /^\d+$/.test(o.value));
+    if (s.range) return this.slider(s);
     if (nums.length >= 4 && nums.length === s.options.length && s.options.length <= 12) return this.slider(s);
     const short = s.options.length <= 4 && s.options.reduce((n, o) => n + o.label.length, 0) <= 40;
     if (short) {
@@ -8420,20 +8488,29 @@ class SettingsView {
 
   // A slider over a setting's choices (in their order), its value beside it
   // (the arrow keys step it).
+  // (A size: every pixel on it, looks.mjs's stops(); else its choices in order.)
   slider(s) {
     const box = el("div", { class: "zp-slider" });
-    const range = el("input", { type: "range", min: "0", max: String(s.options.length - 1), step: "1", "aria-label": s.label });
+    const range = el("input", { type: "range", step: "1", "aria-label": s.label });
     const value = el("output", { class: "zp-slider-value" });
+    let stops = null;
+    const ready = () => {
+      if (stops || !Looks) return !!stops;
+      stops = Looks.stops(s.options, s.range);
+      range.min = String(stops.min);
+      range.max = String(stops.max);
+      return true;
+    };
     const at = () => parseInt(range.value, 10);
-    range.addEventListener("input", () => (value.textContent = s.options[at()].label));
-    range.addEventListener("change", () => write(s, s.options[at()].value));
+    range.addEventListener("input", () => ready() && (value.textContent = stops.text(at())));
+    range.addEventListener("change", () => ready() && write(s, stops.value(at())));
     box.append(range, value);
     return {
       node: box,
       update: v => {
-        const i = Math.max(0, s.options.findIndex(o => o.value === v));
-        range.value = String(i);
-        value.textContent = s.options[i].label;
+        if (!ready()) return;
+        range.value = String(stops.at(v));
+        value.textContent = stops.text(at());
       },
     };
   }
@@ -8449,8 +8526,11 @@ class SettingsView {
     const close = () => {
       if (list.matches(":popover-open")) list.hidePopover();
     };
+    // (An accent: its colour as a circle, the browser window's token.)
+    const win = Services.wm.getMostRecentWindow("navigator:browser"), hue = v => win && getComputedStyle(win.document.documentElement).getPropertyValue(`--zth-hue-${v}`).trim();
     for (const o of s.options) {
       const option = el("button", { class: "zp-option", type: "button", role: "option", "data-value": o.value }, o.label);
+      if (s.property === "zenith.core.accent") option.prepend(el("i", { class: "zp-dot", style: `background: ${hue(o.value) || "transparent"}` }));
       option.addEventListener("click", () => {
         write(s, o.value);
         close();
@@ -8513,7 +8593,17 @@ class SettingsView {
     for (const group of this.root.querySelectorAll(".zp-group, .zp-section")) {
       group.toggleAttribute("zp-hidden", !group.querySelector(".zp-row:not([zp-hidden]), .zp-presets:not([zp-hidden])"));
     }
-    // (A closed group with a match opens while searching, and closes after.)
+    // (A folded section or closed group with a match opens while searching,
+    // and folds again after.)
+    for (const sec of this.root.querySelectorAll(".zp-section")) {
+      if (words.length) {
+        sec.zpWasFolded ??= sec.hasAttribute("zp-folded");
+        sec.removeAttribute("zp-folded");
+      } else if (sec.zpWasFolded !== undefined) {
+        sec.toggleAttribute("zp-folded", sec.zpWasFolded);
+        delete sec.zpWasFolded;
+      }
+    }
     for (const more of this.root.querySelectorAll("details.zp-group")) {
       if (words.length) {
         more.zpWasOpen ??= more.open;
@@ -8594,6 +8684,13 @@ const STYLE = `
   details.zp-group > summary::before { content: "›"; display: inline-block; width: 10px; color: var(--zp-dim); transition: transform 0.15s; }
   details.zp-group[open] > summary::before { transform: rotate(90deg); }
   details.zp-group > summary h3 { margin: 0; }
+  .zp-dot { display: inline-block; width: 10px; height: 10px; margin-inline-end: 8px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1px var(--zp-border); }
+  details.zp-group[open]:not([zp-more]) .zp-count { display: none; }
+  .zp-section-head { all: unset; display: block; box-sizing: border-box; width: 100%; cursor: pointer; }
+  .zp-section-head h2::after { content: "⌄"; display: inline-block; margin-inline-start: 8px; color: var(--zp-dim); font-size: 0.7em; transition: transform 0.15s; }
+  .zp-section[zp-folded] .zp-section-head h2::after { transform: rotate(-90deg); }
+  .zp-section-head:focus-visible { outline: 2px solid var(--zp-accent, currentColor); outline-offset: 2px; border-radius: var(--zp-radius-s, 4px); }
+  .zp-section[zp-folded] > :not(.zp-section-head) { display: none; }
   details.zp-group .zp-count { margin-inline-start: auto; color: var(--zp-dim); font-size: 0.85em; }
   .zp-row[child] { padding-inline-start: 18px; position: relative; }
   .zp-row[child]::before { content: ""; position: absolute; inset-inline-start: 4px; top: 12px; bottom: 12px; width: 2px;

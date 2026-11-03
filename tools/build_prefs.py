@@ -25,6 +25,14 @@ def dropdown(prop, label, default_label, *options):
     }
 
 
+def px(entry, lo, hi, end=None):
+    """A size in pixels: any whole number from lo to hi on Zenith's sliders
+    (the listed choices are Sine's). `end`: a last stop past hi, as
+    (label, value), say ("Fully round", "999")."""
+    entry["zenithRange"] = {"min": lo, "max": hi, **({"end": {"label": end[0], "value": end[1]}} if end else {})}
+    return entry
+
+
 def tri(prop, label):
     return {
         "property": prop,
@@ -236,9 +244,9 @@ MODS = {
         tri("zenith.panels.glance", "Extra: Glance as a lifted card"),
         dropdown("zenith.panels.split", "Split view", "Tiling gaps",
                  ("Hairlines", "hairlines"), ("Tiling gaps", "gaps"), ("Zen default", "zen")),
-        when(dropdown("zenith.panels.gap", "Tiling gap size", "6px",
-                      ("2px", "2"), ("4px", "4"), ("6px", "6"), ("8px", "8"), ("12px", "12"),
-                      ("16px", "16"), ("24px", "24")),
+        when(px(dropdown("zenith.panels.gap", "Tiling gap size", "6px",
+                         ("2px", "2"), ("4px", "4"), ("6px", "6"), ("8px", "8"), ("12px", "12"),
+                         ("16px", "16"), ("24px", "24")), 0, 32),
              "Only with Split view: Tiling gaps",
              ANY(IF("zenith.panels.split", "gaps"),
                  ALL(IF("zenith.panels.split", ""), NOT("zenith.panels.preset", "zen")))),
@@ -432,12 +440,12 @@ MODS = {
         when(script(dropdown("zenith.bar.side-width", "Bars on the left or right", "A rail of icons",
                              ("A rail of icons", "rail"), ("With titles", "wide"))),
              "There's no bar on the left or right", ANY(IF("zenith.bar.left", "on"), IF("zenith.bar.right", "on"))),
-        when(script(dropdown("zenith.bar.rail-px", "A rail's width", "44px",
-                             ("36px", "36"), ("44px", "44"), ("52px", "52"), ("60px", "60"))),
+        when(script(px(dropdown("zenith.bar.rail-px", "A rail's width", "44px",
+                                ("36px", "36"), ("44px", "44"), ("52px", "52"), ("60px", "60")), 28, 80)),
              "Side bars have titles (or there's none)",
              ALL(ANY(IF("zenith.bar.left", "on"), IF("zenith.bar.right", "on")), NOT("zenith.bar.side-width", "wide"))),
-        when(script(dropdown("zenith.bar.wide-px", "A side bar's width with titles", "210px",
-                             ("180px", "180"), ("210px", "210"), ("240px", "240"), ("280px", "280"), ("320px", "320"))),
+        when(script(px(dropdown("zenith.bar.wide-px", "A side bar's width with titles", "210px",
+                                ("180px", "180"), ("210px", "210"), ("240px", "240"), ("280px", "280"), ("320px", "320")), 140, 400)),
              "Side bars are a rail (or there's none)",
              ALL(ANY(IF("zenith.bar.left", "on"), IF("zenith.bar.right", "on")), IF("zenith.bar.side-width", "wide"))),
         when(script(dropdown("zenith.bar.side-rows", "Small modules on a side bar with titles", "Each a row with its name",
@@ -448,28 +456,27 @@ MODS = {
                      ("Islands (Hyprland and waybar)", "islands"), ("Floating (a rounded bar off the edges)", "floating"),
                      ("Bare (modules on the window, no bar)", "bare"), ("Strip (polybar)", "strip"),
                      ("Minimal (i3bar)", "minimal"), ("Powerline", "powerline")),
-            dropdown("zenith.bar.size", "The bar's thickness", "30px",
-                     ("20px", "20"), ("24px", "24"), ("28px", "28"), ("30px", "30"), ("32px", "32"), ("36px", "36"),
-                     ("40px", "40"), ("44px", "44"), ("48px", "48")),
+            px(dropdown("zenith.bar.size", "The bar's thickness", "30px",
+                        ("20px", "20"), ("24px", "24"), ("28px", "28"), ("30px", "30"), ("32px", "32"), ("36px", "36"),
+                        ("40px", "40"), ("44px", "44"), ("48px", "48")), 18, 64),
             dropdown("zenith.bar.length", "The bar's length", "The whole edge",
                      ("The whole edge", "full"), ("Only as long as its modules", "fit"), ("80% of the edge", "80"), ("60% of the edge", "60")),
-            dropdown("zenith.bar.margin", "Space around the bar", "None",
-                     ("None", "0"), ("4px", "4"), ("8px", "8"), ("12px", "12"), ("16px", "16")),
-            dropdown("zenith.bar.corners", "The bar's corners", "Square",
-                     ("Square", "0"), ("6px", "6"), ("12px", "12"), ("18px", "18"), ("Fully round", "999")),
+            px(dropdown("zenith.bar.margin", "Space around the bar", "None",
+                        ("None", "0"), ("4px", "4"), ("8px", "8"), ("12px", "12"), ("16px", "16")), 0, 32),
+            px(dropdown("zenith.bar.corners", "The bar's corners", "Square",
+                        ("Square", "0"), ("6px", "6"), ("12px", "12"), ("18px", "18"), ("Fully round", "999")), 0, 24, ("Fully round", "999")),
             dropdown("zenith.bar.opacity", "The bar's background", "Airy (66%)",
                      ("Solid (100%)", "100"), ("Dense (92%)", "92"), ("Balanced (82%)", "82"), ("Airy (66%)", "66"),
                      ("Sheer (46%)", "46"), ("Glass (28%)", "28"), ("None (0%)", "0")),
-            dropdown("zenith.bar.module-corners", "The modules' corners", "8px",
-                     ("Square", "0"), ("4px", "4"), ("8px", "8"), ("12px", "12"), ("Pills", "999")),
-            dropdown("zenith.bar.spacing", "Space between modules", "6px",
-                     ("None", "0"), ("2px", "2"), ("4px", "4"), ("6px", "6"), ("8px", "8"), ("12px", "12")),
+            px(dropdown("zenith.bar.module-corners", "The modules' corners", "8px",
+                        ("Square", "0"), ("4px", "4"), ("8px", "8"), ("12px", "12"), ("Pills", "999")), 0, 16, ("Pills", "999")),
+            px(dropdown("zenith.bar.spacing", "Space between modules", "6px",
+                        ("None", "0"), ("2px", "2"), ("4px", "4"), ("6px", "6"), ("8px", "8"), ("12px", "12")), 0, 24),
             dropdown("zenith.bar.border", "The bar's border", "None",
                      ("None", "off"), ("A hairline", "hairline"), ("The accent", "accent")),
             dropdown("zenith.bar.separators", "Between modules", "Nothing",
                      ("Nothing", "off"), ("A line", "line"), ("A dot", "dot")),
-            dropdown("zenith.bar.font", "The bar's font", "Monospace (a Nerd Font, if you have one)",
-                     ("Monospace (a Nerd Font, if you have one)", "mono"), ("The browser's (Theme › Looks › Font)", "system")),
+            text("zenith.bar.font", "The bar's font", "The browser's font"),
             dropdown("zenith.bar.icons", "The bar's icons", "Zenith's own",
                      ("Zenith's own", "svg"), ("Nerd Font glyphs", "nerd"), ("Text", "text")),
             dropdown("zenith.bar.spaces", "Spaces in the bar", "Numbers",
@@ -583,8 +590,8 @@ MODS = {
                         ("The bottom right", "bottom-right"), ("None", "off"))),
         script(dropdown("zenith.shell.new-tile", "Where a new tile goes", "Along the tile's longer side",
                         ("Along the tile's longer side", "dwindle"), ("Always to the right", "right"), ("Always below", "below"))),
-        script(dropdown("zenith.plus.glance-buttons", "Glance's and Peek's buttons", "Beside the page (Zen's)",
-                        ("Beside the page (Zen's)", "zen"), ("Beside it, the other side", "other-side"), ("Along its top, in a row", "top"), ("Along its bottom, in a row", "bottom"))),
+        script(dropdown("zenith.plus.glance-buttons", "Glance's and Peek's buttons", "To the right of the page",
+                        ("To the right of the page", "right"), ("To the left of the page", "left"), ("Along its top, in a row", "top"), ("Along its bottom, in a row", "bottom"))),
         script(dropdown("zenith.shell.split-essential", "Splitting an essential", "Don't: say why",
                         ("Don't: say why", "warn"), ("Zen's way: a copy of the essential in the split", "copy"))),
         script(dropdown("zenith.shell.split-background", "Links opened in the background from a split", "A new tile",
@@ -744,6 +751,8 @@ def page_schema():
             out["parent"] = ui.PARENTS[prop]
         if prop in ui.PICTURES:
             out["picture"] = True
+        if "zenithRange" in e:
+            out["range"] = e["zenithRange"]
         if "zenithWhy" in e:
             out["rule"] = {"why": e["zenithWhy"], "conditions": e.get("conditions", []),
                            **({"platform": e["zenithPlatform"]} if "zenithPlatform" in e else {})}
@@ -798,7 +807,7 @@ def main():
     # that reads and writes them (plus/pages/looks.mjs: the picker, the bars,
     # the settings page). A mod's own preferences.json isn't served to Plus's
     # pages, and defaults only exist here (a blank setting means its default).
-    schema = {s["property"]: {k: s[k] for k in ("label", "type", "desc", "options", "default") if k in s}
+    schema = {s["property"]: {k: s[k] for k in ("label", "type", "desc", "options", "default", "range") if k in s}
               for sec in sections for g in sec["groups"] for s in g["settings"] if s["type"] != "action"}
     presets = {sec["preset"]["property"]: {"default": sec["preset"]["default"], "sets": sec["preset"]["sets"],
                                           "values": [v["value"] for v in sec["preset"]["values"]]}

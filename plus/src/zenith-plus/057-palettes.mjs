@@ -105,6 +105,37 @@ const Palettes = {
     }
   },
 
+  // A palette's colours without choosing it (the rice picker's previews):
+  // a named one; one made from your wallpaper or a colours file as it would
+  // be now (null: nothing to make it from); your own, the space's colours.
+  async peek(name) {
+    if (PALETTES[name]) return PALETTES[name];
+    try {
+      if (name === "own") return this.own();
+      if (name === "wallpaper") return Wallpaper.url ? await this.fromImage(await (await fetch(Wallpaper.url)).blob()) : null;
+      const path = await PaletteSync.file(name);
+      return path ? this.fromWal(JSON.parse(await IOUtils.readUTF8(path))) : null;
+    } catch (e) {
+      console.error("[Zenith] palette", e);
+      return this.colours(name);
+    }
+  },
+
+  // Your own colours: the space's (as it was before a palette, if one is
+  // on), on Zen's light or dark.
+  own() {
+    const space = window.gZenWorkspaces?.getActiveWorkspace?.();
+    let theme = space?.theme;
+    try {
+      theme = JSON.parse(Services.prefs.getStringPref(this.SAVED, "") || "{}")[space?.uuid] ?? theme;
+    } catch {}
+    const cols = (theme?.gradientColors ?? []).map(x => (Array.isArray(x?.c) ? this.hex(x.c.slice(0, 3)) : null)).filter(Boolean);
+    const light = !window.matchMedia("(prefers-color-scheme: dark)").matches, base = light ? "#f4f4f5" : "#1c1c20";
+    const accent = cols[0] ?? getComputedStyle(root).getPropertyValue("--zth-hue-workspace").trim() ?? "#8888aa", text = light ? "#26262b" : "#e6e6ea";
+    return { light, base, mantle: this.mix(base, light ? "#ffffff" : "#000000", 0.25), surface: this.mix(base, text, 0.12),
+             overlay: this.mix(base, text, 0.45), text, accent, second: cols[1] ?? accent, ...(cols[2] ? { yellow: cols[2] } : {}) };
+  },
+
   // pywal's or wallust's colors.json: 0 the background, 7 (or the special
   // foreground) the text, 1–6 the accents (the most colourful first), 8 the muted.
   fromWal(j) {

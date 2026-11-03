@@ -107,15 +107,30 @@
    (A dropdown rather than free text: Sine passes an empty text setting
    as an empty value, which would blank the accent everywhere.) */
 
-:root:has(#theme-Zenith-Core[zenith-core-accent="lavender"]) { --zth-accent: oklch(0.72 0.12 300); }
-:root:has(#theme-Zenith-Core[zenith-core-accent="blue"]) { --zth-accent: oklch(0.68 0.14 250); }
-:root:has(#theme-Zenith-Core[zenith-core-accent="teal"]) { --zth-accent: oklch(0.72 0.11 190); }
-:root:has(#theme-Zenith-Core[zenith-core-accent="green"]) { --zth-accent: oklch(0.72 0.14 150); }
-:root:has(#theme-Zenith-Core[zenith-core-accent="amber"]) { --zth-accent: oklch(0.8 0.14 80); }
-:root:has(#theme-Zenith-Core[zenith-core-accent="orange"]) { --zth-accent: oklch(0.72 0.16 50); }
-:root:has(#theme-Zenith-Core[zenith-core-accent="red"]) { --zth-accent: oklch(0.66 0.19 25); }
-:root:has(#theme-Zenith-Core[zenith-core-accent="pink"]) { --zth-accent: oklch(0.72 0.16 350); }
-:root:has(#theme-Zenith-Core[zenith-core-accent="grey"]) { --zth-accent: oklch(0.65 0.01 280); }
+/* Each accent a token (the rice picker and the settings page draw their
+   circles from these; Workspace colour is Zen's own). */
+:root {
+  --zth-hue-workspace: var(--zen-accent-button-background, var(--zen-primary-color));
+  --zth-hue-lavender: oklch(0.72 0.12 300);
+  --zth-hue-blue: oklch(0.68 0.14 250);
+  --zth-hue-teal: oklch(0.72 0.11 190);
+  --zth-hue-green: oklch(0.72 0.14 150);
+  --zth-hue-amber: oklch(0.8 0.14 80);
+  --zth-hue-orange: oklch(0.72 0.16 50);
+  --zth-hue-red: oklch(0.66 0.19 25);
+  --zth-hue-pink: oklch(0.72 0.16 350);
+  --zth-hue-grey: oklch(0.65 0.01 280);
+}
+
+:root:has(#theme-Zenith-Core[zenith-core-accent="lavender"]) { --zth-accent: var(--zth-hue-lavender); }
+:root:has(#theme-Zenith-Core[zenith-core-accent="blue"]) { --zth-accent: var(--zth-hue-blue); }
+:root:has(#theme-Zenith-Core[zenith-core-accent="teal"]) { --zth-accent: var(--zth-hue-teal); }
+:root:has(#theme-Zenith-Core[zenith-core-accent="green"]) { --zth-accent: var(--zth-hue-green); }
+:root:has(#theme-Zenith-Core[zenith-core-accent="amber"]) { --zth-accent: var(--zth-hue-amber); }
+:root:has(#theme-Zenith-Core[zenith-core-accent="orange"]) { --zth-accent: var(--zth-hue-orange); }
+:root:has(#theme-Zenith-Core[zenith-core-accent="red"]) { --zth-accent: var(--zth-hue-red); }
+:root:has(#theme-Zenith-Core[zenith-core-accent="pink"]) { --zth-accent: var(--zth-hue-pink); }
+:root:has(#theme-Zenith-Core[zenith-core-accent="grey"]) { --zth-accent: var(--zth-hue-grey); }
 
 /* --- Screen tiers: small (1280x720, 1366x768) and large (2560x1440) ------ */
 

@@ -706,20 +706,20 @@ function tray(box) {
   box.append(m);
 }
 
-// The space's layout (Alt+Y): its picture and name; a click the next one.
+// The space's layout (Alt+Y): its picture and name (monocle, dwindle,
+// master, scroller); a click the next one. (Zenith's layouts may start after
+// the bars: drawn when they tell, ZenithLayout.)
 function layout(box) {
-  const L = window.ZenithLayouts;
-  if (!L) return;
   const m = mod("layout", "button"), ic = icon("dwindle"), text = node("span", { class: "zb-value" });
   m.append(ic, label("Layout"), text);
   box.append(m);
   const draw = () => {
-    const how = L.of();
+    const L = window.ZenithLayouts, how = L?.of() ?? "dwindle";
     setIcon(ic, how);
-    put(text, { dwindle: "dwindle", master: "master", scroller: "scroll", monocle: "mono" }[how]);
-    m.title = `Layout: ${L.NAMES[how]} · a click (or Alt+Y): the next`;
+    put(text, how);
+    m.title = `Layout: ${L?.NAMES[how] ?? how} · a click (or Alt+Y): the next`;
   };
-  m.addEventListener("click", () => L.cycle());
+  m.addEventListener("click", () => window.ZenithLayouts?.cycle());
   Undo.on(window, "ZenithLayout", draw);
   draw();
 }
@@ -978,8 +978,13 @@ const Bar = {
       bar.toggleAttribute("overlay", how === "overlay");
     };
     show();
-    window.addEventListener("fullscreen", () => setTimeout(show, 0));
-    window.addEventListener("sizemodechange", show);
+    // (Full screen: the gaps toward the page follow, Bar.look().)
+    const again = () => {
+      show();
+      if (this.bars?.includes(bar)) this.look();
+    };
+    window.addEventListener("fullscreen", () => setTimeout(again, 0));
+    window.addEventListener("sizemodechange", again);
     // The bar's empty space moves the window, as a title bar's (a double
     // click maximises it or gives it back). Natively where Firefox lets it
     // (dragArea(): Windows' snapping too); else the window follows the
@@ -1069,7 +1074,10 @@ const Bar = {
       // Hyprland rices' knobs: inline, every one a value.
       bar.setAttribute("look", my("style"));
       bar.setAttribute("size", my("size"));
-      bar.setAttribute("font", my("font"));
+      // (Its own font, else the browser's.)
+      const font = my("font").trim().replace(/["\\;{}]/g, "");
+      if (font) bar.style.setProperty("--zb-own-font", `"${font}"`);
+      else bar.style.removeProperty("--zb-own-font");
       bar.setAttribute("length", my("length"));
       bar.setAttribute("border", my("border"));
       bar.setAttribute("separators", my("separators"));
@@ -1092,8 +1100,11 @@ const Bar = {
       set("--zb-radius", `${my("module-corners")}px`);
       set("--zb-gap", `${my("spacing")}px`);
     }
+    // The bars taking their room with a margin: it's the gap toward the page.
+    const room = this.bars.filter(b => !b.hasAttribute("overlay") && !b.hasAttribute("collapsible"));
+    document.documentElement.setAttribute("zenith-bar-spaced", room.filter(b => parseInt(mine(b.getAttribute("edge"), "margin"), 10) > 0).map(b => b.getAttribute("edge")).join(" "));
     // A floating bar's gap and corners are the page's too (it floats with it).
-    const float = this.bars.find(b => ["floating", "bare"].includes(b.getAttribute("look"))), rs = document.documentElement.style;
+    const float = room.find(b => ["floating", "bare"].includes(b.getAttribute("look"))), rs = document.documentElement.style;
     if (float) {
       rs.setProperty("--zb-float-gap", `${Math.max(4, parseInt(mine(float.getAttribute("edge"), "margin"), 10))}px`);
       rs.setProperty("--zb-float-radius", `${mine(float.getAttribute("edge"), "corners")}px`);
@@ -1176,6 +1187,7 @@ const Bar = {
     document.documentElement.removeAttribute("zenith-bar-buttons");
     document.documentElement.removeAttribute("zenith-bar-hides");
     for (const v of ["--zb-float-gap", "--zb-float-radius"]) document.documentElement.style.removeProperty(v);
+    document.documentElement.removeAttribute("zenith-bar-spaced");
     this.probe?.remove();
     this.probe = null;
   },

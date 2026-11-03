@@ -170,6 +170,10 @@
         "value": "24"
       }
     ],
+    "zenithRange": {
+      "min": 0,
+      "max": 32
+    },
     "conditions": [
       {
         "conditions": [

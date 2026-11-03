@@ -30,6 +30,8 @@ export const TRANSPARENCY = { solid: "100", dense: "92", balanced: "82", airy: "
 const CORNERS = { square: { bar: "0", modules: "0" }, soft: { bar: "12", modules: "8" }, round: { bar: "18", modules: "999" } };
 // The looks that join their modules edge to edge: these don't apply to them.
 const JOINED = { strip: ["module-corners", "spacing"], minimal: ["module-corners", "spacing"], powerline: ["module-corners", "spacing", "separators"] };
+// The bar fonts before 0.18.2 (Monospace, the browser's): now a font's name.
+const OLD_FONTS = /^(mono\w*|system)$/;
 // What a theme holds: looks only (never layout, keys or behaviour).
 export const THEME_KEYS = [
   "zenith.palette", "zenith.core.accent", "zenith.core.corners", "zenith.core.density", "zenith.core.glass", "zenith.core.glass-edge",
@@ -48,11 +50,34 @@ export function entry(p) {
   return SCHEMA[p] ?? null;
 }
 
-// One of the setting's choices (any text for a text setting).
+// One of the setting's choices (any text for a text setting, any whole
+// number on a size's slider).
 export function valid(p, v) {
   if (v === null || v === undefined || v === "") return false;
   const options = SCHEMA[p]?.options;
-  return !options || options.some(o => o.value === v);
+  return !options || options.some(o => o.value === v) || inRange(SCHEMA[p].range, v);
+}
+
+// A size's slider (schema "range": min, max in pixels, and an end past
+// them, "Fully round"): a value on it.
+export function inRange(range, v) {
+  return !!range && (v === range.end?.value || (/^\d+$/.test(v) && +v >= range.min && +v <= range.max));
+}
+
+// A slider's stops: a size's every pixel (and its end), else its choices in
+// order. min, max; at(value) its stop; value(stop); text(stop).
+export function stops(options, range) {
+  const said = v => options.find(o => o.value === v)?.label?.replace(/ \(.*\)$/, "");
+  if (!range) {
+    return { min: 0, max: options.length - 1, at: v => Math.max(0, options.findIndex(o => o.value === v)), value: i => options[i].value, text: i => said(options[i].value) };
+  }
+  const top = range.max + (range.end ? 1 : 0), value = i => (range.end && i === top ? range.end.value : String(i));
+  return {
+    min: range.min, max: top,
+    at: v => (v === range.end?.value ? top : Math.min(range.max, Math.max(range.min, parseInt(v, 10) || 0))),
+    value,
+    text: i => said(value(i)) ?? `${i}px`,
+  };
 }
 
 function presetValue(preset) {
@@ -81,7 +106,7 @@ export function value(p) {
 export function label(p, v = value(p)) {
   const e = SCHEMA[p];
   if (e?.type === "checkbox") return v ? "On" : "Off";
-  return e?.options?.find(o => o.value === v)?.label ?? (v || "None");
+  return e?.options?.find(o => o.value === v)?.label ?? (e?.range && /^\d+$/.test(v) ? `${v}px` : v || "None");
 }
 
 // The default written as itself too: it then shows as chosen.
@@ -206,7 +231,10 @@ export function restore(saved) {
 // bars drawn in the theme's look (its own bar values win).
 export function applyTheme(sets) {
   restore(Object.fromEntries(Object.keys(snapshot()).map(p => [p, null])));
-  for (const [p, v] of Object.entries(sets)) if (!SHAPE_KEYS.some(k => p === `zenith.bar.${k}`) && v !== null && v !== "") set(p, v);
+  for (const [p, v] of Object.entries(sets)) {
+    if (SHAPE_KEYS.some(k => p === `zenith.bar.${k}`) || v === null || v === "" || (/\.font$/.test(p) && OLD_FONTS.test(v))) continue;
+    set(p, v);
+  }
   const shape = Bars.shape(value("zenith.bar.style"));
   for (const k of SHAPE_KEYS) set(`zenith.bar.${k}`, valid(`zenith.bar.${k}`, sets[`zenith.bar.${k}`]) ? sets[`zenith.bar.${k}`] : shape[k]);
 }
@@ -230,6 +258,13 @@ export function migrate() {
   // (0.16.0's dot and short line: the ring and the top line.)
   const hint = { dot: "ring", line: "top" }[raw("zenith.bar.container-hint")];
   if (hint) set("zenith.bar.container-hint", hint);
+  // (0.18.1's bar fonts, Monospace and the browser's: the browser's font,
+  // or one you pick by name.)
+  for (const p of [`zenith.bar.font`, ...EDGES.map(e => Bars.pref(e, "font"))]) if (OLD_FONTS.test(raw(p) ?? "")) P.clearUserPref(p);
+  // (0.18.1's Glance buttons beside the page as Zen has them, or on the
+  // other side: the side that is.)
+  const glance = raw("zenith.plus.glance-buttons"), right = P.getBoolPref("zen.tabs.vertical.right-side", false);
+  if (glance === "zen" || glance === "other-side") set("zenith.plus.glance-buttons", (glance === "zen") !== right ? "right" : "left");
   for (const [p, e] of Object.entries(SCHEMA)) {
     if (e.type !== "dropdown" || !p.startsWith("zenith.") || !P.prefHasUserValue(p)) continue;
     const v = raw(p), n = String(parseInt(v, 10));
