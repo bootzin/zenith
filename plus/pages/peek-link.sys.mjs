@@ -18,13 +18,26 @@ function combo(e) {
   return e.ctrlKey && e.shiftKey ? "ctrl-shift" : null;
 }
 
+// The http(s) link an event is on, if any.
+function link(e) {
+  let n = e.originalTarget ?? e.target;
+  if (n?.nodeType === 3) n = n.parentElement;
+  const a = n?.closest?.("a[href], area[href]");
+  return a && /^https?:/i.test(a.href) ? a : null;
+}
+
 export class ZenithPeekLinkChild extends JSWindowActorChild {
   handleEvent(e) {
     // (Pages don't see Zenith's settings: the window shares these.)
     const conf = Services.cpmm.sharedData.get(SHARED);
     if (e.type === "mousedown") {
       this.down = [e.clientX, e.clientY];
-      if (conf?.press && e.isTrusted && (e.button === 0 || e.button === 2) && combo(e) === "alt") e.preventDefault();
+      if (!e.isTrusted) return;
+      const keys = combo(e), what = keys && conf?.combos?.[keys];
+      if (conf?.press && (e.button === 0 || e.button === 2) && keys === "alt") e.preventDefault();
+      // A link pressed with keys that do something: no selection from it
+      // (Shift would stretch one to it, as Shift+click does).
+      else if (e.button === 0 && what && what !== "nothing" && link(e)) e.preventDefault();
       return;
     }
     if (e.defaultPrevented || !e.isTrusted) return;

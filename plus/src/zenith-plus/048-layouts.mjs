@@ -21,17 +21,20 @@ const Layouts = {
   FOCUS: "zenith.shell.scroller-focus", // view · centre
   widths: new WeakMap(), // a scroller column's tab → its width (% of the view)
   unrestored: new WeakSet(), // a strip's columns whose pages wait to come into view
+  fresh: new WeakMap(), // a new tab → the column you were on (it goes right of it)
+  KEPT: "zenith.internal.layout.kept", // { space: [shape…] }: its splits while the strip holds its tabs
 
   init() {
     window.ZenithLayouts = this; // the bar's module, the settings page, tools/checks
     const P = Services.prefs, W = window.gZenWorkspaces;
-    // A strip's column pinned, made an essential or put in a folder leaves
-    // the strip first: Zen moves a split's tabs together, so the whole strip
-    // would follow it (pinned, with an essential in it).
+    // A strip's column pinned, made an essential, put in a folder or sent to
+    // another space leaves the strip first: Zen moves a split's tabs
+    // together, so the whole strip would follow it.
     const leave = tabs => {
       for (const t of [].concat(tabs ?? [])) if (Tiler.data(t)?.zenithStrip) Tiler.S.removeTabFromGroup(t, undefined, { changeTab: false });
     };
-    for (const [owner, name] of [[gBrowser, "pinTab"], [window.gZenPinnedTabManager, "addToEssentials"], [window.gZenFolders, "createFolder"]]) {
+    for (const [owner, name] of [[gBrowser, "pinTab"], [window.gZenPinnedTabManager, "addToEssentials"], [window.gZenFolders, "createFolder"],
+                                 [W, "moveTabToWorkspace"], [W, "moveTabsToWorkspace"]]) {
       const orig = owner?.[name];
       if (!orig) continue;
       owner[name] = function (tabs, ...rest) {
@@ -51,6 +54,7 @@ const Layouts = {
       this.here = W?.activeWorkspace;
       if (was === "monocle" && this.of() !== "monocle") SplitSolo.off();
       if (this.of() === "monocle") this.solo();
+      setTimeout(() => this.shown(), 0); // (once the space's tab is shown)
       this.soon();
       this.tell();
     };
@@ -58,12 +62,19 @@ const Layouts = {
     const select = () => {
       const how = this.of(), tab = gBrowser.selectedTab;
       this.unrestored.delete(tab); // (SessionStore restores the tab you're on)
+      this.shown();
       if (how === "monocle") this.solo();
       else if (how === "scroller" && !this.arranging && Tiler.data(tab)) this.arrange(tab);
       if (how === "scroller" && !this.gathering && this.members().includes(tab) && !this.whole()) this.soon();
     };
-    // A strip takes in every new tab of its space.
-    const opened = () => this.soon();
+    // A strip takes in every new tab of its space: one you open (Ctrl+T,
+    // the new tab button) right of the column you're on, as niri's; a
+    // link's where Firefox put it, after its page's.
+    const opened = e => {
+      const tab = e.target, from = gBrowser.selectedTab;
+      if (this.strip() && !tab.openerTab && from !== tab && Tiler.data(from)?.zenithStrip) this.fresh.set(tab, from);
+      this.soon();
+    };
     gBrowser.tabContainer.addEventListener("TabOpen", opened);
     // Zen restores every page of a split as it shows it: a strip has every
     // tab of its space, so opening the browser loaded them all. A column's
@@ -84,8 +95,12 @@ const Layouts = {
       window.removeEventListener("TabSplitViewActivate", restoring, true);
       Services.prefs.removeObserver(this.STRIP, scope);
     });
-    // After the session is back: a strip space's tabs on their strip.
-    (window.SessionStore?.promiseAllWindowsRestored ?? Promise.resolve()).then(() => setTimeout(() => this.soon(), 500));
+    // After the session is back: a strip space's tabs on their strip; a
+    // monocle space's tile you're on alone.
+    (window.SessionStore?.promiseAllWindowsRestored ?? Promise.resolve()).then(() => setTimeout(() => {
+      if (this.of() === "monocle") this.solo();
+      this.soon();
+    }, 500));
     // The scroller: Zen lays a split out (sizes that add up to the view);
     // a scroller's columns are then moved to where they are on the strip,
     // those beyond either edge out of sight.
@@ -191,8 +206,14 @@ const Layouts = {
 
   enter(how) {
     const data = Tiler.data();
-    if (how === "master" && data) this.master(data);
-    else if (how === "scroller" && this.strip()) this.gather(true);
+    if (how === "master" && data) {
+      data.zenithBefore ??= this.shape(data.layoutTree); // (back as it was when the space leaves Master)
+      this.master(data);
+    }
+    else if (how === "scroller" && this.strip()) {
+      this.keep();
+      this.gather(true);
+    }
     else if (how === "scroller" && data) {
       this.row(data);
       this.arrange(gBrowser.selectedTab);
@@ -202,13 +223,22 @@ const Layouts = {
 
   leave(was) {
     if (was === "monocle") SplitSolo.off();
+    if (was === "master") {
+      const data = Tiler.data(), before = data?.zenithBefore;
+      if (data) delete data.zenithBefore;
+      const same = before && this.tabsIn(before).length === data.tabs.length && this.tabsIn(before).every(t => data.tabs.includes(t));
+      if (same) this.build(data, before);
+    }
     if (was === "scroller") {
       const data = Tiler.data() ?? Tiler.data(this.members().find(t => Tiler.data(t)));
       gBrowser.tabpanels.removeAttribute("zenith-scroller");
       gBrowser.tabpanels.style.removeProperty("--zth-strip-x");
       // A strip made of the whole space goes back to tabs; a split stays.
       // (Zen keeps no mark of a strip across restarts: the setting says.)
-      if (data && (data.zenithStrip || Services.prefs.getStringPref(this.STRIP, "") !== "split")) return this.dissolve(data);
+      if (data && (data.zenithStrip || Services.prefs.getStringPref(this.STRIP, "") !== "split")) {
+        this.dissolve(data);
+        return this.unkeep();
+      }
       if (data) {
         data.zenithOffset = 0;
         Tiler.even(data.layoutTree);
@@ -281,7 +311,9 @@ const Layouts = {
       const order = data ? this.order(data).filter(t => tabs.includes(t)) : [];
       for (const t of tabs) {
         if (order.includes(t)) continue;
-        const before = tabs.slice(0, tabs.indexOf(t)).reverse().find(b => order.includes(b));
+        const from = this.fresh.get(t);
+        this.fresh.delete(t);
+        const before = from && order.includes(from) ? from : tabs.slice(0, tabs.indexOf(t)).reverse().find(b => order.includes(b));
         order.splice(before ? order.indexOf(before) + 1 : 0, 0, t);
       }
       if (data) S.splitTabs([data.tabs[0], ...order.filter(t => !data.tabs.includes(t))], undefined, -1, { activate: false });
@@ -298,6 +330,64 @@ const Layouts = {
     } finally {
       this.gathering = false;
     }
+  },
+
+  // A split's tree as build() takes it: [direction, [tab | shape…], sizes].
+  shape(node, id = false) {
+    if (node.tab) return id ? node.tab.id : node.tab;
+    return [node.direction, node.children.map(c => this.shape(c, id)), node.children.map(c => c.sizeInParent)];
+  },
+
+  tabsIn(shape) {
+    return Array.isArray(shape) ? shape[1].flatMap(s => this.tabsIn(s)) : [shape];
+  },
+
+  kept() {
+    try {
+      return JSON.parse(Services.prefs.getStringPref(this.KEPT, "") || "{}");
+    } catch {
+      return {};
+    }
+  },
+
+  // Entering the strip: the space's splits (their tiles side by side or
+  // stacked, their sizes) kept, by tab, across restarts too, to come back
+  // when the space leaves the scroller.
+  keep(space = this.space()) {
+    const here = new Set(this.members()), all = this.kept();
+    const splits = (Tiler.S?._data ?? []).filter(d => !d.zenithStrip && d.tabs.some(t => here.has(t)));
+    if (splits.length) all[space] = splits.map(d => this.shape(d.layoutTree, true));
+    else delete all[space];
+    Services.prefs.setStringPref(this.KEPT, JSON.stringify(all));
+  },
+
+  // Leaving it: those splits back as they were (their tabs still here).
+  unkeep(space = this.space()) {
+    const all = this.kept(), shapes = all[space] ?? [], S = Tiler.S, sel = gBrowser.selectedTab;
+    delete all[space];
+    Services.prefs.setStringPref(this.KEPT, JSON.stringify(all));
+    const live = s => (Array.isArray(s) ? [s[0], s[1].map(live), s[2]] : document.getElementById(s));
+    for (const ids of shapes) {
+      try {
+        const shape = live(ids), tabs = this.tabsIn(shape);
+        if (tabs.length < 2 || tabs.some(t => !t || t.closing || Tiler.data(t) || !this.members().includes(t))) continue;
+        S.splitTabs(tabs, undefined, -1, { activate: false });
+        const data = Tiler.data(tabs[0]);
+        if (data) this.build(data, shape);
+      } catch (e) {
+        console.error("[Zenith] layout", e);
+      }
+    }
+    gBrowser.selectedTab = sel;
+  },
+
+  // The page area as the tab you're on has it: a strip's shift only on a
+  // strip (Layouts.after sets it); none left over on another space's tab.
+  shown() {
+    const data = Tiler.data(gBrowser.selectedTab);
+    if (data && this.scroller(data)) return;
+    gBrowser.tabpanels.removeAttribute("zenith-scroller");
+    gBrowser.tabpanels.style.removeProperty("--zth-strip-x");
   },
 
   // A strip back to the space's tabs, the one you're on shown.
@@ -900,6 +990,31 @@ const ShellSpaces = {
 };
 
 const ShellTabs = {
+  // Putting the tab you're on to sleep (Zenith's key, Zen's or Firefox's
+  // Unload): the nearest awake tab is shown, after it in the sidebar, else
+  // before it; not simply the next one, which would wake to be shown.
+  init() {
+    const unload = gBrowser.explicitUnloadTabs;
+    if (!unload) return;
+    gBrowser.explicitUnloadTabs = function (tabs, ...rest) {
+      try {
+        const sel = gBrowser.selectedTab, to = tabs?.includes?.(sel) && !Tiler.data(sel) ? ShellTabs.next(sel, tabs) : null;
+        if (to) gBrowser.selectedTab = to;
+      } catch (e) {
+        console.error("[Zenith] unload", e);
+      }
+      return unload.call(this, tabs, ...rest);
+    };
+    onUnload(() => (gBrowser.explicitUnloadTabs = unload));
+  },
+
+  next(tab, leaving = [tab]) {
+    const list = gBrowser.visibleTabs.filter(t => !t.closing && !t.hasAttribute("zen-empty-tab") && !t.hasAttribute("zen-glance-tab"));
+    const awake = t => !leaving.includes(t) && !!t.linkedPanel && !t.hasAttribute("pending");
+    const i = list.indexOf(tab);
+    return list.slice(i + 1).find(awake) ?? list.slice(0, Math.max(0, i)).reverse().find(awake) ?? null;
+  },
+
   unload(tabs) {
     if (typeof gBrowser.explicitUnloadTabs === "function") gBrowser.explicitUnloadTabs(tabs);
     else for (const t of tabs) gBrowser.discardBrowser(t, true);
@@ -908,7 +1023,7 @@ const ShellTabs = {
   sleep() {
     const tab = gBrowser.selectedTab;
     if (Tiler.data(tab)) return hint("A tile on screen can't sleep");
-    const to = gBrowser._findTabToBlurTo?.(tab);
+    const to = this.next(tab) ?? gBrowser._findTabToBlurTo?.(tab);
     if (!to || to === tab) return hint("Your only tab can't sleep");
     gBrowser.selectedTab = to;
     this.unload([tab]);

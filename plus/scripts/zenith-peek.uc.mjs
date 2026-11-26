@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.18.2
+// @version        0.18.3
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -477,6 +477,7 @@ const Peek = {
     if (!result) return;
     const root = document.documentElement;
     root.setAttribute("zenith-peek-open", "true");
+    this.attach(result);
     // (Its pages keep every link click: plus/pages/peek-link.sys.mjs.)
     Services.ppmm.sharedData.set("zenith-peek-browser", result.browser.browserId);
     Services.ppmm.sharedData.flush();
@@ -487,8 +488,51 @@ const Peek = {
       Services.ppmm.sharedData.flush();
       root.removeAttribute("zenith-peek-open");
       root.removeAttribute("zenith-peek-fade");
+      // The keys back to the page you're on (the Peek had them; nothing
+      // would until a click). Again once Zen's closing is done.
+      const back = () => !gZenGlanceManager.detachedBrowser && gBrowser.selectedBrowser?.focus();
+      back();
+      setTimeout(back, 400);
     });
     result.browser.focus();
+  },
+
+  // A Peek belongs to the tab it was opened from, as Glance does: over that
+  // tab's page only (the bars, the sidebar and the other tiles stay as they
+  // are), out of sight while you're on another tab and back when you
+  // return; closed with its tab. (Zen's detached Glance covers the window.)
+  attach({ browser, closed }) {
+    const owner = gBrowser.selectedTab, host = browser.closest("#zen-glance-detached");
+    if (!host) return;
+    host.setAttribute("zenith-tab", "true");
+    const box = () => owner.linkedBrowser?.closest(".browserSidebarContainer");
+    const place = () => {
+      const away = owner !== gBrowser.selectedTab || !box();
+      host.toggleAttribute("zenith-away", away);
+      try {
+        browser.docShellIsActive = !away;
+      } catch {}
+      if (away) return;
+      const r = box().getBoundingClientRect();
+      for (const [k, v] of [["x", r.left], ["y", r.top], ["w", r.width], ["h", r.height]]) host.style.setProperty(`--zth-peek-${k}`, `${Math.round(v)}px`);
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    if (box()) ro.observe(box());
+    const select = () => {
+      place();
+      if (owner === gBrowser.selectedTab) browser.focus();
+    };
+    const gone = e => e.target === owner && gZenGlanceManager.closeDetachedGlance({ skipPermitUnload: true });
+    gBrowser.tabContainer.addEventListener("TabSelect", select);
+    gBrowser.tabContainer.addEventListener("TabClose", gone);
+    window.addEventListener("resize", place);
+    closed.then(() => {
+      ro.disconnect();
+      gBrowser.tabContainer.removeEventListener("TabSelect", select);
+      gBrowser.tabContainer.removeEventListener("TabClose", gone);
+      window.removeEventListener("resize", place);
+    });
   },
 
   close() {

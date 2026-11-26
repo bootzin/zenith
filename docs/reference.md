@@ -30,7 +30,7 @@ What Zenith follows when it changes how things look or behave. Each rule says wh
 | split | `gZenViewSplitter._data` | the split's tabs joined |
 | playing / muted / paused | `soundplaying`, `muted`, the media hub | the same icons as the sidebar |
 | sleeping | `pending` | dimmed (78%) |
-| attention / loading | `attention`/`titlechanged`, `busy` | a dot, a spinner |
+| attention / loading | `attention` (a changed title, `titlechanged`, gets no mark), `busy` | a dot, a spinner |
 | container | `identity-color-*` | the container hint setting |
 
 ## 3. Media (one hub)

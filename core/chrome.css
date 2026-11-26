@@ -101,6 +101,9 @@
   --zth-dur: calc(150ms * var(--zth-speed));
   --zth-ease: cubic-bezier(0.2, 0, 0, 1);
   --zth-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  /* Progress (loading, downloads) moves as the work does: never Motion's
+     easing, which would make it bounce or lag behind what it shows. */
+  --zth-ease-progress: linear;
 }
 
 /* --- Accent: the workspace colour, or one from a fixed palette ----------

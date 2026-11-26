@@ -15,7 +15,7 @@
 //   - each module is boxed off (contain), so a ticking clock restyles one
 //     node, never the bar.
 
-import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard, tabsCard, powerCard, barMenu, previewCard } from "./shell-ui.mjs";
+import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard, tabsCard, powerCard, barMenu, previewCard, layoutCard } from "./shell-ui.mjs";
 import { SCHEMA, Bars, BAR_KEYS, EDGES, value } from "./looks.mjs";
 
 const P = Services.prefs;
@@ -217,12 +217,11 @@ function spaces(box) {
       }));
     }
     const busy = new Map(), loud = new Set();
-    const attention = P.getStringPref("zenith.tabs.attention-for", "") !== "alerts";
     for (const t of gBrowser.tabs) {
       const id = t.getAttribute("zen-workspace-id");
       if (!id || t.hasAttribute("zen-empty-tab")) continue;
       busy.set(id, true);
-      if (t.hasAttribute("attention") || (attention && t.hasAttribute("titlechanged"))) loud.add(id);
+      if (t.hasAttribute("attention")) loud.add(id); // (a dialog waiting; a changed title is no alarm)
     }
     for (const b of wrap.children) {
       b.toggleAttribute("current", b.zbSpace === active);
@@ -249,7 +248,7 @@ function spaces(box) {
   for (const t of ["ZenWorkspaceDataChanged", "ZenWorkspacesUIUpdate"]) Undo.on(window, t, draw);
   for (const t of ["TabOpen", "TabClose", "TabSelect"]) Undo.on(gBrowser.tabContainer, t, draw);
   Undo.on(gBrowser.tabContainer, "TabAttrModified", e => {
-    if (e.detail?.changed?.some(a => a === "attention" || a === "titlechanged")) draw();
+    if (e.detail?.changed?.includes("attention")) draw();
   });
   Undo.pref("zenith.bar.spaces", draw);
   draw();
@@ -293,6 +292,19 @@ function sidebarTabs() {
   return window.ZenithSpaceTabs.tabs();
 }
 
+// The tab you're on as the sidebar marks it: a Glance's tab is its parent's
+// (Zen puts it inside the tab it was opened from; both have its glance-id).
+function here() {
+  const t = gBrowser.selectedTab;
+  if (!t?.hasAttribute("zen-glance-tab")) return t;
+  const id = t.getAttribute("glance-id");
+  return t.parentElement?.closest(".tabbrowser-tab") ?? gBrowser.tabs.find(x => x !== t && id && x.getAttribute("glance-id") === id) ?? t;
+}
+
+// Firefox's own kind of tab drag: the sidebar, another window and Zen's
+// split take it as they take one dragged from the sidebar.
+const TAB_DRAG = "application/x-moz-tabbrowser-tab";
+
 function tasks(box) {
   const m = mod("tasks"), more = mod("tasks-more", "button"), count = node("span");
   more.append(icon("tabs"), count);
@@ -319,7 +331,7 @@ function tasks(box) {
   const button = t => {
     let b = items.get(t);
     if (!b) {
-      b = node("button", { type: "button", class: "zb-task" });
+      b = node("button", { type: "button", class: "zb-task", draggable: "true" });
       b.zbTab = t;
       b.append(node("img", { alt: "" }), node("span", { class: "zb-task-label" }), node("span", { class: "zb-task-n" }), node("span", { class: "zb-task-mark", "aria-hidden": "true" }));
       items.set(t, b);
@@ -335,7 +347,7 @@ function tasks(box) {
     put(b.children[1], t.label);
     put(b.children[2], `${i + 1}`);
     b.title = t.label;
-    b.toggleAttribute("current", t.selected);
+    b.toggleAttribute("current", t === here());
     b.toggleAttribute("asleep", t.hasAttribute("pending"));
     b.toggleAttribute("loud", t.hasAttribute("soundplaying") && !t.hasAttribute("muted"));
     b.toggleAttribute("split", !!t.splitView);
@@ -346,7 +358,7 @@ function tasks(box) {
     const sound = window.ZenithMedia?.state?.(t) ?? (t.hasAttribute("soundplaying") ? "playing" : null);
     if (sound) b.setAttribute("sound", t.hasAttribute("muted") ? "muted" : sound);
     else b.removeAttribute("sound");
-    b.toggleAttribute("attention", t.hasAttribute("attention") || t.hasAttribute("titlechanged"));
+    b.toggleAttribute("attention", t.hasAttribute("attention"));
     b.toggleAttribute("busy", t.hasAttribute("busy"));
     const folder = t.group && !t.group.hasAttribute?.("split-view-group") ? t.group : null;
     b.zbFolder = folder;
@@ -363,9 +375,9 @@ function tasks(box) {
     if (Bar.gone) return;
     const all = sidebarTabs();
     // (Bars › Only awake tabs: sleeping ones are in the chip's list.)
-    const tabs = bool("zenith.bar.tab-awake", false) ? all.filter(t => t.selected || !t.hasAttribute("pending")) : all;
+    const tabs = bool("zenith.bar.tab-awake", false) ? all.filter(t => t === here() || !t.hasAttribute("pending")) : all;
     for (const [t, b] of items) if (!tabs.includes(t)) items.delete(t);
-    const crowd = pref("zenith.bar.tab-crowd", "window"), n = tabs.length, cur = Math.max(0, tabs.indexOf(gBrowser.selectedTab));
+    const crowd = pref("zenith.bar.tab-crowd", "window"), n = tabs.length, cur = Math.max(0, tabs.indexOf(here()));
     const want = pref("zenith.bar.tab-look", "current");
     // The look: yours while they fit; crowded, titles go first.
     let look = want === "fit" ? "titles" : want;
@@ -387,7 +399,7 @@ function tasks(box) {
       if (look === "titles") look = "icons";
       const k = Math.max(1, Math.floor((room - 2 * (vertical ? 30 : 40)) / each));
       const centre = pref("zenith.bar.tab-scroll", "nearest") === "centre";
-      const moved = selected !== gBrowser.selectedTab;
+      const moved = selected !== here();
       if (moved) scrolled = false;
       if (!scrolled && (centre || cur < start || cur >= start + k || selected === null)) start = cur - Math.floor(k / 2);
       start = Math.max(0, Math.min(start, n - k));
@@ -395,7 +407,7 @@ function tasks(box) {
       hiddenBefore = start;
       hiddenAfter = n - start - shown.length;
     }
-    selected = gBrowser.selectedTab;
+    selected = here();
     const nodes = shown.map(t => button(t));
     shown.forEach((t, i) => paint(nodes[i], t, tabs.indexOf(t)));
     // Groups, as the sidebar draws them: the fixed tabs (essentials, pinned)
@@ -423,7 +435,7 @@ function tasks(box) {
       const missing = all.length - shown.length - hiddenBefore - hiddenAfter;
       more.hidden = !(over || missing > 0);
       put(count, `${all.length}`);
-      const b = items.get(gBrowser.selectedTab);
+      const b = items.get(here());
       if (b?.isConnected && !scrolled && (b !== m.zbShown || pref("zenith.bar.tab-scroll", "nearest") === "centre")) {
         m.zbShown = b;
         const centre = pref("zenith.bar.tab-scroll", "nearest") === "centre";
@@ -434,6 +446,49 @@ function tasks(box) {
   m.addEventListener("click", e => {
     const t = e.target.closest(".zb-task")?.zbTab;
     if (t?.isConnected) gBrowser.selectedTab = t;
+  });
+  // Dragging a tab, as in the sidebar: along the bar to move it (among the
+  // tabs of its kind: essentials, pinned, the rest), onto the sidebar or a
+  // page as from there; a tab from the sidebar dropped here moves too.
+  m.addEventListener("dragstart", e => {
+    const b = e.target.closest?.(".zb-task:not(.zb-task-more)"), t = b?.zbTab;
+    if (!t?.isConnected) return;
+    clearTimeout(hovering);
+    Popup.close();
+    const dt = e.dataTransfer;
+    dt.mozSetDataAt(TAB_DRAG, t, 0);
+    dt.mozSetDataAt("text/x-moz-url", `${t.linkedBrowser?.currentURI?.spec ?? ""}\n${t.label}`, 0);
+    dt.mozSetDataAt("text/plain", t.linkedBrowser?.currentURI?.spec ?? "", 0);
+    dt.effectAllowed = "copyMove";
+    b.setAttribute("dragging", "true");
+  });
+  m.addEventListener("dragend", e => e.target.closest?.(".zb-task")?.removeAttribute("dragging"));
+  const kind = t => (t.hasAttribute("zen-essential") ? "essential" : t.pinned ? "pinned" : "tab");
+  // Where a drop would go: before or after the tab under the pointer.
+  const spot = e => {
+    const t = e.dataTransfer?.mozGetDataAt(TAB_DRAG, 0), b = e.target.closest?.(".zb-task:not(.zb-task-more)");
+    if (!t || !b?.zbTab || b.zbTab === t || kind(b.zbTab) !== kind(t) || !gBrowser.tabs.includes(t)) return null; // (this window's)
+    const r = b.getBoundingClientRect(), after = vertical ? e.clientY > r.top + r.height / 2 : e.clientX > r.left + r.width / 2;
+    return { t, b, after };
+  };
+  const unmark = () => m.querySelectorAll("[drop]").forEach(x => x.removeAttribute("drop"));
+  m.addEventListener("dragover", e => {
+    const s = spot(e);
+    unmark();
+    if (!s) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    s.b.setAttribute("drop", s.after ? "after" : "before");
+  });
+  m.addEventListener("dragleave", e => !m.contains(e.relatedTarget) && unmark());
+  m.addEventListener("drop", e => {
+    const s = spot(e);
+    unmark();
+    if (!s) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (s.after) gBrowser.moveTabAfter(s.t, s.b.zbTab);
+    else gBrowser.moveTabBefore(s.t, s.b.zbTab);
   });
   m.addEventListener("auxclick", e => {
     const t = e.button === 1 && e.target.closest(".zb-task")?.zbTab;
@@ -495,7 +550,7 @@ function tasks(box) {
   Undo.add(() => ro.disconnect());
   for (const t of ["TabOpen", "TabClose", "TabMove", "TabSelect", "TabShow", "TabHide"]) Undo.on(gBrowser.tabContainer, t, draw);
   Undo.on(gBrowser.tabContainer, "TabAttrModified", e => {
-    if (e.detail?.changed?.some(a => ["label", "image", "pending", "soundplaying", "muted", "busy", "attention", "titlechanged"].includes(a))) draw();
+    if (e.detail?.changed?.some(a => ["label", "image", "pending", "soundplaying", "muted", "busy", "attention"].includes(a))) draw();
   });
   Undo.on(window, "ZenithMedia", draw);
   for (const t of ["TabGrouped", "TabUngrouped", "TabGroupCollapse", "TabGroupExpand", "TabPinned", "TabUnpinned"]) Undo.on(window, t, draw);
@@ -587,8 +642,8 @@ function media(box) {
   draw();
 }
 
-// Downloads under way: how many and how far; a tick for a moment once
-// they're done. A click opens Firefox's downloads.
+// Downloads under way: how many and how far; once done, a tick (and how
+// many) until you've looked, as browsers keep theirs. A click opens them.
 function downloads(box) {
   const m = mod("downloads", "button");
   const ic = icon("download"), text = node("span", { class: "zb-value" });
@@ -597,38 +652,59 @@ function downloads(box) {
   m.hidden = !always();
   m.title = "Downloads";
   box.append(m);
-  m.addEventListener("click", () => Popup.open(m, downloadsCard, { kind: "downloads" }));
-  const all = new Set();
-  let doneTimer = null;
+  const all = new Set(), running = new Set(), unseen = new Set();
+  // (Seen once the list you opened is closed: the module stays till then.)
+  m.addEventListener("click", () => Popup.open(m, box => {
+    const undo = downloadsCard(box);
+    return () => {
+      if (typeof undo === "function") undo();
+      unseen.clear();
+      draw();
+    };
+  }, { kind: "downloads" }));
   const draw = soon(() => {
     const going = [...all].filter(d => !d.stopped);
+    m.toggleAttribute("unseen", !going.length && unseen.size > 0);
     if (going.length) {
-      clearTimeout(doneTimer);
-      doneTimer = null;
       const sized = going.filter(d => d.hasProgress && d.totalBytes > 0);
       const pc = sized.length ? Math.floor((100 * sized.reduce((a, d) => a + d.currentBytes, 0)) / sized.reduce((a, d) => a + d.totalBytes, 0)) : null;
       put(text, `${going.length > 1 ? `${going.length} · ` : ""}${pc === null ? "…" : `${pc}%`}`);
       setIcon(ic, "download");
+      m.title = "Downloads";
       m.hidden = false;
-    } else if (!m.hidden && !doneTimer) {
-      put(text, "");
+    } else if (unseen.size) {
+      put(text, unseen.size > 1 ? `${unseen.size}` : "");
       setIcon(ic, "done");
-      doneTimer = setTimeout(() => {
-        doneTimer = null;
-        setIcon(ic, "download");
-        m.hidden = !always();
-      }, 4000);
-    } else if (!doneTimer) m.hidden = !always();
+      m.title = `${unseen.size} download${unseen.size > 1 ? "s" : ""} finished: a click shows ${unseen.size > 1 ? "them" : "it"}`;
+      m.hidden = false;
+    } else {
+      put(text, "");
+      setIcon(ic, "download");
+      m.title = "Downloads";
+      m.hidden = !always();
+    }
   });
   Undo.pref("zenith.bar.downloads-always", draw);
+  // (Finished while watched: one you haven't seen. Those already done when
+  // the bar came are seen.)
+  const watch = d => {
+    if (!d.stopped) running.add(d);
+    else if (running.delete(d) && d.succeeded) unseen.add(d);
+  };
   const view = {
     onDownloadAdded: d => {
       all.add(d);
+      watch(d);
       draw();
     },
-    onDownloadChanged: draw,
+    onDownloadChanged: d => {
+      watch(d);
+      draw();
+    },
     onDownloadRemoved: d => {
       all.delete(d);
+      running.delete(d);
+      unseen.delete(d);
       draw();
     },
   };
@@ -639,10 +715,7 @@ function downloads(box) {
     list = l;
     l.addView(view);
   });
-  Undo.add(() => {
-    clearTimeout(doneTimer);
-    list?.removeView(view);
-  });
+  Undo.add(() => list?.removeView(view));
 }
 
 // Zenith's timers and pomodoros (Peek: timer 10m tea): the next to end,
@@ -706,9 +779,9 @@ function tray(box) {
   box.append(m);
 }
 
-// The space's layout (Alt+Y): its picture and name (monocle, dwindle,
-// master, scroller); a click the next one. (Zenith's layouts may start after
-// the bars: drawn when they tell, ZenithLayout.)
+// The space's layout: its picture and name (monocle, dwindle, master,
+// scroller); a click lists them to pick one (Alt+Y: the next). (Zenith's
+// layouts may start after the bars: drawn when they tell, ZenithLayout.)
 function layout(box) {
   const m = mod("layout", "button"), ic = icon("dwindle"), text = node("span", { class: "zb-value" });
   m.append(ic, label("Layout"), text);
@@ -717,9 +790,9 @@ function layout(box) {
     const L = window.ZenithLayouts, how = L?.of() ?? "dwindle";
     setIcon(ic, how);
     put(text, how);
-    m.title = `Layout: ${L?.NAMES[how] ?? how} · a click (or Alt+Y): the next`;
+    m.title = `Layout: ${L?.NAMES[how] ?? how} · a click picks another (Alt+Y: the next)`;
   };
-  m.addEventListener("click", () => window.ZenithLayouts?.cycle());
+  m.addEventListener("click", () => Popup.open(m, layoutCard, { kind: "layout" }));
   Undo.on(window, "ZenithLayout", draw);
   draw();
 }
@@ -1102,6 +1175,14 @@ const Bar = {
     }
     // The bars taking their room with a margin: it's the gap toward the page.
     const room = this.bars.filter(b => !b.hasAttribute("overlay") && !b.hasAttribute("collapsible"));
+    // How much of the window's top and bottom they take (the compact
+    // sidebar floats between them, not under them).
+    document.documentElement.toggleAttribute("zenith-bar-room", room.some(b => !b.hasAttribute("vertical")));
+    for (const edge of ["top", "bottom"]) {
+      const b = room.find(x => x.getAttribute("edge") === edge);
+      if (b) document.documentElement.style.setProperty(`--zth-bar-${edge}-room`, `${parseInt(mine(edge, "size"), 10) + 2 * parseInt(mine(edge, "margin"), 10)}px`);
+      else document.documentElement.style.removeProperty(`--zth-bar-${edge}-room`);
+    }
     document.documentElement.setAttribute("zenith-bar-spaced", room.filter(b => parseInt(mine(b.getAttribute("edge"), "margin"), 10) > 0).map(b => b.getAttribute("edge")).join(" "));
     // A floating bar's gap and corners are the page's too (it floats with it).
     const float = room.find(b => ["floating", "bare"].includes(b.getAttribute("look"))), rs = document.documentElement.style;
@@ -1188,6 +1269,8 @@ const Bar = {
     document.documentElement.removeAttribute("zenith-bar-hides");
     for (const v of ["--zb-float-gap", "--zb-float-radius"]) document.documentElement.style.removeProperty(v);
     document.documentElement.removeAttribute("zenith-bar-spaced");
+    for (const v of ["--zth-bar-top-room", "--zth-bar-bottom-room"]) document.documentElement.style.removeProperty(v);
+    document.documentElement.removeAttribute("zenith-bar-room");
     this.probe?.remove();
     this.probe = null;
   },

@@ -20,7 +20,7 @@ const Minimap = {
     const seen = () => Services.prefs.getBoolPref("zenith.plus.minimap", true) && !document.hidden &&
       root.getAttribute("zen-compact-mode") === "true" && !root.hasAttribute("zenith-sidebar-out");
     const maybe = () => seen() && schedule();
-    const SHOWN = new Set(["sharing", "attention", "titlechanged", "soundplaying", "muted", "busy"]);
+    const SHOWN = new Set(["sharing", "attention", "soundplaying", "muted", "busy"]);
     const changed = e => (e.detail?.changed ?? []).some(a => SHOWN.has(a)) && maybe();
     const tabs = gBrowser.tabContainer;
     const events = ["TabSelect", "TabOpen", "TabClose", "TabMove", "TabPinned", "TabUnpinned"];
@@ -56,8 +56,7 @@ const Minimap = {
 
   kind(tab) {
     if (tab.hasAttribute("sharing")) return "sharing";
-    if (this.attentionOn() && (tab.hasAttribute("attention") ||
-        (tab.hasAttribute("titlechanged") && Services.prefs.getStringPref("zenith.tabs.attention-for", "") !== "alerts"))) return "attention";
+    if (this.attentionOn() && tab.hasAttribute("attention")) return "attention";
     if (tab.hasAttribute("soundplaying") && !tab.hasAttribute("muted")) return "playing";
     if (tab.hasAttribute("busy")) return "loading";
     return null;

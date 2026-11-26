@@ -550,9 +550,12 @@ const Tiler = {
     }
   },
 
+  // A split's new shape saved with the session: SessionStore saves a
+  // moment after a split is shown, and is told the same way, with no page
+  // to restore. (Zen's own saveState is gone.)
   save() {
     try {
-      this.S.saveState?.();
+      gBrowser.tabContainer.dispatchEvent(new CustomEvent("TabSplitViewActivate", { detail: { tabs: [] } }));
     } catch {}
   },
 };

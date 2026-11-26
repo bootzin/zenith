@@ -81,7 +81,7 @@
 <main>
   <header>
     <h1>Zenith: what to review since 0.16.3</h1>
-    <p class="lede">Every change from 0.16.3 to 0.18.2, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
+    <p class="lede">Every change from 0.16.3 to 0.18.3, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
     <div class="bar">
       <span class="progress" id="progress">0 of 0 reviewed</span>
       <span class="track" aria-hidden="true"><i id="fill"></i></span>
@@ -100,7 +100,28 @@
 <script>
 const NOT = "Not checked in Zen";
 const RELEASES = [
-  { v: "0.18.2", note: "This round: after 0.18.1's list, from what you found.", items: [
+  { v: "0.18.3", note: "This round: the 18 things you listed after 0.18.2.", items: [
+    ["Progress bars ignore the easing", "Motion › Easing on Bouncy or Elastic: the loading line and the download line still fill steadily, no bounce"],
+    ["Drag a tab in the bar", "Drag a tab along the bar's tab list to move it (a line shows where); drag one onto the sidebar or a page as from the sidebar; drop a sidebar tab on the bar"],
+    ["A short hiding bar is centred", "Bars › How the top bar shows › Hiding until reached (or Over the page), Bars › The bar's length › 80% or 60%: the bar sits in the middle"],
+    ["The layout module lists the layouts", "Click the layout module in a bar: Dwindle, Master and stack, Scroller, Monocle, the one you're on marked; pick one (Alt+Y still goes to the next)"],
+    ["Where a new tab opens", "Settings › Tabs › The sidebar › Where a new tab opens: at the top, at the bottom, just above or just below the tab you're on; Zen's new-tab-button-at-the-top setting moves with it"],
+    ["The scroller: a new column beside yours", "Scroller layout, on a column: Ctrl+T or the new tab button; the new column is right of yours"],
+    ["The scroller and other spaces", "Scroller layout: send a column to another space (its right-click menu, or Alt+Shift+number): only that column goes; go to another space and back: its pages sit normally, the strip comes back as it was"],
+    ["Your splits kept across layouts", "A split with tiles stacked (two on the right above each other, say); switch the space to Scroller, then back to Dwindle: the split comes back as it was. The same from Master and stack. (Read \"stacked tabs\" as a split's stacked tiles; Monocle also comes back after a restart.)"],
+    ["Splits kept across restarts", "Arrange a split, restart Zen (soon after): it's arranged the same", NOT],
+    ["Peek stays on its tab", "Open a Peek (Ctrl+Alt+click a link): it covers that tab's page only, the bars and sidebar stay usable; go to another tab: it's gone; come back: it's there; close the tab: it closes"],
+    ["Keys work after Peek", "Open a Peek, press Esc, then type or scroll with the keys at once, without clicking"],
+    ["The compact sidebar between the bars", "Compact mode with a top and a bottom bar: the sidebar slides out below the top bar and above the bottom one, not under them"],
+    ["Downloads stay until you look", "Download something: once done the bar's downloads module keeps a tick (and how many) until you click it and close the list"],
+    ["Glance shows where you are in the bar", "Open a Glance (Alt+click a link): the bar's tabs keep the tab it came from marked"],
+    ["The start page's box is the address bar's", "The start page: type a number, words or an address: it moves to the address bar, with its suggestions, history and search as usual (no bookmark opens on 1-9)"],
+    ["No mark for a changed title", "A background tab whose title changes (a chat, mail): no dot in the sidebar or the bars; a tab waiting on a dialog still gets one"],
+    ["The overview closes from outside", "Alt+O: a click anywhere but a tab or a space closes it; the ✕ at the top right too"],
+    ["Unloading goes to an awake tab", "Right-click the tab you're on › Unload (or Zenith's sleep key): you land on the nearest tab that's still loaded, not one that has to load"],
+    ["Alt+Shift+click on a link selects nothing", "Alt+Shift+click a link (or another key combo set in Tiling and keys › Mouse): it does its thing without selecting text", NOT],
+  ] },
+  { v: "0.18.2", note: "After 0.18.1's list, from what you found.", items: [
     ["Opening the browser loads only what's in view", "Scroller layout with several tabs in a space: restart Zen; only the column you're on and the one beside it load, the rest load as you move to them (dimmed in the sidebar until then)"],
     ["Space around the bar is even", "Alt+Shift+P › Bars › Space around the bar, on any look: the same space above, below and to the sides of the bar, and between the bar and the page"],
     ["A floating bar over the page", "Bars › How the top bar shows › Over the page, with the Floating look: the bar floats over the page with its space all round; the page fills the window under it", NOT],

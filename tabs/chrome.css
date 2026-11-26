@@ -229,14 +229,14 @@
 }
 
 /* --- Attention dots (Informative) ----------------------------------------
-   A dot on the favicon of a background tab that changed its title (pinned
-   tabs: new mail, chat) or is waiting on a dialog. */
+   A dot on the favicon of a background tab waiting on a dialog. A tab
+   whose title changed gets no mark (Firefox's dot on pinned tabs neither). */
 
 :root:is(
     :has(#theme-Zenith-Tabs[zenith-tabs-attention="on"]),
     :not(:has(#theme-Zenith-Tabs:is([zenith-tabs-attention="off"], [zenith-tabs-preset="plain"])))
   )
-  .tabbrowser-tab:is([attention], [titlechanged]):not([selected], [zen-glance-tab])
+  .tabbrowser-tab[attention]:not([selected], [zen-glance-tab])
   > .tab-stack > .tab-content > .tab-icon-stack {
   &:not([zen-pinned-changed="true"] *) {
     position: relative;
@@ -257,11 +257,8 @@
   }
 }
 
-/* Attention dots for alerts only: a tab whose title merely changed gets
-   none. */
-:root:has(#theme-Zenith-Tabs[zenith-tabs-attention-for="alerts"])
-  .tabbrowser-tab[titlechanged]:not([attention]) > .tab-stack > .tab-content > .tab-icon-stack::after {
-  display: none !important;
+.tabbrowser-tab[titlechanged] > .tab-stack > .tab-content {
+  background-image: none !important;
 }
 
 /* --- Folder activity (Informative) ---------------------------------------
@@ -299,7 +296,7 @@
     :has(#theme-Zenith-Tabs[zenith-tabs-folder-activity="on"]),
     :not(:has(#theme-Zenith-Tabs:is([zenith-tabs-folder-activity="off"], [zenith-tabs-preset="plain"])))
   ) {
-  & zen-folder[collapsed]:has(.tabbrowser-tab:not([zen-glance-tab]):is([busy], [attention], [titlechanged], [soundplaying]:not([muted]), [sharing])) > .tab-group-label-container::after {
+  & zen-folder[collapsed]:has(.tabbrowser-tab:not([zen-glance-tab]):is([busy], [attention], [soundplaying]:not([muted]), [sharing])) > .tab-group-label-container::after {
     content: "";
     display: block !important;
     position: static;
@@ -316,14 +313,14 @@
     animation: zth-breathe 1.8s var(--zth-ease) infinite;
   }
 
-  & zen-folder[collapsed]:has(.tabbrowser-tab:not([zen-glance-tab]):is([busy], [attention], [titlechanged], [soundplaying]:not([muted]), [sharing])):has(.tabbrowser-tab:not([zen-glance-tab]):is([attention], [titlechanged])) > .tab-group-label-container::after {
+  & zen-folder[collapsed]:has(.tabbrowser-tab:not([zen-glance-tab]):is([busy], [attention], [soundplaying]:not([muted]), [sharing])):has(.tabbrowser-tab:not([zen-glance-tab])[attention]) > .tab-group-label-container::after {
     width: 7px;
     height: 7px;
     background: var(--zth-warn);
     animation: none;
   }
 
-  & zen-folder[collapsed]:has(.tabbrowser-tab:not([zen-glance-tab]):is([busy], [attention], [titlechanged], [soundplaying]:not([muted]), [sharing])):has(.tabbrowser-tab[soundplaying]:not([muted], [zen-glance-tab])) > .tab-group-label-container::after {
+  & zen-folder[collapsed]:has(.tabbrowser-tab:not([zen-glance-tab]):is([busy], [attention], [soundplaying]:not([muted]), [sharing])):has(.tabbrowser-tab[soundplaying]:not([muted], [zen-glance-tab])) > .tab-group-label-container::after {
     width: 12px;
     height: 10px;
     border-radius: 0;
@@ -333,7 +330,7 @@
     animation: none;
   }
 
-  & zen-folder[collapsed]:has(.tabbrowser-tab:not([zen-glance-tab]):is([busy], [attention], [titlechanged], [soundplaying]:not([muted]), [sharing])):has(.tabbrowser-tab[sharing]:not([zen-glance-tab])) > .tab-group-label-container::after {
+  & zen-folder[collapsed]:has(.tabbrowser-tab:not([zen-glance-tab]):is([busy], [attention], [soundplaying]:not([muted]), [sharing])):has(.tabbrowser-tab[sharing]:not([zen-glance-tab])) > .tab-group-label-container::after {
     width: 7px;
     height: 7px;
     border-radius: 50%;

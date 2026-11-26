@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.18.2
+// @version        0.18.3
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -95,17 +95,6 @@ const RULES = {
           }
         ],
         "operator": "OR"
-      }
-    ]
-  },
-  "zenith.tabs.attention-for": {
-    "why": "Attention dots are off",
-    "conditions": [
-      {
-        "not": {
-          "property": "zenith.tabs.attention",
-          "value": "off"
-        }
       }
     ]
   },

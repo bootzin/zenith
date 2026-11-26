@@ -75,7 +75,7 @@
     width: 35%;
     background: linear-gradient(to right, transparent, var(--zth-accent) 40%, var(--zth-accent));
     opacity: var(--zth-edge-opacity);
-    animation: zth-load-sweep 1.1s var(--zth-ease) infinite;
+    animation: zth-load-sweep 1.1s ease-in-out infinite; /* (its own pace, not Motion's easing) */
   }
 
   &[long-load="true"]::after {

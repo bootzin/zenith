@@ -86,14 +86,23 @@ const Overview = {
     this.strip = node("div", { class: "zo-spaces" });
     top.append(this.find, this.strip);
     this.body = node("div", { class: "zo-body" });
-    host.append(top, this.body);
+    const shut = node("button", { class: "zo-close", type: "button", title: "Close (Esc)", "aria-label": "Close the overview" }, "✕");
+    shut.addEventListener("click", () => this.close());
+    host.append(top, this.body, shut);
     (document.getElementById("zen-main-app-wrapper") ?? document.body).append(host);
     this.seen = new IntersectionObserver(entries => {
       for (const e of entries) if (e.isIntersecting) this.picture(e.target);
     }, { root: this.body });
     this.find.addEventListener("input", () => this.draw());
     host.addEventListener("keydown", e => this.key(e));
-    host.addEventListener("mousedown", e => e.target === host && this.close());
+    // A click anywhere but a tab, a space or the find box closes it (not
+    // one on a scroll bar).
+    host.addEventListener("mousedown", e => {
+      const t = e.target;
+      if (e.button !== 0 || t.closest?.(".zo-card, .zo-tile, .zo-space, .zo-find, button")) return;
+      if (e.offsetX >= t.clientWidth || e.offsetY >= t.clientHeight) return;
+      this.close();
+    });
     this.strip.addEventListener("wheel", e => {
       if (this.look === "all" || Math.abs(e.deltaY) < 1) return;
       const list = spaces(), i = list.findIndex(s => s.uuid === this.showing);

@@ -35,7 +35,6 @@ const DROPDOWNS = {
  "zenith.tabs.close-hover": "Zenith Tabs",
  "zenith.tabs.unloaded": "Zenith Tabs",
  "zenith.tabs.attention": "Zenith Tabs",
- "zenith.tabs.attention-for": "Zenith Tabs",
  "zenith.tabs.pin-mark": "Zenith Tabs",
  "zenith.tabs.folder-activity": "Zenith Tabs",
  "zenith.tabs.container": "Zenith Tabs",

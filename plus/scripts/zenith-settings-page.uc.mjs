@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.18.2
+// @version        0.18.3
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -3638,6 +3638,33 @@ const SCHEMA = [
       "default": "hover"
      },
      {
+      "property": "zenith.tabs.new-tab",
+      "label": "Where a new tab opens",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "A tab you open (Ctrl+T, the new tab button, a link from another app): at the top or the bottom of the space's tabs, or just above or below the one you're on. The same as Zen's own (its new tab button at the top puts them at the top). A link opened from a page goes right after it, as Firefox has it; in a split, a new tile; in the scroller, a column right of yours.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "At the top (the left in a bar)",
+        "value": "start"
+       },
+       {
+        "label": "At the bottom (the right in a bar)",
+        "value": "end"
+       },
+       {
+        "label": "Just above the tab you're on (left of it in a bar)",
+        "value": "before"
+       },
+       {
+        "label": "Just below the tab you're on (right of it in a bar)",
+        "value": "after"
+       }
+      ],
+      "default": "start"
+     },
+     {
       "property": "zenith.tabs.reveal",
       "label": "Revealed sidebar",
       "type": "dropdown",
@@ -3795,7 +3822,7 @@ const SCHEMA = [
       "label": "Attention dots",
       "type": "dropdown",
       "extra": false,
-      "desc": "A dot on tabs that want attention.",
+      "desc": "A dot on a tab waiting on a dialog (a tab whose title changed gets none).",
       "host": "Zenith Tabs",
       "options": [
        {
@@ -3808,36 +3835,6 @@ const SCHEMA = [
        }
       ],
       "default": null
-     },
-     {
-      "property": "zenith.tabs.attention-for",
-      "label": "Dots for",
-      "type": "dropdown",
-      "extra": false,
-      "desc": "Alerts: a tab waiting on a dialog. Changed titles: a background tab whose title changed (a pinned mail or chat tab with something new).",
-      "host": "Zenith Tabs",
-      "options": [
-       {
-        "label": "Alerts and changed titles",
-        "value": "all"
-       },
-       {
-        "label": "Alerts only (a dialog waiting)",
-        "value": "alerts"
-       }
-      ],
-      "default": "all",
-      "rule": {
-       "why": "Attention dots are off",
-       "conditions": [
-        {
-         "not": {
-          "property": "zenith.tabs.attention",
-          "value": "off"
-         }
-        }
-       ]
-      }
      },
      {
       "property": "zenith.tabs.folder-activity",
@@ -5784,7 +5781,7 @@ const SCHEMA = [
       "label": "Start page",
       "type": "dropdown",
       "extra": false,
-      "desc": "about:zenith-start, on the window's glass: a clock, a search box (Peek's engine) that also finds your bookmarks as you type, and your bookmarks, 1–9 to open one. It becomes the home page (the Home button, and new windows if they open the home page); with new tabs too, Ctrl+T opens it instead of Zen's URL bar. Off gives yours back.",
+      "desc": "about:zenith-start, on the window's glass: a clock, a search box that hands what you type to the address bar (its suggestions, history and search, as usual), and your bookmarks. It becomes the home page (the Home button, and new windows if they open the home page); with new tabs too, Ctrl+T opens it instead of Zen's URL bar. Off gives yours back.",
       "host": "Zenith Plus",
       "options": [
        {
@@ -5858,7 +5855,7 @@ const SCHEMA = [
       "label": "Bookmarks",
       "type": "checkbox",
       "extra": false,
-      "desc": "Your bookmarks under the search box, toolbar first; 1–9 open one while the box is empty, and typing finds them.",
+      "desc": "Your bookmarks under the search box, toolbar first: a click opens one (Shift or a middle click: in a new tab).",
       "host": "Zenith Plus",
       "default": true,
       "rule": {
@@ -7805,7 +7802,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.18.2";
+const SCHEMA_VERSION = "0.18.3";
 
 // The settings page's folded and opened sections and groups (by section id,
 // or "section/group title"), kept across visits.

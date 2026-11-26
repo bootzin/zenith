@@ -203,9 +203,9 @@ SECTIONS = [
         "blurb": "Zen's sidebar and its tabs: when it shows, what a tab tells you, and spaces.",
         "preset": "zenith.tabs.preset",
         "groups": [
-            ("The sidebar", ["zenith.sidebar", "zenith.tabs.reveal", "zenith.tabs.reveal-delay", "zenith.tabs.close-hover",
+            ("The sidebar", ["zenith.sidebar", "zenith.tabs.new-tab", "zenith.tabs.reveal", "zenith.tabs.reveal-delay", "zenith.tabs.close-hover",
                              "zenith.tabs.mini-player", "zenith.plus.media-art"]),
-            ("What a tab tells you", ["zenith.tabs.unloaded", "zenith.tabs.pin-mark", "zenith.tabs.attention", "zenith.tabs.attention-for",
+            ("What a tab tells you", ["zenith.tabs.unloaded", "zenith.tabs.pin-mark", "zenith.tabs.attention",
                                       "zenith.tabs.folder-activity", "zenith.tabs.container", "zenith.tabs.audio-wave", "zenith.tabs.split-vertical"]),
             ("Spaces", ["zenith.plus.workspace-dots", "zenith.plus.workspace-flash", "zenith.plus.key-switch-flash", "zenith.plus.minimap"]),
             ("Links from other apps", ["zenith.plus.external-links", "zenith.action.space-routing"]),
@@ -429,7 +429,7 @@ DESCRIPTIONS = {
     "zen.tabs.open-pinned-in-new-tab": "Zen's own setting. Off: a pinned tab goes to the other site itself.",
     "zenith.plus.minimap": "Small ticks at the edge for tabs that are loading, playing or want attention.",
     "zenith.tabs.unloaded": "How sleeping tabs look.",
-    "zenith.tabs.attention": "A dot on tabs that want attention.",
+    "zenith.tabs.attention": "A dot on a tab waiting on a dialog (a tab whose title changed gets none).",
     "zenith.plus.space-colour": "How a space's colours show in the glass: its whole gradient (each colour where Zen puts it), "
                                 "or one tint, all its colours averaged (0.11.0's look).",
     "zenith.plus.colour-strength": "How much of the space's colours the glass takes: the space's own opacity (Zen's theme "
@@ -525,16 +525,16 @@ DESCRIPTIONS = {
     "zenith.plus.download-delete": "A bin beside Show in folder on each finished download, in the sidebar's downloads, "
                                    "Zen's Library and Firefox's Library window: it deletes the file and takes it off the "
                                    "list. With two clicks, the first turns it red and asks.",
-    "zenith.plus.startpage": "about:zenith-start, on the window's glass: a clock, a search box (Peek's engine) that also "
-                             "finds your bookmarks as you type, and your bookmarks, 1–9 to open one. It becomes the home "
+    "zenith.plus.startpage": "about:zenith-start, on the window's glass: a clock, a search box that hands what you type to "
+                             "the address bar (its suggestions, history and search, as usual), and your bookmarks. It becomes the home "
                              "page (the Home button, and new windows if they open the home page); with new tabs too, "
                              "Ctrl+T opens it instead of Zen's URL bar. Off gives yours back.",
     "zenith.plus.startpage-weather": "A line from wttr.in for where you are (worked out from your connection, as Peek's "
                                      "\"wt\").",
     "zenith.plus.startpage-weather-history": "Below it, the places you looked up in Peek lately, as many as Peek's weather "
                                              "history keeps (each place once).",
-    "zenith.plus.startpage-bookmarks": "Your bookmarks under the search box, toolbar first; 1–9 open one while the box is "
-                                       "empty, and typing finds them.",
+    "zenith.plus.startpage-bookmarks": "Your bookmarks under the search box, toolbar first: a click opens one (Shift or a "
+                                       "middle click: in a new tab).",
     "zenith.plus.startpage-top": "A row of the sites you visit most (Firefox's own ranking: how often and how lately), "
                                  "one per site. Typing finds them too.",
     "zenith.plus.focus-scope": "Alt+Z focuses the site you're on: its tabs, and pages on it you go to; on another site's tab "
@@ -561,8 +561,6 @@ DESCRIPTIONS = {
                                   "Only sites you allow), a notice says so, with Undo: the site is left alone (its banner "
                                   "back, or its cookies allowed), so no site stays broken by it. Nothing from private "
                                   "windows is kept.",
-    "zenith.tabs.attention-for": "Alerts: a tab waiting on a dialog. Changed titles: a background tab whose title changed "
-                                 "(a pinned mail or chat tab with something new).",
     "zenith.plus.split-solo": "For a moment's attention: the pane of the tab you're on fills the split view, the others wait "
                               "behind it (nothing moves or reloads). Alt+F again, or a tab outside the split, and it's as it was.",
     "zenith.plus.link-hints": "Alt+; (the key right of L, whatever your layout prints on it) puts a few letters on every "
@@ -610,6 +608,10 @@ DESCRIPTIONS = {
     "zenith.shell.wheel": "Alt and the wheel (or two fingers) over the page: the next or previous space. Firefox's own "
                           "Alt+wheel (back and forward) is off while this is on, and comes back when it's off.",
     "zenith.shell.follow-mouse": "As i3 does: rest the pointer on a tile for a moment and it's the one you're on.",
+    "zenith.tabs.new-tab": "A tab you open (Ctrl+T, the new tab button, a link from another app): at the top or the bottom of "
+                           "the space's tabs, or just above or below the one you're on. The same as Zen's own (its new tab "
+                           "button at the top puts them at the top). A link opened from a page goes right after it, as "
+                           "Firefox has it; in a split, a new tile; in the scroller, a column right of yours.",
     "zenith.shell.new-tile": "Along the longer side, as Hyprland's dwindle: a wide tile splits side by side, a tall one "
                              "top and bottom. Alt+B (right) or Alt+V (below) decides for the next one only.",
     "zenith.shell.split-background": "While you're on a split's tab, every new tab (Ctrl+T, a link to a new tab) becomes a tile of that split, placed by the space's layout. Links opened in the background (Ctrl+click, a middle click) do too, or stay normal tabs. Past the split's tile limit, a normal tab.",
@@ -898,7 +900,6 @@ LABELS = {
     "zenith.plus.focus-video-subscriptions": "Subscriptions",
     "zenith.plus.cookie-notices": "Notices with Undo",
     "zenith.plus.ai-topics": "Tabs by topic",
-    "zenith.tabs.attention-for": "Dots for",
     "zenith.plus.float-above": "Stays above",
     "zenith.plus.startpage": "Start page",
     "zenith.plus.startpage-weather": "Weather",

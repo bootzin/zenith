@@ -617,6 +617,24 @@ export function powerCard(box) {
   box.append(list);
 }
 
+// The space's layout, picked (the bar's layout module): each with its picture.
+export function layoutCard(box) {
+  const L = window.ZenithLayouts;
+  if (!L) return;
+  const now = L.of(), list = node("div", { class: "zs-list", role: "menu" });
+  for (const how of L.ALL) {
+    const row = node("div", { class: "zs-row", action: "true", role: "menuitemradio", "aria-checked": String(how === now) });
+    row.toggleAttribute("current", how === now);
+    row.append(ico(how), node("span", { class: "zs-grow" }, L.NAMES[how]));
+    row.addEventListener("click", () => {
+      Popup.close();
+      L.set(how);
+    });
+    list.append(row);
+  }
+  box.append(list, node("div", { class: "zs-sub zs-note" }, "Alt+Y: the next one"));
+}
+
 /* --- A bar's menu (a right-click on it) ------------------------------------------------- */
 // (The module names the bar's lists use, from those on the page.)
 const LISTED = { tasks: "tabs", "tasks-more": "tabs", privacy: "trackers", resources: "memory", tray: "extensions" };

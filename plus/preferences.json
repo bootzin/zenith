@@ -3991,6 +3991,31 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.tabs.new-tab",
+    "label": "Where a new tab opens",
+    "type": "dropdown",
+    "placeholder": "Default (At the top (the left in a bar))",
+    "options": [
+      {
+        "label": "At the top (the left in a bar)",
+        "value": "start"
+      },
+      {
+        "label": "At the bottom (the right in a bar)",
+        "value": "end"
+      },
+      {
+        "label": "Just above the tab you're on (left of it in a bar)",
+        "value": "before"
+      },
+      {
+        "label": "Just below the tab you're on (right of it in a bar)",
+        "value": "after"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.shell.new-tile",
     "label": "Where a new tile goes",
     "type": "dropdown",

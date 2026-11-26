@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// about:zenith-start: a clock, a search box (Peek's engine) that also
-// filters your bookmarks as you type, and the bookmarks themselves: 1–9
-// open one while the box is empty, arrows and Enter pick one, Shift+Enter
-// opens in a new tab. With the weather on, a line from wttr.in for where
+// about:zenith-start: a clock, a search box that hands what you type to the
+// address bar (as Firefox's new tab page does: its suggestions, history,
+// bookmarks, numbers, search, all as usual), and your bookmarks below, a
+// click to open one (Shift or a middle click: a new tab). With the weather on, a line from wttr.in for where
 // you are (then, optionally, the places you looked up in Peek lately); and
 // optionally your most visited sites, as tiles. Each part has its switch
 // (Zenith › Pages and privacy › Start page).
@@ -157,19 +157,11 @@ function show() {
   $("marks").hidden = !words.length && !all.length;
   picked = words.length && shown.length ? 0 : -1;
   $("marks").replaceChildren(...shown.map((b, i) => make("li", { selected: i === picked, onclick: e => open(b.url, e.shiftKey || e.button === 1) },
-    make("span", { class: "n" }, words.length ? "" : String(i + 1)),
     make("img", { src: `page-icon:${b.url}`, alt: "", onerror: e => (e.target.style.visibility = "hidden") }),
     make("span", { class: "title" }, b.title),
     make("span", { class: "host" }, host(b.url)))));
   const what = all.length ? "bookmark" : "site";
-  $("hint").textContent = words.length
-    ? (shown.length ? `Enter opens the highlighted ${what} · Alt+Enter searches instead` : "Enter searches")
-    : (shown.length ? `1–9 open a ${what} · type to find one, or to search` : "Type to search");
-}
-
-function pick(i) {
-  picked = shown.length ? (i + shown.length) % shown.length : -1;
-  [...$("marks").children].forEach((li, k) => li.toggleAttribute("selected", k === picked));
+  $("hint").textContent = shown.length ? `Type to search or go to an address · click a ${what} to open it` : "Type to search or go to an address";
 }
 
 function open(url, newTab = false) {
@@ -191,25 +183,18 @@ function go(text, newTab) {
   Services.search.getDefault().then(e => open(e.getSubmission(t).uri.spec, newTab));
 }
 
-$("q").addEventListener("input", show);
+// What's typed goes to the address bar, which carries on from there.
+$("q").addEventListener("input", () => {
+  const text = $("q").value;
+  if (!text) return;
+  $("q").value = "";
+  if (win.gURLBar?.handoff) win.gURLBar.handoff(text);
+  else win.gURLBar?.search?.(text);
+});
 $("q").addEventListener("keydown", e => {
-  const empty = !$("q").value;
-  if (empty && /^[1-9]$/.test(e.key) && !e.ctrlKey && !e.altKey && !e.metaKey) {
-    const b = shown[+e.key - 1];
-    if (b) {
-      e.preventDefault();
-      open(b.url, e.shiftKey);
-    }
-  } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+  if (e.key === "Enter" && $("q").value) {
     e.preventDefault();
-    pick(picked + (e.key === "ArrowDown" ? 1 : -1));
-  } else if (e.key === "Enter") {
-    e.preventDefault();
-    if (picked >= 0 && !e.altKey) open(shown[picked].url, e.shiftKey);
-    else go($("q").value, e.shiftKey);
-  } else if (e.key === "Escape") {
-    $("q").value = "";
-    show();
+    go($("q").value, e.shiftKey);
   }
 });
 
