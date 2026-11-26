@@ -21,7 +21,12 @@
     border-radius: var(--zth-radius) !important;
   }
 
+  /* The open bar in Zenith's panel glass, as every other popup: Zen
+     (1.24.2) draws it slightly see-through and blurred its own way, which
+     ignored Theme › Glass and its legibility floor. */
   & #urlbar[breakout-extend] .urlbar-background {
+    background: var(--zth-panel-bg) !important;
+    backdrop-filter: var(--zth-panel-filter) !important;
     outline: 1px solid var(--zth-hairline) !important;
     outline-offset: -1px !important;
     box-shadow: var(--zth-shadow), var(--zth-glass-shine) !important;

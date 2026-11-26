@@ -1173,13 +1173,8 @@ const KeySheet = {
       add("Spaces", "Alt+1 … 0", "Go to that space");
       add("Spaces", "Alt+Shift+1 … 0", "Send the tab to that space (you stay)");
     }
-    // Zenith's other keys, as Zen's Keyboard shortcuts have them.
-    const zen = window.gZenKeyboardShortcutsManager?._currentShortcutList ?? [];
-    for (const [id, , , , label] of ZenithKeys.LIST) {
-      const s = zen.find(x => x.getID?.() === id);
-      if (s && !s.isEmpty?.()) add("Zenith", s.toDisplayString?.() ?? "", label);
-    }
-    add("Zenith", "Alt+F", "The tile you're on fills the split, and back");
+    // Zenith's other keys, as about:keyboard has them.
+    for (const [id, label] of ZenithKeys.OWN) add("Zenith", ZenithKeys.shown(id), label);
     const DOES = { glance: "Zen's Glance", peek: "Peek", tile: "A new tile" };
     for (const [combo, v] of Object.entries(LinkClicks.read())) {
       if (DOES[v]) add("Mouse", `${{ alt: "Alt", "alt-shift": "Alt+Shift", "ctrl-alt": "Ctrl+Alt", "ctrl-shift": "Ctrl+Shift" }[combo]}+click`, `A link in ${DOES[v]}`.replace("in A new", "as a new"));

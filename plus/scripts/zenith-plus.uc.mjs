@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.18.3
+// @version        0.18.4
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -21,7 +21,7 @@
 // Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
 // work without any of this. Peek has its own script, zenith-peek.uc.mjs.
 
-const ZENITH_VERSION = "0.18.3"; // (tools/bump_version.py keeps it)
+const ZENITH_VERSION = "0.18.4"; // (tools/bump_version.py keeps it)
 window.ZenithVersion = ZENITH_VERSION; // about:zenith-fetch, the rice file
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const root = document.documentElement;
@@ -621,10 +621,43 @@ const PageAccent = {
   SHEET_PREF: "zenith.internal.page-sheet",
 };
 
-/* --- Zoom pills: one per pane whose zoom isn't 100% ------------------------ */
+/* --- Zoom pills: one per pane whose zoom isn't 100% ------------------------
+   When you zoom (Zenith › Small touches): a pill on the zoomed pane (it
+   stays while the pane isn't at 100%; a click resets it), Zen's toast with
+   the new zoom (Zen 1.24.3), both or neither. The setting is on the root
+   for the CSS ([zenith-zoom-shows]); Zen's zoom toast is let through only
+   when it's wanted. */
 
 const ZoomPills = {
+  PREF: "zenith.plus.zoom-shows", // pill · toast · both · neither
+
+  shows() {
+    const v = Services.prefs.getStringPref(this.PREF, "");
+    return ["pill", "toast", "both", "neither"].includes(v) ? v : "pill";
+  },
+
   init() {
+    // (0.18.3's "Zoom pill" switch: off was no pill, which is Zen's toast now.)
+    if (Services.prefs.prefHasUserValue("zenith.plus.zoom-pill")) {
+      if (!Services.prefs.getBoolPref("zenith.plus.zoom-pill", true) && !Services.prefs.prefHasUserValue(this.PREF)) Services.prefs.setStringPref(this.PREF, "toast");
+      Services.prefs.clearUserPref("zenith.plus.zoom-pill");
+    }
+    const mark = () => root.setAttribute("zenith-zoom-shows", this.shows());
+    mark();
+    Services.prefs.addObserver(this.PREF, mark);
+    onUnload(() => Services.prefs.removeObserver(this.PREF, mark));
+    const UI = window.gZenUIManager;
+    if (UI?.showToast && !UI.zenithShowToast) {
+      const orig = (UI.zenithShowToast = UI.showToast);
+      UI.showToast = function (id, ...rest) {
+        if (id === "zen-zoom-changed-toast" && !["toast", "both"].includes(ZoomPills.shows())) return;
+        return orig.call(this, id, ...rest);
+      };
+      onUnload(() => {
+        UI.showToast = orig;
+        delete UI.zenithShowToast;
+      });
+    }
     const update = () => requestAnimationFrame(() => this.update());
     ["FullZoomChange", "TextZoomChange"].forEach(e => window.addEventListener(e, update, true));
     gBrowser.tabContainer.addEventListener("TabSelect", update);
@@ -2333,94 +2366,233 @@ const ReadyPulse = {
    With Revealed sidebar on Push, the page moves aside by exactly as much as
    the sidebar covers when it slides out (its width plus its gap), wherever
    Zen puts it and however wide you've made it. */
-/* --- Zenith's keys in Zen's Keyboard shortcuts ---------------------------------
-   Every Zenith key is added to Zen's own shortcut list (Settings › Keyboard
-   shortcuts, under Other, labelled "Zenith: …"), so you can change or clear
-   it there like any of Zen's. Zen saves the list and turns it into keys in
-   every window, pointed at Zenith's commands; Zenith's own keys step aside
-   once Zen has them. A feature switched off disables its command, so its
-   key does nothing. Added once: a key you changed or cleared stays as you
-   left it. */
+/* --- Zenith's keys in about:keyboard ----------------------------------------
+   Zen 1.24 moved its shortcuts to Firefox's Keyboard shortcuts
+   (about:keyboard), where each key is a <key> element and a change is kept
+   in customKeys.json by Firefox's CustomKeys. Zenith's keys join it, in
+   groups of their own ("Zenith", "Zenith: tiles"…), to change, clear or
+   reset there:
+   - Zenith's own keys (the switcher, Peek, focus mode…) are <key> elements,
+     changed there like Firefox's.
+   - The Shell's keys go by where a key is (Alt+; on any layout) and stay
+     Zenith's to press. Each has a stand-in <key> (disabled) that the page
+     lists and changes: a change there becomes the Shell's binding
+     (zenith.shell.bindings, which Settings › Tiling and keys and the rice
+     file also write), and a binding changed there shows on the page. On
+     start the binding wins: the rice file may have changed it.
+   A feature switched off disables its command, so its key does nothing. */
 const ZenithKeys = {
-  // id in Zen's list · key · modifiers · Zenith's command · label · the
-  // setting that switches it off · Zenith's own key element
-  LIST: [
-    ["zenith-key-switcher", "w", { alt: true }, "zenith-switcher-command", "Switcher", "zenith.plus.switcher", "zenith-switcher-key"],
-    ["zenith-key-peek", "q", { alt: true }, "zenith-peek-command", "Peek", "zenith.peek.enabled", "zenith-peek-key"],
-    ["zenith-key-focus", "z", { alt: true }, "zenith-focus-command", "Focus mode", "zenith.plus.focus-key", "zenith-focus-key"],
-    ["zenith-key-tabs", "t", { alt: true, shift: true }, "zenith-tabs-command", "Tab manager", "zenith.plus.tab-manager", "zenith-tabs-key"],
-    ["zenith-key-live", "z", { alt: true, shift: true }, "zenith-live-command", "Settings over the page", null, "zenith-live-key"],
-    ["zenith-key-float", "f", { alt: true, shift: true }, "zenith-float-command", "Float a tab", "zenith.plus.float-tab", "zenith-float-key"],
+  // Zenith's own keys: the <key> id · label · the setting that switches it off · its command
+  OWN: [
+    ["zenith-switcher-key", "Switcher", "zenith.plus.switcher", "zenith-switcher-command"],
+    ["zenith-peek-key", "Peek", "zenith.peek.enabled", "zenith-peek-command"],
+    ["zenith-focus-key", "Focus mode", "zenith.plus.focus-key", "zenith-focus-command"],
+    ["zenith-tabs-key", "Tab manager", "zenith.plus.tab-manager", "zenith-tabs-command"],
+    ["zenith-live-key", "Settings over the page", null, "zenith-live-command"],
+    ["zenith-float-key", "Float a tab", "zenith.plus.float-tab", "zenith-float-command"],
+    ["zenith-split-solo-key", "The tile you're on fills the split, and back", null, "zenith-split-solo-command"],
   ],
+  // The Shell's groups, as about:keyboard titles them.
+  GROUPS: { Zenith: "Zenith", Tiles: "Zenith: tiles", Tabs: "Zenith: tabs", Spaces: "Zenith: spaces", Pages: "Zenith: pages" },
+  STANDIN: "zenith-shell-key-",
+  MAC: Services.appinfo.OS === "Darwin",
 
   init() {
-    window.ZenithKeys = this; // the settings page's labels, and tools/checks
-    const M = window.gZenKeyboardShortcutsManager;
-    if (!M) return;
-    const ready = () => this.adopt(M).catch(e => console.error("[Zenith] keys in Zen's shortcuts", e));
-    if (M._currentShortcutList) ready();
-    else window.addEventListener("ZenKeyboardShortcutsReady", ready, { once: true });
+    window.ZenithKeys = this; // the settings page, KeySheet, and tools/checks
+    this.CK = ChromeUtils.importESModule("moz-src:///browser/components/customkeys/CustomKeys.sys.mjs").CustomKeys;
+    this.SU = ChromeUtils.importESModule("resource://gre/modules/ShortcutUtils.sys.mjs").ShortcutUtils;
+    this.patchPage();
+    // Zenith's keysets go in the body, where CustomKeys watches for them
+    // (it applies a change to a keyset as it arrives); Zenith's scripts
+    // start one by one, each adding its keys at the top of the window.
+    const move = () => {
+      for (const set of document.documentElement.querySelectorAll(":scope > keyset[id^='zenith-']")) document.body.append(set);
+    };
+    move();
+    this.standIns();
+    this.watcher = new MutationObserver(list => {
+      move();
+      // (A key changed in about:keyboard: CustomKeys re-adds its keyset.)
+      if (list.some(m => [...m.addedNodes].includes(this.set))) this.adoptSoon();
+    });
+    this.watcher.observe(document.documentElement, { childList: true });
+    this.watcher.observe(document.body, { childList: true });
     const enable = () => this.enable();
-    for (const pref of new Set(this.LIST.map(k => k[5]).filter(Boolean))) Services.prefs.addObserver(pref, enable);
+    const mirror = () => this.ready && this.mirror();
+    const prefs = [...new Set(this.OWN.map(k => k[2]).filter(Boolean))];
+    for (const p of prefs) Services.prefs.addObserver(p, enable);
+    Services.prefs.addObserver(SHELL.BINDINGS, mirror);
     onUnload(() => {
-      for (const pref of new Set(this.LIST.map(k => k[5]).filter(Boolean))) Services.prefs.removeObserver(pref, enable);
+      this.watcher.disconnect();
+      for (const p of prefs) Services.prefs.removeObserver(p, enable);
+      Services.prefs.removeObserver(SHELL.BINDINGS, mirror);
     });
     enable();
-  },
-
-  async adopt(M) {
-    const list = M._currentShortcutList;
-    const Shortcut = list?.[0]?.constructor;
-    if (!Shortcut?.parseFromSaved) return;
-    // (0.12.1 floated tabs on Alt+Shift+Space, which Windows keeps for the
-    // window menu: still on it, it moves to Alt+Shift+F.)
-    const old = list.findIndex(s => s.getID() === "zenith-key-float" && s.getKeyName?.() === " " && s.getModifiers?.().alt && s.getModifiers?.().shift);
-    if (old >= 0) list.splice(old, 1);
-    // (0.13.0: link hints moved to the Shell's keys, Alt+; by where the key
-    // is, so they leave Zen's list, which matches by letter.)
-    let moved = false;
-    for (let i = list.length - 1; i >= 0; i--) {
-      if (/^zenith-key-hints(-tab)?$/.test(list[i].getID())) {
-        list.splice(i, 1);
-        moved = true;
+    // (CustomKeys reads its file as the window opens; once it has, the
+    // Shell's bindings go to it.)
+    let tries = 0;
+    const start = () => {
+      try {
+        this.mirror();
+        this.ready = true;
+      } catch (e) {
+        if (++tries < 20) setTimeout(start, 500);
+        else console.error("[Zenith] keys in about:keyboard", e);
       }
-    }
-    const have = new Set(list.map(s => s.getID()));
-    const missing = this.LIST.filter(([id]) => !have.has(id));
-    if (moved && !missing.length) {
-      await M._saveShortcuts();
-      M.triggerShortcutRebuild();
-    }
-    if (missing.length) {
-      const fresh = Shortcut.parseFromSaved(missing.map(([id, key, mods, command]) => ({
-        id, key, keycode: "", group: "zen-other", l10nId: null, action: command,
-        modifiers: { control: false, alt: !!mods.alt, shift: !!mods.shift, meta: false, accel: !!mods.accel },
-        disabled: false, reserved: true, internal: false,
-      })));
-      list.push(...fresh);
-      await M._saveShortcuts();
-      M.triggerShortcutRebuild();
-    }
-    // Zen has them now: Zenith's own keys step aside, now and as they
-    // turn up (Zenith's scripts start one by one, each adding its keys at
-    // the top of the window).
-    this.adopted = true;
-    this.stepAside();
-    this.watcher ??= new MutationObserver(() => this.stepAside());
-    this.watcher.observe(document.documentElement, { childList: true });
-    onUnload(() => this.watcher.disconnect());
+    };
+    (window.delayedStartupPromise ?? Promise.resolve()).then(() => setTimeout(start, 0));
   },
 
-  stepAside() {
-    for (const [, , , , , , own] of this.LIST) document.getElementById(own)?.remove();
+  // about:keyboard asks Zen for its groups; Zenith's join them. (The module
+  // is shared by every window: the window the page is in answers.)
+  patchPage() {
+    let M;
+    try {
+      M = ChromeUtils.importESModule("resource:///modules/zen/kbs/ZenKeyboardShortcuts.sys.mjs").ZenKeyboardShortcuts;
+    } catch {
+      return;
+    }
+    if (!M?.addKeys || M.zenithAddKeys) return;
+    const orig = (M.zenithAddKeys = M.addKeys);
+    M.addKeys = async function (actor, keys) {
+      const out = await orig.call(this, actor, keys);
+      try {
+        actor.browsingContext.topChromeWindow?.ZenithKeys?.list(actor, out);
+      } catch (e) {
+        console.error("[Zenith] keys in about:keyboard", e);
+      }
+      return out;
+    };
+  },
+
+  list(actor, keys) {
+    const add = (group, id, title) => {
+      const data = actor.getKeyData(id);
+      if (!data) return;
+      data.title = title;
+      (keys[group] ??= {})[id] = data;
+    };
+    for (const [id, label] of this.OWN) add(this.GROUPS.Zenith, id, label);
+    for (const [name, , label, group] of ShellKeys.LIST) add(this.GROUPS[group] ?? this.GROUPS.Zenith, this.STANDIN + name, label);
+    return keys;
+  },
+
+  // One stand-in <key> per Shell key, never pressed (disabled): the page
+  // shows and changes it.
+  standIns() {
+    this.set = document.createXULElement("keyset");
+    this.set.id = "zenith-shell-keys";
+    for (const [name, combo] of ShellKeys.LIST) {
+      const key = document.createXULElement("key");
+      key.id = this.STANDIN + name;
+      key.setAttribute("disabled", "true");
+      for (const [attr, value] of Object.entries(this.toAttrs(combo))) key.setAttribute(attr, value);
+      this.set.append(key);
+    }
+    document.body.append(this.set);
+  },
+
+  // "Alt+Shift+KeyY" ⇄ { modifiers: "alt,shift", key: "Y" } (or keycode).
+  CHARS: { Semicolon: ";", Backquote: "`", Minus: "-", Equal: "=", Slash: "/", Backslash: "\\", BracketLeft: "[", BracketRight: "]",
+           Quote: "'", Comma: ",", Period: ".", Space: " " },
+  SHIFTED: { "!": "Digit1", "@": "Digit2", "#": "Digit3", $: "Digit4", "%": "Digit5", "^": "Digit6", "&": "Digit7", "*": "Digit8",
+             "(": "Digit9", ")": "Digit0", ":": "Semicolon", "~": "Backquote", _: "Minus", "+": "Equal", "?": "Slash", "|": "Backslash",
+             "{": "BracketLeft", "}": "BracketRight", '"': "Quote", "<": "Comma", ">": "Period" },
+  CODES: { Enter: "VK_RETURN", Tab: "VK_TAB", Escape: "VK_ESCAPE", Backspace: "VK_BACK", Delete: "VK_DELETE", Insert: "VK_INSERT",
+           Home: "VK_HOME", End: "VK_END", PageUp: "VK_PAGE_UP", PageDown: "VK_PAGE_DOWN", ArrowLeft: "VK_LEFT", ArrowRight: "VK_RIGHT",
+           ArrowUp: "VK_UP", ArrowDown: "VK_DOWN" },
+
+  toAttrs(combo) {
+    if (!combo) return {};
+    const parts = combo.split("+"), code = parts.pop();
+    const MODS = { Ctrl: this.MAC ? "control" : "accel", Alt: "alt", Shift: "shift", Meta: this.MAC ? "accel" : "meta" };
+    const out = { modifiers: parts.map(p => MODS[p]).filter(Boolean).sort().join(",") };
+    if (/^Key[A-Z]$/.test(code)) out.key = code.slice(3);
+    else if (/^(Digit|Numpad)\d$/.test(code)) out.key = code.slice(-1);
+    else if (this.CHARS[code]) out.key = this.CHARS[code];
+    else if (this.CODES[code]) out.keycode = this.CODES[code];
+    else if (/^F\d{1,2}$/.test(code)) out.keycode = `VK_${code}`;
+    else if (code.startsWith("Char:")) out.key = code.slice(5);
+    else out.key = code;
+    if (!out.modifiers) delete out.modifiers;
+    return out;
+  },
+
+  fromAttrs(key) {
+    const k = key.getAttribute("key"), kc = key.getAttribute("keycode");
+    if (!k && !kc) return "";
+    const MODS = { accel: this.MAC ? "Meta" : "Ctrl", control: "Ctrl", alt: "Alt", shift: "Shift", meta: "Meta" };
+    const mods = new Set((key.getAttribute("modifiers") ?? "").split(/[\s,]+/).map(m => MODS[m]).filter(Boolean));
+    let code;
+    if (kc) {
+      code = Object.keys(this.CODES).find(c => this.CODES[c] === kc) ?? (/^VK_F\d{1,2}$/.test(kc) ? kc.slice(3) : kc.replace(/^VK_/, ""));
+    } else {
+      const up = k.toUpperCase();
+      if (/^[A-Z]$/.test(up)) code = `Key${up}`;
+      else if (/^\d$/.test(up)) code = `Digit${up}`;
+      else if (this.SHIFTED[k]) {
+        code = this.SHIFTED[k];
+        mods.add("Shift");
+      } else code = Object.keys(this.CHARS).find(c => this.CHARS[c] === k) ?? `Char:${up}`;
+    }
+    return [...["Ctrl", "Alt", "Shift", "Meta"].filter(m => mods.has(m)), code].join("+");
+  },
+
+  same(key, attrs) {
+    return ["modifiers", "key", "keycode"].every(a => (key.getAttribute(a) || "") === (attrs[a] || ""));
+  },
+
+  // The Shell's bindings → about:keyboard.
+  mirror() {
+    ShellKeys.read();
+    for (const [name, def] of ShellKeys.LIST) {
+      const id = this.STANDIN + name, key = document.getElementById(id);
+      if (!key) continue;
+      const want = ShellKeys.combos.get(name) ?? def, custom = !!this.CK.getDefaultKey(id);
+      if (want === def) {
+        if (custom) this.CK.resetKey(id);
+        continue;
+      }
+      const attrs = this.toAttrs(want);
+      if (!custom || !this.same(key, attrs)) this.CK.changeKey(id, attrs);
+    }
+  },
+
+  adoptSoon() {
+    if (this.adopting || !this.ready) return;
+    this.adopting = true;
+    setTimeout(() => {
+      this.adopting = false;
+      this.adopt();
+    }, 0);
+  },
+
+  // about:keyboard → the Shell's bindings (only what differs from Zenith's).
+  adopt() {
+    const changed = new Map();
+    for (const [name, def] of ShellKeys.LIST) {
+      const id = this.STANDIN + name, key = document.getElementById(id);
+      if (!key || !this.CK.getDefaultKey(id)) continue;
+      const combo = this.fromAttrs(key);
+      if (combo !== def) changed.set(name, combo);
+    }
+    const now = new Map(Services.prefs.getStringPref(SHELL.BINDINGS, "").split(",").map(x => x.trim()).filter(x => x.includes("="))
+      .map(x => [x.slice(0, x.indexOf("=")).trim(), x.slice(x.indexOf("=") + 1).trim()]));
+    const same = now.size === changed.size && [...changed].every(([n, c]) => now.get(n) === c);
+    if (!same) Services.prefs.setStringPref(SHELL.BINDINGS, [...changed].map(([n, c]) => `${n}=${c}`).join(", "));
+  },
+
+  // What a key is set to, as about:keyboard shows it ("" without one).
+  shown(id) {
+    const key = document.getElementById(id);
+    return key && (key.hasAttribute("key") || key.hasAttribute("keycode")) ? this.SU.prettifyShortcut(key) : "";
   },
 
   // A feature that's off: its command (and so its key) does nothing.
   enable() {
-    for (const [, , , command, , pref] of this.LIST) {
+    for (const [, , pref, command] of this.OWN) {
       if (!pref) continue;
-      const on = Services.prefs.getBoolPref(pref, true);
-      document.getElementById(command)?.toggleAttribute("disabled", !on);
+      document.getElementById(command)?.toggleAttribute("disabled", !Services.prefs.getBoolPref(pref, true));
     }
   },
 };
@@ -5388,7 +5560,7 @@ const ShellKeys = {
     if (!combo) return "";
     const NAMES = { Semicolon: ";", Backquote: "`", Minus: "-", Equal: "=", Slash: "/", Backslash: "\\", BracketLeft: "[",
                     BracketRight: "]", Quote: "'", Comma: ",", Period: ".", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓" };
-    return combo.split("+").map(p => NAMES[p] ?? p.replace(/^Key|^Digit|^Numpad/, "")).join("+");
+    return combo.split("+").map(p => NAMES[p] ?? p.replace(/^Key|^Digit|^Numpad|^Char:/, "")).join("+");
   },
 
   // The page you're on keeps its Alt keys (Tiling and keys › Sites that keep their Alt keys).
@@ -5409,7 +5581,9 @@ const ShellKeys = {
     if (e.isComposing || this.recording) return; // (Zenith's page is taking a new key)
     if (ShellModes.mode) return ShellModes.key(e);
     if (!(e.altKey || e.ctrlKey || e.metaKey)) return;
-    const name = this.map.get(this.combo(e));
+    // (A key set in about:keyboard by its character, one no key position
+    // stands for: "Alt+Char:Ö".)
+    const name = this.map.get(this.combo(e)) ?? this.map.get(this.combo(e).replace(/[^+]+$/, `Char:${e.key.toUpperCase()}`));
     if (!name) return;
     if (name === "passthrough" ? !this.on : !this.free() || !(this.on || this.byName.get(name)[4])) return;
     // Alt+Enter in the address bar is Firefox's own: open in a new tab.
@@ -7085,13 +7259,8 @@ const KeySheet = {
       add("Spaces", "Alt+1 … 0", "Go to that space");
       add("Spaces", "Alt+Shift+1 … 0", "Send the tab to that space (you stay)");
     }
-    // Zenith's other keys, as Zen's Keyboard shortcuts have them.
-    const zen = window.gZenKeyboardShortcutsManager?._currentShortcutList ?? [];
-    for (const [id, , , , label] of ZenithKeys.LIST) {
-      const s = zen.find(x => x.getID?.() === id);
-      if (s && !s.isEmpty?.()) add("Zenith", s.toDisplayString?.() ?? "", label);
-    }
-    add("Zenith", "Alt+F", "The tile you're on fills the split, and back");
+    // Zenith's other keys, as about:keyboard has them.
+    for (const [id, label] of ZenithKeys.OWN) add("Zenith", ZenithKeys.shown(id), label);
     const DOES = { glance: "Zen's Glance", peek: "Peek", tile: "A new tile" };
     for (const [combo, v] of Object.entries(LinkClicks.read())) {
       if (DOES[v]) add("Mouse", `${{ alt: "Alt", "alt-shift": "Alt+Shift", "ctrl-alt": "Ctrl+Alt", "ctrl-shift": "Ctrl+Shift" }[combo]}+click`, `A link in ${DOES[v]}`.replace("in A new", "as a new"));
@@ -9121,10 +9290,12 @@ const ExtensionCopies = {
    Escape opens it as Zen would have. Rules you already have still apply
    without asking. Firefox hands such links to the window's browserDOMWindow
    (OPEN_EXTERNAL); Zenith waits there for your answer.
-   Zen's Space routing dialog gains "Ask me each time" in each rule's list of
-   spaces (that rule then asks) and in the default for other links (the same
-   as this setting; the two follow each other). Zen reads "Ask me each time"
-   as no space, so without Zenith such links simply open where you are. */
+   Zen's Space routing (in its Library since Zen 1.24) gains "Ask me each
+   time" in each rule's menu of spaces (that rule then asks) and in the
+   default for other links (the same as this setting; the two follow each
+   other). Zen reads "Ask me each time" as no space, so without Zenith such
+   links simply open where you are. Or Space routing opens in a popup of
+   Zenith's (Zenith › Links › Space routing opens in). */
 const ExternalLinks = {
   PREF: "zenith.plus.external-links",
   ASK: "zenith-ask",
@@ -9192,13 +9363,11 @@ const ExternalLinks = {
     // (A window Zen opened for them as it started: Zenith's scripts may come
     // after Zen is ready.)
     this.startup();
-    this.patchDialog();
+    this.patchRouting();
+    this.patchLibrary();
     const follow = () => this.followSetting();
     Services.prefs.addObserver(this.PREF, follow);
-    onUnload(() => {
-      Services.prefs.removeObserver(this.PREF, follow);
-      this.unpatchDialog();
-    });
+    onUnload(() => Services.prefs.removeObserver(this.PREF, follow));
     window.ZenithLinks = this; // for tools/checks
   },
 
@@ -9539,56 +9708,268 @@ const ExternalLinks = {
     }
   },
 
-  // Zen's dialog builds each list of spaces with createOpenInList; Zenith's
-  // choice goes in after "Most recent space". The dialog's code is shared by
-  // every window, so one window patches it and hands over when it closes.
-  patchDialog() {
-    let proto;
-    try {
-      proto = ChromeUtils.importESModule("resource:///modules/zen/spacerouting/ZenSpaceRoutingDialog.mjs")
-        .nsZenSpaceRoutingDialog.prototype;
-    } catch {
-      return;
-    }
-    if (proto.zenithOrig) return;
-    const orig = (proto.zenithOrig = proto.createOpenInList);
-    const links = this;
-    proto.createOpenInList = async function (select, value) {
-      await orig.call(this, select, value);
-      const popup = select.querySelector("menupopup") ?? select;
-      const item = this.doc.createXULElement("menuitem");
-      item.setAttribute("label", "Ask me each time");
-      item.setAttribute("value", links.ASK);
-      item.className = "zenith-route-ask";
-      const recent = popup.querySelector('menuitem[value="most-recent-space"]');
-      if (recent) recent.after(item);
-      else popup.append(item);
-      const isDefault = select.id === "sr-default-external-open-in";
-      const asking = value === links.ASK || (isDefault && Services.prefs.getStringPref(links.PREF, "") === "ask");
-      if (asking) select.value = links.ASK;
-      if (isDefault) {
-        if (value !== links.ASK) Services.prefs.setStringPref(links.SAVED, value);
-        select.addEventListener("command", () => {
-          if (select.value === links.ASK) Services.prefs.setStringPref(links.PREF, "ask");
-          else Services.prefs.clearUserPref(links.PREF);
-        });
-      }
+  // Zen's routing is one module for every window: patched once. Its default
+  // for other links set to "Ask me each time" (from the Library, the popup
+  // or Zenith) is this setting's Ask, and back; and Space routing opens in
+  // the Library or in Zenith's popup, as Zenith › Links has it.
+  patchRouting() {
+    const R = this.routing();
+    if (!R || R.zenithSetDefault) return;
+    const setDefault = (R.zenithSetDefault = R.setDefaultExternalRoute);
+    R.setDefaultExternalRoute = function (type) {
+      setDefault.call(this, type);
+      try {
+        if (type === "zenith-ask") Services.prefs.setStringPref("zenith.plus.external-links", "ask");
+        else {
+          Services.prefs.setStringPref("zenith.internal.links.default", type);
+          if (Services.prefs.getStringPref("zenith.plus.external-links", "") === "ask") Services.prefs.clearUserPref("zenith.plus.external-links");
+        }
+      } catch {}
     };
-    this.patched = proto;
+    const open = (R.zenithOpen = R.openSpaceRoutingSettings);
+    R.openSpaceRoutingSettings = function (win) {
+      if (Services.prefs.getStringPref("zenith.plus.routing-in", "library") === "popup" && win?.ZenithLinks?.editor) return win.ZenithLinks.editor();
+      return open.call(this, win);
+    };
   },
 
-  unpatchDialog() {
-    const proto = this.patched;
-    if (!proto?.zenithOrig) return;
-    proto.createOpenInList = proto.zenithOrig;
-    delete proto.zenithOrig;
-    this.patched = null;
-    for (const w of Services.wm.getEnumerator("navigator:browser")) {
-      if (w !== window && !w.closed && w.ZenithLinks) {
-        w.ZenithLinks.patchDialog();
-        break;
+  ASK_LABEL: "Ask me each time",
+
+  // In the Library: "Ask me each time" in the menu both of its pickers open
+  // (a rule's space, and the default for other links), after "Most recent
+  // space"; rows and pickers set to it say so. The Library is the window's
+  // own (a custom element), so each window does this for its own.
+  patchLibrary() {
+    const showing = e => {
+      const menu = e.target;
+      if (!menu.classList?.contains("zen-library-routing-menu")) return;
+      for (const old of menu.querySelectorAll(".zenith-route-ask")) old.remove();
+      const anchor = menu.anchorNode, section = anchor?.getRootNode?.()?.host;
+      const value = anchor?.closest?.(".zen-library-routing-footer") ? this.routing()?.getDefaultExternalRoute() : section?.draft?.openIn;
+      const item = document.createXULElement("menuitem");
+      item.className = "zenith-route-ask";
+      item.dataset.value = this.ASK;
+      item.setAttribute("label", this.ASK_LABEL);
+      item.setAttribute("type", "radio");
+      item.setAttribute("name", "zen-library-routing-space");
+      const recent = menu.querySelector('menuitem[data-value="most-recent-space"]');
+      if (value === this.ASK) {
+        recent?.removeAttribute("checked");
+        item.setAttribute("checked", "true");
       }
-    }
+      const line = document.createXULElement("menuseparator");
+      line.className = "zenith-route-ask";
+      if (recent) recent.after(item, line);
+      else menu.prepend(item, line);
+    };
+    document.addEventListener("popupshowing", showing, true);
+    onUnload(() => document.removeEventListener("popupshowing", showing, true));
+    const links = this;
+    customElements.whenDefined("zen-library-space-routing-section").then(() => {
+      const proto = customElements.get("zen-library-space-routing-section")?.prototype;
+      if (!proto || "zenithUpdated" in proto) return;
+      const orig = (proto.zenithUpdated = proto.updated);
+      proto.updated = function (...args) {
+        orig?.apply(this, args);
+        try {
+          links.relabel(this);
+        } catch (e) {
+          console.error("[Zenith] Space routing in the Library", e);
+        }
+      };
+      onUnload(() => {
+        proto.updated = orig;
+        delete proto.zenithUpdated;
+      });
+    });
+  },
+
+  // The section draws a destination it doesn't know as "Most recent space":
+  // those set to ask say "Ask me each time" (and go back when changed).
+  relabel(section) {
+    const R = this.routing(), rootNode = section.renderRoot ?? section.shadowRoot ?? section;
+    if (!R) return;
+    const set = (node, ask) => {
+      if (!node) return;
+      if (ask) {
+        node.removeAttribute("data-l10n-id");
+        node.textContent = this.ASK_LABEL;
+        node.dataset.zenithAsk = "true";
+      } else if (node.dataset.zenithAsk) {
+        delete node.dataset.zenithAsk;
+        node.setAttribute("data-l10n-id", "library-space-routing-most-recent-space");
+      }
+    };
+    // (Rows come in the order the section shows them, its search applied.)
+    const q = String(section.searchQuery ?? "").toLowerCase();
+    const name = id => this.spaces().find(s => s.uuid === id)?.name ?? "";
+    const shown = (section.routes ?? []).filter(r => !q || r.reference.toLowerCase().includes(q) || name(r.openIn).toLowerCase().includes(q));
+    rootNode.querySelectorAll(".zen-library-routing-row").forEach((row, i) => {
+      set(row.querySelector(".zen-library-routing-destination .zen-library-routing-value"), shown[i]?.openIn === this.ASK);
+    });
+    set(rootNode.querySelector(".zen-library-routing-form .zen-library-routing-select-name"), section.draft?.openIn === this.ASK);
+    set(rootNode.querySelector(".zen-library-routing-footer .zen-library-routing-select-name"), R.getDefaultExternalRoute() === this.ASK);
+  },
+
+  // Zenith's Space routing popup (Zenith › Links › Space routing opens in:
+  // a popup): every rule on one card, changed where it stands. A rule is
+  // kept once its pattern reads (an empty one would catch every link); the
+  // first rule that matches wins, as in Zen.
+  editor() {
+    const R = this.routing();
+    if (!R) return;
+    document.getElementById("zenith-routing")?.remove();
+    const card = el("div", { id: "zenith-routing" });
+    const box = el("div", { id: "zenith-routing-box", role: "dialog", "aria-label": "Space routing" });
+    const head = el("div", { class: "zth-sr-head" });
+    const title = el("span", { class: "zth-sr-title" });
+    title.textContent = "Space routing";
+    const x = el("button", { class: "zth-sr-x", type: "button", title: "Close (Esc)" });
+    x.textContent = "✕";
+    head.append(title, x);
+    const lede = el("div", { class: "zth-sr-lede" });
+    lede.textContent = "A link that matches a rule opens in that rule's space; the first rule that matches wins.";
+    const list = el("div", { class: "zth-sr-list" });
+    const empty = el("div", { class: "zth-sr-empty" });
+    empty.textContent = "No rules yet.";
+    const add = el("button", { class: "zth-sr-add", type: "button" });
+    add.textContent = "+ Add a rule";
+    const foot = el("div", { class: "zth-sr-default" });
+    const footLabel = el("span", {});
+    footLabel.textContent = "Links from other apps no rule catches open in";
+    const buttons = el("div", { class: "zth-sr-buttons" });
+    const library = el("button", { class: "zth-sr-link", type: "button" });
+    library.textContent = "Open in the Library";
+    const done = el("button", { class: "zth-sr-done", type: "button" });
+    done.textContent = "Done";
+    buttons.append(library, done);
+
+    const select = (options, value) => {
+      const s = el("select", { class: "zth-sr-select" });
+      for (const [v, label, group] of options) {
+        const o = el("option", { value: v });
+        o.textContent = label;
+        if (group) o.dataset.group = group;
+        s.append(o);
+      }
+      s.value = options.some(o => o[0] === value) ? value : options[0][0];
+      return s;
+    };
+    const destinations = () => [
+      ["most-recent-space", "Most recent space"],
+      [this.ASK, this.ASK_LABEL],
+      ...this.spaces().map(s => {
+        let icon = "";
+        try {
+          icon = gZenWorkspaces.workspaceHasIcon(s) ? gZenWorkspaces.getWorkspaceIcon(s) : "";
+        } catch {}
+        return [s.uuid, `${icon && !icon.endsWith(".svg") ? `${icon} ` : ""}${s.name}`];
+      }),
+    ];
+    const TYPES = [["contains", "contains"], ["equal-to", "is exactly"], ["regex", "matches regex"]];
+    const valid = (type, ref) => {
+      if (!ref.trim()) return false;
+      if (type !== "regex") return true;
+      try {
+        void new RegExp(ref);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const save = () => R.saveRoutes();
+
+    // One rule: [contains ▾] [pattern] → [space ▾] [✕]. A new one exists
+    // in Zen once its pattern reads.
+    const row = route => {
+      const r = el("div", { class: "zth-sr-row" });
+      const type = select(TYPES, route?.matchType ?? "contains");
+      type.setAttribute("aria-label", "How the link is matched");
+      const ref = el("input", { type: "text", class: "zth-sr-ref", spellcheck: "false", "aria-label": "Address or part of it" });
+      ref.value = route?.reference ?? "";
+      const hint = () => (ref.placeholder = type.value === "regex" ? "zen-browser\\.app" : "zen-browser.app");
+      hint();
+      const arrow = el("span", { class: "zth-sr-arrow", "aria-hidden": "true" });
+      arrow.textContent = "→";
+      const where = select(destinations(), route?.openIn ?? "most-recent-space");
+      where.setAttribute("aria-label", "Open it in");
+      const del = el("button", { class: "zth-sr-del", type: "button", title: "Remove this rule" });
+      del.textContent = "✕";
+      r.append(type, ref, arrow, where, del);
+      let current = route;
+      const commit = () => {
+        const ok = valid(type.value, ref.value);
+        ref.toggleAttribute("invalid", !!ref.value.trim() && !ok);
+        if (!ok) return;
+        current ??= R.createNewRoute();
+        current = { ...current, matchType: type.value, reference: ref.value.trim(), openIn: where.value };
+        R.updateRoute(current);
+        save();
+      };
+      type.addEventListener("change", () => {
+        hint();
+        commit();
+      });
+      where.addEventListener("change", commit);
+      ref.addEventListener("change", commit);
+      ref.addEventListener("input", () => ref.toggleAttribute("invalid", !!ref.value.trim() && !valid(type.value, ref.value)));
+      ref.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commit();
+        }
+      });
+      del.addEventListener("click", () => {
+        if (current) {
+          R.removeRoute(current.id);
+          save();
+        }
+        r.remove();
+        empty.hidden = !!list.querySelector(".zth-sr-row");
+      });
+      return r;
+    };
+    for (const route of R.getAllRoutes()) list.append(row(route));
+    empty.hidden = !!list.querySelector(".zth-sr-row");
+    add.addEventListener("click", () => {
+      const r = row(null);
+      list.append(r);
+      empty.hidden = true;
+      r.querySelector(".zth-sr-ref").focus();
+    });
+    const def = select(destinations(), R.getDefaultExternalRoute());
+    def.setAttribute("aria-label", "Where links no rule catches open");
+    def.addEventListener("change", () => {
+      R.setDefaultExternalRoute(def.value);
+      save();
+    });
+    foot.append(footLabel, def);
+
+    const esc = e => {
+      if (e.key !== "Escape" || !card.isConnected) return;
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    };
+    const close = () => {
+      window.removeEventListener("keydown", esc, true);
+      // (A pattern still being typed is kept, if it reads.)
+      for (const input of list.querySelectorAll(".zth-sr-ref")) input.dispatchEvent(new Event("change"));
+      card.remove();
+      gBrowser.selectedBrowser?.focus();
+    };
+    window.addEventListener("keydown", esc, true);
+    x.addEventListener("click", close);
+    done.addEventListener("click", close);
+    library.addEventListener("click", () => {
+      close();
+      R.zenithOpen?.call(R, window);
+    });
+    card.addEventListener("mousedown", e => e.target === card && close());
+    box.append(head, lede, list, empty, add, foot, buttons);
+    card.append(box);
+    (document.getElementById("zen-main-app-wrapper") ?? document.body).append(card);
+    (list.querySelector(".zth-sr-ref") ?? add).focus();
   },
 
   spaces() {
@@ -10269,6 +10650,79 @@ function migrateCtrlNumbers() {
   Services.prefs.clearUserPref(OLD);
 }
 
+/* --- Zenith in Zen's command palette ------------------------------------------
+   Zen's address bar runs an action by its name ("Toggle Compact Mode",
+   "Open Library"). Zenith's join them as "Zenith: …", so typing "overview"
+   or "rice" finds them; the switcher's ":" commands stay. Zen's list is one
+   module for every window: added once, each action run in the window it was
+   picked in (and offered only where that window has it). */
+const PaletteActions = {
+  ICON: name => `chrome://browser/skin/zen-icons/${name}.svg`,
+
+  // label · icon · what it needs in the window · what it does there
+  LIST: [
+    ["Overview: every tab as a picture", "grid-2x2", w => w.ZenithOverview, w => w.ZenithOverview.toggle()],
+    ["Looks: the rice picker", "palette", w => w.ZenithShell, w => w.ZenithShell.keys.run("rice")],
+    ["The Dash", "sliders", w => w.ZenithShell, w => w.ZenithShell.keys.run("dash")],
+    ["Launcher", "rocket", w => w.ZenithSwitcher, w => w.ZenithShell?.keys.run("launcher")],
+    ["Switcher", "squares", w => w.document.getElementById("zenith-switcher-command"), w => w.document.getElementById("zenith-switcher-command").doCommand()],
+    ["Tab manager", "tab", w => w.ZenithTabs, w => w.ZenithTabs.show()],
+    ["Bookmarks", "bookmark", w => w.document.getElementById("zenith-bookmarks-toggle"), w => w.document.getElementById("zenith-bookmarks-toggle").doCommand()],
+    ["Cookies", "cookies-fill", w => w.document.getElementById("zenith-cookies-command"), w => w.document.getElementById("zenith-cookies-command").doCommand()],
+    ["Fetch: your setup at a glance", "terminal", w => w.ZenithFetch, w => w.ZenithFetch.open()],
+    ["Focus mode", "eye", w => w.ZenithFocus, w => w.ZenithFocus.toggle()],
+    ["Settings over the page", "settings", w => w.ZenithLive, w => w.ZenithLive.toggle()],
+    ["Next layout", "layers", w => w.ZenithLayouts, w => w.ZenithLayouts.cycle()],
+    ["Layout: Dwindle", "split", w => w.ZenithLayouts, w => w.ZenithLayouts.set("dwindle")],
+    ["Layout: Master and stack", "split", w => w.ZenithLayouts, w => w.ZenithLayouts.set("master")],
+    ["Layout: Scroller", "split", w => w.ZenithLayouts, w => w.ZenithLayouts.set("scroller")],
+    ["Layout: Monocle", "split", w => w.ZenithLayouts, w => w.ZenithLayouts.set("monocle")],
+    ["Link hints", "link", w => w.ZenithShell, w => w.ZenithShell.keys.run("hints")],
+    ["Scratchpad", "inbox", w => w.ZenithShell, w => w.ZenithShell.keys.run("scratchpad")],
+    ["Float this tab", "popup", w => w.document.getElementById("zenith-float-command"), w => w.document.getElementById("zenith-float-command").doCommand()],
+    ["Put this tab to sleep", "bed", w => w.ZenithShell, w => w.ZenithShell.keys.run("sleep")],
+    ["Put the space's other tabs to sleep", "bed", w => w.ZenithShell, w => w.ZenithShell.keys.run("sleep-others")],
+    ["Pages dark or light", "moon", w => w.ZenithAppearance, w => w.ZenithAppearance.toggle()],
+    ["Keys", "key", w => w.ZenithShell, w => w.ZenithShell.keys.run("keys")],
+    ["Read zenith.conf again", "reload", w => w.ZenithRice, w => w.ZenithRice.reload(true)],
+    ["Help", "help", w => w.ZenithHelp, w => w.ZenithHelp.open()],
+  ],
+
+  init() {
+    let actions;
+    try {
+      ({ globalActions: actions } = ChromeUtils.importESModule("resource:///modules/ZenUBGlobalActions.sys.mjs"));
+    } catch {
+      return;
+    }
+    if (!Array.isArray(actions) || actions.some(a => a.commandId?.startsWith("zenith:"))) return;
+    for (const [label, icon, has, run] of this.LIST) {
+      const id = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      actions.push({
+        l10nId: `zenith-action-${id}`,
+        commandId: `zenith:${id}`,
+        label: `Zenith: ${label}`,
+        icon: this.ICON(icon),
+        extraPayload: {},
+        isAvailable: w => {
+          try {
+            return !!has(w);
+          } catch {
+            return false;
+          }
+        },
+        command: w => {
+          try {
+            run(w);
+          } catch (e) {
+            console.error(`[Zenith] the command palette: ${label}`, e);
+          }
+        },
+      });
+    }
+  },
+};
+
 start("first page sooner", () => WarmStart.init(), true);
 start("settings", () => {
   migrateSettings();
@@ -10288,7 +10742,8 @@ start("help page", () => HelpPage.init());
 start("fetch page", () => FetchPage.init());
 start("picture-in-picture", () => PiPWindows.init());
 start("float a tab", () => FloatTab.init(), true);
-start("keys in Zen's shortcuts", () => ZenithKeys.init());
+start("keys in about:keyboard", () => ZenithKeys.init());
+start("zenith in the command palette", () => PaletteActions.init());
 start("window paint", () => WindowPaint.init(), true);
 start("ctrl hold", () => CtrlHold.init());
 start("load edge", () => LoadEdge.init());

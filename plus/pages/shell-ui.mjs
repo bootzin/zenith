@@ -35,6 +35,18 @@ export function ico(name) {
   return node("span", { class: "zs-i", icon: name, "aria-hidden": "true" });
 }
 
+// A download paused (Firefox's pause is a cancel that keeps what came).
+export const paused = d => !!(d.stopped && d.canceled && d.hasPartialData && !d.succeeded);
+
+// How long until a download is done, at the speed it goes now.
+export function timeLeft(d) {
+  if (!(d.speed > 0) || !d.hasProgress || !(d.totalBytes > 0)) return "";
+  const s = Math.max(1, Math.round((d.totalBytes - d.currentBytes) / d.speed));
+  if (s < 60) return `${s} s left`;
+  if (s < 3600) return `${Math.round(s / 60)} min left`;
+  return `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min left`;
+}
+
 export function bytes(n) {
   if (!(n >= 0)) return "";
   const u = ["B", "KB", "MB", "GB"];
@@ -350,22 +362,28 @@ export function downloadsCard(box, { most = 8 } = {}) {
   let queued = false;
   const draw = () => {
     queued = false;
-    const items = [...seen].sort((a, b) => (a.stopped - b.stopped) || (b.startTime - a.startTime)).slice(0, most);
+    // (Going first, then paused, then the rest, newest first.)
+    const rank = d => (!d.stopped ? 0 : paused(d) ? 1 : 2);
+    const items = [...seen].sort((a, b) => (rank(a) - rank(b)) || (b.startTime - a.startTime)).slice(0, most);
     list.replaceChildren(...(items.length ? items.map(d => {
       const row = node("div", { class: "zs-row zs-dl" });
       const name = PathUtils.filename(d.target.path || "") || "Download";
       const info = node("div", { class: "zs-grow" });
       info.append(node("div", { class: "zs-title" }, name));
+      const held = paused(d);
+      const sofar = d.hasProgress ? `${d.progress}% · ${bytes(d.currentBytes)} of ${bytes(d.totalBytes)}` : `${bytes(d.currentBytes)}`;
+      // (While it goes: how fast, and how long it has left.)
       const state = d.succeeded ? `Done · ${bytes(d.target.size ?? d.totalBytes)}`
-        : d.error ? "Failed" : d.canceled ? "Cancelled"
-        : d.hasProgress ? `${d.progress}% · ${bytes(d.currentBytes)} of ${bytes(d.totalBytes)}` : `${bytes(d.currentBytes)}…`;
+        : d.error ? "Failed" : held ? `Paused · ${sofar}` : d.canceled ? "Cancelled"
+        : [sofar + (d.hasProgress ? "" : "…"), d.speed > 0 && `${bytes(d.speed)}/s`, timeLeft(d)].filter(Boolean).join(" · ");
       info.append(node("div", { class: "zs-sub" }, state));
-      if (!d.stopped && d.hasProgress) {
+      if ((!d.stopped || held) && d.hasProgress) {
         const bar = node("div", { class: "zs-progress" });
+        bar.toggleAttribute("paused", held);
         bar.style.setProperty("--p", `${d.progress}%`);
         info.append(bar);
       }
-      row.append(ico(d.succeeded ? "done" : "download"), info);
+      row.append(ico(d.succeeded ? "done" : held ? "pause" : "download"), info);
       if (d.succeeded) {
         // (The row opens it; Folder shows it; Delete deletes the file, as
         // Zenith's delete in Firefox's downloads lists does.)
@@ -399,9 +417,17 @@ export function downloadsCard(box, { most = 8 } = {}) {
           });
           row.append(del);
         }
-      } else if (!d.stopped) {
+      } else if (!d.stopped || held) {
+        // Pause and go on, as Zen's Library and Firefox's list have them
+        // (only for a download that can carry on where it stopped).
+        if (held || (d.hasPartialData && !d.error)) {
+          const toggle = button("", "zs-btn zs-ib", held ? "Go on" : "Pause");
+          toggle.append(ico(held ? "play" : "pause"));
+          toggle.addEventListener("click", () => (held ? d.start() : d.cancel()).catch(e => console.error("[Zenith] download", e)));
+          row.append(toggle);
+        }
         const cancel = button("✕", "zs-btn zs-x", "Cancel it");
-        cancel.addEventListener("click", () => d.cancel());
+        cancel.addEventListener("click", () => (held ? d.finalize(true) : d.cancel()).catch(() => {}));
         row.append(cancel);
       }
       return row;

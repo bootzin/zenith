@@ -81,7 +81,7 @@
 <main>
   <header>
     <h1>Zenith: what to review since 0.16.3</h1>
-    <p class="lede">Every change from 0.16.3 to 0.18.3, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
+    <p class="lede">Every change from 0.16.3 to 0.18.4, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
     <div class="bar">
       <span class="progress" id="progress">0 of 0 reviewed</span>
       <span class="track" aria-hidden="true"><i id="fill"></i></span>
@@ -100,7 +100,19 @@
 <script>
 const NOT = "Not checked in Zen";
 const RELEASES = [
-  { v: "0.18.3", note: "This round: the 18 things you listed after 0.18.2.", items: [
+  { v: "0.18.4", note: "This round: Zen 1.24's changes under Zenith (keys, Space routing, zoom, the command palette, downloads, two looks), and a plan for Zen 1.25.", items: [
+    ["Zenith's keys in about:keyboard", "Open about:keyboard (Firefox's Keyboard shortcuts, where Zen 1.24 moved its own): groups Zenith, Zenith: tiles, tabs, spaces, pages; change one (say the next layout to Alt+G): Alt+G does it, and Settings › Tiling and keys › Keys shows it; change it there or in zenith.conf: about:keyboard shows it"],
+    ["Ask me each time, in the Library", "Open Space routing (the Library, or :routing): a rule's menu of spaces and the one for links from other apps have Ask me each time after Most recent space; a rule set to it says so; picking it for other links turns on Zenith › Links from other apps › Ask"],
+    ["Space routing in a popup", "Zenith › Links › Space routing opens in › A popup over the page, then open Space routing: every rule on one card ([contains ▾] [site] → [space ▾] ✕), changed where it stands, + Add a rule, the default for other links at the foot, Open in the Library, Esc or Done to close; a rule isn't kept till its site reads (a broken regex goes red)"],
+    ["When you zoom", "Settings › Small touches › When you zoom: a pill on the zoomed page (no note from Zen), Zen's note, both, neither; zoom a page (Ctrl+=) with each"],
+    ["Zen's notes in Zenith's look", "Copy a link (Ctrl+Shift+C), zoom with Zen's note on: the notes sit in the top right below a top bar, in the panel glass with an accent dot, text that wraps, one under another (not on top of each other), a shortcut in one shown as a key"],
+    ["Zenith in the command palette", "Click the address bar and type overview, rice, dash, scroller, tab manager or cookies: Zenith: … rows among Zen's; Enter runs it"],
+    ["Downloads: speed, pause, go on", "Download something big: the bar's downloads module's hover says how fast and how long; its list says the same, with Pause (when the site lets a download carry on) and ✕; paused: the module keeps a pause mark and the percentage, Go on picks up where it stopped"],
+    ["Back to your tab", "Scroll the sidebar until the tab you're on is out of sight: Zen's button back to it is a glass pill like the rest"],
+    ["The open address bar in Zenith's glass", "Click the address bar: its panel is the same glass as Zenith's other popups (Theme › Glass applies, with its legibility floor)"],
+    ["A plan for Zen 1.25", "DESIGN.md, After Zen 1.24: Zen's own settings window (Zenith's settings to get a page of their own, about:zenith-settings) and Little Zen (a third place for links from other apps; Float a tab and Peek kept apart); built once 1.25 is in Beta", NOT],
+  ] },
+  { v: "0.18.3", note: "The 18 things you listed after 0.18.2.", items: [
     ["Progress bars ignore the easing", "Motion › Easing on Bouncy or Elastic: the loading line and the download line still fill steadily, no bounce"],
     ["Drag a tab in the bar", "Drag a tab along the bar's tab list to move it (a line shows where); drag one onto the sidebar or a page as from the sidebar; drop a sidebar tab on the bar"],
     ["A short hiding bar is centred", "Bars › How the top bar shows › Hiding until reached (or Over the page), Bars › The bar's length › 80% or 60%: the bar sits in the middle"],

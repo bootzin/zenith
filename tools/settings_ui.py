@@ -208,7 +208,7 @@ SECTIONS = [
             ("What a tab tells you", ["zenith.tabs.unloaded", "zenith.tabs.pin-mark", "zenith.tabs.attention",
                                       "zenith.tabs.folder-activity", "zenith.tabs.container", "zenith.tabs.audio-wave", "zenith.tabs.split-vertical"]),
             ("Spaces", ["zenith.plus.workspace-dots", "zenith.plus.workspace-flash", "zenith.plus.key-switch-flash", "zenith.plus.minimap"]),
-            ("Links from other apps", ["zenith.plus.external-links", "zenith.action.space-routing"]),
+            ("Links from other apps", ["zenith.plus.external-links", "zenith.plus.routing-in", "zenith.action.space-routing"]),
             ("Fine-tuning", ["zen.tabs.open-pinned-in-new-tab", "zenith.plus.unpinned-groups", "zenith.tabs.numbers",
                              "zenith.tabs.hover-mute", "zenith.tabs.pinned-drift", "zenith.tabs.lowercase", "zenith.tabs.badge-only",
                              "zenith.plus.ready-pulse", "zenith.plus.extension-copies"],
@@ -264,7 +264,7 @@ SECTIONS = [
                          "zenith.plus.cookie-keep", "zenith.plus.cookie-notices", "zenith.action.cookies"]),
             ("Start page", ["zenith.plus.startpage", "zenith.plus.startpage-weather", "zenith.plus.startpage-weather-history",
                             "zenith.plus.startpage-bookmarks", "zenith.plus.startpage-top"]),
-            ("Small touches", ["zenith.page.selection", "zenith.page.thin-scrollbars", "zenith.plus.zoom-pill", "zenith.plus.sine-mods-first"],
+            ("Small touches", ["zenith.page.selection", "zenith.page.thin-scrollbars", "zenith.plus.zoom-shows", "zenith.plus.sine-mods-first"],
              {"more": True}),
         ],
     },
@@ -385,6 +385,9 @@ DESCRIPTIONS = {
                           "the ends. A touchpad follows your fingers and isn't changed.",
     "zenith.plus.switcher-scope": "Every space, so Enter switches space when it has to, or only this space's tabs "
                                   "(and the essentials).",
+    "zenith.plus.routing-in": "Where Space routing opens (its rules: a site, and the space its links open in): Zen's "
+                              "Library, or a popup over the page with every rule on one card, changed where it stands. "
+                              "Both have \"Ask me each time\" among the spaces.",
     "zenith.plus.external-links": "Ask each time: a link from another app that no Space routing rule sends somewhere "
                                   "stops at a small card to pick its space (and so its container), with an option to "
                                   "always send that site there.",
@@ -482,7 +485,8 @@ DESCRIPTIONS = {
     # Pages
     "zenith.page.selection": "Selected text in web pages takes the accent colour.",
     "zenith.page.thin-scrollbars": "Thin scrollbars in the accent colour in web pages.",
-    "zenith.plus.zoom-pill": "A small pill on zoomed pages; click it to reset.",
+    "zenith.plus.zoom-shows": "A pill on a page whose zoom isn't 100% (it stays until the page is back at 100%; a click "
+                              "resets it), Zen's short note with the new zoom each time you change it, both or neither.",
     "zenith.plus.float-tab": "Alt+Shift+F (or right-click a tab › Float this tab) moves the tab you're on into a small "
                              "window of its own, which takes the focus; the page carries on as it was, and Alt+Shift+F "
                              "there puts it back. Its bar: the title (click it, or Ctrl+L, Alt+D or F4, to type an "
@@ -574,7 +578,8 @@ DESCRIPTIONS = {
                          "Alt+P passthrough. Alt+Shift+/ shows them all. Keys are matched by where they are, so they're the "
                          "same on any layout. Alt+←/→ stay back and forward.",
     "zenith.shell.bindings": "Every Shell key, and a button to press another for it (Backspace leaves one without a key). "
-                             "A key another action had moves over.",
+                             "A key another action had moves over. They're in Firefox's Keyboard shortcuts too "
+                             "(about:keyboard, under Zenith, with Zenith's other keys): a change in either shows in both.",
     "zenith.shell.passthrough-sites": "On these sites the page keeps its Alt keys (Google Docs, an online editor or "
                                       "terminal). Alt+P does the same anywhere, until you press it again.",
     "zenith.links.alt": "Zen's Glance (a floating page you can keep as a tab), Peek (a lookup that leaves nothing behind), a tile beside the one you're in, or nothing of Zenith's (the page's own, or Firefox's). While Zenith answers link clicks, Zen's own Glance key "
@@ -833,6 +838,7 @@ LABELS = {
     "zenith.plus.tabs-auto-sleep": "Sleep on their own",
     "zenith.plus.tabs-auto-close": "Close on their own",
     "zenith.plus.external-links": "Where they open",
+    "zenith.plus.routing-in": "Space routing opens in",
     "zenith.plus.blend": "Blend with the page",
     "zenith.tabs.audio-wave": "Audio wave",
     "zenith.tabs.split-vertical": "Split-view groups",
@@ -858,7 +864,7 @@ LABELS = {
     "zenith.peek.pomodoro": "Pomodoro",
     "zenith.page.selection": "Accent text selection",
     "zenith.page.thin-scrollbars": "Thin accent scrollbars",
-    "zenith.plus.zoom-pill": "Zoom pill",
+    "zenith.plus.zoom-shows": "When you zoom",
     "zenith.plus.sine-mods-first": "Tidy Sine's mods page",
     "zenith.plus.fast-start": "Fast start",
     "zenith.plus.link-hints": "Link hints",

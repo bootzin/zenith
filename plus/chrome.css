@@ -211,11 +211,9 @@
   display: none;
 }
 
-@media -moz-pref("zenith.plus.zoom-pill") {
-  .zenith-zoom-pill {
-    display: block;
-    animation: zth-enter var(--zth-dur) var(--zth-ease);
-  }
+:root:is(:not([zenith-zoom-shows]), [zenith-zoom-shows="pill"], [zenith-zoom-shows="both"]) .zenith-zoom-pill {
+  display: block;
+  animation: zth-enter var(--zth-dur) var(--zth-ease);
 }
 
 .zenith-zoom-pill {
@@ -1652,6 +1650,11 @@ browser[zenith-see-through] {
   color: var(--zb-accent);
 }
 
+/* A paused download: the module stays, quieter. */
+.zenith-bar .zb-mod[mod="downloads"][paused] {
+  opacity: 0.75;
+}
+
 /* The compact sidebar floats between the bars that take their room, not
    under them (bar.mjs: --zth-bar-top-room, --zth-bar-bottom-room). */
 :root[zen-compact-mode="true"][zenith-bar-room] #navigator-toolbox:not([animate="true"]) {
@@ -3066,6 +3069,10 @@ browser[zenith-see-through] {
     }
   }
 
+  & .zs-progress[paused]::after {
+    opacity: 0.45;
+  }
+
   & .zs-progress {
     position: relative;
     height: 4px;
@@ -4097,6 +4104,165 @@ zenith-bookmarks-host.zen-library-section {
 /* A button set to "Only in this space" (right-click it), in another space. */
 [zenith-other-space] {
   display: none !important;
+}
+
+/* === Space routing in a popup (Links › Space routing opens in) ===================== */
+
+#zenith-routing {
+  position: fixed;
+  inset: 0;
+  z-index: 300 !important; /* (Zen sets 1 on its wrapper's children) */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  background: light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.32));
+}
+
+#zenith-routing-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(700px, 92vw);
+  max-height: 76vh;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 14px 14px 12px;
+  border-radius: var(--zth-radius-l);
+  outline: 1px solid var(--zth-hairline);
+  background: var(--zth-panel-bg);
+  backdrop-filter: var(--zth-panel-filter);
+  box-shadow: var(--zth-shadow), var(--zth-glass-shine);
+  color: var(--zth-ink);
+  font: var(--zth-font) / 1.35 system-ui, sans-serif;
+  animation: zth-enter var(--zth-dur) var(--zth-ease);
+}
+
+.zth-sr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 1.08em;
+}
+
+.zth-sr-lede,
+.zth-sr-empty {
+  color: var(--zth-ink-dim);
+  font-size: 0.9em;
+}
+
+.zth-sr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* [contains ▾] [pattern] → [space ▾] [✕] */
+.zth-sr-row {
+  display: grid;
+  grid-template-columns: 10em minmax(0, 1fr) auto 13em auto;
+  align-items: center;
+  gap: 6px;
+}
+
+:is(.zth-sr-select, .zth-sr-ref) {
+  min-width: 0;
+  box-sizing: border-box;
+  height: 28px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--zth-hairline);
+  border-radius: var(--zth-radius-s);
+  background: color-mix(in srgb, var(--zth-ink) 6%, transparent);
+  color: var(--zth-ink);
+  font: inherit;
+
+  &:focus-visible {
+    outline: 2px solid var(--zth-accent);
+    outline-offset: -1px;
+  }
+}
+
+.zth-sr-ref[invalid] {
+  border-color: var(--zth-danger);
+}
+
+.zth-sr-arrow {
+  color: var(--zth-ink-dim);
+}
+
+:is(.zth-sr-del, .zth-sr-x, .zth-sr-add, .zth-sr-link, .zth-sr-done) {
+  appearance: none;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+:is(.zth-sr-del, .zth-sr-x) {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--zth-radius-s);
+  color: var(--zth-ink-dim);
+
+  &:hover {
+    background: var(--zth-accent-soft);
+    color: var(--zth-ink);
+  }
+}
+
+.zth-sr-add {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px dashed var(--zth-hairline);
+  border-radius: var(--zth-radius-s);
+
+  &:hover {
+    background: var(--zth-accent-soft);
+  }
+}
+
+.zth-sr-default {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--zth-hairline);
+  color: var(--zth-ink-dim);
+
+  & .zth-sr-select {
+    width: 13em;
+    margin-inline-start: auto;
+  }
+}
+
+.zth-sr-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+}
+
+.zth-sr-link {
+  padding: 4px 2px;
+  color: var(--zth-accent);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.zth-sr-done {
+  padding: 4px 16px;
+  border-radius: var(--zth-pill-radius);
+  corner-shape: var(--zth-pill-shape);
+  outline: 1px solid var(--zth-hairline);
+  background: var(--zth-accent-soft);
+  font-weight: 600;
 }
 
 /* === Links from other apps: where should this open? ================================ */

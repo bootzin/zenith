@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.18.3
+// @version        0.18.4
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -3996,6 +3996,25 @@ const SCHEMA = [
       "default": "zen"
      },
      {
+      "property": "zenith.plus.routing-in",
+      "label": "Space routing opens in",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "Where Space routing opens (its rules: a site, and the space its links open in): Zen's Library, or a popup over the page with every rule on one card, changed where it stands. Both have \"Ask me each time\" among the spaces.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "Zen's Library",
+        "value": "library"
+       },
+       {
+        "label": "A popup over the page",
+        "value": "popup"
+       }
+      ],
+      "default": "library"
+     },
+     {
       "property": "zenith.action.space-routing",
       "label": "Space routing",
       "type": "action",
@@ -4184,7 +4203,7 @@ const SCHEMA = [
       "label": "Keys",
       "type": "string",
       "extra": false,
-      "desc": "Every Shell key, and a button to press another for it (Backspace leaves one without a key). A key another action had moves over.",
+      "desc": "Every Shell key, and a button to press another for it (Backspace leaves one without a key). A key another action had moves over. They're in Firefox's Keyboard shortcuts too (about:keyboard, under Zenith, with Zenith's other keys): a change in either shows in both.",
       "host": "Zenith Plus",
       "placeholder": "focus-left=Alt+KeyH, …",
       "zenithKeys": true,
@@ -5936,13 +5955,31 @@ const SCHEMA = [
       "default": false
      },
      {
-      "property": "zenith.plus.zoom-pill",
-      "label": "Zoom pill",
-      "type": "checkbox",
+      "property": "zenith.plus.zoom-shows",
+      "label": "When you zoom",
+      "type": "dropdown",
       "extra": false,
-      "desc": "A small pill on zoomed pages; click it to reset.",
+      "desc": "A pill on a page whose zoom isn't 100% (it stays until the page is back at 100%; a click resets it), Zen's short note with the new zoom each time you change it, both or neither.",
       "host": "Zenith Plus",
-      "default": true
+      "options": [
+       {
+        "label": "A pill on the zoomed page",
+        "value": "pill"
+       },
+       {
+        "label": "Zen's note with the zoom",
+        "value": "toast"
+       },
+       {
+        "label": "Both",
+        "value": "both"
+       },
+       {
+        "label": "Neither",
+        "value": "neither"
+       }
+      ],
+      "default": "pill"
      },
      {
       "property": "zenith.plus.sine-mods-first",
@@ -7802,7 +7839,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.18.3";
+const SCHEMA_VERSION = "0.18.4";
 
 // The settings page's folded and opened sections and groups (by section id,
 // or "section/group title"), kept across visits.
@@ -8149,7 +8186,13 @@ class SettingsView {
       const foot = el("div", { class: "zp-sites-foot" });
       foot.append(reset, done);
       dialog.append(el("h3", {}, s.label), note, items, foot);
-      box.append(count, open);
+      // (The same keys, and Zenith's others, in Firefox's Keyboard shortcuts.)
+      const firefox = el("button", { class: "zp-chip zp-action", type: "button", title: "Zenith's keys are in about:keyboard too, under Zenith: a change in either shows in both" }, "In about:keyboard");
+      firefox.addEventListener("click", () => {
+        const w = Services.wm.getMostRecentWindow("navigator:browser");
+        w?.switchToTabHavingURI?.("about:keyboard", true) ?? w?.openTrustedLinkIn("about:keyboard", "tab");
+      });
+      box.append(count, open, firefox);
       (doc.body ?? doc.documentElement).append(dialog);
       const keys = () => host.ZenithShell?.keys ?? Services.wm.getMostRecentWindow("navigator:browser")?.ZenithShell?.keys;
       const parse = v => new Map(String(v ?? "").split(",").map(x => x.trim()).filter(x => x.includes("="))
@@ -9143,31 +9186,11 @@ function startPanel() {
   return true;
 }
 
-// Zen's Keyboard shortcuts list Zenith's keys (zenith-plus.uc.mjs adds them
-// to Zen's list) with no name of their own: they get "Zenith: …" here,
-// whenever Zen draws the list.
-function labelZenithKeys() {
-  const names = new Map((window.browsingContext?.topChromeWindow?.ZenithKeys?.LIST ?? []).map(k => [k[0], `Zenith: ${k[4]}`]));
-  if (!names.size) return;
-  const label = () => {
-    for (const input of document.querySelectorAll("input.zenCKSOption-input[data-id^='zenith-key-']")) {
-      const text = names.get(input.dataset.id);
-      const node = input.closest(".zenCKSOption")?.querySelector(".zenCKSOption-label");
-      if (!text || !node || node.textContent === text) continue;
-      node.removeAttribute("data-l10n-id");
-      node.textContent = text;
-    }
-  };
-  new MutationObserver(label).observe(document, { childList: true, subtree: true });
-  label();
-}
-
 // Once per window or page. In Zen's Settings, Sine adds its own category a
 // moment after load, so wait for the list to settle before joining it.
 if (!window.zenithSettingsPageStarted) {
   window.zenithSettingsPageStarted = true;
   const inBrowser = location.href.startsWith("chrome://browser/content/browser.xhtml");
-  if (!inBrowser) labelZenithKeys();
   let tries = 0;
   const attempt = () => {
     try {

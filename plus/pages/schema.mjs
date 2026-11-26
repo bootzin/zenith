@@ -1916,6 +1916,22 @@ export const SCHEMA = {
   ],
   "default": "zen"
  },
+ "zenith.plus.routing-in": {
+  "label": "Space routing opens in",
+  "type": "dropdown",
+  "desc": "Where Space routing opens (its rules: a site, and the space its links open in): Zen's Library, or a popup over the page with every rule on one card, changed where it stands. Both have \"Ask me each time\" among the spaces.",
+  "options": [
+   {
+    "label": "Zen's Library",
+    "value": "library"
+   },
+   {
+    "label": "A popup over the page",
+    "value": "popup"
+   }
+  ],
+  "default": "library"
+ },
  "zen.tabs.open-pinned-in-new-tab": {
   "label": "Pinned tabs open sites in new tabs",
   "type": "checkbox",
@@ -2043,7 +2059,7 @@ export const SCHEMA = {
  "zenith.shell.bindings": {
   "label": "Keys",
   "type": "string",
-  "desc": "Every Shell key, and a button to press another for it (Backspace leaves one without a key). A key another action had moves over."
+  "desc": "Every Shell key, and a button to press another for it (Backspace leaves one without a key). A key another action had moves over. They're in Firefox's Keyboard shortcuts too (about:keyboard, under Zenith, with Zenith's other keys): a change in either shows in both."
  },
  "zenith.shell.passthrough-sites": {
   "label": "Sites that keep their Alt keys",
@@ -3046,11 +3062,29 @@ export const SCHEMA = {
   "desc": "Thin scrollbars in the accent colour in web pages.",
   "default": false
  },
- "zenith.plus.zoom-pill": {
-  "label": "Zoom pill",
-  "type": "checkbox",
-  "desc": "A small pill on zoomed pages; click it to reset.",
-  "default": true
+ "zenith.plus.zoom-shows": {
+  "label": "When you zoom",
+  "type": "dropdown",
+  "desc": "A pill on a page whose zoom isn't 100% (it stays until the page is back at 100%; a click resets it), Zen's short note with the new zoom each time you change it, both or neither.",
+  "options": [
+   {
+    "label": "A pill on the zoomed page",
+    "value": "pill"
+   },
+   {
+    "label": "Zen's note with the zoom",
+    "value": "toast"
+   },
+   {
+    "label": "Both",
+    "value": "both"
+   },
+   {
+    "label": "Neither",
+    "value": "neither"
+   }
+  ],
+  "default": "pill"
  },
  "zenith.plus.sine-mods-first": {
   "label": "Tidy Sine's mods page",

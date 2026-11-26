@@ -2030,6 +2030,23 @@
     "usedBy": "zenith-plus"
   },
   {
+    "property": "zenith.plus.routing-in",
+    "label": "Space routing opens in",
+    "type": "dropdown",
+    "placeholder": "Default (Zen's Library)",
+    "options": [
+      {
+        "label": "Zen's Library",
+        "value": "library"
+      },
+      {
+        "label": "A popup over the page",
+        "value": "popup"
+      }
+    ],
+    "usedBy": "zenith-plus"
+  },
+  {
     "property": "zenith.plus.blend",
     "label": "Extra: blend with the page (the glass takes the page's colour)",
     "type": "dropdown",
@@ -5861,10 +5878,28 @@
     "usedBy": "zenith-plus"
   },
   {
-    "property": "zenith.plus.zoom-pill",
-    "label": "Zoom pill on zoomed pages",
-    "type": "checkbox",
-    "defaultValue": true,
+    "property": "zenith.plus.zoom-shows",
+    "label": "When you zoom",
+    "type": "dropdown",
+    "placeholder": "Default (A pill on the zoomed page)",
+    "options": [
+      {
+        "label": "A pill on the zoomed page",
+        "value": "pill"
+      },
+      {
+        "label": "Zen's note with the zoom",
+        "value": "toast"
+      },
+      {
+        "label": "Both",
+        "value": "both"
+      },
+      {
+        "label": "Neither",
+        "value": "neither"
+      }
+    ],
     "usedBy": "zenith-plus"
   },
   {

@@ -15,7 +15,7 @@
 //   - each module is boxed off (contain), so a ticking clock restyles one
 //     node, never the bar.
 
-import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard, tabsCard, powerCard, barMenu, previewCard, layoutCard } from "./shell-ui.mjs";
+import { Popup, Weather, System, Trackers, bytes, timersCard, downloadsCard, trackersCard, appearanceCard, tabsCard, powerCard, barMenu, previewCard, layoutCard, paused, timeLeft } from "./shell-ui.mjs";
 import { SCHEMA, Bars, BAR_KEYS, EDGES, value } from "./looks.mjs";
 
 const P = Services.prefs;
@@ -663,14 +663,27 @@ function downloads(box) {
     };
   }, { kind: "downloads" }));
   const draw = soon(() => {
-    const going = [...all].filter(d => !d.stopped);
+    const going = [...all].filter(d => !d.stopped), held = [...all].filter(paused);
     m.toggleAttribute("unseen", !going.length && unseen.size > 0);
+    m.toggleAttribute("paused", !going.length && held.length > 0);
+    const percent = list => {
+      const sized = list.filter(d => d.hasProgress && d.totalBytes > 0);
+      return sized.length ? Math.floor((100 * sized.reduce((a, d) => a + d.currentBytes, 0)) / sized.reduce((a, d) => a + d.totalBytes, 0)) : null;
+    };
     if (going.length) {
-      const sized = going.filter(d => d.hasProgress && d.totalBytes > 0);
-      const pc = sized.length ? Math.floor((100 * sized.reduce((a, d) => a + d.currentBytes, 0)) / sized.reduce((a, d) => a + d.totalBytes, 0)) : null;
+      const pc = percent(going), speed = going.reduce((a, d) => a + (d.speed > 0 ? d.speed : 0), 0);
       put(text, `${going.length > 1 ? `${going.length} · ` : ""}${pc === null ? "…" : `${pc}%`}`);
       setIcon(ic, "download");
-      m.title = "Downloads";
+      // (How fast and how long, on hover: the bar keeps the percentage.)
+      const one = going.length === 1 ? timeLeft(going[0]) : "";
+      m.title = [`Downloading${going.length > 1 ? ` ${going.length}` : ""}`, speed > 0 && `${bytes(speed)}/s`, one].filter(Boolean).join(" · ");
+      m.hidden = false;
+    } else if (held.length) {
+      // A paused download keeps the module, as one still to finish.
+      const pc = percent(held);
+      put(text, `${held.length > 1 ? `${held.length} · ` : ""}${pc === null ? "" : `${pc}%`}`);
+      setIcon(ic, "pause");
+      m.title = `${held.length} download${held.length > 1 ? "s" : ""} paused: a click shows ${held.length > 1 ? "them" : "it"}`;
       m.hidden = false;
     } else if (unseen.size) {
       put(text, unseen.size > 1 ? `${unseen.size}` : "");

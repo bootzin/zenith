@@ -1,6 +1,6 @@
 # Zenith Plus
 
-Version 0.18.3
+Version 0.18.4
 
 The part of Zenith that needs scripts. Zenith's six mods work without it; Plus adds what CSS alone can't do. It needs a script loader: Sine, or fx-autoconfig installed by hand.
 
@@ -70,13 +70,13 @@ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus a
 
 **Focus mode**: **Alt+Z** puts everything away but the page: the sidebar (compact mode, if it wasn't on), the edges, the minimap, pills, the bookmarks bar and the link address hide, and whatever's open closes (Zenith's bookmarks, Firefox's sidebar, Zen's Library, the settings panel, the switcher, the find bar, menus), to open again as you leave. You can bring any of them back while focused. The top toolbar hides too, when Zen shows one. A video site becomes a place to watch (Tools › Focus mode › Video sites): on YouTube the home page is a search page (the logo, the search box with its microphone, your picture; the search dropdown shows Show suggestions instead of suggestions and past searches, typed or not), recommendations, the preview that plays on hover, Shorts (a Short you go to opens as a plain video; on one you're already watching, scrolling to the next is blocked, and its buttons and the next one below are hidden), end screens, autoplay, the channel row, like and share buttons, counts, the player's channel and info buttons, Create and the bell go, the video gets the room (theatre, as tall as the window, everything else under it), and you choose what stays (search, the description and chapters, the playlist you're in, comments folded behind a button, subscriptions); elsewhere, blocks of recommended videos go. The page too (Tools › Focus mode › Pages in focus mode): an article gets a calm reading view drawn over the page (Firefox's own article parser), and any other page that's mostly reading is tidied: cookie and consent banners, newsletter boxes, share bars, comments, related and sponsored blocks, ads, side columns, and bars stuck to the top or bottom of the window go (never anything holding much of the page's text). One pill says focus mode is on, then what was done, with Show the page and Not on <site> (Sites left alone, a list in Zenith's settings). The sharing alarm still shows. Alt+Z again brings everything back, pages as they were, without reloading. It's for the site you're on (Focus mode › On for): on another site's tab the browser is as it was; or for every site. On YouTube, always: the previews that play over a video can't go picture-in-picture.
 
-**Keys**: every Zenith key is in Zen's own Settings › Keyboard shortcuts (under Other, "Zenith: …"), to change or clear like Zen's: Alt+W, Alt+Q, Alt+Z, Alt+Shift+T, Alt+Shift+Z, Alt+Shift+F (float; 0.12.1's Alt+Shift+Space, which Windows keeps for the window menu, moves over by itself).
+**Keys**: every Zenith key is in Firefox's Keyboard shortcuts (about:keyboard, where Zen 1.24 moved its own), in groups of their own (Zenith, Zenith: tiles, tabs, spaces, pages), to change, clear or reset like Zen's: Alt+W, Alt+Q, Alt+Z, Alt+Shift+T, Alt+Shift+Z, Alt+Shift+F, Alt+F and all of the Shell's. The Shell's keys stay in step with Settings › Tiling and keys › Keys and the rice file's binds: a change in one shows in the others. **Zen's command palette** (type in the address bar) has Zenith's actions too: "Zenith: Overview", "Looks", "The Dash", the layouts, "Tab manager"…
 
 **Also**
 
 - Ctrl+Tab with pictures (Tools › Ctrl+Tab): in the sidebar's order (essentials first; the row moves along as you step, so every tab comes round), or recently used like Alt+Tab; hold Ctrl and press Tab to step through, let go to land
 - Bookmarks bar where Zen puts it, as its own strip above the page, or over the page when the pointer reaches the top; Firefox's "Import bookmarks" button hidden
-- Links from other apps: optionally a card asking which space they open in, with "always open this site there"; in Zen's Space routing dialog, "Ask me each time" for any rule and for the default; a link that starts Zen goes where its rule says too (Zen leaves those alone)
+- Links from other apps: optionally a card asking which space they open in, with "always open this site there"; in Zen's Space routing (its Library), "Ask me each time" for any rule and for the default; or Space routing in a popup of Zenith's, every rule on one card (Links › Space routing opens in); a link that starts Zen goes where its rule says too (Zen leaves those alone)
 - Space colour (Look): the glass shows a space's whole gradient (or one tint), at Zen's strength or a medium or strong one
 - Colours from an image or from your wallpaper for the current space (one, two or three colours, found the way wallust and pywal do), with "Undo colours" on the settings page, and optionally the glass taking the page's colour
 - Extensions per space (right-click an extension's button, or its line in the extensions panel): **Pinned in spaces**, where its button shows (untick the last space and it's unpinned, as with Pin to Toolbar); **Runs in spaces**, where it runs at all: in the other spaces Zenith turns it off, and on again when you come back, so a work password manager and a personal one can each keep to their spaces. Firefox runs extensions for the whole browser and Zen's profiles can't follow a space, so this is the way to keep them apart: an extension starts afresh each time (unlock it again), and with windows on different spaces the window you're in decides. The extensions panel lists the buttons pinned elsewhere (Pin here) and what's resting in this space (Run here too)
@@ -94,7 +94,8 @@ The part of Zenith that needs scripts. Zenith's six mods work without it; Plus a
 - Extras: in compact mode, the sidebar shows briefly when you switch tabs by keyboard; a pulse on the page's edge when a background tab has loaded
 - Real progress on the load and download edges (in a split, each tile its own)
 - A minimap of the hidden compact sidebar
-- Zoom pills on zoomed pages (click to reset)
+- When you zoom: a pill on the zoomed page (click to reset), Zen's note, both or neither (Small touches); Zen's notes ("Copied", "Zoom: 110%") in Zenith's look, one under another
+- The bar's downloads: speed and time left while one goes, Pause and Go on (for a download that can carry on), a paused one kept in the bar
 - A label when you hover the not-secure edge
 - Numbered tabs while you hold Ctrl (Zenith Sidebar and tabs › Numbered tabs › While holding Ctrl)
 - The cover art of what's playing, blurred behind the media card

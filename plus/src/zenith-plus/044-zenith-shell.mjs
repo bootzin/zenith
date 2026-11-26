@@ -109,7 +109,7 @@ const ShellKeys = {
     if (!combo) return "";
     const NAMES = { Semicolon: ";", Backquote: "`", Minus: "-", Equal: "=", Slash: "/", Backslash: "\\", BracketLeft: "[",
                     BracketRight: "]", Quote: "'", Comma: ",", Period: ".", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓" };
-    return combo.split("+").map(p => NAMES[p] ?? p.replace(/^Key|^Digit|^Numpad/, "")).join("+");
+    return combo.split("+").map(p => NAMES[p] ?? p.replace(/^Key|^Digit|^Numpad|^Char:/, "")).join("+");
   },
 
   // The page you're on keeps its Alt keys (Tiling and keys › Sites that keep their Alt keys).
@@ -130,7 +130,9 @@ const ShellKeys = {
     if (e.isComposing || this.recording) return; // (Zenith's page is taking a new key)
     if (ShellModes.mode) return ShellModes.key(e);
     if (!(e.altKey || e.ctrlKey || e.metaKey)) return;
-    const name = this.map.get(this.combo(e));
+    // (A key set in about:keyboard by its character, one no key position
+    // stands for: "Alt+Char:Ö".)
+    const name = this.map.get(this.combo(e)) ?? this.map.get(this.combo(e).replace(/[^+]+$/, `Char:${e.key.toUpperCase()}`));
     if (!name) return;
     if (name === "passthrough" ? !this.on : !this.free() || !(this.on || this.byName.get(name)[4])) return;
     // Alt+Enter in the address bar is Firefox's own: open in a new tab.

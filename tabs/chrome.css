@@ -74,6 +74,26 @@
   display: none !important;
 }
 
+/* --- Back to your tab (Zen 1.24) ------------------------------------------
+   Zen shows a button when the tab you're on is scrolled out of the
+   sidebar: in Zenith's glass, as a pill, like the rest of the sidebar's
+   floating bits. */
+.zen-workspace-scroll-to-tab {
+  padding: 4px 10px !important;
+  border-radius: var(--zth-pill-radius) !important;
+  corner-shape: var(--zth-pill-shape) !important;
+  outline: 1px solid var(--zth-hairline);
+  background: var(--zth-panel-bg) !important;
+  backdrop-filter: var(--zth-panel-filter);
+  box-shadow: var(--zth-shadow), var(--zth-glass-shine) !important;
+  color: var(--zth-ink) !important;
+  font: var(--zth-font) / 1.2 system-ui, sans-serif;
+
+  &:hover {
+    background: color-mix(in srgb, var(--zth-accent) 14%, var(--zth-panel-bg)) !important;
+  }
+}
+
 /* --- Close button ---------------------------------------------------------
    Zen already shows it only on hover in the expanded sidebar; "Off" here
    brings it back on every tab. */
