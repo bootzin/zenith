@@ -1636,6 +1636,11 @@ browser[zenith-see-through] {
     box-shadow: inset -2px 0 0 var(--zb-accent);
   }
 
+  /* Into the folder or group that tab is in. */
+  &[drop="into"] {
+    box-shadow: inset 0 0 0 2px var(--zb-accent);
+  }
+
   .zenith-bar[vertical] &[drop="before"] {
     box-shadow: inset 0 2px 0 var(--zb-accent);
   }
@@ -1756,6 +1761,26 @@ browser[zenith-see-through] {
     border: 1.5px solid var(--zb-dim);
   }
 
+  /* A Glance or a Peek open on it: a small window over the icon's top
+     left corner, a second one behind it. */
+  & .zb-task-over {
+    display: none;
+  }
+
+  &[over] .zb-task-over {
+    display: block;
+    position: absolute;
+    inset: calc(50% - 11px) auto auto calc(var(--zb-task-icon-x, 50%) - 13px);
+    width: 9px;
+    height: 7px;
+    box-sizing: border-box;
+    border: 1.5px solid var(--zb-accent);
+    border-radius: var(--zth-radius-xs);
+    background: var(--zb-bg);
+    box-shadow: -2px -2px 0 -0.5px var(--zb-accent);
+    pointer-events: none;
+  }
+
   &[attention]:not([current]) .zb-task-mark {
     inset: calc(50% - 10px) auto auto calc(var(--zb-task-icon-x, 50%) + 4px);
     background: var(--zb-urgent);
@@ -1836,7 +1861,7 @@ browser[zenith-see-through] {
 }
 
 .zenith-bar[marks="off"] .zb-task {
-  & .zb-task-mark, &[fixed-end]::before {
+  & .zb-task-mark, & .zb-task-over, &[fixed-end]::before {
     display: none !important;
   }
 
@@ -4406,7 +4431,7 @@ tab-group[split-view-group]:hover {
 #tabbrowser-tabpanels[zenith-solo] > [zen-split]:not([zenith-split-solo]),
 /* The scroller (Shell › Layout): columns slide along the strip; the ones
    beyond the edges are out of sight (and not drawn); no splitters (a
-   column's width is Alt+Shift+Y's). */
+   column's width is Alt+Shift+Y's, Alt+F's or resize mode's). */
 #tabbrowser-tabpanels[zenith-scroller] {
   overflow: clip;
 
@@ -4415,7 +4440,8 @@ tab-group[split-view-group]:hover {
   }
 
   & > .browserSidebarContainer {
-    transform: translateX(var(--zth-strip-x, 0px)) !important;
+    /* (A column that moved slides from where it was: --zth-col-dx/dy.) */
+    transform: translate(calc(var(--zth-strip-x, 0px) + var(--zth-col-dx, 0px)), var(--zth-col-dy, 0px)) !important;
     transition: transform calc(0.22s * var(--zth-speed)) var(--zth-ease) !important;
     will-change: transform;
 

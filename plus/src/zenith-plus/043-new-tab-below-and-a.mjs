@@ -86,6 +86,8 @@ const NewTabBelow = {
 
   grow(tab, anchor, shown) {
     const S = window.gZenViewSplitter, data = this.splitOf(anchor);
+    // (A strip takes every new tab itself, as niri places it: Layouts.)
+    if (data?.zenithStrip) return;
     if (!tab?.isConnected || !data || this.splitOf(tab) || tab.pinned || tab.hasAttribute("zen-essential") || tab.hasAttribute("zen-glance-tab") || tab.hasAttribute("zen-empty-tab")) return;
     if (!shown && Services.prefs.getStringPref("zenith.shell.split-background", "") === "tab") return;
     if (data.tabs.length >= (S?.MAX_TABS ?? 4)) return;

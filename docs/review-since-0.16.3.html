@@ -81,7 +81,7 @@
 <main>
   <header>
     <h1>Zenith: what to review since 0.16.3</h1>
-    <p class="lede">Every change from 0.16.3 to 0.18.4, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
+    <p class="lede">Every change from 0.16.3 to 0.18.5, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
     <div class="bar">
       <span class="progress" id="progress">0 of 0 reviewed</span>
       <span class="track" aria-hidden="true"><i id="fill"></i></span>
@@ -100,12 +100,27 @@
 <script>
 const NOT = "Not checked in Zen";
 const RELEASES = [
+  { v: "0.18.5", note: "Your walkthrough of 0.16.3 to 0.18.4: the scroller rebuilt on niri's rules, and the things that didn't work. Themes and forced dark pages come in 0.18.6.", items: [
+    ["The scroller, as niri's", "Alt+Y to Scroller (or Tiling and keys › Layouts). Each new tab is a column right of yours; links opened in the background keep the order you opened them in. A gap at each edge; the view moves only as far as it must to show the column whole. Alt+H/L walk, Alt+Shift+H/L move a column, Alt+Shift+Y a third, half, two thirds; Alt+F the whole view and back; Alt+C centres it; Alt+R then h/l a tenth narrower or wider; columns slide into place"],
+    ["Closing a column", "Open a tab (a link in front, or Ctrl+T and an address) and close it at once: you're back on the column you came from. Close a column you went to: the one on its right takes over (on its left at the end)"],
+    ["Tiles stacked in a column", "In the scroller: Alt+[ or Alt+] puts the tile into the column beside it (stacked), or a stacked one out into its own column; Alt+, brings the next column's top tile into yours, Alt+. sends your column's bottom tile out; Alt+J/K go up and down the stack; Alt+R then j/k a tile's height"],
+    ["Where the scroller keeps your column", "Tiling and keys › Layouts › Keep the column: In view (niri's default), In the middle, or In the middle when the one you came from won't fit beside it; A lone column: one column sits in the middle"],
+    ["The full sidebar beside the scroller", "With the scroller on, turn compact mode off (the full sidebar): the columns fit the narrower page, no empty space beside them"],
+    ["The start page's box", "Open the start page and type: the address bar's own results appear under the box (search with your engine, history, bookmarks, open tabs as Switch to tab). Arrows or Tab move, Enter opens, Shift+Enter in a new tab, Esc clears; the address bar stays closed"],
+    ["New split tiles on one side", "From a tab on its own and from a split: Zen's Open link in split view, Glance's split button, Alt+Shift+click, Alt+Shift+Enter: the new tile goes right of yours (below a tall one; Tiling and keys › New tiles), never left. Zen's Split tabs on several selected tabs keeps the sidebar's order"],
+    ["Glance and Peek marked on their tab", "Open a Glance (Alt+click a link) or a Peek: its tab in the bar gets a small window mark at the icon's top left, and keeps it while you're on another tab; it goes when the Glance or Peek closes (Bars › Marks on a bar's tabs › off hides it)"],
+    ["A bar tab into a folder", "Drag a tab in the bar onto a tab that's in a folder or group: an accent ring round it, and on drop the tab joins that folder, beside that tab"],
+    ["Bars added and taken away in the picker", "Alt+Shift+P › Bars › Bars on screen: Top, Bottom, Left, Right; a click adds a bar (with that edge's modules) or takes one away; Cancel puts them back"],
+    ["Liquid glass in the picker", "Theme › Glass edge › Liquid, open the picker: its cards and buttons light up under the pointer as tabs do (the picker's window already had the rim)"],
+    ["One media hub on your bars", "Checked with your top bar (hiding until reached, Islands, your modules) and a floating bar: music in another space shows, with +1; Shift+wheel goes to the next source; a middle click mutes. If it still fails for you, say what you did and what you saw"],
+    ["A bar module's name written twice", "Your bottom bar's list said overviewoverview, so its overview button never showed: at start Zenith now repairs a name written twice and drops names no module has"],
+  ] },
   { v: "0.18.4", note: "This round: Zen 1.24's changes under Zenith (keys, Space routing, zoom, the command palette, downloads, two looks), and a plan for Zen 1.25.", items: [
     ["Zenith's keys in about:keyboard", "Open about:keyboard (Firefox's Keyboard shortcuts, where Zen 1.24 moved its own): groups Zenith, Zenith: tiles, tabs, spaces, pages; change one (say the next layout to Alt+G): Alt+G does it, and Settings › Tiling and keys › Keys shows it; change it there or in zenith.conf: about:keyboard shows it"],
     ["Ask me each time, in the Library", "Open Space routing (the Library, or :routing): a rule's menu of spaces and the one for links from other apps have Ask me each time after Most recent space; a rule set to it says so; picking it for other links turns on Zenith › Links from other apps › Ask"],
     ["Space routing in a popup", "Zenith › Links › Space routing opens in › A popup over the page, then open Space routing: every rule on one card ([contains ▾] [site] → [space ▾] ✕), changed where it stands, + Add a rule, the default for other links at the foot, Open in the Library, Esc or Done to close; a rule isn't kept till its site reads (a broken regex goes red)"],
     ["When you zoom", "Settings › Small touches › When you zoom: a pill on the zoomed page (no note from Zen), Zen's note, both, neither; zoom a page (Ctrl+=) with each"],
-    ["Zen's notes in Zenith's look", "Copy a link (Ctrl+Shift+C), zoom with Zen's note on: the notes sit in the top right below a top bar, in the panel glass with an accent dot, text that wraps, one under another (not on top of each other), a shortcut in one shown as a key"],
+    ["Zen's notes in Zenith's look", "Zen's notes are the short messages Zen shows at the top right for a moment (its toasts). To see one: on a page press Ctrl+Shift+C (Copy current URL), or set Settings › Small touches › When you zoom › Zen's note and zoom with Ctrl+=: the notes sit in the top right below a top bar, in the panel glass with an accent dot, text that wraps, one under another (not on top of each other), a shortcut in one shown as a key"],
     ["Zenith in the command palette", "Click the address bar and type overview, rice, dash, scroller, tab manager or cookies: Zenith: … rows among Zen's; Enter runs it"],
     ["Downloads: speed, pause, go on", "Download something big: the bar's downloads module's hover says how fast and how long; its list says the same, with Pause (when the site lets a download carry on) and ✕; paused: the module keeps a pause mark and the percentage, Go on picks up where it stopped"],
     ["Back to your tab", "Scroll the sidebar until the tab you're on is out of sight: Zen's button back to it is a glass pill like the rest"],

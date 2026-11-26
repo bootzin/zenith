@@ -120,7 +120,8 @@ export const Picker = {
     // What everything was when it opened: Cancel's.
     this.before = snapshot(["zenith.internal.theme", "zenith.internal.menu-items", "zenith.plus.glance-buttons",
                             "zenith.motion.preset", "zenith.motion.easing", "zenith.motion.speed", "zenith.motion.space-switch",
-                            "zenith.motion.swipe", "zenith.motion.swipe-round", "zenith.core.pills"]);
+                            "zenith.motion.swipe", "zenith.motion.swipe-round", "zenith.core.pills",
+                            ...EDGES.flatMap(e => [`zenith.bar.${e}`, `zenith.bar.${e}.modules`])]);
     const host = (this.host = node("div", { id: "zenith-rice", role: "dialog", "aria-modal": "true", "aria-label": "Looks" }));
     const nav = node("nav", { class: "zr-nav", "aria-label": "Categories" });
     for (const c of CATEGORIES) {
@@ -326,10 +327,26 @@ export const Picker = {
     this.body.append(grid);
   },
 
-  // Bars: which bar (every one, or one of those that are on), then its settings.
+  // Bars: which edges have one (a click adds or takes one away; a new one
+  // comes with its edge's modules), which bar (every one, or one of those
+  // that are on), then its settings.
   bars() {
     const on = barsOn();
     if (this.scope !== "all" && !on.includes(this.scope)) this.scope = "all";
+    const edges = node("div", { class: "zr-seg zr-scope", role: "group", "aria-label": "Bars on screen" });
+    for (const e of EDGES) {
+      const has = on.includes(e), name = `${e[0].toUpperCase()}${e.slice(1)}`;
+      const b = node("button", { type: "button", class: "zr-opt zr-edge", value: e, "aria-pressed": String(has), title: has ? `Take the ${e} bar away` : `Add a bar at the ${e}` },
+        node("span", { class: "zr-edge-sign", "aria-hidden": "true" }, has ? "✓" : "+"), ` ${name}`);
+      b.toggleAttribute("current", has);
+      b.addEventListener("click", () => {
+        P.setStringPref(`zenith.bar.${e}`, has ? "off" : "on");
+        if (!has) this.scope = e;
+        setTimeout(() => this.show("bars"), 60);
+      });
+      edges.append(b);
+    }
+    this.body.append(node("div", { class: "zr-field" }, node("div", { class: "zr-field-head" }, node("h3", {}, "Bars on screen")), edges));
     const which = node("div", { class: "zr-seg zr-scope", role: "radiogroup", "aria-label": "Which bar" });
     for (const [v, text] of [["all", "Every bar"], ...on.map(e => [e, `${e[0].toUpperCase()}${e.slice(1)}`])]) {
       const b = node("button", { type: "button", class: "zr-opt", value: v, role: "radio" }, text);
@@ -341,7 +358,7 @@ export const Picker = {
       which.append(b);
     }
     this.body.append(node("div", { class: "zr-field" }, node("div", { class: "zr-field-head" }, node("h3", {}, "Which bar")), which));
-    if (!on.length) this.body.append(node("p", { class: "zr-desc" }, "No bar is on: Settings › Bars turns one on."));
+    if (!on.length) this.body.append(node("p", { class: "zr-desc" }, "No bar is on: add one above."));
     for (const k of BAR_SETTINGS) this.setting(field(`bar:${k}`, this.scope));
   },
 

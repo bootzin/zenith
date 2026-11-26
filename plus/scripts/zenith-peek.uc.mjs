@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.18.4
+// @version        0.18.5
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -505,6 +505,12 @@ const Peek = {
     const owner = gBrowser.selectedTab, host = browser.closest("#zen-glance-detached");
     if (!host) return;
     host.setAttribute("zenith-tab", "true");
+    // (The bar marks the tab a Peek is open on.)
+    const mark = on => {
+      owner.toggleAttribute("zenith-peek", on);
+      gBrowser._tabAttrModified?.(owner, ["zenith-peek"]);
+    };
+    mark(true);
     const box = () => owner.linkedBrowser?.closest(".browserSidebarContainer");
     const place = () => {
       const away = owner !== gBrowser.selectedTab || !box();
@@ -528,6 +534,7 @@ const Peek = {
     gBrowser.tabContainer.addEventListener("TabClose", gone);
     window.addEventListener("resize", place);
     closed.then(() => {
+      if (owner.isConnected) mark(false);
       ro.disconnect();
       gBrowser.tabContainer.removeEventListener("TabSelect", select);
       gBrowser.tabContainer.removeEventListener("TabClose", gone);

@@ -43,6 +43,16 @@ const BarLoader = {
 
   migrate() {
     const P = Services.prefs, OLD = "zenith.bar.position", TABS = "zenith.bar.tabs";
+    // A module's name written twice over ("overviewoverview"): that module;
+    // a name no module has, or one already in the bar: left out.
+    const known = new Set(this.MODULES.map(m => m[0]));
+    for (const e of this.EDGES) {
+      const pref = `zenith.bar.${e}.modules`, was = P.getStringPref(pref, ""), seen = new Set();
+      if (!was) continue;
+      const fix = x => (known.has(x) ? x : x.match(/^(.+?)+$/)?.[1] ?? x);
+      const now = was.split("|").map(part => part.split(",").map(x => fix(x.trim())).filter(x => known.has(x) && !seen.has(x) && seen.add(x)).join(",")).join("|");
+      if (now !== was) P.setStringPref(pref, now);
+    }
     // 0.17's "hides until reached" (a switch): 0.18's way it shows.
     for (const e of this.EDGES) {
       const old = `zenith.bar.hide-${e}`;

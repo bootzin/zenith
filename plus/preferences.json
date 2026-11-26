@@ -3915,8 +3915,19 @@
       {
         "label": "In the middle",
         "value": "centre"
+      },
+      {
+        "label": "In the middle when the one you came from won't fit beside it",
+        "value": "overflow"
       }
     ],
+    "usedBy": "zenith-plus"
+  },
+  {
+    "property": "zenith.shell.scroller-centre-lone",
+    "label": "A lone column in the middle",
+    "type": "checkbox",
+    "defaultValue": false,
     "usedBy": "zenith-plus"
   },
   {

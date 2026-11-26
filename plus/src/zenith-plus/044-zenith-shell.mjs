@@ -42,6 +42,11 @@ const ShellKeys = {
     ["resize", "Alt+KeyR", "Resize mode (hjkl or arrows, = to even out, Esc)", "Tiles"],
     ["layout", "Alt+KeyY", "The space's next layout (dwindle, master, scroller, monocle)", "Tiles"],
     ["layout-action", "Alt+Shift+KeyY", "Master: the tile becomes the master · Scroller: the column's next width", "Tiles"],
+    ["consume-left", "Alt+BracketLeft", "Scroller: the tile joins the column on its left (stacked: leaves its column)", "Tiles"],
+    ["consume-right", "Alt+BracketRight", "Scroller: the tile joins the column on its right (stacked: leaves its column)", "Tiles"],
+    ["consume", "Alt+Comma", "Scroller: the next column's top tile joins this column", "Tiles"],
+    ["expel", "Alt+Period", "Scroller: this column's bottom tile becomes a column of its own", "Tiles"],
+    ["centre", "Alt+KeyC", "Scroller: the column you're on in the middle", "Tiles"],
     ["scroll-left", "Ctrl+Alt+KeyH", "Scroll the page left", "Pages"],
     ["scroll-down", "Ctrl+Alt+KeyJ", "Scroll the page down", "Pages"],
     ["scroll-up", "Ctrl+Alt+KeyK", "Scroll the page up", "Pages"],
@@ -175,6 +180,11 @@ const ShellKeys = {
       case "dash": return DashLoader.toggle();
       case "layout": return Layouts.cycle();
       case "layout-action": return Layouts.action();
+      case "consume-left": return Layouts.consumeOrExpel("left");
+      case "consume-right": return Layouts.consumeOrExpel("right");
+      case "consume": return Layouts.consume();
+      case "expel": return Layouts.expel();
+      case "centre": return Layouts.centre();
       case "overview": return window.ZenithOverview?.toggle();
       case "rice": return RicePicker.toggle();
       case "reload-rice": return window.ZenithRice?.reload(true);
@@ -228,8 +238,8 @@ const ShellModes = {
     e.stopImmediatePropagation();
     if (e.key === "Escape" || e.key === "Enter" || ShellKeys.map.get(ShellKeys.combo(e)) === "resize") return this.end();
     const dir = { KeyH: "left", ArrowLeft: "left", KeyL: "right", ArrowRight: "right", KeyK: "up", ArrowUp: "up", KeyJ: "down", ArrowDown: "down" }[e.code];
-    if (dir) Tiler.resize(dir);
-    else if (e.code === "Equal" || e.code === "Digit0") Tiler.even();
+    if (dir) Layouts.resize(dir) || Tiler.resize(dir);
+    else if (e.code === "Equal" || e.code === "Digit0") Layouts.even() || Tiler.even();
   },
 };
 
@@ -269,20 +279,24 @@ const Tiler = {
           Tiler.glanceSplit = null;
           const anchor = tabs.find(t => t !== g);
           if (Tiler.data(anchor) || Layouts.strip()) return Tiler.insert(g, anchor);
+          // (A tab on its own: the page on the side every new tile goes.)
+          const side = Tiler.sideFor(anchor), first = side === "left" || side === "top";
+          return split.call(this, first ? [g, anchor] : [anchor, g], side === "left" || side === "right" ? "vsep" : "hsep", first ? 0 : 1);
         }
         return split.call(this, tabs, ...rest);
       };
       onUnload(() => (this.S.splitTabs = split));
     }
     // Zen's "Open link in split view" and Glance's split button put the new
-    // page at the end of a split (in a strip: the last column): it goes
-    // beside the tile you're on instead, where the Shell puts any new tile
-    // (in a strip, the column after it).
+    // page where Zen picks (the end of a split, the last column, a side of
+    // its own): it goes beside the tile you're on instead, where the Shell
+    // puts any new tile (Tiling and keys › New tiles; in a strip, the
+    // column after it), split or not.
     const link = this.S?.splitLinkInNewTab;
     if (link) {
       this.S.splitLinkInNewTab = function () {
         const current = window.gZenGlanceManager?.getTabOrGlanceParent(gBrowser.selectedTab) ?? gBrowser.selectedTab;
-        if (!Tiler.data(current) && !Layouts.strip()) return link.call(this);
+        if (!window.gContextMenu) return link.call(this);
         // (Zen's own, from here: the link's address, opened with its page's principal.)
         const m = window.gContextMenu;
         const url = m.linkURL || m.mediaURL || m.contentData.docLocation || m.target.ownerDocument.location.href;

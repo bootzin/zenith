@@ -3637,6 +3637,9 @@ box-shadow: inset 2px 0 0 var(--zb-accent);
 &[drop="after"] {
 box-shadow: inset -2px 0 0 var(--zb-accent);
 }
+&[drop="into"] {
+box-shadow: inset 0 0 0 2px var(--zb-accent);
+}
 .zenith-bar[vertical] &[drop="before"] {
 box-shadow: inset 0 2px 0 var(--zb-accent);
 }
@@ -3733,6 +3736,22 @@ box-shadow: 0 0 0 1.5px var(--zb-bg);
 background: var(--zb-bg);
 border: 1.5px solid var(--zb-dim);
 }
+& .zb-task-over {
+display: none;
+}
+&[over] .zb-task-over {
+display: block;
+position: absolute;
+inset: calc(50% - 11px) auto auto calc(var(--zb-task-icon-x, 50%) - 13px);
+width: 9px;
+height: 7px;
+box-sizing: border-box;
+border: 1.5px solid var(--zb-accent);
+border-radius: var(--zth-radius-xs);
+background: var(--zb-bg);
+box-shadow: -2px -2px 0 -0.5px var(--zb-accent);
+pointer-events: none;
+}
 &[attention]:not([current]) .zb-task-mark {
 inset: calc(50% - 10px) auto auto calc(var(--zb-task-icon-x, 50%) + 4px);
 background: var(--zb-urgent);
@@ -3798,7 +3817,7 @@ border-radius: var(--zb-radius, 8px);
 }
 }
 .zenith-bar[marks="off"] .zb-task {
-& .zb-task-mark, &[fixed-end]::before {
+& .zb-task-mark, & .zb-task-over, &[fixed-end]::before {
 display: none !important;
 }
 &[folder], &[kind="essential"] {
@@ -5835,7 +5854,7 @@ overflow: clip;
 display: none !important;
 }
 & > .browserSidebarContainer {
-transform: translateX(var(--zth-strip-x, 0px)) !important;
+transform: translate(calc(var(--zth-strip-x, 0px) + var(--zth-col-dx, 0px)), var(--zth-col-dy, 0px)) !important;
 transition: transform calc(0.22s * var(--zth-speed)) var(--zth-ease) !important;
 will-change: transform;
 &[zenith-off-strip] {

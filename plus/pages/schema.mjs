@@ -2109,7 +2109,7 @@ export const SCHEMA = {
  "zenith.shell.scroller-width": {
   "label": "A new column",
   "type": "dropdown",
-  "desc": "How wide a new column is in the scroller; Alt+Shift+Y gives the one you're on the next width (a third, half, two thirds, all).",
+  "desc": "How wide a new column is in the scroller; Alt+Shift+Y gives the one you're on the next of a third, half and two thirds; Alt+F the whole view and back; resize mode (Alt+R) h and l a tenth at a time.",
   "options": [
    {
     "label": "A third of the view",
@@ -2133,7 +2133,7 @@ export const SCHEMA = {
  "zenith.shell.scroller-focus": {
   "label": "Keep the column",
   "type": "dropdown",
-  "desc": "In view: the strip slides as little as shows the column you're on. In the middle: it always slides that column to the middle (niri's centre-focused-column).",
+  "desc": "In view: the strip slides as little as shows the column you're on whole, a gap from the edge (niri's default). In the middle: always in the middle. In the middle when the one you came from won't fit beside it: in view while both fit, else in the middle (niri's on-overflow).",
   "options": [
    {
     "label": "In view",
@@ -2142,9 +2142,19 @@ export const SCHEMA = {
    {
     "label": "In the middle",
     "value": "centre"
+   },
+   {
+    "label": "In the middle when the one you came from won't fit beside it",
+    "value": "overflow"
    }
   ],
   "default": "view"
+ },
+ "zenith.shell.scroller-centre-lone": {
+  "label": "A lone column",
+  "type": "checkbox",
+  "desc": "With one column on the strip, it sits in the middle of the view instead of at the left (niri's always-center-single-column).",
+  "default": false
  },
  "zenith.shell.master": {
   "label": "Master and stack",

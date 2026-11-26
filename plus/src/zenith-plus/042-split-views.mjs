@@ -11,7 +11,8 @@ const SplitSolo = {
     const commandset = document.createXULElement("commandset");
     const command = document.createXULElement("command");
     command.id = "zenith-split-solo-command";
-    command.addEventListener("command", () => this.toggle());
+    // (In the scroller, Alt+F is niri's: the column takes the whole view.)
+    command.addEventListener("command", () => (Layouts.of() === "scroller" && Layouts.maximize()) || this.toggle());
     commandset.append(command);
     const keyset = document.createXULElement("keyset");
     const key = document.createXULElement("key");

@@ -9,7 +9,8 @@
 const GlassLight = {
   // [what the pointer is over, the part that's painted (null: itself)]
   SURFACES: [[".tabbrowser-tab", ".tab-background"], [".zen-media-card", null], ["#zenith-peek-box", null],
-             [".zenith-toast", null], ["#zenith-live .zp-card", null], ["#zenith-live .zp-chip", null]],
+             [".zenith-toast", null], ["#zenith-live .zp-card", null], ["#zenith-live .zp-chip", null],
+             ["#zenith-rice .zr-card", null], ["#zenith-rice .zr-opt", null], ["#zenith-rice button", null]],
   HOVER: 0.45, // hover strength; a press is 1
   RISE: 90,    // ms from nothing to full
   FADE: 320,   // ms from full to nothing

@@ -52,10 +52,17 @@ main {
   }
 }
 
+/* The box, and the address bar's results under it while you type (over
+   what's below, so nothing jumps). */
+#box {
+  position: relative;
+  width: 100%;
+  margin-top: 28px;
+}
+
 #q {
   box-sizing: border-box;
   width: 100%;
-  margin-top: 28px;
   padding: 11px 16px;
   border: none;
   border-radius: 999px;
@@ -68,6 +75,57 @@ main {
 
   &:focus-visible {
     outline: 2px solid var(--accent);
+  }
+}
+
+#results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 16px;
+  outline: 1px solid var(--line);
+  background: light-dark(rgb(255 255 255 / 0.82), rgb(24 24 28 / 0.82));
+  backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.22);
+
+  &[hidden] {
+    display: none;
+  }
+
+  & li {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: default;
+
+    &[aria-selected="true"] {
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
+    }
+  }
+
+  & img {
+    width: 16px;
+    height: 16px;
+  }
+
+  & .title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  & .what {
+    color: var(--dim);
+    font-size: 13px;
+    white-space: nowrap;
   }
 }
 

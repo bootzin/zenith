@@ -301,6 +301,16 @@ function here() {
   return t.parentElement?.closest(".tabbrowser-tab") ?? gBrowser.tabs.find(x => x !== t && id && x.getAttribute("glance-id") === id) ?? t;
 }
 
+// The Glances open now, by their id (worked out once for a whole redraw).
+let glanceIds = null;
+function glances() {
+  if (!glanceIds) {
+    glanceIds = new Set(gBrowser.tabs.filter(x => x.hasAttribute("zen-glance-tab")).map(x => x.getAttribute("glance-id")));
+    queueMicrotask(() => (glanceIds = null));
+  }
+  return glanceIds;
+}
+
 // Firefox's own kind of tab drag: the sidebar, another window and Zen's
 // split take it as they take one dragged from the sidebar.
 const TAB_DRAG = "application/x-moz-tabbrowser-tab";
@@ -333,7 +343,8 @@ function tasks(box) {
     if (!b) {
       b = node("button", { type: "button", class: "zb-task", draggable: "true" });
       b.zbTab = t;
-      b.append(node("img", { alt: "" }), node("span", { class: "zb-task-label" }), node("span", { class: "zb-task-n" }), node("span", { class: "zb-task-mark", "aria-hidden": "true" }));
+      b.append(node("img", { alt: "" }), node("span", { class: "zb-task-label" }), node("span", { class: "zb-task-n" }), node("span", { class: "zb-task-mark", "aria-hidden": "true" }),
+               node("span", { class: "zb-task-over", "aria-hidden": "true" }));
       items.set(t, b);
     }
     return b;
@@ -360,6 +371,14 @@ function tasks(box) {
     else b.removeAttribute("sound");
     b.toggleAttribute("attention", t.hasAttribute("attention"));
     b.toggleAttribute("busy", t.hasAttribute("busy"));
+    // A Glance or a Peek open on it (Zen keeps a Glance inside its tab;
+    // Peek marks its own): marked whether you're on it or not.
+    const gid = !t.hasAttribute("zen-glance-tab") && t.getAttribute("glance-id");
+    const over = gid && (t.querySelector?.(".tabbrowser-tab[zen-glance-tab]") || glances().has(gid)) ? "glance" : t.hasAttribute("zenith-peek") ? "peek" : "";
+    if (over) {
+      b.setAttribute("over", over);
+      b.title += over === "glance" ? " · a Glance is open on it" : " · a Peek is open on it";
+    } else b.removeAttribute("over");
     const folder = t.group && !t.group.hasAttribute?.("split-view-group") ? t.group : null;
     b.zbFolder = folder;
     b.toggleAttribute("folder", !!folder);
@@ -464,12 +483,16 @@ function tasks(box) {
   });
   m.addEventListener("dragend", e => e.target.closest?.(".zb-task")?.removeAttribute("dragging"));
   const kind = t => (t.hasAttribute("zen-essential") ? "essential" : t.pinned ? "pinned" : "tab");
-  // Where a drop would go: before or after the tab under the pointer.
+  // Where a drop would go: before or after the tab under the pointer; onto
+  // a tab in a folder or a group (one it isn't in), into that folder or
+  // group, beside that tab.
   const spot = e => {
     const t = e.dataTransfer?.mozGetDataAt(TAB_DRAG, 0), b = e.target.closest?.(".zb-task:not(.zb-task-more)");
-    if (!t || !b?.zbTab || b.zbTab === t || kind(b.zbTab) !== kind(t) || !gBrowser.tabs.includes(t)) return null; // (this window's)
+    if (!t || !b?.zbTab || b.zbTab === t || !gBrowser.tabs.includes(t)) return null; // (this window's)
     const r = b.getBoundingClientRect(), after = vertical ? e.clientY > r.top + r.height / 2 : e.clientX > r.left + r.width / 2;
-    return { t, b, after };
+    const group = b.zbFolder && t.group !== b.zbFolder && !t.hasAttribute("zen-essential") ? b.zbFolder : null;
+    if (!group && kind(b.zbTab) !== kind(t)) return null;
+    return { t, b, after, group };
   };
   const unmark = () => m.querySelectorAll("[drop]").forEach(x => x.removeAttribute("drop"));
   m.addEventListener("dragover", e => {
@@ -478,7 +501,7 @@ function tasks(box) {
     if (!s) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    s.b.setAttribute("drop", s.after ? "after" : "before");
+    s.b.setAttribute("drop", s.group ? "into" : s.after ? "after" : "before");
   });
   m.addEventListener("dragleave", e => !m.contains(e.relatedTarget) && unmark());
   m.addEventListener("drop", e => {
@@ -487,6 +510,15 @@ function tasks(box) {
     if (!s) return;
     e.preventDefault();
     e.stopPropagation();
+    if (s.group) {
+      try {
+        // (Zen's folder pins what it takes, as a drop in the sidebar does.)
+        if (s.group.addTabs) s.group.addTabs([s.t]);
+        else gBrowser.moveTabToGroup(s.t, s.group);
+      } catch (err) {
+        return console.error("[Zenith] bar: a tab into a group", err);
+      }
+    }
     if (s.after) gBrowser.moveTabAfter(s.t, s.b.zbTab);
     else gBrowser.moveTabBefore(s.t, s.b.zbTab);
   });
@@ -550,7 +582,7 @@ function tasks(box) {
   Undo.add(() => ro.disconnect());
   for (const t of ["TabOpen", "TabClose", "TabMove", "TabSelect", "TabShow", "TabHide"]) Undo.on(gBrowser.tabContainer, t, draw);
   Undo.on(gBrowser.tabContainer, "TabAttrModified", e => {
-    if (e.detail?.changed?.some(a => ["label", "image", "pending", "soundplaying", "muted", "busy", "attention"].includes(a))) draw();
+    if (e.detail?.changed?.some(a => ["label", "image", "pending", "soundplaying", "muted", "busy", "attention", "zenith-peek"].includes(a))) draw();
   });
   Undo.on(window, "ZenithMedia", draw);
   for (const t of ["TabGrouped", "TabUngrouped", "TabGroupCollapse", "TabGroupExpand", "TabPinned", "TabUnpinned"]) Undo.on(window, t, draw);

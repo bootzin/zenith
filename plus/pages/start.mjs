@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// about:zenith-start: a clock, a search box that hands what you type to the
-// address bar (as Firefox's new tab page does: its suggestions, history,
-// bookmarks, numbers, search, all as usual), and your bookmarks below, a
+// about:zenith-start: a clock, a search box with the address bar's own
+// results under it as you type (Firefox's: search with your engine, history,
+// bookmarks, open tabs, suggestions; the arrows and Enter, or a click), and
+// your bookmarks below, a
 // click to open one (Shift or a middle click: a new tab). With the weather on, a line from wttr.in for where
 // you are (then, optionally, the places you looked up in Peek lately); and
 // optionally your most visited sites, as tiles. Each part has its switch
@@ -183,20 +184,121 @@ function go(text, newTab) {
   Services.search.getDefault().then(e => open(e.getSubmission(t).uri.spec, newTab));
 }
 
-// What's typed goes to the address bar, which carries on from there.
-$("q").addEventListener("input", () => {
-  const text = $("q").value;
-  if (!text) return;
-  $("q").value = "";
-  if (win.gURLBar?.handoff) win.gURLBar.handoff(text);
-  else win.gURLBar?.search?.(text);
-});
+// The address bar's results for what's typed: Firefox's own query (the
+// same providers as the address bar), shown under the box.
+let Q = null;
+try {
+  const { UrlbarQueryContext } = ChromeUtils.importESModule("chrome://browser/content/urlbar/UrlbarQueryContext.mjs");
+  const { ProvidersManager } = ChromeUtils.importESModule("moz-src:///browser/components/urlbar/UrlbarProvidersManager.sys.mjs");
+  let T = null;
+  try {
+    T = ChromeUtils.importESModule("moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs").UrlbarUtils?.RESULT_TYPE;
+  } catch {}
+  // (Firefox's result types, as they are numbered.)
+  Q = { UrlbarQueryContext, manager: ProvidersManager.getInstanceForSap("urlbar"), T: T ?? { TAB_SWITCH: 1, SEARCH: 2, URL: 3 } };
+} catch (e) {
+  console.error("[Zenith] start page: the address bar's results", e); // (Enter still searches or goes)
+}
+
+const Results = {
+  rows: [],
+  at: 0,
+  seq: 0,
+
+  async query(text) {
+    const seq = ++this.seq;
+    if (!text.trim() || !Q) return this.show([]);
+    const tab = win.gBrowser?.getTabForBrowser?.(window.browsingContext.embedderElement);
+    const ctx = new Q.UrlbarQueryContext({
+      searchString: text, trimmedSearchString: text.trim(), allowAutofill: false, maxResults: 8,
+      isPrivate: !!win.PrivateBrowsingUtils?.isWindowPrivate(win), userContextId: tab?.userContextId ?? 0,
+      sapName: "urlbar", currentPage: "about:zenith-start", formHistoryName: "searchbar-history", prohibitRemoteResults: false,
+    });
+    // (Results come in a few at a time; the latest query's are shown.)
+    const shown = c => seq === this.seq && $("q").value === text && this.show(c.results ?? []);
+    try {
+      await Q.manager.startQuery(ctx, { receiveResults: shown, notify() {}, input: null });
+      shown(ctx);
+    } catch (e) {
+      this.error = String(e); // (tools/checks)
+      console.error("[Zenith] start page: the address bar's results", e);
+    }
+  },
+
+  // A result as a row: what it is and what picking it does.
+  row(r) {
+    const T = Q.T, p = r.payload ?? {};
+    if (r.type === T.SEARCH) {
+      const text = p.suggestion ?? p.query ?? "";
+      return { r, text, what: `Search with ${p.engine ?? "your engine"}`, icon: "chrome://global/skin/icons/search-glass.svg" };
+    }
+    if (!p.url) return null;
+    const what = r.type === T.TAB_SWITCH ? "Switch to tab" : r.heuristic ? "Go to" : host(p.url);
+    return { r, text: p.title || p.url, what, icon: `page-icon:${p.url}` };
+  },
+
+  show(results) {
+    this.rows = Q ? results.map(r => this.row(r)).filter(Boolean) : [];
+    this.at = 0;
+    const list = $("results");
+    list.replaceChildren(...this.rows.map((row, i) => make("li", {
+      role: "option", id: `r${i}`,
+      onmousemove: () => this.select(i),
+      onmousedown: e => e.preventDefault(), // (the box keeps the focus)
+      onclick: e => this.pick(i, e.shiftKey || e.ctrlKey),
+      onauxclick: e => e.button === 1 && this.pick(i, true),
+    },
+      make("img", { src: row.icon, alt: "", onerror: e => (e.target.style.visibility = "hidden") }),
+      make("span", { class: "title" }, row.text),
+      make("span", { class: "what" }, row.what))));
+    list.hidden = !this.rows.length;
+    $("q").setAttribute("aria-expanded", String(!list.hidden));
+    this.select(0);
+  },
+
+  select(i) {
+    if (!this.rows.length) return;
+    this.at = (i + this.rows.length) % this.rows.length;
+    for (const [k, li] of [...$("results").children].entries()) li.setAttribute("aria-selected", String(k === this.at));
+    $("q").setAttribute("aria-activedescendant", `r${this.at}`);
+  },
+
+  pick(i, newTab) {
+    const row = this.rows[i];
+    if (!row) return go($("q").value, newTab);
+    const { r } = row, p = r.payload ?? {};
+    if (r.type === Q.T.SEARCH) {
+      const engine = p.engine && Services.search.getEngineByName(p.engine);
+      if (!engine) return go(row.text, newTab);
+      return open(engine.getSubmission(row.text).uri.spec, newTab);
+    }
+    if (r.type === Q.T.TAB_SWITCH && !newTab && win.switchToTabHavingURI?.(p.url, false)) return;
+    open(p.url, newTab);
+  },
+};
+
+window.ZenithStartResults = Results; // (tools/checks)
+Results.Q = Q;
+$("q").addEventListener("input", () => Results.query($("q").value));
 $("q").addEventListener("keydown", e => {
+  const listed = !$("results").hidden;
   if (e.key === "Enter" && $("q").value) {
     e.preventDefault();
-    go($("q").value, e.shiftKey);
+    if (listed) Results.pick(Results.at, e.shiftKey);
+    else go($("q").value, e.shiftKey);
+  } else if (listed && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Tab")) {
+    e.preventDefault();
+    Results.select(Results.at + (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey) ? -1 : 1));
+  } else if (e.key === "Escape") {
+    e.preventDefault();
+    $("q").value = "";
+    Results.query("");
   }
 });
+$("q").addEventListener("blur", () => setTimeout(() => {
+  if (document.activeElement !== $("q")) $("results").hidden = true;
+}, 0));
+$("q").addEventListener("focus", () => $("q").value && Results.query($("q").value));
 
 colours();
 clock();

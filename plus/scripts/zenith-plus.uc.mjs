@@ -2,7 +2,7 @@
 // @name           Zenith Plus
 // @description    Zenith Plus: real load and download progress, the sidebar minimap, zoom pills, page colours, the matching sidebar colour and more.
 // @include        main
-// @version        0.18.4
+// @version        0.18.5
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -21,7 +21,7 @@
 // Settings live in Settings > Zen Mods > Zenith Plus. Zenith's six CSS mods
 // work without any of this. Peek has its own script, zenith-peek.uc.mjs.
 
-const ZENITH_VERSION = "0.18.4"; // (tools/bump_version.py keeps it)
+const ZENITH_VERSION = "0.18.5"; // (tools/bump_version.py keeps it)
 window.ZenithVersion = ZENITH_VERSION; // about:zenith-fetch, the rice file
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const root = document.documentElement;
@@ -749,7 +749,8 @@ const MotionBridge = {
 const GlassLight = {
   // [what the pointer is over, the part that's painted (null: itself)]
   SURFACES: [[".tabbrowser-tab", ".tab-background"], [".zen-media-card", null], ["#zenith-peek-box", null],
-             [".zenith-toast", null], ["#zenith-live .zp-card", null], ["#zenith-live .zp-chip", null]],
+             [".zenith-toast", null], ["#zenith-live .zp-card", null], ["#zenith-live .zp-chip", null],
+             ["#zenith-rice .zr-card", null], ["#zenith-rice .zr-opt", null], ["#zenith-rice button", null]],
   HOVER: 0.45, // hover strength; a press is 1
   RISE: 90,    // ms from nothing to full
   FADE: 320,   // ms from full to nothing
@@ -5139,7 +5140,8 @@ const SplitSolo = {
     const commandset = document.createXULElement("commandset");
     const command = document.createXULElement("command");
     command.id = "zenith-split-solo-command";
-    command.addEventListener("command", () => this.toggle());
+    // (In the scroller, Alt+F is niri's: the column takes the whole view.)
+    command.addEventListener("command", () => (Layouts.of() === "scroller" && Layouts.maximize()) || this.toggle());
     commandset.append(command);
     const keyset = document.createXULElement("keyset");
     const key = document.createXULElement("key");
@@ -5312,6 +5314,8 @@ const NewTabBelow = {
 
   grow(tab, anchor, shown) {
     const S = window.gZenViewSplitter, data = this.splitOf(anchor);
+    // (A strip takes every new tab itself, as niri places it: Layouts.)
+    if (data?.zenithStrip) return;
     if (!tab?.isConnected || !data || this.splitOf(tab) || tab.pinned || tab.hasAttribute("zen-essential") || tab.hasAttribute("zen-glance-tab") || tab.hasAttribute("zen-empty-tab")) return;
     if (!shown && Services.prefs.getStringPref("zenith.shell.split-background", "") === "tab") return;
     if (data.tabs.length >= (S?.MAX_TABS ?? 4)) return;
@@ -5493,6 +5497,11 @@ const ShellKeys = {
     ["resize", "Alt+KeyR", "Resize mode (hjkl or arrows, = to even out, Esc)", "Tiles"],
     ["layout", "Alt+KeyY", "The space's next layout (dwindle, master, scroller, monocle)", "Tiles"],
     ["layout-action", "Alt+Shift+KeyY", "Master: the tile becomes the master · Scroller: the column's next width", "Tiles"],
+    ["consume-left", "Alt+BracketLeft", "Scroller: the tile joins the column on its left (stacked: leaves its column)", "Tiles"],
+    ["consume-right", "Alt+BracketRight", "Scroller: the tile joins the column on its right (stacked: leaves its column)", "Tiles"],
+    ["consume", "Alt+Comma", "Scroller: the next column's top tile joins this column", "Tiles"],
+    ["expel", "Alt+Period", "Scroller: this column's bottom tile becomes a column of its own", "Tiles"],
+    ["centre", "Alt+KeyC", "Scroller: the column you're on in the middle", "Tiles"],
     ["scroll-left", "Ctrl+Alt+KeyH", "Scroll the page left", "Pages"],
     ["scroll-down", "Ctrl+Alt+KeyJ", "Scroll the page down", "Pages"],
     ["scroll-up", "Ctrl+Alt+KeyK", "Scroll the page up", "Pages"],
@@ -5626,6 +5635,11 @@ const ShellKeys = {
       case "dash": return DashLoader.toggle();
       case "layout": return Layouts.cycle();
       case "layout-action": return Layouts.action();
+      case "consume-left": return Layouts.consumeOrExpel("left");
+      case "consume-right": return Layouts.consumeOrExpel("right");
+      case "consume": return Layouts.consume();
+      case "expel": return Layouts.expel();
+      case "centre": return Layouts.centre();
       case "overview": return window.ZenithOverview?.toggle();
       case "rice": return RicePicker.toggle();
       case "reload-rice": return window.ZenithRice?.reload(true);
@@ -5679,8 +5693,8 @@ const ShellModes = {
     e.stopImmediatePropagation();
     if (e.key === "Escape" || e.key === "Enter" || ShellKeys.map.get(ShellKeys.combo(e)) === "resize") return this.end();
     const dir = { KeyH: "left", ArrowLeft: "left", KeyL: "right", ArrowRight: "right", KeyK: "up", ArrowUp: "up", KeyJ: "down", ArrowDown: "down" }[e.code];
-    if (dir) Tiler.resize(dir);
-    else if (e.code === "Equal" || e.code === "Digit0") Tiler.even();
+    if (dir) Layouts.resize(dir) || Tiler.resize(dir);
+    else if (e.code === "Equal" || e.code === "Digit0") Layouts.even() || Tiler.even();
   },
 };
 
@@ -5720,20 +5734,24 @@ const Tiler = {
           Tiler.glanceSplit = null;
           const anchor = tabs.find(t => t !== g);
           if (Tiler.data(anchor) || Layouts.strip()) return Tiler.insert(g, anchor);
+          // (A tab on its own: the page on the side every new tile goes.)
+          const side = Tiler.sideFor(anchor), first = side === "left" || side === "top";
+          return split.call(this, first ? [g, anchor] : [anchor, g], side === "left" || side === "right" ? "vsep" : "hsep", first ? 0 : 1);
         }
         return split.call(this, tabs, ...rest);
       };
       onUnload(() => (this.S.splitTabs = split));
     }
     // Zen's "Open link in split view" and Glance's split button put the new
-    // page at the end of a split (in a strip: the last column): it goes
-    // beside the tile you're on instead, where the Shell puts any new tile
-    // (in a strip, the column after it).
+    // page where Zen picks (the end of a split, the last column, a side of
+    // its own): it goes beside the tile you're on instead, where the Shell
+    // puts any new tile (Tiling and keys › New tiles; in a strip, the
+    // column after it), split or not.
     const link = this.S?.splitLinkInNewTab;
     if (link) {
       this.S.splitLinkInNewTab = function () {
         const current = window.gZenGlanceManager?.getTabOrGlanceParent(gBrowser.selectedTab) ?? gBrowser.selectedTab;
-        if (!Tiler.data(current) && !Layouts.strip()) return link.call(this);
+        if (!window.gContextMenu) return link.call(this);
         // (Zen's own, from here: the link's address, opened with its page's principal.)
         const m = window.gContextMenu;
         const url = m.linkURL || m.mediaURL || m.contentData.docLocation || m.target.ownerDocument.location.href;
@@ -6088,26 +6106,40 @@ const TileRestore = {
    Dwindle: a new tile splits the one you're on along its longer side
    (Hyprland's). Master: one master tile and a stack (dwm's: the master on
    the left; or centred, the stack either side); Alt+Shift+Y makes the tile
-   you're on the master. Scroller: tiles are columns on a strip, as niri's:
-   every tab of the space (not essentials, pinned tabs or Firefox's groups;
-   Tiling and keys › The scroller's strip holds: or only a split's tabs), with no
-   limit on how many; those that fit show, the rest wait to the side (not
-   drawn, their pages asleep), Alt+H and Alt+L (or Alt and a sideways
-   wheel) walk the strip, Alt+Shift+Y the column's next width (a third, a
-   half, two thirds, all), the column you're on kept in view or centred
-   (Tiling and keys › The scroller keeps the column you're on). Monocle: the tile you're on fills the
+   you're on the master. Scroller: niri's, rule for rule. Tiles are
+   columns on a strip (every tab of the space, not essentials, pinned tabs
+   or Firefox's groups; Tiling and keys › The scroller's strip holds: or
+   only a split's tabs), with no limit on how many; a column can hold tiles
+   stacked (Alt+[ and Alt+] take the tile into the column beside it or out
+   of its own, Alt+, and Alt+. the next column's tile in, the last one out).
+   A new tab is a column right of yours. Closing a column you just opened
+   takes you back to the one you came from, else to the column on its
+   right (on its left at the end). The view moves as little as shows the
+   column whole, a gap from the edge (or centres it: Tiling and keys › The
+   scroller keeps the column you're on); columns slide into place. Widths:
+   a third, a half, two thirds (Alt+Shift+Y), the whole view (Alt+F), or
+   a tenth at a time (Alt+R, then h and l; j and k a stacked tile's
+   height); Alt+C centres the column. Columns out of view aren't drawn,
+   their pages asleep. Monocle: the tile you're on fills the
    view (Alt+F's), Alt+H and Alt+L go to the others. */
 const Layouts = {
   ALL: ["dwindle", "master", "scroller", "monocle"],
   NAMES: { dwindle: "Dwindle", master: "Master and stack", scroller: "Scroller", monocle: "Monocle" },
   PREF: "zenith.shell.layout",
   SPACES: "zenith.internal.layout.spaces", // { space: layout }
-  WIDTHS: [100 / 3, 50, 200 / 3, 100],
+  WIDTHS: [1 / 3, 1 / 2, 2 / 3], // niri's preset column widths (Alt+Shift+Y)
   STRIP: "zenith.shell.scroller-tabs", // all · split
-  FOCUS: "zenith.shell.scroller-focus", // view · centre
-  widths: new WeakMap(), // a scroller column's tab → its width (% of the view)
+  FOCUS: "zenith.shell.scroller-focus", // view · centre · overflow (niri's center-focused-column never · always · on-overflow)
+  LONE: "zenith.shell.scroller-centre-lone", // niri's always-center-single-column
+  widths: new WeakMap(), // a column's tiles → its width (a share of the view, niri's proportion)
+  full: new WeakSet(), // a column's tiles while it takes the whole view (Alt+F)
+  heights: new WeakMap(), // a stacked tile → its weight in its column
+  seen: new WeakMap(), // a tile → when you were last on it (a column comes back to that tile)
+  clock: 0,
+  back: null, // niri's activate_prev_column_on_removal: { tab, from, view }
+  burst: null, // the last tab opened while you stayed on a column: { from, tab }
   unrestored: new WeakSet(), // a strip's columns whose pages wait to come into view
-  fresh: new WeakMap(), // a new tab → the column you were on (it goes right of it)
+  fresh: new WeakMap(), // a new tab → { after: the column it goes right of, from: the column you were on }
   KEPT: "zenith.internal.layout.kept", // { space: [shape…] }: its splits while the strip holds its tabs
 
   init() {
@@ -6147,18 +6179,30 @@ const Layouts = {
     W?.addChangeListeners?.(spaceChanged);
     const select = () => {
       const how = this.of(), tab = gBrowser.selectedTab;
+      this.seen.set(tab, ++this.clock);
+      // (niri: once you go to another column. Zen selects tabs itself while
+      // the strip takes one in: those aren't you going anywhere.)
+      if (!this.gathering && !this.arranging && !this.settling) {
+        if (this.back?.tab !== tab) this.back = null;
+        if (this.burst?.from !== tab) this.burst = null;
+      }
       this.unrestored.delete(tab); // (SessionStore restores the tab you're on)
       this.shown();
       if (how === "monocle") this.solo();
       else if (how === "scroller" && !this.arranging && Tiler.data(tab)) this.arrange(tab);
       if (how === "scroller" && !this.gathering && this.members().includes(tab) && !this.whole()) this.soon();
     };
-    // A strip takes in every new tab of its space: one you open (Ctrl+T,
-    // the new tab button) right of the column you're on, as niri's; a
-    // link's where Firefox put it, after its page's.
+    // A strip takes in every new tab of its space as a column right of the
+    // one you're on, as niri's (Ctrl+T, a link, a page from another app);
+    // tabs opened one after another while you stay put (links opened in
+    // the background) keep the order you opened them in.
     const opened = e => {
-      const tab = e.target, from = gBrowser.selectedTab;
-      if (this.strip() && !tab.openerTab && from !== tab && Tiler.data(from)?.zenithStrip) this.fresh.set(tab, from);
+      const tab = e.target, from = gBrowser.selectedTab, b = this.burst;
+      if (this.strip() && from !== tab && (Tiler.data(from)?.zenithStrip || this.members().includes(from))) {
+        const after = b?.from === from && b.tab.isConnected && !b.tab.closing ? b.tab : from;
+        this.fresh.set(tab, { after, from });
+        this.burst = { from, tab };
+      }
       this.soon();
     };
     gBrowser.tabContainer.addEventListener("TabOpen", opened);
@@ -6203,36 +6247,46 @@ const Layouts = {
       };
       onUnload(() => (S.applyGridLayout = grid));
     }
-    // A tile closed: the master layout laid out again; a column off its strip.
-    // (A strip's column you're on closed: the one to its right is next, as
-    // niri's, else the one to its left.)
+    // A tile closed: the master layout laid out again; a column off its
+    // strip, and the tile that takes over is niri's (Layouts.successor).
     const closed = e => {
       const tab = e.target, data = tab === gBrowser.selectedTab && this.of() === "scroller" ? Tiler.data(tab) : null;
-      const order = data ? this.order(data) : [], i = order.indexOf(tab), next = order[i + 1] ?? order[i - 1];
+      const next = data ? this.successor(tab, data) : null;
+      const view = next && this.back?.tab === tab ? this.back.view : null;
+      this.back = null;
       // (Selected now: Zen's own would pick the split's first tab.)
       if (next) gBrowser.selectedTab = next;
-      setTimeout(() => this.closed(tab, next), 0);
+      setTimeout(() => this.closed(tab, next, view), 0);
     };
     gBrowser.tabContainer.addEventListener("TabSelect", select);
     // (Before Zen's own, which takes the tab out of its split.)
     window.addEventListener("TabClose", closed, true);
     // Firefox picks the tab to show after closing one (sometimes before the
-    // close event): in the scroller, the column's neighbour.
+    // close event): in the scroller, niri's.
     const blurTo = gBrowser._findTabToBlurTo;
     if (blurTo) {
       gBrowser._findTabToBlurTo = function (tab, exclude) {
         try {
           const data = Layouts.of() === "scroller" ? Tiler.data(tab) : null;
-          if (data) {
-            const order = Layouts.order(data), i = order.indexOf(tab);
-            const next = [order[i + 1], order[i - 1]].find(t => t && !t.closing && !exclude?.includes?.(t));
-            if (next) return next;
-          }
+          const next = data && Layouts.successor(tab, data);
+          if (next && !exclude?.includes?.(next)) return next;
         } catch {}
         return blurTo.apply(this, arguments);
       };
       onUnload(() => (gBrowser._findTabToBlurTo = blurTo));
     }
+    // The page area resized (the sidebar opened, the window): the strip's
+    // columns are in px, so laid out again.
+    let sizing = 0;
+    const resized = new ResizeObserver(() => {
+      cancelAnimationFrame(sizing);
+      sizing = requestAnimationFrame(() => {
+        const data = Tiler.data();
+        if (data && this.scroller(data)) Tiler.S.applyGridLayout(data.layoutTree);
+      });
+    });
+    resized.observe(gBrowser.tabpanels);
+    onUnload(() => resized.disconnect());
     const prefs = () => {
       const data = Tiler.data();
       if (data && this.of() === "master") this.master(data);
@@ -6301,7 +6355,7 @@ const Layouts = {
       this.gather(true);
     }
     else if (how === "scroller" && data) {
-      this.row(data);
+      this.lay(data);
       this.arrange(gBrowser.selectedTab);
     }
     else if (how === "monocle") this.solo();
@@ -6326,7 +6380,7 @@ const Layouts = {
         return this.unkeep();
       }
       if (data) {
-        data.zenithOffset = 0;
+        data.zenithView = null;
         Tiler.even(data.layoutTree);
       }
     }
@@ -6394,27 +6448,46 @@ const Layouts = {
         if (d && d !== data) S.removeTabFromGroup(t, undefined, { changeTab: false });
       }
       data = data && S._data.includes(data) ? data : null;
-      const order = data ? this.order(data).filter(t => tabs.includes(t)) : [];
-      for (const t of tabs) {
-        if (order.includes(t)) continue;
-        const from = this.fresh.get(t);
-        this.fresh.delete(t);
-        const before = from && order.includes(from) ? from : tabs.slice(0, tabs.indexOf(t)).reverse().find(b => order.includes(b));
-        order.splice(before ? order.indexOf(before) + 1 : 0, 0, t);
+      const view = data?.zenithView ?? null;
+      const cols = data ? this.cols(data).map(c => c.filter(t => tabs.includes(t))).filter(c => c.length) : [];
+      const placed = t => cols.some(c => c.includes(t));
+      // Each new one a column right of the one it was opened from (in the
+      // order they were opened); one from elsewhere (restored, sent from
+      // another space) after the column before it in the sidebar.
+      let pending = tabs.filter(t => !placed(t)), moved = true;
+      while (pending.length && moved) {
+        moved = false;
+        for (const t of [...pending]) {
+          // (One you're on now, opened in front: right of the column you
+          // came from, after any opened behind it.)
+          const f = this.fresh.get(t), after = f && (t === sel ? f.from : f.after), ci = f ? cols.findIndex(c => c.includes(after)) : -1;
+          if (f && ci < 0 && pending.includes(after)) continue; // (its own first)
+          let at = ci + 1;
+          if (ci < 0) {
+            const before = tabs.slice(0, tabs.indexOf(t)).reverse().find(placed);
+            at = before ? cols.findIndex(c => c.includes(before)) + 1 : 0;
+          }
+          cols.splice(at, 0, [t]);
+          // (niri: closing it at once goes back to the column you came from.)
+          if (f && t === sel) this.back = { tab: t, from: f.from, view };
+          this.fresh.delete(t);
+          pending = pending.filter(x => x !== t);
+          moved = true;
+        }
       }
+      const order = cols.flat();
       if (data) S.splitTabs([data.tabs[0], ...order.filter(t => !data.tabs.includes(t))], undefined, -1, { activate: false });
       else S.splitTabs(order, "vsep", here ? order.indexOf(sel) : -1, { activate: here });
       data = Tiler.data(order[0]);
       if (!data) return;
       data.zenithStrip = true;
-      // The sidebar in the strip's order.
-      for (let i = 1; i < order.length; i++) {
-        if (order[i].previousElementSibling !== order[i - 1]) gBrowser.moveTabAfter(order[i], order[i - 1]);
-      }
-      this.row(data, order);
-      if (here) this.arrange(sel);
+      this.relay(data, cols, here ? sel : null);
     } finally {
       this.gathering = false;
+      // (Zen may select a tile a moment later, as it shows the split.)
+      clearTimeout(this.settled);
+      this.settling = true;
+      this.settled = setTimeout(() => (this.settling = false), 150);
     }
   },
 
@@ -6547,16 +6620,62 @@ const Layouts = {
     } else this.build(data, ["row", [m, col(rest)], [ratio, 100 - ratio]]);
   },
 
-  /* The scroller: every column stays in the split (one group in the
-     sidebar); a column's width is its own, the strip is as wide as they
-     are, and it slides to show the column you're on, as niri's. */
-  width(tab) {
-    return this.widths.get(tab) ?? { third: 100 / 3, half: 50, twothirds: 200 / 3, full: 100 }[Services.prefs.getStringPref("zenith.shell.scroller-width", "")] ?? 50;
+  /* The scroller, as niri's: the split's tree is a row of columns, each a
+     tile or a stack of them; every column stays in the split (one group
+     in the sidebar). Its own width (niri's proportion of the view, gaps
+     taken out), the strip as wide as they are, and a view along it. */
+  share(tab) {
+    if (this.full.has(tab)) return 1;
+    return this.widths.get(tab) ?? { third: 1 / 3, half: 1 / 2, twothirds: 2 / 3, full: 1 }[Services.prefs.getStringPref("zenith.shell.scroller-width", "")] ?? 1 / 2;
   },
 
-  // The split as one row of its columns, in order.
-  row(data, order = this.order(data)) {
-    this.build(data, ["row", order, order.map(() => 100 / order.length)]);
+  // The split's columns, left to right, each top to bottom.
+  cols(data) {
+    const root = data?.layoutTree, leaves = n => (n.tab ? [n.tab] : n.children.flatMap(leaves));
+    if (!root) return [];
+    if (root.tab) return [[root.tab]];
+    if (root.direction !== "row") return leaves(root).map(t => [t]);
+    return root.children.map(leaves).filter(c => c.length);
+  },
+
+  colOf(data, tab) {
+    return this.cols(data).find(c => c.includes(tab)) ?? [tab];
+  },
+
+  // The split as one row of its columns.
+  lay(data, cols = this.cols(data)) {
+    const shape = c => (c.length === 1 ? c[0] : ["column", c, c.map(() => 100 / c.length)]);
+    return this.build(data, ["row", cols.map(shape), cols.map(() => 100 / cols.length)]);
+  },
+
+  // Columns changed: the sidebar in their order (a strip), the split laid
+  // out as them, the view to `focus`.
+  relay(data, cols, focus) {
+    cols = cols.map(c => c.filter(t => data.tabs.includes(t))).filter(c => c.length);
+    const order = cols.flat();
+    if (data.zenithStrip) {
+      for (let i = 1; i < order.length; i++) {
+        if (order[i].previousElementSibling !== order[i - 1]) gBrowser.moveTabAfter(order[i], order[i - 1]);
+      }
+    }
+    this.lay(data, cols);
+    if (focus) this.arrange(focus);
+  },
+
+  // A tile joins a column: its width is the column's.
+  join(tab, col) {
+    const w = this.widths.get(col[0]);
+    if (w === undefined) this.widths.delete(tab);
+    else this.widths.set(tab, w);
+    if (this.full.has(col[0])) this.full.add(tab);
+    else this.full.delete(tab);
+  },
+
+  // A tile leaves its column: a new column's width, its own height.
+  part(tab) {
+    this.widths.delete(tab);
+    this.full.delete(tab);
+    this.heights.delete(tab);
   },
 
   scroller(data) {
@@ -6564,17 +6683,76 @@ const Layouts = {
     return !!tab && this.of(tab.getAttribute("zen-workspace-id") ?? this.space()) === "scroller";
   },
 
-  // The strip slid as little as shows `focus` whole (or as much of it as fits).
+  // The gap between Zen's tiles (each tile's right margin).
+  gap() {
+    const box = gBrowser.tabpanels.querySelector(":scope > .browserSidebarContainer[zen-split]");
+    return box ? parseFloat(getComputedStyle(box).marginRight) || 0 : 6;
+  },
+
+  // Where each column is on the strip, in px: niri's widths, (view − gap)
+  // × share − gap, one gap between columns.
+  geometry(data) {
+    const W = gBrowser.tabpanels.clientWidth || 1, G = this.gap(), cols = this.cols(data), xs = [];
+    const ws = cols.map(c => Math.max(1, (W - G) * this.share(c[0]) - G));
+    let x = 0;
+    for (const w of ws) {
+      xs.push(x);
+      x += w + G;
+    }
+    return { W, G, cols, ws, xs };
+  },
+
+  // niri's view for column i (where the view's left edge is on the strip):
+  // fit (the column whole, a gap from the edge, the view moved as little as
+  // it can; kept if it's already whole), centred, or centred only when the
+  // column you came from wouldn't fit beside it (on-overflow).
+  view(g, i, prev, cur) {
+    const { W, G, ws, xs, cols } = g, x = xs[i], w = ws[i];
+    const fit = () => {
+      if (W <= w) return x;
+      const pad = Math.min(Math.max((W - w) / 2, 0), G), l = x - pad, r = x + w + pad;
+      if (cur == null) return l;
+      if (cur <= l && r <= cur + W) return cur;
+      return Math.abs(cur - l) <= Math.abs(cur + W - r) ? l : r - W;
+    };
+    const centred = () => (W <= w ? fit() : x - (W - w) / 2);
+    const mode = Services.prefs.getStringPref(this.FOCUS, "") || "view";
+    if (mode === "centre" || (cols.length <= 1 && Services.prefs.getBoolPref(this.LONE, false))) return centred();
+    if (mode === "overflow" && prev >= 0 && prev !== i) {
+      const s = prev > i ? Math.min(i + 1, cols.length - 1) : Math.max(i - 1, 0);
+      const total = (xs[s] < x ? x - xs[s] + w : xs[s] - x + ws[s]) + G * 2;
+      return total <= W ? fit() : centred();
+    }
+    return fit();
+  },
+
+  // The tile of a column you were on last (niri's column keeps its own).
+  tileOf(col) {
+    const live = (col ?? []).filter(t => !t.closing);
+    return live.reduce((a, b) => ((this.seen.get(b) ?? 0) > (this.seen.get(a) ?? 0) ? b : a), live[0]) ?? null;
+  },
+
+  // niri's next tile after closing one: in a stack, the one below (above
+  // at the bottom); a column you just opened, the one you came from; else
+  // the column on its right, on its left at the end.
+  successor(tab, data = Tiler.data(tab)) {
+    const cols = this.cols(data), ci = cols.findIndex(c => c.includes(tab));
+    if (ci < 0) return null;
+    const col = cols[ci], k = col.indexOf(tab), ok = t => t && t !== tab && !t.closing;
+    if (col.length > 1) return [col[k + 1], col[k - 1]].find(ok) ?? null;
+    if (this.back?.tab === tab && ci > 0 && cols[ci - 1].includes(this.back.from) && ok(this.back.from)) return this.tileOf(cols[ci - 1]);
+    return this.tileOf(cols[ci + 1]) ?? this.tileOf(cols[ci - 1]);
+  },
+
+  // The view to `focus`'s column, as niri moves it.
   arrange(focus) {
     const data = Tiler.data(focus);
     if (!data) return;
-    const order = this.order(data), widths = order.map(t => this.width(t)), i = order.indexOf(focus);
-    const x = widths.slice(0, i).reduce((a, b) => a + b, 0), w = widths[i], total = widths.reduce((a, b) => a + b, 0);
-    let off = data.zenithOffset ?? 0;
-    if (Services.prefs.getStringPref(this.FOCUS, "") === "centre") off = x + w / 2 - 50;
-    else if (x < off) off = x;
-    else if (x + w > off + 100) off = x + w - 100;
-    data.zenithOffset = Math.max(0, Math.min(off, Math.max(0, total - 100)));
+    const g = this.geometry(data), i = g.cols.findIndex(c => c.includes(focus));
+    if (i < 0) return;
+    const prev = data.zenithActive?.isConnected ? g.cols.findIndex(c => c.includes(data.zenithActive)) : -1;
+    data.zenithView = this.view(g, i, prev, data.zenithView);
+    data.zenithActive = focus;
     this.arranging = true;
     try {
       if (gBrowser.selectedTab !== focus) gBrowser.selectedTab = focus;
@@ -6588,28 +6766,52 @@ const Layouts = {
   after(node) {
     const data = Tiler.S?._data?.find(d => d.layoutTree === node);
     if (!data) return;
-    const shown = data.tabs.includes(gBrowser.selectedTab);
+    const shown = data.tabs.includes(gBrowser.selectedTab), panels = gBrowser.tabpanels;
     if (!this.scroller(data)) {
-      if (shown) gBrowser.tabpanels.removeAttribute("zenith-scroller");
+      if (shown) panels.removeAttribute("zenith-scroller");
       return;
     }
-    if (shown) gBrowser.tabpanels.setAttribute("zenith-scroller", "true");
-    // Columns sit where they are on the strip; the strip slides as one
-    // transform (drawn on the GPU, no layout while it moves).
-    const shift = data.zenithOffset ?? 0;
-    if (shown) gBrowser.tabpanels.style.setProperty("--zth-strip-x", `${(-shift * gBrowser.tabpanels.clientWidth / 100).toFixed(1)}px`);
-    let x = 0;
-    const off = [];
-    for (const tab of this.order(data)) {
-      const w = this.width(tab), box = tab.linkedBrowser?.closest(".browserSidebarContainer");
-      if (box) {
-        box.style.inset = `0% ${(100 - x - w).toFixed(3)}% 0% ${x.toFixed(3)}%`;
-        const away = x - shift >= 99.9 || x - shift + w <= 0.1;
-        box.toggleAttribute("zenith-off-strip", away);
-        off.push([tab, away]);
-      }
-      x += w;
+    if (shown) panels.setAttribute("zenith-scroller", "true");
+    const g = this.geometry(data), { W, G, cols, ws, xs } = g, H = panels.clientHeight || 1;
+    // (The window resized: the view kept on the column you're on.)
+    if (data.zenithW && data.zenithW !== W && data.zenithActive) {
+      const i = cols.findIndex(c => c.includes(data.zenithActive));
+      if (i >= 0) data.zenithView = this.view(g, i, -1, data.zenithView);
     }
+    data.zenithW = W;
+    const v = data.zenithView ?? 0;
+    // The strip slides as one transform (drawn on the GPU, no layout while
+    // it moves); a column that moved slides from where it was (niri's).
+    if (shown) panels.style.setProperty("--zth-strip-x", `${(-v).toFixed(1)}px`);
+    const speed = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--zth-speed")) || 1;
+    const off = [];
+    cols.forEach((col, i) => {
+      const weights = col.map(t => this.heights.get(t) ?? 1), sum = weights.reduce((a, b) => a + b, 0);
+      let y = 0;
+      col.forEach((tab, k) => {
+        const box = tab.linkedBrowser?.closest(".browserSidebarContainer"), h = (H * weights[k]) / sum;
+        if (!box) return;
+        box.style.inset = `${y.toFixed(1)}px ${(W - xs[i] - ws[i] - G).toFixed(1)}px ${(H - y - h).toFixed(1)}px ${xs[i].toFixed(1)}px`;
+        const was = box.zenithAt, now = [xs[i], y];
+        box.zenithAt = now;
+        if (shown && was && (Math.abs(was[0] - now[0]) > 0.5 || Math.abs(was[1] - now[1]) > 0.5)) {
+          box.style.setProperty("transition", "none", "important");
+          box.style.setProperty("--zth-col-dx", `${(was[0] - now[0]).toFixed(1)}px`);
+          box.style.setProperty("--zth-col-dy", `${(was[1] - now[1]).toFixed(1)}px`);
+          getComputedStyle(box).transform; // (from there…)
+          box.style.removeProperty("transition");
+          box.style.setProperty("--zth-col-dx", "0px"); // (…to here)
+          box.style.setProperty("--zth-col-dy", "0px");
+        }
+        y += h;
+        const away = xs[i] - v >= W - 0.5 || xs[i] + ws[i] - v <= 0.5;
+        // (One sliding out stays drawn until it's out.)
+        clearTimeout(box.zenithHide);
+        if (away && !box.hasAttribute("zenith-off-strip") && shown) box.zenithHide = setTimeout(() => box.setAttribute("zenith-off-strip", "true"), 260 * speed);
+        else box.toggleAttribute("zenith-off-strip", away);
+        off.push([tab, away]);
+      });
+    });
     // Columns out of sight: their pages asleep, as a background tab's (Zen
     // wakes every tile of a split after laying it out, hence a moment later);
     // one not restored yet stays unloaded until it comes into view.
@@ -6653,21 +6855,21 @@ const Layouts = {
     if (how === "scroller") {
       let data = Tiler.data(anchor);
       if (data && data.tabs.length >= S.MAX_TABS) return Tiler.full(), true;
-      if (Tiler.data(tab)) S.removeTabFromGroup(tab);
+      if (Tiler.data(tab)) S.removeTabFromGroup(tab, undefined, { changeTab: false });
       this.gathering = true; // (the strip takes it in here, beside the anchor)
       setTimeout(() => (this.gathering = false), 0);
-      const order = data ? this.order(data) : [anchor];
+      data = Tiler.data(anchor);
+      const cols = data ? this.cols(data) : [[anchor]], view = data?.zenithView ?? null;
       if (!data) S.splitTabs([anchor, tab], "vsep", 1);
       else S.splitTabs([anchor, tab], undefined, -1, { activate: false });
       data = Tiler.data(anchor);
       if (!data) return false;
-      order.splice(order.indexOf(anchor) + 1, 0, tab);
-      if (this.strip()) {
-        data.zenithStrip = true;
-        if (tab.previousElementSibling !== anchor) gBrowser.moveTabAfter(tab, anchor);
-      }
-      this.row(data, order.filter(t => data.tabs.includes(t)));
-      this.arrange(tab);
+      // niri: a new column right of the one you're on, and you on it.
+      cols.splice(cols.findIndex(c => c.includes(anchor)) + 1, 0, [tab]);
+      if (this.strip()) data.zenithStrip = true;
+      this.fresh.delete(tab);
+      this.relay(data, cols, tab);
+      this.back = { tab, from: anchor, view };
       return true;
     }
     if (how === "master") {
@@ -6686,14 +6888,18 @@ const Layouts = {
     return false;
   },
 
+  // Scroller: Alt+H and Alt+L the column beside (its tile you were on
+  // last), Alt+J and Alt+K the tile below or above in the column; nothing
+  // past the strip's ends (niri's). Monocle: the tile before or after.
   focus(dir) {
     const how = this.of(), tab = gBrowser.selectedTab;
-    if (how === "scroller" && (dir === "left" || dir === "right")) {
+    if (how === "scroller") {
       const data = Tiler.data(tab);
       if (!data) return false;
-      const order = this.order(data), j = order.indexOf(tab) + (dir === "left" ? -1 : 1);
-      if (j >= 0 && j < order.length) this.arrange(order[j]);
-      return true;
+      const cols = this.cols(data), ci = cols.findIndex(c => c.includes(tab)), col = cols[ci] ?? [tab];
+      const to = dir === "left" || dir === "right" ? this.tileOf(cols[ci + (dir === "left" ? -1 : 1)]) : col[col.indexOf(tab) + (dir === "up" ? -1 : 1)];
+      if (to) this.arrange(to);
+      return !!to || this.strip();
     }
     if (how === "monocle") {
       const data = Tiler.data(tab);
@@ -6706,21 +6912,134 @@ const Layouts = {
     return false;
   },
 
+  // Scroller: Alt+Shift+H and L move the column, J and K the tile in its
+  // column (niri's move-column and move-window).
   move(dir) {
-    if (this.of() !== "scroller" || (dir !== "left" && dir !== "right")) return false;
+    if (this.of() !== "scroller") return false;
     const tab = gBrowser.selectedTab, data = Tiler.data(tab);
     if (!data) return false;
-    const order = this.order(data), i = order.indexOf(tab), j = i + (dir === "left" ? -1 : 1);
-    if (j < 0 || j >= order.length) return true;
-    [order[i], order[j]] = [order[j], order[i]];
-    if (this.strip()) dir === "left" ? gBrowser.moveTabBefore(tab, order[i]) : gBrowser.moveTabAfter(tab, order[i]);
-    this.row(data, order);
+    const cols = this.cols(data), ci = cols.findIndex(c => c.includes(tab)), col = cols[ci];
+    if (dir === "left" || dir === "right") {
+      const j = ci + (dir === "left" ? -1 : 1);
+      if (j < 0 || j >= cols.length) return true;
+      [cols[ci], cols[j]] = [cols[j], cols[ci]];
+    } else {
+      const k = col.indexOf(tab), j = k + (dir === "up" ? -1 : 1);
+      if (j < 0 || j >= col.length) return true;
+      [col[k], col[j]] = [col[j], col[k]];
+    }
+    this.back = null;
+    this.relay(data, cols, tab);
+    return true;
+  },
+
+  // niri's consume-or-expel-window-left/right (Alt+[ and Alt+]): a column of
+  // one tile joins the column beside it (at its bottom); a stacked tile
+  // leaves its column for a column of its own on that side.
+  consumeOrExpel(dir) {
+    const tab = gBrowser.selectedTab, data = this.of() === "scroller" ? Tiler.data(tab) : null;
+    if (!data) return hint("Scroller: Alt+[ and Alt+] take a tile into the column beside it, or out of its own");
+    const cols = this.cols(data), ci = cols.findIndex(c => c.includes(tab)), col = cols[ci];
+    if (col.length === 1) {
+      const target = cols[ci + (dir === "left" ? -1 : 1)];
+      if (!target) return;
+      target.push(tab);
+      this.join(tab, target);
+      cols.splice(ci, 1);
+    } else {
+      col.splice(col.indexOf(tab), 1);
+      cols.splice(dir === "left" ? ci : ci + 1, 0, [tab]);
+      this.part(tab);
+    }
+    this.back = null;
+    this.relay(data, cols, tab);
+  },
+
+  // niri's consume-into-column (Alt+,): the next column's top tile joins
+  // this column; expel-from-column (Alt+.): its bottom tile leaves for a
+  // column of its own, right of it. You stay on your tile.
+  consume() {
+    const tab = gBrowser.selectedTab, data = this.of() === "scroller" ? Tiler.data(tab) : null;
+    if (!data) return hint("Scroller: Alt+, takes the next column's top tile into this one");
+    const cols = this.cols(data), ci = cols.findIndex(c => c.includes(tab)), next = cols[ci + 1];
+    if (!next) return;
+    const t = next.shift();
+    cols[ci].push(t);
+    this.join(t, cols[ci]);
+    this.relay(data, cols.filter(c => c.length), tab);
+  },
+
+  expel() {
+    const tab = gBrowser.selectedTab, data = this.of() === "scroller" ? Tiler.data(tab) : null;
+    if (!data) return hint("Scroller: Alt+. makes a column's bottom tile a column of its own");
+    const cols = this.cols(data), ci = cols.findIndex(c => c.includes(tab)), col = cols[ci];
+    if (col.length < 2) return;
+    const t = col.pop();
+    this.part(t);
+    cols.splice(ci + 1, 0, [t]);
+    this.relay(data, cols, tab);
+  },
+
+  // niri's center-column (Alt+C).
+  centre() {
+    const tab = gBrowser.selectedTab, data = this.of() === "scroller" ? Tiler.data(tab) : null;
+    if (!data) return hint("Scroller: Alt+C puts the column you're on in the middle");
+    const g = this.geometry(data), i = g.cols.findIndex(c => c.includes(tab));
+    if (g.W > g.ws[i]) data.zenithView = g.xs[i] - (g.W - g.ws[i]) / 2;
+    Tiler.S.applyGridLayout(data.layoutTree);
+  },
+
+  // niri's maximize-column (Alt+F in the scroller): the column takes the
+  // whole view (gaps kept), and back to its width.
+  maximize() {
+    const tab = gBrowser.selectedTab, data = Tiler.data(tab);
+    if (!data) return false;
+    const col = this.colOf(data, tab), on = !this.full.has(tab);
+    for (const t of col) on ? this.full.add(t) : this.full.delete(t);
+    hint(on ? "Column: the whole view (Alt+F again: back)" : "Column: back to its width");
+    this.arrange(tab);
+    return true;
+  },
+
+  // Resize mode in the scroller: h and l the column's width a tenth of the
+  // view at a time, j and k a stacked tile's height (niri's
+  // set-column-width and set-window-height ±10%).
+  resize(dir) {
+    const tab = gBrowser.selectedTab, data = this.of() === "scroller" ? Tiler.data(tab) : null;
+    if (!data) return false;
+    const col = this.colOf(data, tab);
+    if (dir === "left" || dir === "right") {
+      const p = Math.min(1, Math.max(0.1, this.share(tab) + (dir === "right" ? 0.1 : -0.1)));
+      for (const t of col) {
+        this.full.delete(t);
+        this.widths.set(t, p);
+      }
+    } else if (col.length > 1) {
+      const w = t => this.heights.get(t) ?? 1, sum = col.reduce((a, t) => a + w(t), 0), rest = sum - w(tab);
+      const n = Math.min(0.9, Math.max(0.1, w(tab) / sum + (dir === "down" ? 0.1 : -0.1)));
+      for (const t of col) if (t !== tab) this.heights.set(t, (w(t) / rest) * (1 - n));
+      this.heights.set(tab, n);
+    }
+    this.arrange(tab);
+    return true;
+  },
+
+  // Resize mode's = in the scroller: the column back to a new column's
+  // width, its tiles even.
+  even() {
+    const tab = gBrowser.selectedTab, data = this.of() === "scroller" ? Tiler.data(tab) : null;
+    if (!data) return false;
+    for (const t of this.colOf(data, tab)) {
+      this.widths.delete(t);
+      this.full.delete(t);
+      this.heights.delete(t);
+    }
     this.arrange(tab);
     return true;
   },
 
   // Alt+Shift+Y: master, the tile you're on is the master; scroller, the
-  // column's next width.
+  // column's next preset width (niri's switch-preset-column-width).
   action() {
     const how = this.of(), tab = gBrowser.selectedTab;
     if (how === "master") {
@@ -6730,23 +7049,31 @@ const Layouts = {
       return this.master(data);
     }
     if (how === "scroller") {
-      if (!Tiler.data(tab)) return hint("Scroller: a split's column gets its next width");
-      const k = this.WIDTHS.findIndex(w => Math.abs(w - this.width(tab)) < 1), w = this.WIDTHS[(k + 1) % this.WIDTHS.length];
-      this.widths.set(tab, w);
-      hint(`Column: ${{ 33: "a third", 50: "half", 67: "two thirds", 100: "all" }[Math.round(w)]} of the view`);
+      const data = Tiler.data(tab);
+      if (!data) return hint("Scroller: a split's column gets its next width");
+      const now = this.share(tab), p = this.WIDTHS.find(w => w > now + 0.01) ?? this.WIDTHS[0];
+      for (const t of this.colOf(data, tab)) {
+        this.full.delete(t);
+        this.widths.set(t, p);
+      }
+      hint(`Column: ${{ 33: "a third", 50: "half", 67: "two thirds" }[Math.round(p * 100)]} of the view`);
       return this.arrange(tab);
     }
     hint(`${this.NAMES[how]}: Alt+Shift+Y does nothing here (in master, the master; in scroller, a column's width)`);
   },
 
-  closed(tab, next) {
+  closed(tab, next, view) {
     const how = this.of();
     if (how === "master") {
       const data = Tiler.data(gBrowser.selectedTab);
       if (data) this.master(data);
     } else if (how === "scroller") {
-      if (next?.isConnected && Tiler.data(next)) this.arrange(next);
-      else if (Tiler.data(gBrowser.selectedTab)) this.arrange(gBrowser.selectedTab);
+      const to = next?.isConnected && Tiler.data(next) ? next : Tiler.data(gBrowser.selectedTab) ? gBrowser.selectedTab : null;
+      const data = to && Tiler.data(to);
+      if (!data) return;
+      // (niri: back to the column you came from, the view as it was.)
+      if (view != null) data.zenithView = view;
+      this.relay(data, this.cols(data), to);
     }
   },
 };
@@ -7929,6 +8256,16 @@ const BarLoader = {
 
   migrate() {
     const P = Services.prefs, OLD = "zenith.bar.position", TABS = "zenith.bar.tabs";
+    // A module's name written twice over ("overviewoverview"): that module;
+    // a name no module has, or one already in the bar: left out.
+    const known = new Set(this.MODULES.map(m => m[0]));
+    for (const e of this.EDGES) {
+      const pref = `zenith.bar.${e}.modules`, was = P.getStringPref(pref, ""), seen = new Set();
+      if (!was) continue;
+      const fix = x => (known.has(x) ? x : x.match(/^(.+?)+$/)?.[1] ?? x);
+      const now = was.split("|").map(part => part.split(",").map(x => fix(x.trim())).filter(x => known.has(x) && !seen.has(x) && seen.add(x)).join(",")).join("|");
+      if (now !== was) P.setStringPref(pref, now);
+    }
     // 0.17's "hides until reached" (a switch): 0.18's way it shows.
     for (const e of this.EDGES) {
       const old = `zenith.bar.hide-${e}`;

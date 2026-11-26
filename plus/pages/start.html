@@ -14,7 +14,11 @@
       <div id="clock"></div>
       <div id="greeting"></div>
       <div id="weather" hidden></div>
-      <input id="q" type="search" placeholder="Search, or type an address" autofocus spellcheck="false" autocomplete="off" />
+      <div id="box">
+        <input id="q" type="search" placeholder="Search, or type an address" autofocus spellcheck="false" autocomplete="off"
+               role="combobox" aria-autocomplete="list" aria-controls="results" aria-expanded="false" />
+        <ol id="results" role="listbox" hidden></ol>
+      </div>
       <nav id="top" hidden></nav>
       <ol id="marks"></ol>
       <p id="hint"></p>
