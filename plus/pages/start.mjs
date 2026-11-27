@@ -165,6 +165,16 @@ function show() {
   $("hint").textContent = shown.length ? `Type to search or go to an address · click a ${what} to open it` : "Type to search or go to an address";
 }
 
+// To a tab that's open already; the start page closes, as the address bar
+// closes an empty new tab it switched away from (unless you came to it
+// from another page in this tab).
+function switchTo(url) {
+  const me = win.gBrowser?.getTabForBrowser?.(window.browsingContext.embedderElement);
+  if (!win.switchToTabHavingURI?.(url, false)) return open(url);
+  const history = me?.linkedBrowser?.browsingContext?.sessionHistory?.count ?? 1;
+  if (me && !me.closing && history <= 1) win.gBrowser.removeTab(me);
+}
+
 function open(url, newTab = false) {
   win.openTrustedLinkIn(url, newTab ? "tab" : "current");
 }
@@ -263,16 +273,20 @@ const Results = {
     $("q").setAttribute("aria-activedescendant", `r${this.at}`);
   },
 
-  pick(i, newTab) {
+  async pick(i, newTab) {
     const row = this.rows[i];
     if (!row) return go($("q").value, newTab);
     const { r } = row, p = r.payload ?? {};
     if (r.type === Q.T.SEARCH) {
-      const engine = p.engine && Services.search.getEngineByName(p.engine);
-      if (!engine) return go(row.text, newTab);
+      // (The engine by its name; in some Firefox versions the lookup is a promise.)
+      let engine = null;
+      try {
+        engine = p.engine ? await Services.search.getEngineByName(p.engine) : null;
+      } catch {}
+      if (!engine?.getSubmission) return go(row.text, newTab);
       return open(engine.getSubmission(row.text).uri.spec, newTab);
     }
-    if (r.type === Q.T.TAB_SWITCH && !newTab && win.switchToTabHavingURI?.(p.url, false)) return;
+    if (r.type === Q.T.TAB_SWITCH && !newTab) return switchTo(p.url);
     open(p.url, newTab);
   },
 };

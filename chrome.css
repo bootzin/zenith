@@ -39,10 +39,13 @@
 --zth-rim-off: 0 0 0 transparent;
 --zth-rim-shine: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.14));
 --zth-rim-liquid:
-    inset 1px 1px 0 light-dark(rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.4)),
-    inset -1px -1px 0 light-dark(rgb(255 255 255 / 0.4), rgb(255 255 255 / 0.1)),
-    inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.06)),
-    inset 0 16px 24px -18px light-dark(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.24));
+    inset 0 1px 0 light-dark(rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.42)),
+    inset 1px 0 0 light-dark(rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.16)),
+    inset -1px 0 0 light-dark(rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.08)),
+    inset 0 -1px 0 light-dark(rgb(0 0 0 / 0.1), rgb(0 0 0 / 0.4)),
+    inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.09)),
+    inset 0 18px 26px -20px light-dark(rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.26)),
+    inset 0 -14px 22px -20px light-dark(rgb(255 255 255 / 0.4), rgb(255 255 255 / 0.1));
 --zth-radius: var(--zth-corner-soft);
 --zth-tab-radius: calc(6px * var(--zth-sq));
 --zth-pill-radius: 999px;
@@ -223,6 +226,8 @@
 @media -moz-pref("zenith.core.glass-edge", "liquid") {
 :root:not(#zth-s[zth-s]) {
 --zth-glass-shine: var(--zth-rim-liquid);
+--zth-glass-filter: blur(var(--zth-glass-blur)) saturate(calc(var(--zth-glass-sat) * 1.35));
+--zth-panel-filter: blur(calc(var(--zth-glass-blur) * 2)) saturate(calc(var(--zth-glass-sat) * 1.35)) brightness(var(--zth-backdrop-dim));
 & [zenith-press]:not(#zth-a, #zth-b) {
 background-image:
       radial-gradient(circle var(--zth-press-r, 64px) at var(--zth-press-x, 50%) var(--zth-press-y, 50%),
@@ -1585,15 +1590,40 @@ background: var(--zth-hairline) !important;
 }
 }
 }
+@media -moz-pref("zenith.panels.tile-focus", "accent") or -moz-pref("zenith.panels.tile-focus", "gradient") or -moz-pref("zenith.panels.tile-focus", "thick") or -moz-pref("zenith.panels.tile-focus", "off") {
+:root:not(#zth-s[zth-s]) #tabbrowser-tabpanels[zen-split-view="true"] .browserSidebarContainer.deck-selected {
+outline: none !important;
+}
+}
+@media -moz-pref("zenith.panels.tile-focus", "accent") or -moz-pref("zenith.panels.tile-focus", "gradient") or -moz-pref("zenith.panels.tile-focus", "thick") {
+:root:not(#zth-s[zth-s]) #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"] {
+--zth-ring: 2px;
+box-sizing: border-box;
+padding: var(--zth-ring) !important;
+border-radius: var(--zen-native-inner-radius, var(--zth-radius));
+& > .browserContainer {
+border-radius: calc(var(--zen-native-inner-radius, var(--zth-radius)) - var(--zth-ring));
+}
+}
+}
+@media -moz-pref("zenith.panels.tile-focus", "thick") {
+:root:not(#zth-s[zth-s]) #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"] {
+--zth-ring: 3px;
+}
+}
 @media -moz-pref("zenith.panels.tile-focus", "accent") {
-:root:not(#zth-s[zth-s]) #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"].deck-selected::after {
-content: "";
-position: absolute;
-inset: 0;
-z-index: 10;
-border: 2px solid var(--zth-accent);
-border-radius: inherit;
-pointer-events: none;
+:root:not(#zth-s[zth-s]) #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"].deck-selected {
+background: var(--zth-accent) !important;
+}
+}
+@media -moz-pref("zenith.panels.tile-focus", "gradient") {
+:root:not(#zth-s[zth-s]) #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"].deck-selected {
+background: linear-gradient(45deg, var(--zth-pal-accent, var(--zth-accent)), var(--zth-pal-second, var(--zth-accent))) !important;
+}
+}
+@media -moz-pref("zenith.panels.tile-focus", "thick") {
+:root:not(#zth-s[zth-s]) #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"].deck-selected {
+background: var(--zth-pal-second, var(--zth-accent)) !important;
 }
 }
 @media -moz-pref("zenith.panels.tile-dim", "dim") {
@@ -3627,6 +3657,58 @@ border-radius: var(--zb-radius);
 box-shadow: 0 0 0 1px var(--zth-hairline, rgb(128 128 128 / 0.18)), 0 4px 12px -6px rgb(0 0 0 / 0.4);
 }
 }
+.zenith-bar {
+--zb-c-1: var(--zth-pal-accent, var(--zb-accent));
+--zb-c-2: var(--zth-pal-second, color-mix(in oklch, var(--zb-accent) 35%, rgb(122 162 247)));
+--zb-c-3: var(--zth-pal-green, color-mix(in oklch, var(--zb-accent) 25%, rgb(158 206 106)));
+--zb-c-4: var(--zth-pal-yellow, color-mix(in oklch, var(--zb-accent) 25%, rgb(224 175 104)));
+--zb-c-5: var(--zth-pal-red, color-mix(in oklch, var(--zb-accent) 25%, rgb(247 118 142)));
+& .zb-mod:is([mod="launcher"], [mod="media"], [mod="overview"]) {
+--zb-own: var(--zb-c-1);
+}
+& .zb-mod:is([mod="clock"], [mod="layout"], [mod="spaces"], [mod="dash"]) {
+--zb-own: var(--zb-c-2);
+}
+& .zb-mod:is([mod="downloads"], [mod="memory"], [mod="extensions"]) {
+--zb-own: var(--zb-c-3);
+}
+& .zb-mod:is([mod="weather"], [mod="timers"], [mod="appearance"]) {
+--zb-own: var(--zb-c-4);
+}
+& .zb-mod:is([mod="trackers"], [mod="power"], [mod="mode"]) {
+--zb-own: var(--zb-c-5);
+}
+}
+.zenith-bar[colors="text"] .zb-mod {
+color: var(--zb-own, var(--zb-ink));
+}
+.zenith-bar[colors="blocks"] .zb-mod:not([mod="tabs"], [mod="title"], [mod="buttons"]) {
+background: var(--zb-own, var(--zb-surface)) !important;
+color: var(--zth-pal-base, rgb(20 20 24)) !important;
+}
+.zenith-bar[colors="underline"] .zb-mod:not([mod="tabs"], [mod="title"], [mod="buttons"]) {
+box-shadow: inset 0 -2px 0 var(--zb-own, transparent);
+}
+.zenith-bar[spaces-look="box"] .zb-space {
+border-radius: 0;
+box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--zb-dim) 60%, transparent);
+&[current] {
+box-shadow: inset 0 0 0 1px var(--zb-mark);
+}
+}
+.zenith-bar[spaces-look="underline"] .zb-space {
+border-radius: 0;
+&[current] {
+background: none;
+color: var(--zb-ink);
+box-shadow: inset 0 -2px 0 var(--zb-mark);
+}
+}
+.zenith-bar[spaces-look="plain"] .zb-space[current] {
+background: none;
+color: var(--zb-mark);
+font-weight: 700;
+}
 .zenith-bar .zb-task {
 &[dragging] {
 opacity: 0.45;
@@ -3742,15 +3824,17 @@ display: none;
 &[over] .zb-task-over {
 display: block;
 position: absolute;
-inset: calc(50% - 11px) auto auto calc(var(--zb-task-icon-x, 50%) - 13px);
-width: 9px;
-height: 7px;
-box-sizing: border-box;
-border: 1.5px solid var(--zb-accent);
+inset: auto auto calc(50% - 12px) calc(var(--zb-task-icon-x, 50%) - 13px);
+width: 10px;
+height: 10px;
 border-radius: var(--zth-radius-xs);
-background: var(--zb-bg);
-box-shadow: -2px -2px 0 -0.5px var(--zb-accent);
+background: var(--zb-accent);
+box-shadow: 0 0 0 1.5px var(--zb-bg), 0 0 0 2.5px var(--zb-accent);
+object-fit: contain;
 pointer-events: none;
+}
+&[over] .zb-task-over[src] {
+background: var(--zb-bg);
 }
 &[attention]:not([current]) .zb-task-mark {
 inset: calc(50% - 10px) auto auto calc(var(--zb-task-icon-x, 50%) + 4px);
@@ -5844,6 +5928,21 @@ opacity: 0.55;
 :root[zenith-split-dragging], :root[zenith-split-dragging] * {
 cursor: grabbing !important;
 }
+tab-group[split-view-group][zenith-strip] {
+& > .tab-group-label-container {
+display: none !important;
+}
+& > .tab-group-container {
+margin: 0 !important;
+padding: 0 !important;
+border: none !important;
+background: none !important;
+}
+& .tabbrowser-tab {
+margin-inline-start: 0 !important;
+padding-inline-start: 0 !important;
+}
+}
 #tabbrowser-tabpanels[zenith-solo] > [zen-split][zenith-split-solo] {
 inset: 0 !important;
 z-index: 2 !important;
@@ -5859,6 +5958,39 @@ transition: transform calc(0.22s * var(--zth-speed)) var(--zth-ease) !important;
 will-change: transform;
 &[zenith-off-strip] {
 visibility: hidden;
+}
+}
+& > .zenith-asleep {
+position: absolute;
+box-sizing: border-box;
+margin: 7px 6px 0 0;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 8px;
+padding: 24px;
+border-radius: var(--zth-radius);
+background: var(--zth-panel-bg);
+color: var(--zth-ink, CanvasText);
+box-shadow: var(--zth-glass-shine);
+transform: translateX(var(--zth-strip-x, 0px));
+transition: transform calc(0.22s * var(--zth-speed)) var(--zth-ease);
+cursor: pointer;
+& img {
+width: 32px;
+height: 32px;
+}
+& .zenith-asleep-title {
+max-width: 90%;
+overflow: hidden;
+font-weight: 600;
+white-space: nowrap;
+text-overflow: ellipsis;
+}
+& .zenith-asleep-note {
+color: var(--zth-ink-dim, GrayText);
+font-size: 12px;
 }
 }
 }
@@ -6727,9 +6859,18 @@ margin-inline: auto;
 & .zr-wpage {
 flex: 1;
 display: flex;
+gap: var(--zr-gap, 3px);
+padding: var(--zr-gap, 3px);
+background: color-mix(in srgb, var(--zr-mantle) 70%, var(--zr-accent));
+}
+& .zr-wtile {
+position: relative;
+flex: 1;
+display: flex;
 flex-direction: column;
 gap: 5px;
-padding: 10px 12px;
+padding: 8px 10px;
+border-radius: var(--zr-tile-r, 4px);
 background: var(--zr-base);
 & > i {
 height: 4px;
@@ -6744,6 +6885,10 @@ background: var(--zr-ink);
 }
 & > i:last-child {
 width: 75%;
+}
+&:first-child {
+flex: 1.4;
+box-shadow: 0 0 0 1px color-mix(in srgb, var(--zr-accent) 70%, transparent);
 }
 }
 & .zr-dots {
@@ -6806,6 +6951,81 @@ width: 16px;
 &[look="minimal"] .zr-wbar > i:not(.zr-a) {
 background: none;
 box-shadow: inset 0 -2px var(--zr-surface);
+}
+&[gaps="0"] {
+--zr-gap: 0px;
+}
+&:is([gaps="2"], [gaps="4"]) {
+--zr-gap: 2px;
+}
+&:is([gaps="8"], [gaps="12"]) {
+--zr-gap: 4px;
+}
+&:is([gaps="16"], [gaps="24"]) {
+--zr-gap: 6px;
+}
+&[corners="square"] {
+--zr-tile-r: 0px;
+border-radius: 0;
+}
+&[corners="round"] {
+--zr-tile-r: 7px;
+}
+&[ring="off"] .zr-wtile:first-child {
+box-shadow: none;
+}
+&[ring="accent"] .zr-wtile:first-child {
+box-shadow: 0 0 0 1.5px var(--zr-accent);
+}
+&[ring="thick"] .zr-wtile:first-child {
+box-shadow: inset 0 0 0 2.5px var(--zr-second);
+}
+&[ring="gradient"] .zr-wtile:first-child {
+box-shadow: none;
+border: 1.5px solid transparent;
+background: linear-gradient(var(--zr-base), var(--zr-base)) padding-box, linear-gradient(45deg, var(--zr-accent), var(--zr-second)) border-box;
+}
+&[colors="text"] .zr-wbar > i {
+height: 3px;
+background: var(--zr-c, var(--zr-ink));
+}
+&:is([colors="text"], [colors="blocks"], [colors="underline"]) .zr-wbar {
+& > i:nth-child(1) {
+--zr-c: var(--zr-accent);
+}
+& > i:nth-child(2) {
+--zr-c: var(--zr-green);
+}
+& > i:nth-child(4) {
+--zr-c: var(--zr-yellow);
+}
+& > i:nth-child(5) {
+--zr-c: var(--zr-second);
+}
+& > .zr-mid {
+--zr-c: color-mix(in srgb, var(--zr-ink) 45%, transparent);
+}
+}
+&[colors="blocks"] .zr-wbar > i:not(.zr-mid) {
+background: var(--zr-c);
+}
+&[colors="underline"] .zr-wbar > i:not(.zr-mid) {
+box-shadow: inset 0 -2px 0 var(--zr-c);
+border-radius: 0;
+}
+&[spaces="box"] .zr-wbar > .zr-a {
+border-radius: 0;
+background: none;
+box-shadow: inset 0 0 0 1.5px var(--zr-accent);
+}
+&[spaces="underline"] .zr-wbar > .zr-a {
+border-radius: 0;
+background: var(--zr-surface);
+box-shadow: inset 0 -2px 0 var(--zr-accent);
+}
+&[spaces="plain"] .zr-wbar > .zr-a {
+height: 3px;
+background: var(--zr-accent);
 }
 &[look="powerline"] .zr-wbar {
 gap: 0;

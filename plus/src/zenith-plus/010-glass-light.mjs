@@ -10,7 +10,13 @@ const GlassLight = {
   // [what the pointer is over, the part that's painted (null: itself)]
   SURFACES: [[".tabbrowser-tab", ".tab-background"], [".zen-media-card", null], ["#zenith-peek-box", null],
              [".zenith-toast", null], ["#zenith-live .zp-card", null], ["#zenith-live .zp-chip", null],
-             ["#zenith-rice .zr-card", null], ["#zenith-rice .zr-opt", null], ["#zenith-rice button", null]],
+             ["#zenith-rice .zr-card", null], ["#zenith-rice .zr-opt", null], ["#zenith-rice button", null],
+             // (Every glass control: the bars' tabs and modules, popups' rows
+             // and buttons, the address bar's results, menus; then the
+             // surfaces themselves, a soft light where the pointer is.)
+             [".zenith-bar .zb-task", null], [".zenith-bar .zb-mod", null], [".zs-pop :is(button, [role='option'], li)", null],
+             [".urlbarView-row", null], ["menupopup menuitem", null], ["#zenith-routing-box button", null],
+             ["#zenith-rice .zr-panel", null], [".zs-pop", null], [".zenith-bar", null], ["#zenith-routing-box", null]],
   HOVER: 0.45, // hover strength; a press is 1
   RISE: 90,    // ms from nothing to full
   FADE: 320,   // ms from full to nothing

@@ -150,14 +150,14 @@ const SiteAppearance = {
     if (uuid === window.gZenWorkspaces?.activeWorkspace) this.write(mode === "dark" || mode === "light" ? mode : this.global());
   },
 
-  FORCE: "zenith.plus.appearance-force", // "invert" (the default), "palette" or "off"
+  FORCE: "zenith.plus.appearance-force", // "recolour" (the default), "invert", "palette" or "off"
 
   // Pages set dark or light, beyond asking them: inverted where they don't
   // follow (a helper in each page: plus/pages/appearance-force.sys.mjs), or
   // every page in the palette's colours (Firefox's own colour override,
   // through the bridge: yours come back when pages are automatic again).
   force() {
-    const P = Services.prefs, how = P.getStringPref(this.FORCE, "") || "invert", mode = this.forced() ?? (this.isDark() ? "dark" : "light");
+    const P = Services.prefs, how = P.getStringPref(this.FORCE, "") || "recolour", mode = this.forced() ?? (this.isDark() ? "dark" : "light");
     // The page helper, both halves (its page half can't read text settings:
     // the browser half decides), registered once it's wanted (inverting, or
     // sites left alone out of the palette's colours); every page of this

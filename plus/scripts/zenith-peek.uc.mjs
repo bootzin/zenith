@@ -2,7 +2,7 @@
 // @name           Zenith Peek
 // @description    Zenith Plus: quick, disposable lookups in a floating Glance that leaves nothing behind.
 // @include        main
-// @version        0.18.5
+// @version        0.18.6
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -506,11 +506,16 @@ const Peek = {
     if (!host) return;
     host.setAttribute("zenith-tab", "true");
     // (The bar marks the tab a Peek is open on.)
+    // (Its page's address, for the bar's mark to show that page's icon.)
     const mark = on => {
-      owner.toggleAttribute("zenith-peek", on);
+      if (on) owner.setAttribute("zenith-peek", browser.currentURI?.spec?.startsWith("http") ? browser.currentURI.spec : "true");
+      else owner.removeAttribute("zenith-peek");
       gBrowser._tabAttrModified?.(owner, ["zenith-peek"]);
     };
     mark(true);
+    const loaded = () => owner.hasAttribute("zenith-peek") && mark(true);
+    browser.addEventListener("pageshow", loaded, true);
+    setTimeout(loaded, 1500);
     const box = () => owner.linkedBrowser?.closest(".browserSidebarContainer");
     const place = () => {
       const away = owner !== gBrowser.selectedTab || !box();
@@ -533,12 +538,15 @@ const Peek = {
     gBrowser.tabContainer.addEventListener("TabSelect", select);
     gBrowser.tabContainer.addEventListener("TabClose", gone);
     window.addEventListener("resize", place);
+    // (A scroller's strip slides with no resize: it says when it moved.)
+    window.addEventListener("ZenithStrip", place);
     closed.then(() => {
       if (owner.isConnected) mark(false);
       ro.disconnect();
       gBrowser.tabContainer.removeEventListener("TabSelect", select);
       gBrowser.tabContainer.removeEventListener("TabClose", gone);
       window.removeEventListener("resize", place);
+      window.removeEventListener("ZenithStrip", place);
     });
   },
 
@@ -1472,6 +1480,7 @@ if (FIRST) {
   window.ZenithPeek = {
     prompt: text => Prompt.show(text),
     open: (url, origin) => Peek.show({ url }, origin),
+    keep: () => Peek.keep(), // Ctrl+Enter's (tools/checks)
     command: text => Commands.match(text),
     answer: text => Instant.answer(text), // the launcher's calc mode
     lookup: text => Peek.show(Lookup.resolve(text)),

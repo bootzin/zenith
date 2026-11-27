@@ -3,7 +3,7 @@
 // @description    Zenith Plus: greys out Zenith settings that another setting makes irrelevant, and says why.
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.18.5
+// @version        0.18.6
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -1175,6 +1175,74 @@ const RULES = {
       }
     ]
   },
+  "zenith.bar.spaces-look": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
+  "zenith.bar.colors": {
+    "why": "The bar is off",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ]
+  },
   "zenith.bar.title": {
     "why": "The bar is off",
     "conditions": [
@@ -1822,7 +1890,7 @@ const RULES = {
     ]
   },
   "zenith.plus.appearance-skip": {
-    "why": "Pages aren't inverted",
+    "why": "Pages aren't turned",
     "conditions": [
       {
         "conditions": [
@@ -1836,6 +1904,12 @@ const RULES = {
             "if": {
               "property": "zenith.plus.appearance-force",
               "value": "invert"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.appearance-force",
+              "value": "recolour"
             }
           }
         ],

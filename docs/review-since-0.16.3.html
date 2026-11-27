@@ -75,20 +75,24 @@
     li { grid-template-columns: minmax(0, 1fr); }
     .verdict { grid-column: 1; grid-row: auto; }
   }
+  [hidden] { display: none !important; }
   @media (prefers-reduced-motion: reduce) { .track > i { transition: none; } }
 </style>
 
 <main>
   <header>
     <h1>Zenith: what to review since 0.16.3</h1>
-    <p class="lede">Every change from 0.16.3 to 0.18.5, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
+    <p class="lede">Every change from 0.16.3 to 0.18.6, newest first, each with where to find it. Mark it, add a note where something is off, then copy the results into the chat. Your marks stay in this browser.</p>
     <div class="bar">
       <span class="progress" id="progress">0 of 0 reviewed</span>
       <span class="track" aria-hidden="true"><i id="fill"></i></span>
       <select class="filter" id="filter" aria-label="Show">
-        <option value="all">Show every item</option>
-        <option value="open">Show items not reviewed</option>
-        <option value="bad">Show items that don't work</option>
+        <option value="todo">Hide what works</option>
+        <option value="untested">Skipped or not reviewed</option>
+        <option value="skip">Skipped</option>
+        <option value="open">Not reviewed yet</option>
+        <option value="bad">Don't work</option>
+        <option value="all">Every item</option>
       </select>
       <button class="copy" id="copy" type="button">Copy results</button>
       <span class="copied" id="copied" hidden>Copied</span>
@@ -100,6 +104,27 @@
 <script>
 const NOT = "Not checked in Zen";
 const RELEASES = [
+  { v: "0.18.6", note: "Your walkthrough of 0.18.5 (the scroller's breakages first, including the tabs you lost), then themes as whole rices and forced dark pages recoloured. The list now hides what works (the menu above).", items: [
+    ["No more lost tabs from a strip", "A scroller strip was saved as one split of many tabs, which Zen can't restore: its tabs vanished at the next start (yours did). From now on a strip is saved as plain tabs and made again at start. Your tabs survive closing Zen with the scroller on. If a strip from 0.18.5 or older still loses tabs, a notice offers to reopen them, with their history", "Read before updating"],
+    ["Unloading a column", "In the scroller, unload the column you're on (Alt+U, or Unload in the tab's menu): you go to the nearest awake column and the strip stays as it is. No endless tab switching"],
+    ["Sleeping columns", "Switch a space with many unloaded tabs to the scroller: only what's on screen loads. A sleeping column on screen shows a card (its icon, its title, Asleep) and wakes on its own, except one you just put to sleep; go to it (Alt+H/L or a click) and it wakes"],
+    ["The scroller with the mouse", "Alt+drag a tile: onto the left or right edge of a column, it becomes a column there; onto the top or bottom, it stacks into that column; onto the middle, the two swap. Alt+right-drag: the column's width follows the pointer (a stacked tile's height up and down)"],
+    ["Where the scroller's view moves", "Tiling and keys › Layouts › The view moves: Only as far as it must (not at all if the column is already whole on screen), To put it in the middle, or To the middle, if the column you left won't fit beside it"],
+    ["Closing a column", "Open a link in a new tab in front (or Ctrl+T and an address), then close it at once (Ctrl+W): you're back on the column you came from. Close any other column: the one on its right takes over"],
+    ["The strip in the sidebar", "With the scroller on, the sidebar lists the space's tabs as usual: no group header (the blue dot) above them"],
+    ["Peek over a column", "Open a Peek on a scroller column, then move along the strip: the Peek stays over its column (hidden while it's off screen); Ctrl+Enter keeps its page as a new column right of it"],
+    ["Zenith's pages after a restart", "A tab with Zenith's start page restored at start (a scroller column, say) no longer shows Problem loading page"],
+    ["The start page's box", "Type, then Enter: it searches (or goes to the address) as the address bar does. Pick an open tab's row (Switch to tab): you go there and the start page closes"],
+    ["A bar tab into a folder, from the scroller", "With the scroller on, drag a tab in the bar onto a tab in a folder: it leaves the strip and joins the folder"],
+    ["Shift+wheel on the media module", "Two things playing: Shift+wheel over the bar's media module shows the other one, and it stays until something else starts playing"],
+    ["The bottom bar's overview button", "Your bottom bar's list said overviewoverview: Zenith now repairs it at start, so the Overview button shows (0.18.5's repair had a typo)"],
+    ["Glance and Peek marks", "Open a Glance or a Peek: its tab in the bar shows the icon of the page that's over it, small, at the icon's bottom left, ringed in the accent"],
+    ["Liquid glass", "Theme › Glass edge › Liquid: a brighter specular edge along the top, the glass's thickness at the bottom, a glow inside, the backdrop more vivid; the light under the pointer on the bar's modules and tabs, popups' rows and buttons, menus, the address bar's results, the picker"],
+    ["Themes as whole rices", "Alt+Shift+P › Themes: Catppuccin waybar, Material (end-4), Rosé Pine, Tokyo Night powerline, i3, Polybar, Paper. Each sets colours, glass, corners, fonts, the bar's look, its modules and their colours, the spaces, the tile you're on, the gaps, the motion, and your top bar's modules (other bars untouched). Each card draws its rice, its name in its font"],
+    ["New looks for the bar and tiles", "Bars › Module colours (one accent, each module its own colour, colour blocks, underlines) and The space you're on (pill, i3 boxes, underline, plain); Split view › The tile you're on: a gradient border (Hyprland) or a thick one (i3)"],
+    ["Forced dark pages, recoloured", "Pages and privacy › Pages set dark or light: Recolour (the default) turns each colour of a page that doesn't follow by what it colours, as Dark Reader's dynamic mode: backgrounds dark, text light, borders between, pictures untouched. Invert is the fast choice. Try a light site with pages set dark"],
+    ["Review: hide what works", "This page's menu: Hide what works (the default), Skipped or not reviewed, Skipped, Not reviewed yet, Don't work, Every item. Kept in this browser"],
+  ] },
   { v: "0.18.5", note: "Your walkthrough of 0.16.3 to 0.18.4: the scroller rebuilt on niri's rules, and the things that didn't work. Themes and forced dark pages come in 0.18.6.", items: [
     ["The scroller, as niri's", "Alt+Y to Scroller (or Tiling and keys › Layouts). Each new tab is a column right of yours; links opened in the background keep the order you opened them in. A gap at each edge; the view moves only as far as it must to show the column whole. Alt+H/L walk, Alt+Shift+H/L move a column, Alt+Shift+Y a third, half, two thirds; Alt+F the whole view and back; Alt+C centres it; Alt+R then h/l a tenth narrower or wider; columns slide into place"],
     ["Closing a column", "Open a tab (a link in front, or Ctrl+T and an address) and close it at once: you're back on the column you came from. Close a column you went to: the one on its right takes over (on its left at the end)"],
@@ -281,14 +306,22 @@ function tally() {
   filter();
 }
 
+// Which items show (kept in this browser): by default everything but what
+// works; a release with nothing left to show is hidden too.
+const FILTER = `${KEY}-filter`, shows = {
+  todo: v => v !== "ok", untested: v => v === "" || v === "skip", skip: v => v === "skip",
+  open: v => v === "", bad: v => v === "bad", all: () => true,
+};
+try { const f = localStorage.getItem(FILTER); if (f && shows[f]) document.getElementById("filter").value = f; } catch {}
 function filter() {
-  const how = document.getElementById("filter").value;
-  for (const li of host.querySelectorAll("li")) {
-    const v = state[li.dataset.id]?.v ?? "";
-    li.hidden = how === "open" ? !!v : how === "bad" ? v !== "bad" : false;
-  }
+  const how = document.getElementById("filter").value, show = shows[how] ?? shows.all;
+  for (const li of host.querySelectorAll("li")) li.hidden = !show(state[li.dataset.id]?.v ?? "");
+  for (const sec of host.children) sec.hidden = ![...sec.querySelectorAll("li")].some(li => !li.hidden);
 }
-document.getElementById("filter").addEventListener("change", filter);
+document.getElementById("filter").addEventListener("change", () => {
+  try { localStorage.setItem(FILTER, document.getElementById("filter").value); } catch {}
+  filter();
+});
 
 document.getElementById("copy").addEventListener("click", async () => {
   const words = { ok: "works", bad: "DOESN'T WORK", skip: "skipped", "": "not reviewed" };

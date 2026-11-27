@@ -20,15 +20,77 @@ const P = Services.prefs;
 const HTML = "http://www.w3.org/1999/xhtml";
 
 // Built-in themes, after rice styles (r/unixporn, end-4, HyDE, caelestia).
+// Themes: each a whole rice, after one people know (r/unixporn, Hyprland
+// and i3 dotfiles): colours, glass, shape, fonts (ones this PC has, else the
+// browser's), the bar's look, its modules and their colours, the spaces,
+// the tile you're on, the gaps between tiles, the motion. The top bar's
+// modules too; your other bars stay as they are.
+const RICE = (palette, look) => ({ "zenith.palette": palette, "zenith.bar.top": "on", ...look });
 const THEMES = [
-  { name: "Zenith", note: "Every look at its default", sets: {} },
-  { name: "Hypr floating", note: "Catppuccin, a rounded bar off the edges", sets: { "zenith.palette": "catppuccin-mocha", "zenith.bar.style": "floating", "zenith.bar.corners": "12", "zenith.bar.module-corners": "999", "zenith.bar.opacity": "92", "zenith.core.corners": "soft" } },
-  { name: "Material", note: "From your wallpaper, pills on glass (end-4)", sets: { "zenith.palette": "wallpaper", "zenith.bar.style": "floating", "zenith.bar.corners": "999", "zenith.bar.module-corners": "999", "zenith.bar.opacity": "82", "zenith.bar.size": "36" } },
-  { name: "Bare", note: "Rosé Pine, modules on the window, no bar", sets: { "zenith.palette": "rose-pine", "zenith.bar.style": "bare", "zenith.bar.module-corners": "8" } },
-  { name: "Powerline night", note: "Tokyo Night, arrows", sets: { "zenith.palette": "tokyo-night", "zenith.bar.style": "powerline", "zenith.bar.size": "28" } },
-  { name: "i3", note: "Nord, plain and thin", sets: { "zenith.palette": "nord", "zenith.bar.style": "minimal", "zenith.bar.size": "24", "zenith.core.corners": "square" } },
-  { name: "Polybar", note: "Gruvbox, one solid strip", sets: { "zenith.palette": "gruvbox-dark", "zenith.bar.style": "strip", "zenith.bar.size": "28", "zenith.bar.opacity": "100" } },
-  { name: "Paper", note: "Rosé Pine Dawn, light", sets: { "zenith.palette": "rose-pine-dawn", "zenith.bar.style": "islands", "zenith.bar.border": "hairline" } },
+  { name: "Zenith", note: "Islands on Zen's own colours: every look at its default", sets: {} },
+  { name: "Catppuccin waybar", note: "Hyprland and waybar, Catppuccin Mocha: a floating bar, each module its own colour, mauve pills, a gradient border on the tile you're on, JetBrainsMono",
+    sets: RICE("catppuccin-mocha", {
+      "zenith.core.corners": "round", "zenith.core.glass": "strong", "zenith.core.glass-edge": "shine", "zenith.core.window-transparency": "balanced",
+      "zenith.core.font": "JetBrainsMono NF", "zenith.bar.font": "JetBrainsMono NF", "zenith.bar.icons": "nerd",
+      "zenith.bar.style": "floating", "zenith.bar.size": "32", "zenith.bar.margin": "8", "zenith.bar.corners": "12", "zenith.bar.module-corners": "999",
+      "zenith.bar.spacing": "4", "zenith.bar.opacity": "92", "zenith.bar.colors": "text", "zenith.bar.spaces": "numbers", "zenith.bar.spaces-look": "pill",
+      "zenith.panels.tile-focus": "gradient", "zenith.panels.split": "gaps", "zenith.panels.gap": "8", "zenith.motion.easing": "hyprland", "zenith.motion.speed": "100",
+      "zenith.bar.top.modules": "launcher,spaces,title|clock|media,downloads,memory,appearance,power",
+    }) },
+  { name: "Material", note: "end-4's illogical-impulse: colours from your wallpaper, round islands on deep glass with a liquid edge, dots for spaces, wide gaps",
+    sets: RICE("wallpaper", {
+      "zenith.core.corners": "round", "zenith.core.glass": "strong", "zenith.core.glass-edge": "liquid", "zenith.core.window-transparency": "airy",
+      "zenith.core.font": "Segoe UI Variable Display", "zenith.bar.font": "Segoe UI Variable Display", "zenith.bar.icons": "svg",
+      "zenith.bar.style": "islands", "zenith.bar.size": "36", "zenith.bar.margin": "4", "zenith.bar.corners": "999", "zenith.bar.module-corners": "999",
+      "zenith.bar.spacing": "6", "zenith.bar.opacity": "82", "zenith.bar.colors": "mono", "zenith.bar.spaces": "dots", "zenith.bar.spaces-look": "pill",
+      "zenith.panels.tile-focus": "accent", "zenith.panels.split": "gaps", "zenith.panels.gap": "12", "zenith.motion.easing": "decelerate", "zenith.motion.speed": "100",
+      "zenith.bar.top.modules": "launcher,title|spaces|media,clock,weather,extensions,power",
+    }) },
+  { name: "Rosé Pine", note: "Bare: no bar, the modules on the window in Rosé Pine's colours, kanji spaces, sheer glass, wide gaps, Mononoki",
+    sets: RICE("rose-pine", {
+      "zenith.core.corners": "soft", "zenith.core.glass": "subtle", "zenith.core.glass-edge": "off", "zenith.core.window-transparency": "sheer",
+      "zenith.core.font": "Mononoki Nerd Font", "zenith.bar.font": "Mononoki Nerd Font", "zenith.bar.icons": "nerd",
+      "zenith.bar.style": "bare", "zenith.bar.size": "30", "zenith.bar.margin": "8", "zenith.bar.module-corners": "8", "zenith.bar.spacing": "8",
+      "zenith.bar.colors": "text", "zenith.bar.spaces": "kanji", "zenith.bar.spaces-look": "plain",
+      "zenith.panels.tile-focus": "accent", "zenith.panels.split": "gaps", "zenith.panels.gap": "16", "zenith.motion.easing": "gentle", "zenith.motion.speed": "125",
+      "zenith.bar.top.modules": "spaces|title|media,clock",
+    }) },
+  { name: "Tokyo Night powerline", note: "Segments joined by arrows, each a block of its own colour, boxes for spaces, square and solid, a thick border on the tile you're on",
+    sets: RICE("tokyo-night", {
+      "zenith.core.corners": "square", "zenith.core.glass": "off", "zenith.core.glass-edge": "off", "zenith.core.window-transparency": "dense",
+      "zenith.core.font": "JetBrainsMono NF", "zenith.bar.font": "JetBrainsMono NF", "zenith.bar.icons": "nerd",
+      "zenith.bar.style": "powerline", "zenith.bar.size": "28", "zenith.bar.margin": "0", "zenith.bar.corners": "0", "zenith.bar.module-corners": "0",
+      "zenith.bar.spacing": "0", "zenith.bar.opacity": "100", "zenith.bar.colors": "blocks", "zenith.bar.spaces": "numbers", "zenith.bar.spaces-look": "box",
+      "zenith.panels.tile-focus": "thick", "zenith.panels.split": "gaps", "zenith.panels.gap": "4", "zenith.motion.easing": "snappy", "zenith.motion.speed": "75",
+      "zenith.bar.top.modules": "spaces,mode,title||media,memory,downloads,clock,power",
+    }) },
+  { name: "i3", note: "i3bar on Nord: thin, plain text with lines between, workspace boxes, no glass, square, tiles edge to edge with a thick focused border, Consolas, quick",
+    sets: RICE("nord", {
+      "zenith.core.corners": "square", "zenith.core.glass": "off", "zenith.core.glass-edge": "off", "zenith.core.window-transparency": "solid",
+      "zenith.core.font": "Consolas", "zenith.bar.font": "Consolas", "zenith.bar.icons": "text",
+      "zenith.bar.style": "minimal", "zenith.bar.size": "24", "zenith.bar.margin": "0", "zenith.bar.corners": "0", "zenith.bar.module-corners": "0",
+      "zenith.bar.spacing": "0", "zenith.bar.separators": "line", "zenith.bar.opacity": "100", "zenith.bar.colors": "mono", "zenith.bar.spaces": "numbers", "zenith.bar.spaces-look": "box",
+      "zenith.panels.tile-focus": "thick", "zenith.panels.split": "hairlines", "zenith.motion.easing": "linear", "zenith.motion.speed": "50",
+      "zenith.bar.top.modules": "spaces,mode|title|memory,downloads,weather,clock",
+    }) },
+  { name: "Polybar", note: "Gruvbox, one solid strip, every module underlined in its own colour, the space you're on underlined, Cascadia Code",
+    sets: RICE("gruvbox-dark", {
+      "zenith.core.corners": "square", "zenith.core.glass": "off", "zenith.core.glass-edge": "off", "zenith.core.window-transparency": "solid",
+      "zenith.core.font": "Cascadia Code", "zenith.bar.font": "Cascadia Code", "zenith.bar.icons": "svg",
+      "zenith.bar.style": "strip", "zenith.bar.size": "28", "zenith.bar.margin": "0", "zenith.bar.corners": "0", "zenith.bar.module-corners": "0",
+      "zenith.bar.spacing": "4", "zenith.bar.opacity": "100", "zenith.bar.colors": "underline", "zenith.bar.spaces": "numbers", "zenith.bar.spaces-look": "underline",
+      "zenith.panels.tile-focus": "accent", "zenith.panels.split": "gaps", "zenith.panels.gap": "8", "zenith.motion.easing": "standard", "zenith.motion.speed": "100",
+      "zenith.bar.top.modules": "spaces|title|media,memory,downloads,weather,clock,power",
+    }) },
+  { name: "Paper", note: "Rosé Pine Dawn, light: islands with a hairline, each module its own colour, dots for spaces, a shine on the glass",
+    sets: RICE("rose-pine-dawn", {
+      "zenith.core.corners": "round", "zenith.core.glass": "subtle", "zenith.core.glass-edge": "shine", "zenith.core.window-transparency": "airy",
+      "zenith.core.font": "Segoe UI Variable Display", "zenith.bar.font": "Segoe UI Variable Display", "zenith.bar.icons": "svg",
+      "zenith.bar.style": "islands", "zenith.bar.size": "32", "zenith.bar.margin": "8", "zenith.bar.module-corners": "999", "zenith.bar.spacing": "6",
+      "zenith.bar.border": "hairline", "zenith.bar.colors": "text", "zenith.bar.spaces": "dots", "zenith.bar.spaces-look": "pill",
+      "zenith.panels.tile-focus": "accent", "zenith.panels.split": "gaps", "zenith.panels.gap": "12", "zenith.motion.easing": "gentle", "zenith.motion.speed": "100",
+      "zenith.bar.top.modules": "launcher,spaces|clock|media,weather,downloads,power",
+    }) },
 ];
 
 // The categories: each a list of settings.
@@ -274,11 +336,23 @@ export const Picker = {
 
   // A tiny browser window in a palette and a bar's look: the backdrop, the
   // bar (its groups as that look draws them) and a page with a few lines.
-  window(palette, look) {
+  // A tiny browser window: the bar in its look (and, for a theme, its
+  // module colours and spaces), two tiles, the one you're on marked as the
+  // theme marks it, its corners and gaps.
+  window(palette, look, sets = null) {
     const pal = window.ZenithPaletteColours?.[palette];
     const bar = node("span", { class: "zr-wbar" }, node("i", { class: "zr-a" }), node("i"), node("i", { class: "zr-mid" }), node("i"), node("i", { class: "zr-a2" }));
-    const page = node("span", { class: "zr-wpage" }, node("i"), node("i"), node("i"));
+    const tile = n => node("span", { class: "zr-wtile" }, ...Array.from({ length: n }, () => node("i")));
+    const page = node("span", { class: "zr-wpage" }, tile(3), tile(2));
     const pic = node("span", { class: "zr-pic", kind: "window", look: look || "islands" }, bar, page);
+    if (sets) {
+      const of = (k, d) => sets[k] ?? d;
+      pic.setAttribute("colors", of("zenith.bar.colors", "mono"));
+      pic.setAttribute("spaces", of("zenith.bar.spaces-look", "pill"));
+      pic.setAttribute("ring", of("zenith.panels.tile-focus", "zen"));
+      pic.setAttribute("corners", of("zenith.core.corners", "soft"));
+      pic.setAttribute("gaps", of("zenith.panels.split", "gaps") === "hairlines" ? "0" : of("zenith.panels.gap", "6"));
+    }
     if (pal) this.paint(pic, pal);
     return pic;
   },
@@ -286,7 +360,7 @@ export const Picker = {
   // A tiny window in a palette's colours, its accents as dots.
   paint(pic, pal) {
     pic.style.cssText = `--zr-base:${pal.base};--zr-mantle:${pal.mantle ?? pal.base};--zr-surface:${pal.surface};--zr-accent:${pal.accent};` +
-      `--zr-second:${pal.second ?? pal.accent};--zr-ink:${pal.text}`;
+      `--zr-second:${pal.second ?? pal.accent};--zr-ink:${pal.text};--zr-green:${pal.green ?? pal.accent};--zr-yellow:${pal.yellow ?? pal.accent};--zr-red:${pal.red ?? pal.accent}`;
     pic.querySelector(".zr-dots")?.remove();
     pic.append(node("span", { class: "zr-dots" }, ...["accent", "second", "red", "green", "yellow"].filter(k => pal[k]).map(k => node("i", { style: `background:${pal[k]}` }))));
   },
@@ -294,8 +368,11 @@ export const Picker = {
   themes() {
     const grid = node("div", { class: "zr-grid zr-themes" });
     const add = (t, own) => {
-      const pic = this.window(t.sets["zenith.palette"], t.sets["zenith.bar.style"]);
-      const card = node("button", { type: "button", class: "zr-card", theme: t.name }, pic, node("span", { class: "zr-label" }, t.name), node("span", { class: "zr-note" }, t.note ?? ""));
+      const pic = this.window(t.sets["zenith.palette"], t.sets["zenith.bar.style"], t.sets);
+      const name = node("span", { class: "zr-label" }, t.name);
+      // (Its name in its own font, when it has one.)
+      if (t.sets["zenith.core.font"]) name.style.fontFamily = `"${t.sets["zenith.core.font"]}", inherit`;
+      const card = node("button", { type: "button", class: "zr-card", theme: t.name }, pic, name, node("span", { class: "zr-note" }, t.note ?? ""));
       card.addEventListener("click", () => {
         applyTheme(t.sets);
         P.setStringPref("zenith.internal.theme", t.name);

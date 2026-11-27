@@ -55,11 +55,17 @@
   --zth-frost-strong: 30px;
   --zth-rim-off: 0 0 0 transparent;
   --zth-rim-shine: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.14));
+  /* Liquid: a bright specular line along the top, the sides catching less,
+     the glass's thickness as a darker line at the bottom, a thin rim all
+     round, a glow inside the top and light gathered at the bottom. */
   --zth-rim-liquid:
-    inset 1px 1px 0 light-dark(rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.4)),
-    inset -1px -1px 0 light-dark(rgb(255 255 255 / 0.4), rgb(255 255 255 / 0.1)),
-    inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.06)),
-    inset 0 16px 24px -18px light-dark(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.24));
+    inset 0 1px 0 light-dark(rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.42)),
+    inset 1px 0 0 light-dark(rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.16)),
+    inset -1px 0 0 light-dark(rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.08)),
+    inset 0 -1px 0 light-dark(rgb(0 0 0 / 0.1), rgb(0 0 0 / 0.4)),
+    inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.09)),
+    inset 0 18px 26px -20px light-dark(rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.26)),
+    inset 0 -14px 22px -20px light-dark(rgb(255 255 255 / 0.4), rgb(255 255 255 / 0.1));
 
   --zth-radius: var(--zth-corner-soft);
   --zth-tab-radius: calc(6px * var(--zth-sq));
@@ -235,6 +241,9 @@
 
 :root:has(#theme-Zenith-Core[zenith-core-glass-edge="liquid"]) {
   --zth-glass-shine: var(--zth-rim-liquid);
+  /* (Liquid glass: what's behind a little more vivid.) */
+  --zth-glass-filter: blur(var(--zth-glass-blur)) saturate(calc(var(--zth-glass-sat) * 1.35));
+  --zth-panel-filter: blur(calc(var(--zth-glass-blur) * 2)) saturate(calc(var(--zth-glass-sat) * 1.35)) brightness(var(--zth-backdrop-dim));
 
 
   /* Under the pointer the glass lights up: a soft spot and a faint wash,

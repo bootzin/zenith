@@ -26,7 +26,7 @@ SETUP = r"""window.P = Services.prefs; window.zB = arguments[0]; window.sys = Se
   window.zr = el => { if (!el) return null; const r = el.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)]; };
   window.zpage = () => zr(gBrowser.selectedBrowser.closest('.browserSidebarContainer') ?? gBrowser.selectedBrowser);
   // Words that mean a value went missing: null, undefined, [object …].
-  window.zbad = el => [...(el?.textContent ?? '').matchAll(/.{0,30}(?:null|undefined|\[object [A-Za-z]+\]).{0,20}/g)].map(m => m[0]).slice(0, 6);
+  window.zbad = el => [...(el?.textContent ?? '').matchAll(/.{0,30}(?:\bnull\b|\bundefined\b|\[object [A-Za-z]+\]).{0,20}/g)].map(m => m[0]).slice(0, 6);
   window.zbars = () => Object.fromEntries([...document.querySelectorAll('.zenith-bar')].map(b => [b.getAttribute('edge'), zr(b)]));
   return !!window.L"""
 

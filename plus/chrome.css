@@ -1622,6 +1622,76 @@ browser[zenith-see-through] {
   }
 }
 
+/* How the bar's modules are coloured (Bars › Module colours): each module
+   its own colour of the palette, as text, as a block, or as an underline. */
+.zenith-bar {
+  --zb-c-1: var(--zth-pal-accent, var(--zb-accent));
+  --zb-c-2: var(--zth-pal-second, color-mix(in oklch, var(--zb-accent) 35%, rgb(122 162 247)));
+  --zb-c-3: var(--zth-pal-green, color-mix(in oklch, var(--zb-accent) 25%, rgb(158 206 106)));
+  --zb-c-4: var(--zth-pal-yellow, color-mix(in oklch, var(--zb-accent) 25%, rgb(224 175 104)));
+  --zb-c-5: var(--zth-pal-red, color-mix(in oklch, var(--zb-accent) 25%, rgb(247 118 142)));
+
+  & .zb-mod:is([mod="launcher"], [mod="media"], [mod="overview"]) {
+    --zb-own: var(--zb-c-1);
+  }
+
+  & .zb-mod:is([mod="clock"], [mod="layout"], [mod="spaces"], [mod="dash"]) {
+    --zb-own: var(--zb-c-2);
+  }
+
+  & .zb-mod:is([mod="downloads"], [mod="memory"], [mod="extensions"]) {
+    --zb-own: var(--zb-c-3);
+  }
+
+  & .zb-mod:is([mod="weather"], [mod="timers"], [mod="appearance"]) {
+    --zb-own: var(--zb-c-4);
+  }
+
+  & .zb-mod:is([mod="trackers"], [mod="power"], [mod="mode"]) {
+    --zb-own: var(--zb-c-5);
+  }
+}
+
+.zenith-bar[colors="text"] .zb-mod {
+  color: var(--zb-own, var(--zb-ink));
+}
+
+.zenith-bar[colors="blocks"] .zb-mod:not([mod="tabs"], [mod="title"], [mod="buttons"]) {
+  background: var(--zb-own, var(--zb-surface)) !important;
+  color: var(--zth-pal-base, rgb(20 20 24)) !important;
+}
+
+.zenith-bar[colors="underline"] .zb-mod:not([mod="tabs"], [mod="title"], [mod="buttons"]) {
+  box-shadow: inset 0 -2px 0 var(--zb-own, transparent);
+}
+
+/* The space you're on (Bars › The space you're on): a pill (the default),
+   boxes with yours filled (i3), yours underlined (polybar), or its colour. */
+.zenith-bar[spaces-look="box"] .zb-space {
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--zb-dim) 60%, transparent);
+
+  &[current] {
+    box-shadow: inset 0 0 0 1px var(--zb-mark);
+  }
+}
+
+.zenith-bar[spaces-look="underline"] .zb-space {
+  border-radius: 0;
+
+  &[current] {
+    background: none;
+    color: var(--zb-ink);
+    box-shadow: inset 0 -2px 0 var(--zb-mark);
+  }
+}
+
+.zenith-bar[spaces-look="plain"] .zb-space[current] {
+  background: none;
+  color: var(--zb-mark);
+  font-weight: 700;
+}
+
 /* A bar's tab being dragged, and where it would go. */
 .zenith-bar .zb-task {
   &[dragging] {
@@ -1761,8 +1831,9 @@ browser[zenith-see-through] {
     border: 1.5px solid var(--zb-dim);
   }
 
-  /* A Glance or a Peek open on it: a small window over the icon's top
-     left corner, a second one behind it. */
+  /* A Glance or a Peek open on it: the icon of the page over it, small,
+     at the icon's bottom left, ringed in the accent (a plain accent dot
+     while that page has no icon). */
   & .zb-task-over {
     display: none;
   }
@@ -1770,15 +1841,18 @@ browser[zenith-see-through] {
   &[over] .zb-task-over {
     display: block;
     position: absolute;
-    inset: calc(50% - 11px) auto auto calc(var(--zb-task-icon-x, 50%) - 13px);
-    width: 9px;
-    height: 7px;
-    box-sizing: border-box;
-    border: 1.5px solid var(--zb-accent);
+    inset: auto auto calc(50% - 12px) calc(var(--zb-task-icon-x, 50%) - 13px);
+    width: 10px;
+    height: 10px;
     border-radius: var(--zth-radius-xs);
-    background: var(--zb-bg);
-    box-shadow: -2px -2px 0 -0.5px var(--zb-accent);
+    background: var(--zb-accent);
+    box-shadow: 0 0 0 1.5px var(--zb-bg), 0 0 0 2.5px var(--zb-accent);
+    object-fit: contain;
     pointer-events: none;
+  }
+
+  &[over] .zb-task-over[src] {
+    background: var(--zb-bg);
   }
 
   &[attention]:not([current]) .zb-task-mark {
@@ -4422,6 +4496,26 @@ tab-group[split-view-group]:hover {
   cursor: grabbing !important;
 }
 
+/* A scroller's strip in the sidebar: its tabs as the space's, no group
+   header (Zen's split marker) and no indent. */
+tab-group[split-view-group][zenith-strip] {
+  & > .tab-group-label-container {
+    display: none !important;
+  }
+
+  & > .tab-group-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+  }
+
+  & .tabbrowser-tab {
+    margin-inline-start: 0 !important;
+    padding-inline-start: 0 !important;
+  }
+}
+
 /* Split views: one pane fills the view (Alt+F); the others wait behind it. */
 #tabbrowser-tabpanels[zenith-solo] > [zen-split][zenith-split-solo] {
   inset: 0 !important;
@@ -4447,6 +4541,44 @@ tab-group[split-view-group]:hover {
 
     &[zenith-off-strip] {
       visibility: hidden;
+    }
+  }
+
+  /* A sleeping column in view: a card in its place. */
+  & > .zenith-asleep {
+    position: absolute;
+    box-sizing: border-box;
+    margin: 7px 6px 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px;
+    border-radius: var(--zth-radius);
+    background: var(--zth-panel-bg);
+    color: var(--zth-ink, CanvasText);
+    box-shadow: var(--zth-glass-shine);
+    transform: translateX(var(--zth-strip-x, 0px));
+    transition: transform calc(0.22s * var(--zth-speed)) var(--zth-ease);
+    cursor: pointer;
+
+    & img {
+      width: 32px;
+      height: 32px;
+    }
+
+    & .zenith-asleep-title {
+      max-width: 90%;
+      overflow: hidden;
+      font-weight: 600;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    & .zenith-asleep-note {
+      color: var(--zth-ink-dim, GrayText);
+      font-size: 12px;
     }
   }
 }
@@ -5523,12 +5655,24 @@ tab-group[split-view-group]:hover {
         & > .zr-mid { width: 36px; margin-inline: auto; }
       }
 
+      /* The page: two tiles, a gap between (the theme's), the left one the
+         tile you're on. */
       & .zr-wpage {
+        flex: 1;
+        display: flex;
+        gap: var(--zr-gap, 3px);
+        padding: var(--zr-gap, 3px);
+        background: color-mix(in srgb, var(--zr-mantle) 70%, var(--zr-accent));
+      }
+
+      & .zr-wtile {
+        position: relative;
         flex: 1;
         display: flex;
         flex-direction: column;
         gap: 5px;
-        padding: 10px 12px;
+        padding: 8px 10px;
+        border-radius: var(--zr-tile-r, 4px);
         background: var(--zr-base);
 
         & > i {
@@ -5540,6 +5684,11 @@ tab-group[split-view-group]:hover {
 
         & > i:first-child { width: 40%; height: 6px; background: var(--zr-ink); }
         & > i:last-child { width: 75%; }
+
+        &:first-child {
+          flex: 1.4;
+          box-shadow: 0 0 0 1px color-mix(in srgb, var(--zr-accent) 70%, transparent);
+        }
       }
 
       & .zr-dots {
@@ -5607,6 +5756,45 @@ tab-group[split-view-group]:hover {
       background: none;
       box-shadow: inset 0 -2px var(--zr-surface);
     }
+
+    /* A theme's picture: its gaps, corners, the tile you're on, the bar's
+       module colours and the space you're on. */
+    &[gaps="0"] { --zr-gap: 0px; }
+    &:is([gaps="2"], [gaps="4"]) { --zr-gap: 2px; }
+    &:is([gaps="8"], [gaps="12"]) { --zr-gap: 4px; }
+    &:is([gaps="16"], [gaps="24"]) { --zr-gap: 6px; }
+    &[corners="square"] { --zr-tile-r: 0px; border-radius: 0; }
+    &[corners="round"] { --zr-tile-r: 7px; }
+
+    &[ring="off"] .zr-wtile:first-child { box-shadow: none; }
+    &[ring="accent"] .zr-wtile:first-child { box-shadow: 0 0 0 1.5px var(--zr-accent); }
+    &[ring="thick"] .zr-wtile:first-child { box-shadow: inset 0 0 0 2.5px var(--zr-second); }
+
+    &[ring="gradient"] .zr-wtile:first-child {
+      box-shadow: none;
+      border: 1.5px solid transparent;
+      background: linear-gradient(var(--zr-base), var(--zr-base)) padding-box, linear-gradient(45deg, var(--zr-accent), var(--zr-second)) border-box;
+    }
+
+    &[colors="text"] .zr-wbar > i {
+      height: 3px;
+      background: var(--zr-c, var(--zr-ink));
+    }
+
+    &:is([colors="text"], [colors="blocks"], [colors="underline"]) .zr-wbar {
+      & > i:nth-child(1) { --zr-c: var(--zr-accent); }
+      & > i:nth-child(2) { --zr-c: var(--zr-green); }
+      & > i:nth-child(4) { --zr-c: var(--zr-yellow); }
+      & > i:nth-child(5) { --zr-c: var(--zr-second); }
+      & > .zr-mid { --zr-c: color-mix(in srgb, var(--zr-ink) 45%, transparent); }
+    }
+
+    &[colors="blocks"] .zr-wbar > i:not(.zr-mid) { background: var(--zr-c); }
+    &[colors="underline"] .zr-wbar > i:not(.zr-mid) { box-shadow: inset 0 -2px 0 var(--zr-c); border-radius: 0; }
+
+    &[spaces="box"] .zr-wbar > .zr-a { border-radius: 0; background: none; box-shadow: inset 0 0 0 1.5px var(--zr-accent); }
+    &[spaces="underline"] .zr-wbar > .zr-a { border-radius: 0; background: var(--zr-surface); box-shadow: inset 0 -2px 0 var(--zr-accent); }
+    &[spaces="plain"] .zr-wbar > .zr-a { height: 3px; background: var(--zr-accent); }
 
     &[look="powerline"] .zr-wbar {
       gap: 0;

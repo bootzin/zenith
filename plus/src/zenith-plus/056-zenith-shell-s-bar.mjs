@@ -49,7 +49,7 @@ const BarLoader = {
     for (const e of this.EDGES) {
       const pref = `zenith.bar.${e}.modules`, was = P.getStringPref(pref, ""), seen = new Set();
       if (!was) continue;
-      const fix = x => (known.has(x) ? x : x.match(/^(.+?)+$/)?.[1] ?? x);
+      const fix = x => (known.has(x) ? x : x.match(/^(.+?)\1+$/)?.[1] ?? x);
       const now = was.split("|").map(part => part.split(",").map(x => fix(x.trim())).filter(x => known.has(x) && !seen.has(x) && seen.add(x)).join(",")).join("|");
       if (now !== was) P.setStringPref(pref, now);
     }

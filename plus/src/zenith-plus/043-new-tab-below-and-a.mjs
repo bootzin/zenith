@@ -52,7 +52,10 @@ const NewTabBelow = {
     const blur = gBrowser._findTabToBlurTo;
     if (blur) {
       gBrowser._findTabToBlurTo = function (tab, ...rest) {
-        const data = self.splitOf(tab), others = data?.tabs.filter(t => t !== tab && !t.closing) ?? [];
+        // (Never one the caller rules out: Firefox's unloading rules out a
+        // split's other tabs and every tab already asleep.)
+        const exclude = Array.isArray(rest[0]) ? rest[0] : [];
+        const data = self.splitOf(tab), others = data?.tabs.filter(t => t !== tab && !t.closing && !exclude.includes(t)) ?? [];
         if (others.length) {
           const i = data.tabs.indexOf(tab);
           return data.tabs.slice(i + 1).find(t => others.includes(t)) ?? others.at(-1);

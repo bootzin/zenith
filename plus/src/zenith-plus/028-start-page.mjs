@@ -62,6 +62,11 @@ function registerAbout(name, file) {
       about.register(name, url, text);
       about.revive(name);
       SessionStore.promiseAllWindowsRestored?.then(() => about.revive(name));
+      // (A tab restored later, a scroller's column coming into view, say,
+      // may still have come up in a page's process: put right too.)
+      const restored = e => e.target?.linkedBrowser?.currentURI?.spec?.startsWith(`about:${name}`) && setTimeout(() => about.revive(name), 300);
+      gBrowser.tabContainer.addEventListener("SSTabRestored", restored);
+      onUnload(() => gBrowser.tabContainer.removeEventListener("SSTabRestored", restored));
       return true;
     } catch {}
   }

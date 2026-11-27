@@ -2402,6 +2402,122 @@
     "zenithWhy": "The bar is off"
   },
   {
+    "property": "zenith.bar.spaces-look",
+    "label": "The space you're on, in the bar",
+    "type": "dropdown",
+    "placeholder": "Default (A pill in the accent)",
+    "options": [
+      {
+        "label": "A pill in the accent",
+        "value": "pill"
+      },
+      {
+        "label": "Boxes, yours filled (i3)",
+        "value": "box"
+      },
+      {
+        "label": "Underlined (polybar)",
+        "value": "underline"
+      },
+      {
+        "label": "In the accent, nothing else",
+        "value": "plain"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
+    "property": "zenith.bar.colors",
+    "label": "How the bar's modules are coloured",
+    "type": "dropdown",
+    "placeholder": "Default (One accent for what's active)",
+    "options": [
+      {
+        "label": "One accent for what's active",
+        "value": "mono"
+      },
+      {
+        "label": "Each module its own colour (waybar)",
+        "value": "text"
+      },
+      {
+        "label": "Each module a block of its own colour",
+        "value": "blocks"
+      },
+      {
+        "label": "Each module underlined in its colour (polybar)",
+        "value": "underline"
+      }
+    ],
+    "usedBy": "zenith-plus",
+    "conditions": [
+      {
+        "conditions": [
+          {
+            "if": {
+              "property": "zenith.bar.top",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.bottom",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.left",
+              "value": "on"
+            }
+          },
+          {
+            "if": {
+              "property": "zenith.bar.right",
+              "value": "on"
+            }
+          }
+        ],
+        "operator": "OR"
+      }
+    ],
+    "operator": "AND",
+    "zenithWhy": "The bar is off"
+  },
+  {
     "property": "zenith.bar.title",
     "label": "The tab you're on, in the bar",
     "type": "dropdown",
@@ -3495,10 +3611,14 @@
     "property": "zenith.plus.appearance-force",
     "label": "Pages set dark or light",
     "type": "dropdown",
-    "placeholder": "Default (Invert those that don't follow (as Dark Reader does))",
+    "placeholder": "Default (Recolour those that don't follow (Dark Reader's dynamic mode))",
     "options": [
       {
-        "label": "Invert those that don't follow (as Dark Reader does)",
+        "label": "Recolour those that don't follow (Dark Reader's dynamic mode)",
+        "value": "recolour"
+      },
+      {
+        "label": "Invert those that don't follow (fast; Dark Reader's filter mode)",
         "value": "invert"
       },
       {
@@ -3533,13 +3653,19 @@
               "property": "zenith.plus.appearance-force",
               "value": "invert"
             }
+          },
+          {
+            "if": {
+              "property": "zenith.plus.appearance-force",
+              "value": "recolour"
+            }
           }
         ],
         "operator": "OR"
       }
     ],
     "operator": "AND",
-    "zenithWhy": "Pages aren't inverted"
+    "zenithWhy": "Pages aren't turned"
   },
   {
     "property": "zenith.core.font",
@@ -3904,20 +4030,20 @@
   },
   {
     "property": "zenith.shell.scroller-focus",
-    "label": "The scroller keeps the column you're on",
+    "label": "Going to a column, the scroller's view moves",
     "type": "dropdown",
-    "placeholder": "Default (In view)",
+    "placeholder": "Default (Only as far as it must)",
     "options": [
       {
-        "label": "In view",
+        "label": "Only as far as it must",
         "value": "view"
       },
       {
-        "label": "In the middle",
+        "label": "To put it in the middle",
         "value": "centre"
       },
       {
-        "label": "In the middle when the one you came from won't fit beside it",
+        "label": "To the middle, if the column you left won't fit beside it",
         "value": "overflow"
       }
     ],

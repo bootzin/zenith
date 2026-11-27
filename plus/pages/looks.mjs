@@ -36,6 +36,10 @@ const OLD_FONTS = /^(mono\w*|system)$/;
 export const THEME_KEYS = [
   "zenith.palette", "zenith.core.accent", "zenith.core.corners", "zenith.core.density", "zenith.core.glass", "zenith.core.glass-edge",
   "zenith.core.window-transparency", "zenith.core.font", "zenith.core.pills", ...BAR_KEYS.map(k => `zenith.bar.${k}`),
+  // (A theme is a whole rice: also how the bar is coloured, its spaces, the
+  // tile you're on and the gaps between tiles, the motion.)
+  "zenith.bar.colors", "zenith.bar.spaces", "zenith.bar.spaces-look", "zenith.panels.tile-focus", "zenith.panels.split", "zenith.panels.gap",
+  "zenith.motion.easing", "zenith.motion.speed",
 ];
 
 function raw(p) {

@@ -22,6 +22,7 @@ const MediaHub = {
     const gone = e => {
       this.sources.delete(e.target);
       if (this.picked === e.target) this.picked = null;
+      if (this.chosen?.tab === e.target) this.chosen = null;
       this.soon();
     };
     // (On the window, not the tab strip: tabs of other spaces and the
@@ -93,6 +94,9 @@ const MediaHub = {
       const kept = all.find(s => s.tab === this.picked);
       if (kept && (kept.state !== "paused" || !all.some(s => s.rank === 0 && s.tab !== this.picked))) return kept;
     }
+    // One you went to with Shift+wheel: shown until another starts playing.
+    const chosen = this.chosen && all.find(s => s.tab === this.chosen.tab);
+    if (chosen && !all.some(s => s.tab !== chosen.tab && s.state === "playing" && s.at > this.chosen.at)) return chosen;
     return all[0] ?? null;
   },
 
@@ -107,7 +111,10 @@ const MediaHub = {
   // The next source after the shown one (a wheel with Shift, a key).
   cycle() {
     const all = this.list(), i = all.findIndex(s => s.tab === this.current?.tab);
-    if (all.length > 1) this.touch(all[(i + 1) % all.length].tab);
+    if (all.length < 2) return;
+    const tab = all[(i + 1) % all.length].tab;
+    this.chosen = { tab, at: Date.now() };
+    this.touch(tab);
   },
 
   soon(ms = 0) {

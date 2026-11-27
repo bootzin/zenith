@@ -255,18 +255,48 @@
   }
 }
 
-/* Split view: the tile you're on with an accent border (drawn above the
-   page, which paints over its own box's outline); the others dimmed
-   (opacity only: drawn by the compositor, nothing laid out again). */
+/* Split view: the tile you're on marked by a ring round its page (an
+   accent one, a gradient one as Hyprland's, a thick one as i3's) or not at
+   all. The page is drawn above anything inside its box, so the ring is the
+   box's own background showing round the page: every tile keeps the same
+   inset, only the one you're on is coloured, so nothing is laid out again
+   as you move between tiles. The others can be dimmed (opacity only:
+   drawn by the compositor). */
+:root:has(#theme-Zenith-Panels:is([zenith-panels-tile-focus="accent"], [zenith-panels-tile-focus="gradient"], [zenith-panels-tile-focus="thick"], [zenith-panels-tile-focus="off"]))
+  #tabbrowser-tabpanels[zen-split-view="true"] .browserSidebarContainer.deck-selected {
+  outline: none !important;
+}
+
+:root:has(#theme-Zenith-Panels:is([zenith-panels-tile-focus="accent"], [zenith-panels-tile-focus="gradient"], [zenith-panels-tile-focus="thick"]))
+  #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"] {
+  --zth-ring: 2px;
+  box-sizing: border-box;
+  padding: var(--zth-ring) !important;
+  border-radius: var(--zen-native-inner-radius, var(--zth-radius));
+
+  & > .browserContainer {
+    border-radius: calc(var(--zen-native-inner-radius, var(--zth-radius)) - var(--zth-ring));
+  }
+}
+
+:root:has(#theme-Zenith-Panels[zenith-panels-tile-focus="thick"])
+  #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"] {
+  --zth-ring: 3px;
+}
+
 :root:has(#theme-Zenith-Panels[zenith-panels-tile-focus="accent"])
-  #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"].deck-selected::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  border: 2px solid var(--zth-accent);
-  border-radius: inherit;
-  pointer-events: none;
+  #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"].deck-selected {
+  background: var(--zth-accent) !important;
+}
+
+:root:has(#theme-Zenith-Panels[zenith-panels-tile-focus="gradient"])
+  #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"].deck-selected {
+  background: linear-gradient(45deg, var(--zth-pal-accent, var(--zth-accent)), var(--zth-pal-second, var(--zth-accent))) !important;
+}
+
+:root:has(#theme-Zenith-Panels[zenith-panels-tile-focus="thick"])
+  #tabbrowser-tabpanels[zen-split-view="true"] > .browserSidebarContainer[zen-split="true"].deck-selected {
+  background: var(--zth-pal-second, var(--zth-accent)) !important;
 }
 
 :root:has(#theme-Zenith-Panels[zenith-panels-tile-dim="dim"])

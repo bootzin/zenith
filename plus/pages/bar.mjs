@@ -305,7 +305,7 @@ function here() {
 let glanceIds = null;
 function glances() {
   if (!glanceIds) {
-    glanceIds = new Set(gBrowser.tabs.filter(x => x.hasAttribute("zen-glance-tab")).map(x => x.getAttribute("glance-id")));
+    glanceIds = new Map(gBrowser.tabs.filter(x => x.hasAttribute("zen-glance-tab")).map(x => [x.getAttribute("glance-id"), x]));
     queueMicrotask(() => (glanceIds = null));
   }
   return glanceIds;
@@ -344,7 +344,7 @@ function tasks(box) {
       b = node("button", { type: "button", class: "zb-task", draggable: "true" });
       b.zbTab = t;
       b.append(node("img", { alt: "" }), node("span", { class: "zb-task-label" }), node("span", { class: "zb-task-n" }), node("span", { class: "zb-task-mark", "aria-hidden": "true" }),
-               node("span", { class: "zb-task-over", "aria-hidden": "true" }));
+               node("img", { class: "zb-task-over", alt: "", "aria-hidden": "true" }));
       items.set(t, b);
     }
     return b;
@@ -373,11 +373,16 @@ function tasks(box) {
     b.toggleAttribute("busy", t.hasAttribute("busy"));
     // A Glance or a Peek open on it (Zen keeps a Glance inside its tab;
     // Peek marks its own): marked whether you're on it or not.
+    // (Its mark: the icon of the page that's over it, ringed.)
     const gid = !t.hasAttribute("zen-glance-tab") && t.getAttribute("glance-id");
-    const over = gid && (t.querySelector?.(".tabbrowser-tab[zen-glance-tab]") || glances().has(gid)) ? "glance" : t.hasAttribute("zenith-peek") ? "peek" : "";
+    const glance = gid ? t.querySelector?.(".tabbrowser-tab[zen-glance-tab]") ?? glances().get(gid) : null;
+    const peek = t.getAttribute("zenith-peek");
+    const over = glance ? "glance" : peek ? "peek" : "";
+    const badge = b.querySelector(".zb-task-over"), overSrc = glance ? glance.getAttribute("image") || "" : peek && peek !== "true" ? `page-icon:${peek}` : "";
+    if (badge && badge.getAttribute("src") !== overSrc) overSrc ? badge.setAttribute("src", overSrc) : badge.removeAttribute("src");
     if (over) {
       b.setAttribute("over", over);
-      b.title += over === "glance" ? " · a Glance is open on it" : " · a Peek is open on it";
+      b.title += over === "glance" ? ` · a Glance is open on it${glance.label ? `: ${glance.label}` : ""}` : " · a Peek is open on it";
     } else b.removeAttribute("over");
     const folder = t.group && !t.group.hasAttribute?.("split-view-group") ? t.group : null;
     b.zbFolder = folder;
@@ -512,7 +517,10 @@ function tasks(box) {
     e.stopPropagation();
     if (s.group) {
       try {
-        // (Zen's folder pins what it takes, as a drop in the sidebar does.)
+        // (A split's tab, a scroller column too, leaves its split first; a
+        // Zen folder holds pinned tabs, as a drop in the sidebar makes it.)
+        if (s.t.splitView || window.gZenViewSplitter?._data?.some(d => d.tabs.includes(s.t))) window.gZenViewSplitter.removeTabFromGroup(s.t, undefined, { changeTab: false });
+        if ((s.group.isZenFolder || s.group.localName === "zen-folder") && !s.t.pinned) gBrowser.pinTab(s.t);
         if (s.group.addTabs) s.group.addTabs([s.t]);
         else gBrowser.moveTabToGroup(s.t, s.group);
       } catch (err) {
@@ -582,7 +590,7 @@ function tasks(box) {
   Undo.add(() => ro.disconnect());
   for (const t of ["TabOpen", "TabClose", "TabMove", "TabSelect", "TabShow", "TabHide"]) Undo.on(gBrowser.tabContainer, t, draw);
   Undo.on(gBrowser.tabContainer, "TabAttrModified", e => {
-    if (e.detail?.changed?.some(a => ["label", "image", "pending", "soundplaying", "muted", "busy", "attention", "zenith-peek"].includes(a))) draw();
+    if (e.detail?.changed?.some(a => ["label", "image", "pending", "soundplaying", "muted", "busy", "attention", "zenith-peek"].includes(a)) || e.target.hasAttribute("zen-glance-tab")) draw();
   });
   Undo.on(window, "ZenithMedia", draw);
   for (const t of ["TabGrouped", "TabUngrouped", "TabGroupCollapse", "TabGroupExpand", "TabPinned", "TabUnpinned"]) Undo.on(window, t, draw);
@@ -1205,6 +1213,8 @@ const Bar = {
       bar.setAttribute("hint", { dot: "ring", line: "top" }[hint] ?? hint);
       bar.setAttribute("rows", pref("zenith.bar.side-rows"));
       bar.setAttribute("marks", pref("zenith.bar.tab-marks"));
+      bar.setAttribute("colors", pref("zenith.bar.colors", "mono"));
+      bar.setAttribute("spaces-look", pref("zenith.bar.spaces-look", "pill"));
       const set = (k, v) => bar.style.setProperty(k, v);
       const h = parseInt(my("size"), 10);
       set("--zb-h", `${h}px`);
@@ -1281,7 +1291,8 @@ const Bar = {
     if (hides.length) document.documentElement.setAttribute("zenith-bar-hides", hides.join(" "));
     this.look();
     for (const p of [...BAR_KEYS.flatMap(k => [`zenith.bar.${k}`, ...EDGES.map(e => Bars.pref(e, k))]), "zenith.bar.side-width", "zenith.bar.marker",
-                     "zenith.bar.container-hint", "zenith.bar.side-rows", "zenith.bar.tab-marks", "zenith.bar.rail-px", "zenith.bar.wide-px"]) {
+                     "zenith.bar.container-hint", "zenith.bar.side-rows", "zenith.bar.tab-marks", "zenith.bar.rail-px", "zenith.bar.wide-px",
+                     "zenith.bar.colors", "zenith.bar.spaces-look"]) {
       Undo.pref(p, () => this.look());
     }
     this.mark();

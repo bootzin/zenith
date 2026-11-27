@@ -220,6 +220,18 @@
       {
         "label": "An accent border",
         "value": "accent"
+      },
+      {
+        "label": "A two-colour gradient border (Hyprland)",
+        "value": "gradient"
+      },
+      {
+        "label": "A thick border (i3)",
+        "value": "thick"
+      },
+      {
+        "label": "No mark",
+        "value": "off"
       }
     ]
   },

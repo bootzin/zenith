@@ -4,7 +4,7 @@
 // @include        main
 // @include        about:preferences*
 // @include        about:settings*
-// @version        0.18.5
+// @version        0.18.6
 // ==/UserScript==
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -2471,6 +2471,128 @@ const SCHEMA = [
       }
      },
      {
+      "property": "zenith.bar.spaces-look",
+      "label": "The space you're on",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "How the space you're on stands out among the others: a pill in the accent (Hyprland, end-4), every space a box with yours filled (i3), yours underlined (polybar), or only its colour.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "A pill in the accent",
+        "value": "pill"
+       },
+       {
+        "label": "Boxes, yours filled (i3)",
+        "value": "box"
+       },
+       {
+        "label": "Underlined (polybar)",
+        "value": "underline"
+       },
+       {
+        "label": "In the accent, nothing else",
+        "value": "plain"
+       }
+      ],
+      "default": "pill",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
+      "property": "zenith.bar.colors",
+      "label": "Module colours",
+      "type": "dropdown",
+      "extra": false,
+      "desc": "One accent for what's active: modules in the bar's ink, the accent where something's on. Each module its own colour: every module's text and icons in a colour of the palette (clock blue, media mauve, downloads green…), as waybar rices do. A block of its own colour: each module filled with it, dark text (powerline rices). Underlined in its colour: a line under each, as polybar's.",
+      "host": "Zenith Plus",
+      "options": [
+       {
+        "label": "One accent for what's active",
+        "value": "mono"
+       },
+       {
+        "label": "Each module its own colour (waybar)",
+        "value": "text"
+       },
+       {
+        "label": "Each module a block of its own colour",
+        "value": "blocks"
+       },
+       {
+        "label": "Each module underlined in its colour (polybar)",
+        "value": "underline"
+       }
+      ],
+      "default": "mono",
+      "rule": {
+       "why": "The bar is off",
+       "conditions": [
+        {
+         "conditions": [
+          {
+           "if": {
+            "property": "zenith.bar.top",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.bottom",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.left",
+            "value": "on"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.bar.right",
+            "value": "on"
+           }
+          }
+         ],
+         "operator": "OR"
+        }
+       ]
+      }
+     },
+     {
       "property": "zenith.bar.title",
       "label": "The tab you're on",
       "type": "dropdown",
@@ -4322,22 +4444,22 @@ const SCHEMA = [
      },
      {
       "property": "zenith.shell.scroller-focus",
-      "label": "Keep the column",
+      "label": "The view moves",
       "type": "dropdown",
       "extra": false,
-      "desc": "In view: the strip slides as little as shows the column you're on whole, a gap from the edge (niri's default). In the middle: always in the middle. In the middle when the one you came from won't fit beside it: in view while both fit, else in the middle (niri's on-overflow).",
+      "desc": "When you go to another column (Alt+H, Alt+L, a click), how the strip slides. Only as far as it must: not at all if the column is already whole on screen, else just enough to show it whole, at the edge it came in from (niri's default). To put it in the middle: it always slides to the middle. To the middle, if the column you left won't fit beside it: both stay on screen when they fit together, else the new one goes to the middle (niri's on-overflow).",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "In view",
+        "label": "Only as far as it must",
         "value": "view"
        },
        {
-        "label": "In the middle",
+        "label": "To put it in the middle",
         "value": "centre"
        },
        {
-        "label": "In the middle when the one you came from won't fit beside it",
+        "label": "To the middle, if the column you left won't fit beside it",
         "value": "overflow"
        }
       ],
@@ -4501,7 +4623,7 @@ const SCHEMA = [
       "label": "The tile you're on",
       "type": "dropdown",
       "extra": false,
-      "desc": "In a split view, the tile you're on: as Zen draws it, or with a border in the accent colour.",
+      "desc": "In a split view (and the scroller), the tile you're on: as Zen draws it, a border in the accent colour, a border in a gradient of the palette's two main colours (Hyprland's active border), a thick border in the palette's second colour (i3's focused window), or no mark at all.",
       "host": "Zenith Panels",
       "options": [
        {
@@ -4511,6 +4633,18 @@ const SCHEMA = [
        {
         "label": "An accent border",
         "value": "accent"
+       },
+       {
+        "label": "A two-colour gradient border (Hyprland)",
+        "value": "gradient"
+       },
+       {
+        "label": "A thick border (i3)",
+        "value": "thick"
+       },
+       {
+        "label": "No mark",
+        "value": "off"
        }
       ],
       "default": "zen"
@@ -5634,11 +5768,15 @@ const SCHEMA = [
       "label": "Pages set dark or light",
       "type": "dropdown",
       "extra": false,
-      "desc": "Pages are dark or light: as you set them (the bar's sun or moon, the Dash, :appearance), or automatic (the browser's or Windows', as you choose above). Firefox asks every page for it, and many sites don't listen. Invert: a page still in the other mode once it has loaded is inverted, its pictures and videos turned back, as Dark Reader's filter mode does (pages that follow are left alone). Every page in your palette's colours: Firefox draws every page in the palette's background, text and link colours (or plain dark or light ones without a palette), as a high-contrast mode does: the same everywhere, but pages lose their own design. Only ask them: as Firefox does on its own.",
+      "desc": "Pages are dark or light: as you set them (the bar's sun or moon, the Dash, :appearance), or automatic (the browser's or Windows', as you choose above). Firefox asks every page for it, and many sites don't listen. Recolour (the default): a page still in the other mode once it has loaded is recoloured, as Dark Reader's dynamic mode does: every colour in its style sheets and inline styles turned by what it colours (backgrounds dark, text light, borders between), its pictures untouched; a little more work for a heavy page. Invert: the fast way, as Dark Reader's filter mode: the page's colours turned over, its pictures and videos turned back. Either way, pages that follow are left alone. Every page in your palette's colours: Firefox draws every page in the palette's background, text and link colours (or plain dark or light ones without a palette), as a high-contrast mode does: the same everywhere, but pages lose their own design. Only ask them: as Firefox does on its own.",
       "host": "Zenith Plus",
       "options": [
        {
-        "label": "Invert those that don't follow (as Dark Reader does)",
+        "label": "Recolour those that don't follow (Dark Reader's dynamic mode)",
+        "value": "recolour"
+       },
+       {
+        "label": "Invert those that don't follow (fast; Dark Reader's filter mode)",
         "value": "invert"
        },
        {
@@ -5650,7 +5788,7 @@ const SCHEMA = [
         "value": "off"
        }
       ],
-      "default": "invert"
+      "default": "recolour"
      },
      {
       "property": "zenith.plus.appearance-skip",
@@ -5663,7 +5801,7 @@ const SCHEMA = [
       "zenithList": "Sites left alone",
       "parent": "zenith.plus.appearance-force",
       "rule": {
-       "why": "Pages aren't inverted",
+       "why": "Pages aren't turned",
        "conditions": [
         {
          "conditions": [
@@ -5677,6 +5815,12 @@ const SCHEMA = [
            "if": {
             "property": "zenith.plus.appearance-force",
             "value": "invert"
+           }
+          },
+          {
+           "if": {
+            "property": "zenith.plus.appearance-force",
+            "value": "recolour"
            }
           }
          ],
@@ -7852,7 +7996,7 @@ function el(tag, attrs = {}, text = "") {
   return node;
 }
 
-const SCHEMA_VERSION = "0.18.5";
+const SCHEMA_VERSION = "0.18.6";
 
 // The settings page's folded and opened sections and groups (by section id,
 // or "section/group title"), kept across visits.
